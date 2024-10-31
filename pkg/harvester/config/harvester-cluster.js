@@ -138,7 +138,8 @@ export function init($plugin, store) {
     },
     resource:       NODE,
     resourceDetail: HCI.HOST,
-    resourceEdit:   HCI.HOST
+    resourceEdit:   HCI.HOST,
+    canYaml:        false,
   });
 
   configureType(HCI.HOST, { isCreatable: false, isEditable: true });
@@ -176,6 +177,7 @@ export function init($plugin, store) {
   });
 
   basicType([HCI.VM]);
+  configureType(HCI.VM, { canYaml: false });
   virtualType({
     labelKey:   'harvester.virtualMachine.label',
     group:      'root',
@@ -636,6 +638,7 @@ export function init($plugin, store) {
     resource:           SECRET,
     resourceDetail:     HCI.SECRET,
     resourceEdit:       HCI.SECRET,
+    canYaml:        false,
     notFilterNamespace: ['cattle-monitoring-system', 'cattle-logging-system']
   });
 
