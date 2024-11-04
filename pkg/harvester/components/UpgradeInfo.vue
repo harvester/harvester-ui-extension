@@ -1,6 +1,7 @@
 <script>
 import { Banner } from '@components/Banner';
-import { DOC_LINKS } from '../config/doc-links';
+import { DOC } from '../config/doc-links';
+import { docLink } from '../utils/feature-flags';
 
 export default {
   name: 'HarvesterUpgradeInfo',
@@ -20,7 +21,7 @@ export default {
     },
 
     upgradeLink() {
-      return DOC_LINKS.UPGRADE_URL;
+      return docLink(DOC.UPGRADE_URL, this.$store.getters);
     }
   },
 };

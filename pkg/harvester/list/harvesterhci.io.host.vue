@@ -8,7 +8,8 @@ import {
 import { allHash } from '@shell/utils/promise';
 import metricPoller from '@shell/mixins/metric-poller';
 import { HCI } from '../types';
-import { DOC_LINKS } from '../config/doc-links';
+import { DOC } from '../config/doc-links';
+import { docLink } from '../utils/feature-flags';
 
 const schema = {
   id:         HCI.HOST,
@@ -166,7 +167,7 @@ export default {
     },
 
     consoleDocLink() {
-      return DOC_LINKS.CONSOLE_URL;
+      return docLink(DOC.CONSOLE_URL, this.$store.getters);
     }
   },
   methods: {

@@ -1,12 +1,8 @@
-import semver from 'semver';
-const pkgJson = require('../package.json');
-
-const docVersion = `v${ semver.major(pkgJson.version) }.${ semver.minor(pkgJson.version) }`;
-
-export const DOC_LINKS = {
-  CONSOLE_URL:             `https://docs.harvesterhci.io/${ docVersion }/host/#remote-console`,
-  RANCHER_INTEGRATION_URL: `https://docs.harvesterhci.io/${ docVersion }/rancher/rancher-integration`,
-  STORAGE_NETWORK_EXAMPLE: `https://docs.harvesterhci.io/${ docVersion }/advanced/storagenetwork#configuration-example`,
-  KSMTUNED_MODE:           `https://docs.harvesterhci.io/${ docVersion }/host/#ksmtuned-mode`,
-  UPGRADE_URL:             `https://docs.harvesterhci.io/${ docVersion }/upgrade/index`
+// suffix of doc link, see utils/feature-flags.js how to get complete doc link
+export const DOC = {
+  CONSOLE_URL:             `/host/#remote-console`,
+  RANCHER_INTEGRATION_URL: `/rancher/rancher-integration`,
+  STORAGE_NETWORK_EXAMPLE: `/advanced/storagenetwork#configuration-example`,
+  KSMTUNED_MODE:           `/host/#ksmtuned-mode`,
+  UPGRADE_URL:             `/upgrade/index`
 };

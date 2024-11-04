@@ -10,7 +10,8 @@ import Tip from '@shell/components/Tip';
 import { allHash } from '@shell/utils/promise';
 import { NODE } from '@shell/config/types';
 import { HCI } from '../../types';
-import { DOC_LINKS } from '../../config/doc-links';
+import { DOC } from '../../config/doc-links';
+import { docLink } from '../../utils/feature-flags';
 
 export default {
   name: 'HarvesterEditStorageNetwork',
@@ -87,7 +88,7 @@ export default {
 
   computed: {
     storageNetworkExampleLink() {
-      return DOC_LINKS.STORAGE_NETWORK_EXAMPLE;
+      return docLink(DOC.STORAGE_NETWORK_EXAMPLE, this.$store.getters);
     },
     clusterNetworkOptions() {
       const inStore = this.$store.getters['currentProduct'].inStore;

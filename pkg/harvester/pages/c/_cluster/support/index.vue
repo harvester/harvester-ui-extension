@@ -7,7 +7,8 @@ import CommunityLinks from '@shell/components/CommunityLinks';
 import { SCHEMA } from '@shell/config/types';
 import HarvesterSupportBundle from '../../../../dialog/HarvesterSupportBundle';
 import { HCI } from '../../../../types';
-import { DOC_LINKS } from '../../../../config/doc-links';
+import { DOC } from '../../../../config/doc-links';
+import { docLink } from '../../../../utils/feature-flags';
 
 export default {
   components: {
@@ -75,7 +76,7 @@ export default {
     },
 
     rancherIntegrationLink() {
-      return DOC_LINKS.RANCHER_INTEGRATION_URL;
+      return docLink(DOC.RANCHER_INTEGRATION_URL, this.$store.getters);
     },
   },
 

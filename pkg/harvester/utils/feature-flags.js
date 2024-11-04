@@ -2,6 +2,14 @@ import semver from 'semver';
 import { HCI } from '../types';
 import { RELEASE_FEATURES } from '../config/feature-flags';
 
+export const docLink = (suffix, getter) => {
+  const v = serverVersion(getter);
+
+  const docVersion = `v${ semver.major(v) }.${ semver.minor(v) }`;
+
+  return `https://docs.harvesterhci.io/${ docVersion }${ suffix }`;
+};
+
 export function serverVersion(getters) {
   // e.g v1.4.0
   if (process.env.VUE_APP_SERVER_VERSION) {

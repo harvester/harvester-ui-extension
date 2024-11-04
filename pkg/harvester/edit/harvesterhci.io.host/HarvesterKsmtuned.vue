@@ -5,7 +5,8 @@ import UnitInput from '@shell/components/form/UnitInput';
 import { RadioGroup } from '@components/Form/Radio';
 import { Checkbox } from '@components/Form/Checkbox';
 import { HCI } from '../../types';
-import { DOC_LINKS } from '../../config/doc-links';
+import { DOC } from '../../config/doc-links';
+import { docLink } from '../../utils/feature-flags';
 
 export const ksmtunedMode = [{
   value: 'standard',
@@ -90,7 +91,7 @@ export default {
     },
 
     ksmtunedLink() {
-      return DOC_LINKS.KSMTUNED_MODE;
+      return docLink(DOC.KSMTUNED_MODE, this.$store.getters);
     }
   },
 
