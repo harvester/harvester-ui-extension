@@ -26,6 +26,14 @@ export default {
     type: {
       type:     String,
       required: true
+    },
+    close: {
+      type:     Function,
+      required: true
+    },
+    doneLocation: {
+      type:    Object,
+      default: () => {}
     }
   },
 
@@ -84,13 +92,11 @@ export default {
   methods: {
     resourceNames,
     remove() {
-      const parentComponent = this.$parent.$parent.$parent;
-
       let goTo;
 
-      if (parentComponent.doneLocation) {
+      if (this.doneLocation) {
         // doneLocation will recompute to undefined when delete request completes
-        goTo = { ...parentComponent.doneLocation };
+        goTo = { ...this.doneLocation };
       }
 
       Promise.all(this.value.map((resource) => {
@@ -118,13 +124,13 @@ export default {
         const parsed = Parse(resource.links.self);
 
         resource.remove({ url: `${ parsed.pathname }?${ removedDisks }propagationPolicy=Foreground` });
-      })).then((results) => {
+      })).then((_results) => {
         if ( goTo && !isEmpty(goTo) ) {
-          parentComponent.currentRouter.push(goTo);
+          this.value?.[0]?.currentRouter().push(goTo)
         }
-        parentComponent.close();
+        this.close();
       }).catch((err) => {
-        parentComponent.error = err;
+        this.$emit('errors', err);
       });
     }
   }
