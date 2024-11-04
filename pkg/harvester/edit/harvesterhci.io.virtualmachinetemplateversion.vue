@@ -392,19 +392,6 @@ export default {
             />
           </div>
         </div>
-
-        <div class="row mb-20">
-          <div class="col span-6">
-            <Checkbox
-              v-model:value="cpuPinning"
-              class="check"
-              type="checkbox"
-              label-key="harvester.virtualMachine.cpuPinning.label"
-              :mode="mode"
-            />
-          </div>
-        </div>
-
         <div class="row mb-20">
           <a
             v-if="showAdvanced"
@@ -445,6 +432,14 @@ export default {
         />
 
         <div class="spacer"></div>
+        <Checkbox
+          v-model="cpuPinning"
+          class="check"
+          type="checkbox"
+          tooltip-key="harvester.virtualMachine.cpuPinning.tooltip"
+          label-key="harvester.virtualMachine.cpuPinning.label"
+          :mode="mode"
+        />
         <Checkbox
           v-model:value="installUSBTablet"
           class="check"
