@@ -7,7 +7,7 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { HCI_SETTING } from '../../config/settings';
 
-const DEFAULT_TYPE ='s3';
+const DEFAULT_TYPE = 's3';
 
 export default {
   name: 'HarvesterEditBackupTarget',
@@ -27,14 +27,14 @@ export default {
       parseDefaultValue = { type: '', endpoint: '' };
     }
 
-     // set default type to s3
+    // set default type to s3
     if (!parseDefaultValue.type) {
       parseDefaultValue.type = DEFAULT_TYPE;
     }
 
     // set default virtualHostedStyle to false
     parseDefaultValue.virtualHostedStyle = false;
-  
+
     return {
       parseDefaultValue,
       errors: []
@@ -108,14 +108,14 @@ export default {
         delete this.parseDefaultValue.cert;
       }
 
-      if(this.isS3 && !this.parseDefaultValue.virtualHostedStyle) {
+      if (this.isS3 && !this.parseDefaultValue.virtualHostedStyle) {
         this.parseDefaultValue.virtualHostedStyle = false;
       }
 
       if (!this.parseDefaultValue.type) {
         delete this.value['value'];
       } else {
-        this.value['value'] = JSON.stringify(this.parseDefaultValue);;
+        this.value['value'] = JSON.stringify(this.parseDefaultValue);
       }
     },
 
@@ -127,7 +127,10 @@ export default {
 </script>
 
 <template>
-  <div class="row" @input="update">
+  <div
+    class="row"
+    @input="update"
+  >
     <div class="col span-12">
       <LabeledSelect
         v-model:value="parseDefaultValue.type"
