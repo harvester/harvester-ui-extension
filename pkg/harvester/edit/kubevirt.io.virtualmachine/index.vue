@@ -197,6 +197,10 @@ export default {
     },
 
     showCpuPinningBanner() {
+      if (!this.value.cpuPinningFeatureEnabled) {
+        return false;
+      }
+
       if (this.mode === 'edit') {
         return this.cpuPinning !== !!this.cloneVM.spec.template.spec.domain.cpu.dedicatedCpuPlacement;
       }
@@ -832,6 +836,7 @@ export default {
         />
 
         <Checkbox
+          v-if="value.cpuPinningFeatureEnabled"
           v-model:value="cpuPinning"
           :disabled="!enableCpuPinningCheckbox"
           class="check"

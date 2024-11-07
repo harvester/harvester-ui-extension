@@ -128,18 +128,17 @@ export default {
 
         out.splice(-1, 0, storageHeader);
       }
-
-      out.push({
-        name:          'cpuManager',
-        labelKey:      'harvester.tableHeaders.cpuManager',
-        value:         'id',
-        formatter:     'HarvesterCPUPinning',
-        formatterOpts: { rows: this.rows },
-        width:         150,
-        align:         'center',
-
-      });
-
+      if (this.rows.every((node) => node.cpuPinningFeatureEnabled)) {
+        out.push({
+          name:          'cpuManager',
+          labelKey:      'harvester.tableHeaders.cpuManager',
+          value:         'id',
+          formatter:     'HarvesterCPUPinning',
+          formatterOpts: { rows: this.rows },
+          width:         150,
+          align:         'center',
+        });
+      }
       if (this.hasLonghornSchema) {
         out.push({
           name:      'diskState',

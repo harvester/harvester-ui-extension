@@ -14,8 +14,8 @@ import { findBy, isArray } from '@shell/utils/array';
 import { ucFirst } from '@shell/utils/string';
 import HarvesterResource from '../harvester';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../config/harvester';
-
 import { HCI } from '../../types';
+import { featureEnabled } from '../../utils/server';
 
 const ALLOW_SYSTEM_LABEL_KEYS = [
   'topology.kubernetes.io/zone',
@@ -61,7 +61,7 @@ export default class HciNode extends HarvesterResource {
 
     const enableCPUManager = {
       action:  'enableCPUManager',
-      enabled: this.hasAction('enableCPUManager') && !this.isCPUManagerEnableInProgress && !this.isCPUManagerEnabled && !this.isEtcd, // witness node doesn't have CPU manager
+      enabled: this.cpuPinningFeatureEnabled && this.hasAction('enableCPUManager') && !this.isCPUManagerEnableInProgress && !this.isCPUManagerEnabled && !this.isEtcd, // witness node doesn't have CPU manager
       icon:    'icon icon-fw icon-os-management',
       label:   this.t('harvester.action.enableCPUManager'),
       total:   1
@@ -69,7 +69,7 @@ export default class HciNode extends HarvesterResource {
 
     const disableCPUManager = {
       action:  'disableCPUManager',
-      enabled: this.hasAction('disableCPUManager') && !this.isCPUManagerEnableInProgress && this.isCPUManagerEnabled && !this.isEtcd,
+      enabled: this.cpuPinningFeatureEnabled && this.hasAction('disableCPUManager') && !this.isCPUManagerEnableInProgress && this.isCPUManagerEnabled && !this.isEtcd,
       icon:    'icon icon-fw icon-os-management',
       label:   this.t('harvester.action.disableCPUManager'),
       total:   1
@@ -368,6 +368,10 @@ export default class HciNode extends HarvesterResource {
       this.metadata?.annotations?.[HCI_ANNOTATIONS.MAINTENANCE_STATUS] ===
       'completed'
     );
+  }
+
+  get cpuPinningFeatureEnabled() {
+    return featureEnabled(this.$rootGetters, 'cpuPinning');
   }
 
   get isCPUManagerEnabled() {

@@ -14,6 +14,7 @@ import { BACKUP_TYPE } from '../config/types';
 import { HCI } from '../types';
 import HarvesterResource from './harvester';
 import { LVM_DRIVER } from './harvester/storage.k8s.io.storageclass';
+import { featureEnabled } from '../utils/server';
 
 export const OFF = 'Off';
 
@@ -478,6 +479,10 @@ export default class VirtVm extends HarvesterResource {
     }
 
     return null;
+  }
+
+  get cpuPinningFeatureEnabled() {
+    return featureEnabled(this.$rootGetters, 'cpuPinning');
   }
 
   get isCpuPinning() {
