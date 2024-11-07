@@ -20,7 +20,7 @@ const releaseV130 = { ...FEATURES };
 const releaseV131 = {
   ...releaseV130,
   autoRotateRke2CertsSetting:                 true,
-  supportBundleNodeCollectionTimeoutSetting: true
+  supportBundleNodeCollectionTimeoutSetting:  true
 };
 
 // https://github.com/harvester/dashboard/releases/tag/v1.3.2

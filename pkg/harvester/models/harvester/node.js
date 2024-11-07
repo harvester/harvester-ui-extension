@@ -15,7 +15,7 @@ import { ucFirst } from '@shell/utils/string';
 import HarvesterResource from '../harvester';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../config/harvester';
 import { HCI } from '../../types';
-import { featureEnabled } from '../../utils/server';
+import { featureEnabled } from '../../utils/feature-flags';
 
 const ALLOW_SYSTEM_LABEL_KEYS = [
   'topology.kubernetes.io/zone',

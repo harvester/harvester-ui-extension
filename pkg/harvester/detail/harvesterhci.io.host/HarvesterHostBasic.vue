@@ -247,7 +247,7 @@ export default {
 
     <div class="row mb-20">
       <div
-        v-if="!value.isEtcd && value.isCPUManagerEnabled"
+        v-if="!value.isEtcd && value.cpuPinningFeatureEnabled"
         class="col span-6"
       >
         <LabelValue

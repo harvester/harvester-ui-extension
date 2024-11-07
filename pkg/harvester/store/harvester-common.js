@@ -1,6 +1,7 @@
 import Parse from 'url-parse';
 import { HCI } from '../types';
 import { PRODUCT_NAME } from '../config/harvester';
+import { featureEnabled } from '../utils/feature-flags';
 
 const state = function() {
   return {
@@ -39,7 +40,7 @@ const mutations = {
   },
 
   uploadEnd(state, value) {
-    const filtered = state.uploadingImages.filter(l => l !== value);
+    const filtered = state.uploadingImages.filter((l) => l !== value);
 
     state['uploadingImages'] = filtered;
   }
@@ -67,7 +68,11 @@ const getters = {
   },
 
   uploadingImageError(state) {
-    return name => state.uploadingImageError[name];
+    return (name) => state.uploadingImageError[name];
+  },
+
+  getFeatureEnabled: (_state, _getters, _rootState, rootGetters) => (feature) => {
+    return featureEnabled(rootGetters, feature);
   },
 
   getHarvesterClusterUrl: (state, getters, rootState, rootGetters) => (url) => {

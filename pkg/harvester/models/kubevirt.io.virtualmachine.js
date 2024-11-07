@@ -14,7 +14,7 @@ import { BACKUP_TYPE } from '../config/types';
 import { HCI } from '../types';
 import HarvesterResource from './harvester';
 import { LVM_DRIVER } from './harvester/storage.k8s.io.storageclass';
-import { featureEnabled } from '../utils/server';
+import { featureEnabled } from '../utils/feature-flags';
 
 export const OFF = 'Off';
 
