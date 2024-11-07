@@ -12,13 +12,15 @@ export function serverVersion(getters) {
     const v = getters['harvester/byId'](HCI.SETTING, 'server-version')?.value;
 
     return `v${ semver.major(v) }.${ semver.minor(v) }.${ semver.patch(v) }`;
-  } catch (error) {}
-
-  return '';
+  } catch (error) {
+    // fallback to the latest version
+    return Object.keys(RELEASE_FEATURES).sort((a, b) => semver.compare(a, b)).pop();
+  }
 }
 
 export const featureEnabled = (getters, featureKey) => {
   const version = serverVersion(getters);
+  const releasedFeatures = RELEASE_FEATURES[version] || [];
 
-  return !!RELEASE_FEATURES[version]?.[featureKey] || false;
+  return releasedFeatures.includes(featureKey);
 };
