@@ -4,8 +4,14 @@ import { HARVESTER_NAME, HARVESTER_NAME as VIRTUAL } from '@shell/config/feature
 import { SETTING } from '@shell/config/settings';
 import semver from 'semver';
 import { serverVersion } from '../utils/feature-flags';
+import { colorForState, stateDisplay, STATES_ENUM } from '@shell/plugins/dashboard-store/resource-class';
+
 export default class HciCluster extends ProvCluster {
   get stateObj() {
+    if (!this.isSupportedHarvesterVersion) {
+      return { error: true, message: this.t('harvesterManager.cluster.supportMessage') };
+    }
+
     return this._stateObj;
   }
 
@@ -30,12 +36,20 @@ export default class HciCluster extends ProvCluster {
     return false;
   }
 
-  get stateDescription() {
+  get stateColor() {
     if (!this.isSupportedHarvesterVersion) {
-      return this.t('harvesterManager.cluster.supportMessage');
+      return colorForState(STATES_ENUM.DENIED);
     }
 
-    return '';
+    return colorForState(this.state);
+  }
+
+  get stateDisplay() {
+    if (!this.isSupportedHarvesterVersion) {
+      return stateDisplay(STATES_ENUM.DENIED);
+    }
+
+    return stateDisplay(this.state);
   }
 
   /**

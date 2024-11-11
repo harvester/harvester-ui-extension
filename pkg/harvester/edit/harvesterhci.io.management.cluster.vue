@@ -115,10 +115,10 @@ export default {
   >
     <Banner
       v-if="isCreate"
-      color="info"
+      color="warning"
     >
       {{ t('harvesterManager.cluster.supportMessage') }}
-    </Banner>>
+    </Banner>
     <div class="mt-20">
       <NameNsDescription
         v-if="!isView"
