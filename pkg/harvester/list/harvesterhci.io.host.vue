@@ -167,7 +167,9 @@ export default {
     },
 
     consoleDocLink() {
-      return docLink(DOC.CONSOLE_URL, this.$store.getters);
+      const version = this.$rootGetters['harvester-common/getServerVersion']();
+
+      return docLink(DOC.CONSOLE_URL, version);
     }
   },
   methods: {

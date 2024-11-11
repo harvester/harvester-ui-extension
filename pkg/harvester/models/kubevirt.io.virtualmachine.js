@@ -13,7 +13,6 @@ import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
 import { BACKUP_TYPE } from '../config/types';
 import { HCI } from '../types';
 import HarvesterResource from './harvester';
-import { featureEnabled } from '../utils/feature-flags';
 
 export const OFF = 'Off';
 
@@ -481,7 +480,7 @@ export default class VirtVm extends HarvesterResource {
   }
 
   get cpuPinningFeatureEnabled() {
-    return featureEnabled(this.$rootGetters, 'cpuPinning');
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('cpuPinning');
   }
 
   get isCpuPinning() {

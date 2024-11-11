@@ -88,7 +88,9 @@ export default {
 
   computed: {
     storageNetworkExampleLink() {
-      return docLink(DOC.STORAGE_NETWORK_EXAMPLE, this.$store.getters);
+      const version = this.$rootGetters['harvester-common/getServerVersion']();
+
+      return docLink(DOC.STORAGE_NETWORK_EXAMPLE, version);
     },
     clusterNetworkOptions() {
       const inStore = this.$store.getters['currentProduct'].inStore;

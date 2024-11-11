@@ -1,24 +1,19 @@
 import semver from 'semver';
-import { HCI } from '../types';
 import { RELEASE_FEATURES } from '../config/feature-flags';
 
-export const docLink = (suffix, getter) => {
-  const v = serverVersion(getter);
-
-  const docVersion = `v${ semver.major(v) }.${ semver.minor(v) }`;
+export const docLink = (suffix, version) => {
+  const docVersion = `v${ semver.major(version) }.${ semver.minor(version) }`;
 
   return `https://docs.harvesterhci.io/${ docVersion }${ suffix }`;
 };
 
-export function serverVersion(getters) {
+export function featureVersion(v) {
   // e.g v1.4.0
   if (process.env.VUE_APP_SERVER_VERSION) {
     return process.env.VUE_APP_SERVER_VERSION;
   }
 
   try {
-    const v = getters['harvester/byId'](HCI.SETTING, 'server-version')?.value;
-
     return `v${ semver.major(v) }.${ semver.minor(v) }.${ semver.patch(v) }`;
   } catch (error) {
     // fallback to the latest version
@@ -26,8 +21,8 @@ export function serverVersion(getters) {
   }
 }
 
-export const featureEnabled = (getters, featureKey) => {
-  const version = serverVersion(getters);
+export const featureEnabled = (featureKey, serverVersion) => {
+  const version = featureVersion(serverVersion);
   const releasedFeatures = RELEASE_FEATURES[version] || [];
 
   return releasedFeatures.includes(featureKey);

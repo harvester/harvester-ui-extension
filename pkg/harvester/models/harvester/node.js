@@ -15,7 +15,6 @@ import { ucFirst } from '@shell/utils/string';
 import HarvesterResource from '../harvester';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../config/harvester';
 import { HCI } from '../../types';
-import { featureEnabled } from '../../utils/feature-flags';
 
 const ALLOW_SYSTEM_LABEL_KEYS = [
   'topology.kubernetes.io/zone',
@@ -371,7 +370,7 @@ export default class HciNode extends HarvesterResource {
   }
 
   get cpuPinningFeatureEnabled() {
-    return featureEnabled(this.$rootGetters, 'cpuPinning');
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('cpuPinning');
   }
 
   get isCPUManagerEnabled() {
