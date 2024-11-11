@@ -31,7 +31,6 @@ export default {
 
   async fetch() {
     const inStore = this.$store.getters['currentProduct'].inStore;
-
     const hash = await allHash({
       hciClusters:  this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.CLUSTER }),
       mgmtClusters: this.$store.dispatch(`${ inStore }/findAll`, { type: MANAGEMENT.CLUSTER })
@@ -39,6 +38,25 @@ export default {
 
     this.hciClusters = hash.hciClusters;
     this.mgmtClusters = hash.mgmtClusters;
+
+    for (const cluster of this.mgmtClusters) {
+      const clusterId = cluster.id;
+
+      if (clusterId === 'local') {
+        continue;
+      }
+      if (clusterId) {
+        try {
+          const settingUrl = `/k8s/clusters/${ clusterId }/v1/harvester/${ HCI.SETTING }s?exclude=metadata.managedFields`;
+
+          const r = await this.$store.dispatch('request', { url: settingUrl, method: 'get' });
+
+          console.log('🚀 ~ fetch ~r  = ', r);
+        } catch (e) {
+          console.info(`Failed to fetch harvester setting from ${ clusterId }, error=${ e }`); // eslint-disable-line no-console
+        }
+      }
+    }
   },
 
   data() {
