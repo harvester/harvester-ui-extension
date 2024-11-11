@@ -2,7 +2,8 @@ import ProvCluster from '@shell/models/provisioning.cattle.io.cluster';
 import { DEFAULT_WORKSPACE, HCI, MANAGEMENT } from '@shell/config/types';
 import { HARVESTER_NAME, HARVESTER_NAME as VIRTUAL } from '@shell/config/features';
 import { SETTING } from '@shell/config/settings';
-
+import semver from 'semver';
+import { serverVersion } from '../utils/feature-flags';
 export default class HciCluster extends ProvCluster {
   get stateObj() {
     return this._stateObj;
@@ -27,6 +28,26 @@ export default class HciCluster extends ProvCluster {
 
   get canEdit() {
     return false;
+  }
+
+  get stateDescription() {
+    if (!this.isSupportedHarvesterVersion) {
+      return this.t('harvesterManager.cluster.supportMessage');
+    }
+
+    return '';
+  }
+
+  /**
+   * harvester ui extension only supports harvester cluster version >= 1.3.0
+   */
+  get isSupportedHarvesterVersion() {
+    const version = serverVersion(this.$rootGetters);
+
+    // eslint-disable-next-line no-console
+    console.log('🚀 ~ HciCluster ~ getisSupportedHarvesterVersion ~ version:', version);
+
+    return semver.gte(version, '1.3.0');
   }
 
   /**

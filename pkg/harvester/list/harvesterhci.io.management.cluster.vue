@@ -87,6 +87,16 @@ export default {
   },
 
   methods: {
+    disableClusterLink(row) {
+      // eslint-disable-next-line no-console
+      console.log('🚀 ~ disableClusterLink ~ row:', row);
+      if (!row.isSupportedHarvesterVersion) {
+        return true;
+      }
+
+      return this.navigating ? true : null;
+    },
+
     async goToCluster(row) {
       const timeout = setTimeout(() => {
         // Don't show loading indicator for quickly fetched plugins
@@ -148,7 +158,7 @@ export default {
             <a
               v-if="row.isReady"
               class="link"
-              :disabled="navigating ? true : null"
+              :disabled="disableClusterLink(row)"
               @click="goToCluster(row)"
             >{{ row.nameDisplay }}</a>
             <span v-else>
