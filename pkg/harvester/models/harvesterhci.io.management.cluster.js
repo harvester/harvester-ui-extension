@@ -2,13 +2,17 @@ import ProvCluster from '@shell/models/provisioning.cattle.io.cluster';
 import { DEFAULT_WORKSPACE, HCI, MANAGEMENT } from '@shell/config/types';
 import { HARVESTER_NAME, HARVESTER_NAME as VIRTUAL } from '@shell/config/features';
 import { SETTING } from '@shell/config/settings';
-import semver from 'semver';
-import { serverVersion } from '../utils/feature-flags';
 import { colorForState, stateDisplay, STATES_ENUM } from '@shell/plugins/dashboard-store/resource-class';
 
 export default class HciCluster extends ProvCluster {
+  _isSupportedHarvester = undefined;
+
+  get isSupportedHarvester() {
+    return this._isSupportedHarvester === undefined ? true : this._isSupportedHarvester;
+  }
+
   get stateObj() {
-    if (!this.isSupportedHarvesterVersion) {
+    if (!this.isSupportedHarvester) {
       return { error: true, message: this.t('harvesterManager.cluster.supportMessage') };
     }
 
@@ -37,7 +41,7 @@ export default class HciCluster extends ProvCluster {
   }
 
   get stateColor() {
-    if (!this.isSupportedHarvesterVersion) {
+    if (!this.isSupportedHarvester) {
       return colorForState(STATES_ENUM.DENIED);
     }
 
@@ -45,23 +49,11 @@ export default class HciCluster extends ProvCluster {
   }
 
   get stateDisplay() {
-    if (!this.isSupportedHarvesterVersion) {
+    if (!this.isSupportedHarvester) {
       return stateDisplay(STATES_ENUM.DENIED);
     }
 
     return stateDisplay(this.state);
-  }
-
-  /**
-   * harvester ui extension only supports harvester cluster version >= 1.3.0
-   */
-  get isSupportedHarvesterVersion() {
-    const version = serverVersion(this.$rootGetters);
-
-    // eslint-disable-next-line no-console
-    console.log('🚀 ~ HciCluster ~ getisSupportedHarvesterVersion ~ version:', version);
-
-    return semver.gte(version, '1.3.0');
   }
 
   /**
@@ -208,5 +200,20 @@ export default class HciCluster extends ProvCluster {
         resource: HCI.DASHBOARD // Go directly to dashboard to avoid blip of components on screen
       }
     });
+  }
+
+  async setSupportedHarvesterVersion() {
+    if (this._isSupportedHarvester !== undefined) {
+      return;
+    }
+
+    const url = `/k8s/clusters/${ this.status.clusterName }/v1`;
+
+    try {
+      const setting = await this.$dispatch('request', { url: `${ url }/${ HCI.SETTING }s/server-version` });
+
+      this._isSupportedHarvester = this.$rootGetters['harvester-common/getFeatureEnabled']('supportHarvesterClusterVersion', setting?.value);
+    } catch (error) {
+    }
   }
 }
