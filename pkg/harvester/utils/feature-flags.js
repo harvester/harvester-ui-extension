@@ -7,7 +7,7 @@ export const docLink = (suffix, version) => {
   return `https://docs.harvesterhci.io/${ docVersion }${ suffix }`;
 };
 
-export function featureVersion(v) {
+export function getVersion(v) {
   // e.g v1.4.0
   if (process.env.VUE_APP_SERVER_VERSION) {
     return process.env.VUE_APP_SERVER_VERSION;
@@ -22,7 +22,7 @@ export function featureVersion(v) {
 }
 
 export const featureEnabled = (featureKey, serverVersion) => {
-  const version = featureVersion(serverVersion);
+  const version = getVersion(serverVersion);
   const releasedFeatures = RELEASE_FEATURES[version] || [];
 
   return releasedFeatures.includes(featureKey);

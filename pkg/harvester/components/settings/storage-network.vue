@@ -88,7 +88,7 @@ export default {
 
   computed: {
     storageNetworkExampleLink() {
-      const version = this.$rootGetters['harvester-common/getServerVersion']();
+      const version = this.$store.getters['harvester-common/getServerVersion']();
 
       return docLink(DOC.STORAGE_NETWORK_EXAMPLE, version);
     },

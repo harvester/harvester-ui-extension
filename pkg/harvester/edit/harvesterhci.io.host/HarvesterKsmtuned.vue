@@ -91,7 +91,7 @@ export default {
     },
 
     ksmtunedLink() {
-      const version = this.$rootGetters['harvester-common/getServerVersion']();
+      const version = this.$store.getters['harvester-common/getServerVersion']();
 
       return docLink(DOC.KSMTUNED_MODE, version);
     }

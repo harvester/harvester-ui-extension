@@ -76,7 +76,7 @@ export default {
     },
 
     rancherIntegrationLink() {
-      const version = this.$rootGetters['harvester-common/getServerVersion']();
+      const version = this.$store.getters['harvester-common/getServerVersion']();
 
       return docLink(DOC.RANCHER_INTEGRATION_URL, version);
     },

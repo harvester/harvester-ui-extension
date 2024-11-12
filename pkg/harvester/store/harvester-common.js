@@ -1,7 +1,7 @@
 import Parse from 'url-parse';
 import { HCI } from '../types';
 import { PRODUCT_NAME } from '../config/harvester';
-import { featureEnabled, featureVersion } from '../utils/feature-flags';
+import { featureEnabled, getVersion } from '../utils/feature-flags';
 
 const state = function() {
   return {
@@ -74,7 +74,7 @@ const getters = {
   getServerVersion: (_state, _getters, _rootState, rootGetters) => () => {
     const serverVersion = rootGetters['harvester/byId'](HCI.SETTING, 'server-version')?.value;
 
-    return featureVersion(serverVersion);
+    return getVersion(serverVersion);
   },
 
   getFeatureEnabled: (_state, _getters, _rootState, rootGetters) => (feature, version) => {

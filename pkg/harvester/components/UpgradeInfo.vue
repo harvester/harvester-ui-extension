@@ -21,7 +21,7 @@ export default {
     },
 
     upgradeLink() {
-      const version = this.$rootGetters['harvester-common/getServerVersion']();
+      const version = this.$store.getters['harvester-common/getServerVersion']();
 
       return docLink(DOC.UPGRADE_URL, version);
     }
