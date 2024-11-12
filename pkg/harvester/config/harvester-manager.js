@@ -53,7 +53,15 @@ export function init($plugin, store) {
     STATE,
     NAME_COL,
     {
+      name:     'harvesterVersion',
+      sort:     'harvesterVersion',
+      labelKey: 'harvesterManager.tableHeaders.harvesterVersion',
+      value:    'HarvesterVersion',
+      getValue: (row) => row.harvesterVersion
+    },
+    {
       ...VERSION,
+      labelKey: 'harvesterManager.tableHeaders.kubernetesVersion',
       value:    'kubernetesVersion',
       getValue: (row) => row.kubernetesVersion
     },

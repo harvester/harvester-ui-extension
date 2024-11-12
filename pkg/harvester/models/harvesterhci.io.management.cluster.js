@@ -5,10 +5,12 @@ import { SETTING } from '@shell/config/settings';
 import { colorForState, stateDisplay, STATES_ENUM } from '@shell/plugins/dashboard-store/resource-class';
 
 export default class HciCluster extends ProvCluster {
-  _isSupportedHarvester = undefined;
-
   get isSupportedHarvester() {
     return this._isSupportedHarvester === undefined ? true : this._isSupportedHarvester;
+  }
+
+  get harvesterVersion() {
+    return this._harvesterVersion;
   }
 
   get stateObj() {
@@ -212,8 +214,10 @@ export default class HciCluster extends ProvCluster {
     try {
       const setting = await this.$dispatch('request', { url: `${ url }/${ HCI.SETTING }s/server-version` });
 
+      this._harvesterVersion = setting?.value;
       this._isSupportedHarvester = this.$rootGetters['harvester-common/getFeatureEnabled']('supportHarvesterClusterVersion', setting?.value);
     } catch (error) {
+      console.error('unable to get harvester version from settings/server-version', error); // eslint-disable-line no-console
     }
   }
 }

@@ -83,6 +83,7 @@ export default {
           if (row.isReady) {
             row.setSupportedHarvesterVersion();
           }
+
           return row;
         });
     },

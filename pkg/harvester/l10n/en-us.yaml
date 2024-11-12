@@ -1,5 +1,8 @@
 harvesterManager:
   manage: Manage
+  tableHeaders:
+    kubernetesVersion: Kubernetes Version
+    harvesterVersion: Harvester Version
   cluster:
     label: Harvester Clusters
     none: There are no Harvester Clusters
