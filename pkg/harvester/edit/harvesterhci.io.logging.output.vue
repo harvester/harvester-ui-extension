@@ -93,7 +93,11 @@ export default {
     const selectedProviderDefault = providers.find((p) => p.name === selectedProvider)?.default || providers[0].default;
 
     if (this.mode !== _VIEW) {
+<<<<<<< HEAD
       set(this.value.spec, selectedProvider, this.value.spec[selectedProvider] || clone(selectedProviderDefault));
+=======
+      this.$set(this.value.spec, selectedProvider, this.value.spec[selectedProvider] || clone(selectedProviderDefault));
+>>>>>>> c86b4b0 (filter provider spec in output / cluster output pages)
     }
 
     return {
