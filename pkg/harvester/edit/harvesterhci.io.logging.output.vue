@@ -74,7 +74,6 @@ export default {
     if (this.isCreate) {
       this.value.metadata.namespace = 'default';
     }
-
     set(this.value, 'spec', this.value.spec || {});
 
     const providers = PROVIDERS.map((provider) => ({
@@ -83,14 +82,6 @@ export default {
       label: this.t(provider.labelKey)
     }));
 
-    if (this.mode !== _VIEW) {
-      this.value['spec'] = this.value.spec || {};
-
-      providers.forEach((provider) => {
-        this.value.spec[provider.name] = this.value.spec[provider.name] || clone(provider.default);
-      });
-    }
-
     const selectedProviders = providers.filter((provider) => {
       const specProvider = this.value.spec[provider.name];
       const correctedSpecProvider = provider.name === 'forward' ? specProvider?.servers?.[0] || {} : specProvider;
@@ -98,7 +89,12 @@ export default {
       return !isEmpty(correctedSpecProvider) && !isEqual(correctedSpecProvider, provider.default);
     });
 
-    const selectedProvider = selectedProviders?.[0]?.value || providers[0].value;
+    const selectedProvider = selectedProviders?.[0]?.value || providers[0].value; // selected provider name
+    const selectedProviderDefault = providers.find((p) => p.name === selectedProvider)?.default || providers[0].default;
+
+    if (this.mode !== _VIEW) {
+      this.$set(this.value.spec, selectedProvider, this.value.spec[selectedProvider] || clone(selectedProviderDefault));
+    }
 
     return {
       bufferYaml:                   '',
@@ -129,6 +125,18 @@ export default {
     outputTypeOptions() {
       return OUTPUT_TYPE;
     },
+    outputProvider: {
+      get() {
+        return this.selectedProvider;
+      },
+
+      set(newProvider) {
+        this.selectedProvider = newProvider;
+        const providerDefaultSpec = this.providers.find((p) => p.name === newProvider)?.default || {};
+
+        this.value.spec = { [newProvider]: this.value.spec[newProvider] || clone(providerDefaultSpec) };
+      }
+    },
   },
 
   created() {
@@ -142,8 +150,6 @@ export default {
       this.$refs.tabbed.select(provider.name);
     },
     willSave() {
-      this.value.spec = { [this.selectedProvider]: this.value.spec[this.selectedProvider] };
-
       const bufferJson = jsyaml.load(this.bufferYaml);
 
       if (!isEmpty(bufferJson)) {
@@ -236,7 +242,7 @@ export default {
           <div class="row">
             <div class="col span-6">
               <LabeledSelect
-                v-model:value="selectedProvider"
+                v-model:value="outputProvider"
                 label="Output"
                 :options="providers"
                 :mode="mode"
