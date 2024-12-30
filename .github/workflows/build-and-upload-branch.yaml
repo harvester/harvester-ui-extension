@@ -1,0 +1,24 @@
+name: Build Dashboard (Branch)
+
+on:
+  push:
+    branches:
+      - main
+      - 'release-harvester-v*'
+      - '*-dev'
+
+jobs:
+  build-validation:
+    name: Build Test
+    uses: ./.github/workflows/test.yaml
+  build:
+    name: Build and Upload Package
+    uses: ./.github/workflows/build-and-upload.yaml
+    needs:
+      - build-validation
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    with:
+      CI_BRANCH: ${{github.ref_name}}

@@ -1,0 +1,59 @@
+#!/bin/bash
+set -e
+set -x
+
+BUILD_DEBUG="${BUILD_DEBUG:-}"
+if [[ -n "${BUILD_DEBUG}" ]]; then
+    set -x
+    env
+fi
+
+cd $(dirname $0)/..
+
+echo "Bootstrapping..."
+yarn --pure-lockfile install
+
+source scripts/version
+echo "BRANCH: ${COMMIT_BRANCH:-<none>}"
+echo "TAG: ${GIT_TAG:-<none>}"
+DIR=${GIT_TAG:-$COMMIT_BRANCH}
+
+OUTPUT_DIR=dist/${DIR}-embedded
+
+echo "Building..."
+COMMIT=${COMMIT} VERSION=${VERSION} OUTPUT_DIR=$OUTPUT_DIR ROUTER_BASE='/dashboard/' RESOURCE_BASE='/dashboard/' RANCHER_ENV=harvester yarn run build
+
+if [ -v EMBED_PKG ]; then
+    echo "Build and embed plugin from: $EMBED_PKG"
+    PKG_FILE_NAME=${EMBED_PKG##*/}
+    echo PKG_FILE_NAME: $PKG_FILE_NAME
+
+    PKG_NAME="${PKG_FILE_NAME/.tar.gz/""}"
+    echo "Plugin name: '$PKG_NAME'"
+
+    # Fetch file, unpack and move to dist
+    curl $EMBED_PKG --output $PKG_FILE_NAME
+    OUTPUT_DIR_PKG=$OUTPUT_DIR/$PKG_NAME
+    mkdir -p $OUTPUT_DIR_PKG
+    tar xvfz $PKG_FILE_NAME -C $OUTPUT_DIR/$PKG_NAME
+    echo "Plugin contents that will be served from $PKG_NAME"
+    ls -alR $OUTPUT_DIR/$PKG_NAME
+fi
+
+echo "Destroying..."
+find $OUTPUT_DIR -name "index.html" -mindepth 2 -exec rm {} \;
+find $OUTPUT_DIR -type d -empty -depth -exec rmdir {} \;
+
+TARBALL=${DIR}.tar.gz
+TARBALL_FILE_PATH=dist/${TARBALL}
+
+ENV_OUTPUT="${GITHUB_OUTPUT:-"temp-env"}"
+echo "BUILD_EMBEDED_TGZ=${TARBALL_FILE_PATH}" >> "$ENV_OUTPUT"
+
+echo "Compressing to ${TARBALL}..."
+tar -czf ${TARBALL_FILE_PATH} $OUTPUT_DIR/
+
+echo "Cleaning up..."
+rm -r $OUTPUT_DIR
+
+ls -alR dist/
