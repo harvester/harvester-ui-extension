@@ -245,6 +245,8 @@ export default {
     async saveImage(buttonCb) {
       this.value.spec.displayName = (this.value.spec.displayName || '').trim();
 
+      if (this.isEdit) return await this.handleEditImage(buttonCb);
+
       if (this.value.spec.sourceType === UPLOAD && this.isCreate) {
         try {
           this.value.spec.url = '';
@@ -266,6 +268,23 @@ export default {
       } else {
         this.value.spec.url = this.value.spec.url?.trim() || '';
         this.save(buttonCb);
+      }
+    },
+
+    async handleEditImage(buttonCb) {
+      try {
+        const data = [{
+          op: 'replace', path: '/metadata/labels', value: this.value.metadata.labels
+        }, {
+          op: 'replace', path: '/metadata/annotations', value: this.value.metadata.annotations
+        }];
+
+        await this.value.patch(data);
+        buttonCb(true);
+        this.done();
+      } catch (e) {
+        this.errors = exceptionToErrorsArray(e);
+        buttonCb(false);
       }
     },
 
@@ -530,6 +549,7 @@ export default {
           :mode="mode"
           :pad-left="false"
           :read-allowed="false"
+          :value-can-be-empty="true"
           @focusKey="focusKey"
           @update:value="value.setLabels($event)"
         >
@@ -552,7 +572,7 @@ export default {
               autocorrect="off"
               autocapitalize="off"
               spellcheck="false"
-              @update:value="queueUpdate"
+              @input="queueUpdate"
             />
           </template>
         </KeyValue>
