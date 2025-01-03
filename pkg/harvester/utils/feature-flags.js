@@ -14,16 +14,35 @@ export function getVersion(v) {
   }
 
   try {
+    // v1.4.1-rc.1 => v1.4.1, v1.4.1-dev-20241222 => v1.4.1
     return `v${ semver.major(v) }.${ semver.minor(v) }.${ semver.patch(v) }`;
   } catch (error) {
     // fallback to the latest version
-    return Object.keys(RELEASE_FEATURES).sort((a, b) => semver.compare(a, b)).pop();
+    return latestVersion(Object.keys(RELEASE_FEATURES));
   }
+}
+
+function latestVersion(versions) {
+  return versions.sort((a, b) => semver.compare(a, b)).pop();
+}
+
+// v1.3.3 => latest v1.3.x, v1.4.2 => latest v1.4.x
+function latestMinorVersion(v) {
+  const minor = `v${ semver.major(v) }.${ semver.minor(v) }`;
+  const minorVersions = Object.keys(RELEASE_FEATURES).filter((version) => version.startsWith(minor));
+
+  return latestVersion(minorVersions);
 }
 
 export const featureEnabled = (featureKey, serverVersion) => {
   const version = getVersion(serverVersion);
-  const releasedFeatures = RELEASE_FEATURES[version] || [];
+  let releasedFeatures = RELEASE_FEATURES[version];
+
+  if (!releasedFeatures) {
+    const fallback = latestMinorVersion(version);
+
+    releasedFeatures = RELEASE_FEATURES[fallback];
+  }
 
   return releasedFeatures.includes(featureKey);
 };
