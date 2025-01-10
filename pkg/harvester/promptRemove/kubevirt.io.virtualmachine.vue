@@ -4,6 +4,7 @@ import { isEmpty } from '@shell/utils/object';
 import Parse from 'url-parse';
 import { resourceNames } from '@shell/utils/string';
 import { HCI } from '../types';
+import { alternateLabel as alternateLabelButton } from '@shell/utils/platform';
 
 export default {
   name: 'HarvesterPromptRemove',
@@ -39,8 +40,9 @@ export default {
 
   data() {
     return {
-      checkedList: [],
-      checkAll:    true
+      checkedList:    [],
+      checkAll:       true,
+      alternateLabel: alternateLabelButton
     };
   },
 
@@ -138,44 +140,53 @@ export default {
 </script>
 
 <template>
-  <div class="mt-10">
-    {{ t('promptRemove.attemptingToRemove', {type}) }}
-    <span v-clean-html="resourceNames(names, plusMore, t)"></span>
-
+  <div>
     <div class="mt-10">
-      {{ t('harvester.virtualMachine.promptRemove.title') }}
-    </div>
-    <div v-if="value.length === 1">
-      <span
-        v-for="(name, i) in removeNameArr[value[0].id]"
-        :key="i"
-      >
-        <label class="checkbox-container mr-15"><input
-                                                  v-model="checkedList"
-                                                  type="checkbox"
-                                                  :label="name"
-                                                  :value="name"
-                                                />
+      {{ t('promptRemove.attemptingToRemove', {type}) }}
+      <span v-clean-html="resourceNames(names, plusMore, t)"></span>
+
+      <div class="mt-10">
+        {{ t('harvester.virtualMachine.promptRemove.title') }}
+      </div>
+      <div v-if="value.length === 1">
+        <span
+          v-for="(name, i) in removeNameArr[value[0].id]"
+          :key="i"
+        >
+          <label class="checkbox-container mr-15">
+            <input
+              v-model="checkedList"
+              type="checkbox"
+              :label="name"
+              :value="name"
+            />
+            <span
+              class="checkbox-custom mr-5"
+              role="checkbox"
+            />
+            {{ name }}
+          </label>
+        </span>
+      </div>
+      <div v-else>
+        <label class="checkbox-container mr-15">
+          <input
+            v-model="checkedList"
+            type="checkbox"
+          />
           <span
             class="checkbox-custom mr-5"
             role="checkbox"
           />
-          {{ name }}
+          {{ t('harvester.virtualMachine.promptRemove.deleteAll') }}
         </label>
-      </span>
+      </div>
     </div>
-
-    <div v-else>
-      <label class="checkbox-container mr-15"><input
-                                                v-model="checkAll"
-                                                type="checkbox"
-                                              />
-        <span
-          class="checkbox-custom mr-5"
-          role="checkbox"
-        />
-        {{ t('harvester.virtualMachine.promptRemove.deleteAll') }}
-      </label>
+    <div class="text-warning mb-10 mt-10">
+      {{ t('harvester.virtualMachine.promptRemove.tips') }}
+    </div>
+    <div class="text-info mt-20">
+      {{ t('promptRemove.protip', { alternateLabel }) }}
     </div>
   </div>
 </template>

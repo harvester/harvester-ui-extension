@@ -1120,10 +1120,6 @@ export default class VirtVm extends HarvesterResource {
     return qemu?.status === 'True';
   }
 
-  get warnDeletionMessage() {
-    return this.t('harvester.virtualMachine.promptRemove.tips');
-  }
-
   get instanceLabels() {
     const all = this.spec?.template?.metadata?.labels || {};
 
