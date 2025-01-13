@@ -1,5 +1,5 @@
 <script>
-import { Sortable } from 'sortablejs-vue3';
+import { VueDraggableNext } from 'vue-draggable-next';
 import InfoBox from '@shell/components/InfoBox';
 import { Banner } from '@components/Banner';
 import BadgeStateFormatter from '@shell/components/formatter/BadgeStateFormatter';
@@ -22,7 +22,7 @@ export default {
   emits: ['update:value'],
 
   components: {
-    Banner, BadgeStateFormatter, Sortable, InfoBox, LabeledInput, UnitInput, LabeledSelect, ModalWithCard
+    Banner, BadgeStateFormatter, VueDraggableNext, InfoBox, LabeledInput, UnitInput, LabeledSelect, ModalWithCard
   },
 
   props: {
@@ -272,129 +272,130 @@ export default {
       color="info"
       label-key="harvester.virtualMachine.volume.dragTip"
     />
-    <Sortable
+    <VueDraggableNext
       :list="rows"
       :options="{disabled: isView}"
       item-key="id"
       @end="update"
     >
-      <template #item="{element: volume, index: i}">
-        <div :key="volume.name">
-          <InfoBox class="box">
-            <button
+      <div
+        v-for="(volume, i) in rows"
+        :key="volume.name"
+      >
+        <InfoBox class="box">
+          <button
+            v-if="!isView"
+            type="button"
+            class="role-link btn btn-sm remove"
+            @click="removeVolume(volume)"
+          >
+            <i class="icon icon-x" />
+          </button>
+          <button
+            v-if="volume.hotpluggable && isView"
+            type="button"
+            class="role-link btn remove"
+            @click="unplugVolume(volume)"
+          >
+            {{ t('harvester.virtualMachine.unplug.detachVolume') }}
+          </button>
+          <h3>
+            <span
+              v-if="volume.to && isVirtualType"
+              class="title"
+            >
+              <router-link :to="volume.to">
+                {{ t('harvester.virtualMachine.volume.edit') }} {{ headerFor(volume.source) }}
+              </router-link>
+
+              <BadgeStateFormatter
+                v-if="volume.pvc"
+                class="ml-10 state"
+                :arbitrary="true"
+                :row="volume.pvc"
+                :value="volume.pvc.state"
+              />
+              <a
+                v-if="dev && !!volume.pvc && !!volume.pvc.resourceExternalLink"
+                v-clean-tooltip="t(volume.pvc.resourceExternalLink.tipsKey || 'generic.resourceExternalLinkTips')"
+                class="ml-5 resource-external"
+                rel="nofollow noopener noreferrer"
+                target="_blank"
+                :href="volume.pvc.resourceExternalLink.url"
+              >
+                <i class="icon icon-external-link" />
+              </a>
+            </span>
+
+            <span v-else>
+              {{ headerFor(volume.source, !!volume?.volumeBackups) }}
+            </span>
+          </h3>
+          <div>
+            <component
+              :is="componentFor(volume.source)"
+              :value="rows[i]"
+              :rows="rows"
+              :namespace="namespace"
+              :is-create="isCreate"
+              :is-edit="isEdit"
+              :is-view="isView"
+              :is-virtual-type="isVirtualType"
+              :mode="mode"
+              :idx="i"
+              :validate-required="validateRequired"
+              @update="update"
+            />
+          </div>
+
+          <div class="bootOrder">
+            <div
               v-if="!isView"
-              type="button"
-              class="role-link btn btn-sm remove"
-              @click="removeVolume(volume)"
+              class="mr-15"
             >
-              <i class="icon icon-x" />
-            </button>
-            <button
-              v-if="volume.hotpluggable && isView"
-              type="button"
-              class="role-link btn remove"
-              @click="unplugVolume(volume)"
-            >
-              {{ t('harvester.virtualMachine.unplug.detachVolume') }}
-            </button>
-            <h3>
-              <span
-                v-if="volume.to && isVirtualType"
-                class="title"
+              <button
+                :disabled="i === 0"
+                class="btn btn-sm role-primary"
+                @click.prevent="changeSort(i, false)"
               >
-                <router-link :to="volume.to">
-                  {{ t('harvester.virtualMachine.volume.edit') }} {{ headerFor(volume.source) }}
-                </router-link>
+                <i class="icon icon-lg icon-chevron-up"></i>
+              </button>
 
-                <BadgeStateFormatter
-                  v-if="volume.pvc"
-                  class="ml-10 state"
-                  :arbitrary="true"
-                  :row="volume.pvc"
-                  :value="volume.pvc.state"
-                />
-                <a
-                  v-if="dev && !!volume.pvc && !!volume.pvc.resourceExternalLink"
-                  v-clean-tooltip="t(volume.pvc.resourceExternalLink.tipsKey || 'generic.resourceExternalLinkTips')"
-                  class="ml-5 resource-external"
-                  rel="nofollow noopener noreferrer"
-                  target="_blank"
-                  :href="volume.pvc.resourceExternalLink.url"
-                >
-                  <i class="icon icon-external-link" />
-                </a>
-              </span>
-
-              <span v-else>
-                {{ headerFor(volume.source, !!volume?.volumeBackups) }}
-              </span>
-            </h3>
-            <div>
-              <component
-                :is="componentFor(volume.source)"
-                :value="rows[i]"
-                :rows="rows"
-                :namespace="namespace"
-                :is-create="isCreate"
-                :is-edit="isEdit"
-                :is-view="isView"
-                :is-virtual-type="isVirtualType"
-                :mode="mode"
-                :idx="i"
-                :validate-required="validateRequired"
-                @update="update"
-              />
-            </div>
-
-            <div class="bootOrder">
-              <div
-                v-if="!isView"
-                class="mr-15"
+              <button
+                :disabled="i === rows.length -1"
+                class="btn btn-sm role-primary"
+                @click.prevent="changeSort(i, true)"
               >
-                <button
-                  :disabled="i === 0"
-                  class="btn btn-sm role-primary"
-                  @click.prevent="changeSort(i, false)"
-                >
-                  <i class="icon icon-lg icon-chevron-up"></i>
-                </button>
-
-                <button
-                  :disabled="i === rows.length -1"
-                  class="btn btn-sm role-primary"
-                  @click.prevent="changeSort(i, true)"
-                >
-                  <i class="icon icon-lg icon-chevron-down"></i>
-                </button>
-              </div>
-
-              <div class="text-muted">
-                bootOrder: {{ i + 1 }}
-              </div>
+                <i class="icon icon-lg icon-chevron-down"></i>
+              </button>
             </div>
 
-            <div class="mt-15">
-              <Banner
-                v-if="volume.volumeStatus && !isCreate"
-                class="volume-status"
-                color="warning"
-                :label="ucFirst(volume.volumeStatus)"
-              />
-              <Banner
-                v-if="value.volumeBackups && value.volumeBackups.error && value.volumeBackups.error.message"
-                color="error"
-                :label="ucFirst(value.volumeBackups.error.message)"
-              />
-              <Banner
-                v-if="isLonghornV2(volume) && !isView"
-                color="warning"
-                :label="t('harvester.volume.longhorn.disableResize')"
-              />
+            <div class="text-muted">
+              bootOrder: {{ i + 1 }}
             </div>
-          </InfoBox>
-        </div>
-      </template>
-    </Sortable>
+          </div>
+
+          <div class="mt-15">
+            <Banner
+              v-if="volume.volumeStatus && !isCreate"
+              class="volume-status"
+              color="warning"
+              :label="ucFirst(volume.volumeStatus)"
+            />
+            <Banner
+              v-if="value.volumeBackups && value.volumeBackups.error && value.volumeBackups.error.message"
+              color="error"
+              :label="ucFirst(value.volumeBackups.error.message)"
+            />
+            <Banner
+              v-if="isLonghornV2(volume) && !isView"
+              color="warning"
+              :label="t('harvester.volume.longhorn.disableResize')"
+            />
+          </div>
+        </InfoBox>
+      </div>
+    </VueDraggableNext>
     <Banner
       v-if="showVolumeTip"
       color="warning"
