@@ -274,7 +274,7 @@ export default {
     />
     <VueDraggableNext
       :list="rows"
-      :options="{disabled: isView}"
+      :disabled="isView"
       item-key="id"
       @end="update"
     >
