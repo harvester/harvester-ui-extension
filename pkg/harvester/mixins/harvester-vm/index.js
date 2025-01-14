@@ -217,7 +217,7 @@ export default {
       const selectedVMNetworks = networkNames.map((name) => vmNetworks.find((n) => n.id === name)).filter((n) => n?.id);
       const clusterNetworks = uniq(selectedVMNetworks.map((n) => n.clusterNetworkResource?.id));
 
-      return nodes.filter((N) => !N.isUnSchedulable).map((node) => {
+      return nodes.filter((N) => !N.isUnSchedulable && N.isEtcd !== 'true').map((node) => {
         const requireLabelKeys = [];
         let isNetworkSchedule = true;
 
