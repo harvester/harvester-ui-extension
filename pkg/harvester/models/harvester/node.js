@@ -1,5 +1,7 @@
 import pickBy from 'lodash/pickBy';
-import { CAPI, LONGHORN, POD, NODE } from '@shell/config/types';
+import {
+  CAPI, LONGHORN, POD, NODE, NORMAN
+} from '@shell/config/types';
 import { CAPI as CAPI_ANNOTATIONS } from '@shell/config/labels-annotations.js';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { clone } from '@shell/utils/object';
@@ -25,7 +27,17 @@ const HEALTHY = 'healthy';
 const WARNING = 'warning';
 
 export default class HciNode extends HarvesterResource {
+  constructor(...args) {
+    super(...args);
+    this._roleBasedActions = [];
+    this._initialized = false; // flag to prevent repeated initialization
+  }
+
   get _availableActions() {
+    if (!this._initialized) {
+      this.setupRoleBasedActions();
+    }
+
     const cordon = {
       action:  'cordon',
       enabled: this.hasAction('cordon') && !this.isCordoned,
@@ -108,8 +120,42 @@ export default class HciNode extends HarvesterResource {
       shutDown,
       powerOn,
       reboot,
-      ...super._availableActions
+      ...this._roleBasedActions || []
     ];
+  }
+
+  async setupRoleBasedActions() {
+    const baseActions = super._availableActions || [];
+
+    // access control is only available on the multiple cluster Harvester
+    if (this.$rootGetters['isStandaloneHarvester']) {
+      this._roleBasedActions = baseActions;
+    } else {
+      this._roleBasedActions = await this._updateRoleBasedActions(baseActions);
+    }
+
+    this._initialized = true;
+  }
+
+  async _updateRoleBasedActions(actions) {
+    const hasSchema = (type) => this.$rootGetters['rancher/schemaFor'](type);
+
+    if (!hasSchema(NORMAN.PRINCIPAL) || !hasSchema(NORMAN.CLUSTER_ROLE_TEMPLATE_BINDING)) return actions;
+
+    try {
+      const templates = await this.$dispatch('rancher/findAll', { type: NORMAN.CLUSTER_ROLE_TEMPLATE_BINDING }, { root: true });
+      const [currentUser] = this.$rootGetters['rancher/all'](NORMAN.PRINCIPAL) || [];
+      const userRole = templates.find((template) => template.userPrincipalId === currentUser?.id);
+
+      if (userRole?.roleTemplateId === 'cluster-member') {
+        return actions.filter((action) => action.action !== 'promptRemove');
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Error fetching role-based actions:', error);
+    }
+
+    return actions;
   }
 
   promptRemove(resources = this) {
