@@ -24,6 +24,7 @@ const CLONE = 'clone';
 const DOWNLOAD = 'download';
 const UPLOAD = 'upload';
 const rawORqcow2 = 'raw_qcow2';
+const LONGHORN = 'longhorn';
 
 export default {
   name: 'EditImage',
@@ -61,9 +62,7 @@ export default {
       storageClasses: this.$store.dispatch(`${ inStore }/findAll`, { type: STORAGE_CLASS }),
     });
 
-    const defaultStorage = this.$store.getters[`${ inStore }/all`](STORAGE_CLASS).find((s) => s.isDefault);
-
-    this['storageClassName'] = this.storageClassName || defaultStorage?.metadata?.name || 'longhorn';
+    this['storageClassName'] = this.storageClassName || this.defaultStorageClassName();
     this.images = this.$store.getters[`${ inStore }/all`](HCI.IMAGE);
 
     const { securityParameters } = this.value.spec;
@@ -144,9 +143,22 @@ export default {
       ];
     },
 
-    storageClassOptions() {
+    encryptedStorageClasses() {
       const inStore = this.$store.getters['currentProduct'].inStore;
       const storages = this.$store.getters[`${ inStore }/all`](STORAGE_CLASS);
+
+      return storages.filter((s) => s.isEncrypted);
+    },
+
+    nonEncryptedStorageClasses() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const storages = this.$store.getters[`${ inStore }/all`](STORAGE_CLASS);
+
+      return storages.filter((s) => !s.isEncrypted);
+    },
+
+    storageClassOptions() {
+      const storages = this.value.spec?.securityParameters?.cryptoOperation === ENCRYPT ? this.encryptedStorageClasses : this.nonEncryptedStorageClasses;
 
       return storages
         .filter((s) => !s.parameters?.backingImage && s.provisioner !== LVM_DRIVER) // Lvm storage is not supported.
@@ -239,6 +251,13 @@ export default {
         this.$refs.file.value = null;
       }
     },
+    'value.spec.securityParameters.cryptoOperation'() {
+      if (this.value.spec?.securityParameters?.cryptoOperation === ENCRYPT) {
+        this.storageClassName = this.encryptedStorageClasses[0]?.name || LONGHORN;
+      } else { // URL / FILE / DECRYPT should use default storage class
+        this.storageClassName = this.defaultStorageClassName();
+      }
+    }
   },
 
   methods: {
@@ -385,6 +404,14 @@ export default {
           return str.toLowerCase().includes(os.value.toLowerCase()) ? os.value : false;
         }
       });
+    },
+
+    defaultStorageClassName() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const defaultStorage = this.$store.getters[`${ inStore }/all`](STORAGE_CLASS).find((s) => s.isDefault);
+
+      // if default sc is encrypted, use longhorn as default
+      return defaultStorage.isEncrypted ? LONGHORN : defaultStorage?.metadata?.name;
     }
   },
 };

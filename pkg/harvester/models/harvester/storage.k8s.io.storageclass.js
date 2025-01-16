@@ -58,6 +58,10 @@ export default class HciStorageClass extends StorageClass {
     return key ? this.$rootGetters['i18n/t'](key) : this.provisioner;
   }
 
+  get isEncrypted() {
+    return this.parameters?.encrypted === 'true';
+  }
+
   get isLonghornV2() {
     return this.provisioner === LONGHORN_DRIVER && this.longhornVersion === DATA_ENGINE_V2;
   }
