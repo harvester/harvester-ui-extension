@@ -102,11 +102,12 @@ export default class VirtVm extends HarvesterResource {
 
     return [
       {
-        action:   'stopVM',
-        enabled:  !!this.actions?.stop,
-        icon:     'icon icon-close',
-        label:    this.t('harvester.action.stop'),
-        bulkable: true
+        action:    'stopVM',
+        altAction: 'altStopVM',
+        enabled:   !!this.actions?.stop,
+        icon:      'icon icon-close',
+        label:     this.t('harvester.action.stop'),
+        bulkable:  true
       },
       {
         action:   'forceStop',
@@ -116,10 +117,11 @@ export default class VirtVm extends HarvesterResource {
         bulkable: true
       },
       {
-        action:  'pauseVM',
-        enabled: !!this.actions?.pause,
-        icon:    'icon icon-pause',
-        label:   this.t('harvester.action.pause')
+        action:    'pauseVM',
+        altAction: 'altPauseVM',
+        enabled:   !!this.actions?.pause,
+        icon:      'icon icon-pause',
+        label:     this.t('harvester.action.pause')
       },
       {
         action:  'unpauseVM',
@@ -402,7 +404,16 @@ export default class VirtVm extends HarvesterResource {
     return node?.id;
   }
 
-  pauseVM() {
+  pauseVM(resources = this) {
+    this.$dispatch('promptModal', {
+      resources,
+      action:            'pause',
+      warningMessageKey: 'dialog.confirmExecution.pause.message',
+      component:         'ConfirmExecutionDialog'
+    });
+  }
+
+  altPauseVM() {
     this.doActionGrowl('pause', {});
   }
 
@@ -417,7 +428,16 @@ export default class VirtVm extends HarvesterResource {
     this.doActionGrowl('unpause', {});
   }
 
-  stopVM() {
+  stopVM(resources = this) {
+    this.$dispatch('promptModal', {
+      resources,
+      action:            'stop',
+      warningMessageKey: 'dialog.confirmExecution.stop.message',
+      component:         'ConfirmExecutionDialog'
+    });
+  }
+
+  altStopVM() {
     this.doActionGrowl('stop', {});
   }
 

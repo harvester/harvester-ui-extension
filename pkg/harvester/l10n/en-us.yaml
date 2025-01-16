@@ -38,6 +38,22 @@ asyncButton:
     success: Restarted
     waiting: Restarting&hellip;
 
+dialog:
+  confirmExecution:
+    title: Are you sure?
+    andOthers: |-
+      {count, plural,
+      =0 {}
+      =1 { and <b>one other </b>}
+      other { and <b>{count} other </b>}
+      }
+    confirmName: "Enter <b>{nameToMatch}</b> below to confirm:"
+    protip: "Tip: Hold the {alternateLabel} key while clicking action to bypass this confirmation"
+    stop:
+      message: "Are you sure you want to continue stop the {type} {names}?"
+    pause:
+      message: "Are you sure you want to continue pause the {type} {names}?"
+
 harvester:
   productLabel: 'Harvester'
   modal:
@@ -861,14 +877,14 @@ harvester:
       doc: Read the <a href="{url}" target="_blank">documentation</a> before starting the upgrade process. Ensure that you complete procedures that are relevant to your environment and the version you are upgrading to.
       tip: Unmet system requirements and incorrectly performed procedures may cause complete upgrade failure and other issues that require manual workarounds.
       moreNotes: For more details about the release notes, please visit -
-     
+
   schedule:
     label: Virtual Machine Schedules
     createTitle: Create Schedule
     createButtonText: Create Schedule
     scheduleType: Virtual Machine Schedule Type
     cron: Cron Schedule
-    detail: 
+    detail:
       namespace: Namespace
       sourceVM: Source Virtual Machine
     tabs:
@@ -878,12 +894,12 @@ harvester:
     message:
       noSetting:
         suffix: before creating a backup schedule
-    retain: 
+    retain:
       label: Retain
       count: Count
-      tooltip: Number of up-to-date VM backups to retain. Maximum to 250, minimum to 2. 
+      tooltip: Number of up-to-date VM backups to retain. Maximum to 250, minimum to 2.
     maxFailure:
-      label: Max Failure 
+      label: Max Failure
       count: Count
       tooltip: Max number of consecutive failed backups that could be tolerated. If reach this threshold, Harvester controller will suspend the schedule job. This value should less than retain count
     virtualMachine:
