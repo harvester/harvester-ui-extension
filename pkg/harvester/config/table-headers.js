@@ -1,6 +1,7 @@
 /**
  * Harvester
  */
+import { DESCRIPTION } from '@shell/config/table-headers';
 
 // image
 export const IMAGE_DOWNLOAD_SIZE = {
@@ -87,4 +88,10 @@ export const MACHINE_POOLS = {
   value:    'nodes.length',
   align:    'center',
   width:    100,
+};
+
+export const HARVESTER_DESCRIPTION = {
+  ...DESCRIPTION,
+  formatter: 'HarvesterDescription',
+  // width: 400
 };

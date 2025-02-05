@@ -25,6 +25,7 @@ export default {
   },
 
   data() {
+    console.log('rows=', this.rows)
     return {
       searchLabels: [],
       filterRows:   []
