@@ -58,7 +58,7 @@ export default {
       const out = [];
 
       blockDevices.map((b) => {
-        if (b.metadata.state.error) {
+        if (b?.metadata?.state?.error) {
           out.push(b.metadata.state.message);
         }
       });

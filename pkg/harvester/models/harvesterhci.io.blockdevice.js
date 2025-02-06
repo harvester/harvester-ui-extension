@@ -64,4 +64,10 @@ export default class HciBlockDevice extends HarvesterResource {
     // spec.fileSystem.provisioned is deprecated
     return this.spec?.fileSystem?.provisioned || this.spec?.provision;
   }
+
+  // Overwrite cleanForSave() in shell/plugins/steve/steve-class.js as it deleted status object in harvesterhci.io.blockdevice CRD
+  // but /v1/harvester/harvesterhci.io.blockdevices/longhorn-system/{id} API requires status object
+  cleanForSave(data) {
+    return data;
+  }
 }
