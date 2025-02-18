@@ -579,7 +579,7 @@ export default {
           :create-namespace="true"
           :namespace="value.metadata.namespace"
           :mode="mode"
-          :disabled="isWindows"
+          :disabled="isWindows || isEdit"
           @update:sshKey="updateSSHKey"
           @register-after-hook="registerAfterHook"
         />
