@@ -8,20 +8,7 @@ From Rancher 2.10.0, Harvester integration is provided by this new Harvester UI 
 
 ## Installation
 
-To install the Harvester UI Extension in Rancher 2.10.0 and newer:
-
-- Go to 'Extensions' in the Rancher UI (click on the jigsaw icon in the side bar)
-- From the three-dots menu in the upper right of the page, open the menu and select 'Manage Repositories'
-- From the Repositories page, click 'Create'
-- For name, enter 'harvester-ui-extension'
-- For Target, choose 'Git repository'
-- For Git Repo URL, enter `https://github.com/harvester/harvester-ui-extension`
-- For Git Branch, enter `gh-pages`
-- Click 'Create`
-- From the Repositories list, wait until the new Repository added updates to the 'Active' state
-- Go back to 'Extensions'
-- Click on the 'Available' tab if not already selected
-- Click on 'Install' for the Harvester UI Extension
+To install the Harvester UI Extension in Rancher 2.10.0 and newer, please refer to [installation](https://docs.harvesterhci.io/v1.5/rancher/harvester-ui-extension#installation-on-rancher-210) on harvester doc.
 
 ## Running for Development
 
