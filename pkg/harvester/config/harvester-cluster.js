@@ -31,7 +31,8 @@ import {
   FINGERPRINT,
   IMAGE_PROGRESS,
   SNAPSHOT_TARGET_VOLUME,
-  IMAGE_VIRTUAL_SIZE
+  IMAGE_VIRTUAL_SIZE,
+  HARVESTER_DESCRIPTION
 } from './table-headers';
 
 const TEMPLATE = HCI.VM_VERSION;
@@ -220,6 +221,7 @@ export function init($plugin, store) {
   headers(HCI.IMAGE, [
     STATE,
     NAME_COL,
+    HARVESTER_DESCRIPTION,
     NAMESPACE_COL,
     IMAGE_PROGRESS,
     IMAGE_DOWNLOAD_SIZE,
