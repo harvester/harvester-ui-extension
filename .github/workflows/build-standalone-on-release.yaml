@@ -1,4 +1,4 @@
-name: Build Dashboard (Release)
+name: Build Standalone on Release
 on:
   push:
     tags:
@@ -10,7 +10,7 @@ jobs:
     uses: ./.github/workflows/test.yaml
   build:
     name: Build and Upload Package
-    uses: ./.github/workflows/build-and-upload.yaml
+    uses: ./.github/workflows/build-and-publish-standalone.yaml
     needs:
       - build-validation
     permissions:

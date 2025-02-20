@@ -1,4 +1,4 @@
-name: Build Dashboard (Branch)
+name: Build Standalone on PR Merge
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
       - main
       - 'release-harvester-v*'
       - '*-dev'
-    types: 
+    types:
       - merged
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
     uses: ./.github/workflows/test.yaml
   build:
     name: Build and Upload Package
-    uses: ./.github/workflows/build-and-upload.yaml
+    uses: ./.github/workflows/build-and-publish-standalone.yaml
     needs:
       - build-validation
     permissions:

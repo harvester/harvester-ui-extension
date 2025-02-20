@@ -1,4 +1,4 @@
-name: Build Harvester Dashboard and Upload
+name: Build Harvester Dashboard and Publish
 
 on:
   workflow_call:
