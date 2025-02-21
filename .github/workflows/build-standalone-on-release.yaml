@@ -7,7 +7,7 @@ on:
 jobs:
   build-validation:
     name: Build Test
-    uses: ./.github/workflows/test.yaml
+    uses: ./.github/workflows/run-lint.yaml
   build:
     name: Build and Upload Package
     uses: ./.github/workflows/build-and-publish-standalone.yaml
