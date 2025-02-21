@@ -1,14 +1,9 @@
-name: Build and Release Extension Charts
+name: Build and Release Extension Charts on Release
 
 on:
   workflow_dispatch:
   release:
     types: [released]
-  pull_request:
-    branches:
-      - "release-harvester-v*"
-    types:
-      - merged
 
 defaults:
   run:
@@ -25,40 +20,15 @@ jobs:
 
       - name: Run tests
         uses: ./.github/actions/lint
-
   build-extension-charts:
     needs:
       - lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Determine target branch
-        id: set_target
-        run: |
-          if [[ "${{ github.event_name }}" == "release" ]]; then
-            echo "TARGET_BRANCH=gh-pages" >> $GITHUB_ENV
-          elif [[ "${{ github.event_name }}" == "pull_request" && "${{ github.event.pull_request.merged }}" == "true" ]]; then
-            VERSION=$(echo "${{ github.ref }}" | sed -n 's/refs\/heads\/release-harvester-v\(.*\)/v\1-head/p')
-            if [[ -n "$VERSION" ]]; then
-              echo "TARGET_BRANCH=$VERSION" >> $GITHUB_ENV
-            else
-              echo "Error: Could not determine target branch."
-              exit 1
-            fi
-          else
-            echo "Skipping build. No matching condition."
-            exit 0
-          fi
-
-      - name: Build and push extension charts
-        if: env.TARGET_BRANCH != ''
-        uses: rancher/dashboard/.github/workflows/build-extension-charts.yml@master
-        permissions:
-          actions: write
-          contents: write
-          deployments: write
-          pages: write
-        with:
-          target_branch: ${{ env.TARGET_BRANCH }}
-          tagged_release: ${{ github.ref_name }}
+    uses: rancher/dashboard/.github/workflows/build-extension-charts.yml@master
+    permissions:
+      actions: write
+      contents: write
+      deployments: write
+      pages: write
+    with:
+      target_branch: gh-pages
+      tagged_release: ${{ github.ref_name }}
