@@ -10,8 +10,6 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
 import UnitInput from '@shell/components/form/UnitInput';
-import Labels from '@shell/components/form/Labels';
-
 import NodeScheduling from '@shell/components/form/NodeScheduling';
 import PodAffinity from '@shell/components/form/PodAffinity';
 import VGpuDevices from './VirtualMachineVGpuDevices/index';
@@ -65,7 +63,6 @@ export default {
     PodAffinity,
     AccessCredentials,
     Reserved,
-    Labels,
     PciDevices,
     RestartVMDialog,
     UnitInput,
@@ -704,38 +701,49 @@ export default {
       </Tab>
 
       <Tab
+        name="labels"
+        :label="t('generic.labels')"
+        :weight="-9"
+      >
+        <Banner color="info">
+          <t k="harvester.virtualMachine.labels.banner" />
+        </Banner>
+        <KeyValue
+          key="labels"
+          :value="value.labels"
+          :add-label="t('labels.addLabel')"
+          :mode="mode"
+          :read-allowed="false"
+          :value-can-be-empty="true"
+          @update:value="value.setLabels($event)"
+        />
+      </Tab>
+
+      <Tab
         name="instanceLabel"
         :label="t('harvester.tab.instanceLabel')"
-        :weight="-8"
+        :weight="-10"
       >
-        <Labels
-          :default-container-class="'labels-and-annotations-container'"
-          :value="value"
+        <Banner color="info">
+          <t k="harvester.virtualMachine.instanceLabels.banner" />
+        </Banner>
+        <KeyValue
+          key="instance-labels"
+          :value="value.instanceLabels"
+          :protected-keys="value.systemLabels || []"
+          :toggle-filter="toggler"
+          :add-label="t('labels.addLabel')"
           :mode="mode"
-          :display-side-by-side="false"
-          :show-annotations="false"
-          :show-label-title="false"
-        >
-          <template #labels="{toggler}">
-            <KeyValue
-              key="labels"
-              :value="value.instanceLabels"
-              :protected-keys="value.systemLabels || []"
-              :toggle-filter="toggler"
-              :add-label="t('labels.addLabel')"
-              :mode="mode"
-              :read-allowed="false"
-              :value-can-be-empty="true"
-              @update:value="value.setInstanceLabels($event)"
-            />
-          </template>
-        </Labels>
+          :read-allowed="false"
+          :value-can-be-empty="true"
+          @update:value="value.setInstanceLabels($event)"
+        />
       </Tab>
 
       <Tab
         name="advanced"
         :label="t('harvester.tab.advanced')"
-        :weight="-9"
+        :weight="-11"
       >
         <div class="row mb-20">
           <div class="col span-6">
