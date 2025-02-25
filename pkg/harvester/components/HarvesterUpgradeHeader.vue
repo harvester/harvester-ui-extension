@@ -273,7 +273,7 @@ export default {
 
           <p
             v-if="overallMessage"
-            class="text-warning mb-20"
+            class="text-error mb-20"
           >
             {{ overallMessage }}
           </p>
