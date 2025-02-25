@@ -12,7 +12,7 @@ export default {
       default: ''
     },
 
-    precent: {
+    percent: {
       type:    Number,
       default: 0
     },
@@ -39,16 +39,18 @@ export default {
 
 <template>
   <div class="bar-list">
-    <h4>{{ title }} <span class="float-r text-info">{{ precent }}%</span></h4>
+    <h4>{{ title }} <span class="float-r text-info">{{ percent }}%</span></h4>
     <div>
       <div>
         <Collapse v-model:open="open">
           <template #title>
             <div class="total-bar">
-              <span class="bar"><PercentageBar
-                :model-value="precent"
-                preferred-direction="MORE"
-              /></span>
+              <span class="bar">
+                <PercentageBar
+                  :model-value="percent"
+                  preferred-direction="MORE"
+                />
+              </span>
               <span
                 class="on-off"
                 @click="handleSwitch"
@@ -56,28 +58,26 @@ export default {
             </div>
           </template>
 
-          <template>
-            <div class="custom-content">
-              <div
-                v-for="(item, i) in list"
-                :key="i"
-              >
-                <p>
-                  {{ item.name }} <span
-                    class="status"
-                    :class="{ [item.state]: true }"
-                  >{{ item.state }}</span>
-                </p>
-                <PercentageBar
-                  :model-value="item.percent"
-                  preferred-direction="MORE"
-                />
-                <p class="warning">
-                  {{ item.message }}
-                </p>
-              </div>
+          <div class="custom-content">
+            <div
+              v-for="(item, i) in list"
+              :key="i"
+            >
+              <p>
+                {{ item.name }} <span
+                  class="status"
+                  :class="{ [item.state]: true }"
+                >{{ item.state }}</span>
+              </p>
+              <PercentageBar
+                :model-value="item.percent"
+                preferred-direction="MORE"
+              />
+              <p class="warning">
+                {{ item.message }}
+              </p>
             </div>
-          </template>
+          </div>
         </Collapse>
       </div>
     </div>
@@ -93,7 +93,7 @@ export default {
   .total-bar {
     display: flex;
     user-select: none;
-    .bar {
+    > .bar {
       width: 85%;
     }
     .on-off {
@@ -102,25 +102,22 @@ export default {
     }
   }
   .custom-content {
-    .item {
-      margin-bottom: 14px;
-      p {
-        margin-bottom: 4px;
-      }
-      .status {
-        float: right;
-      }
-      .Succeeded, .Upgrading, .Pending {
-        color: var(--success);
-      }
-      .failed {
-        color: var(--error)
-      }
-      .warning {
-        color: var(--error);
-      }
+    margin-bottom: 14px;
+    p {
+      margin-bottom: 4px;
+    }
+    .status {
+      float: right;
+    }
+    .Succeeded, .Upgrading, .Pending {
+      color: var(--success);
+    }
+    .failed {
+      color: var(--error)
+    }
+    .warning {
+      color: var(--error);
     }
   }
 }
-
 </style>

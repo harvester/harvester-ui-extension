@@ -190,6 +190,7 @@ export default {
       v-clean-tooltip="{
         placement: 'bottom-left',
       }"
+      popper-class="upgrade-header-dropdown"
       class="hand"
     >
       <slot name="button-content">
@@ -337,6 +338,12 @@ export default {
     </v-dropdown>
   </div>
 </template>
+
+<style lang="scss">
+.upgrade-header-dropdown .v-popper__arrow-container {
+  display: none;
+}
+</style>
 
 <style lang="scss" scoped>
 a {
