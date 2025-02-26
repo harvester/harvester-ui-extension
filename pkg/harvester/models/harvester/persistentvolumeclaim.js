@@ -349,6 +349,10 @@ export default class HciPv extends HarvesterResource {
     const { params } = this.currentRoute();
     const volumeName = this.spec?.volumeName;
 
+    if (!this.isLonghorn) {
+      return null;
+    }
+
     if (!volumeName) {
       return null;
     }
