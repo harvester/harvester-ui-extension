@@ -65,6 +65,10 @@ export default {
       }];
     },
 
+    refreshIntervalInSecondEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('refreshIntervalInSecond');
+    },
+
     isS3() {
       return this.parseDefaultValue.type === DEFAULT_TYPE;
     },
@@ -146,6 +150,7 @@ export default {
         @update:value="update"
       />
       <UnitInput
+        v-if="refreshIntervalInSecondEnabled"
         v-model:value="parseDefaultValue.refreshIntervalInSeconds"
         :suffix="parseDefaultValue.refreshIntervalInSeconds <= 1 ? 'Second' : 'Seconds'"
         :label="t('harvester.backup.refreshInterval.label')"
@@ -156,6 +161,7 @@ export default {
         @update:value="update"
       />
       <Tip
+        v-if="refreshIntervalInSecondEnabled"
         class="mb-20"
         icon="icon icon-info"
         :text="t('harvester.backup.refreshInterval.tip')"
