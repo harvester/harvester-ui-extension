@@ -60,7 +60,7 @@ export default {
       this.$store.dispatch('type-map/configureType', { match: HCI.VOLUME, isCreatable: false });
     }
     // we only show the non golden image PVCs in the list
-    const pvcs = hash.pvcs.filter((pvc) => pvc.metadata.annotations[HCI_ANNOTATIONS.GOLDEN_IMAGE] !== 'true');
+    const pvcs = hash.pvcs.filter((pvc) => pvc?.metadata?.annotations?.[HCI_ANNOTATIONS.GOLDEN_IMAGE] !== 'true');
 
     this.rows = pvcs;
   },
