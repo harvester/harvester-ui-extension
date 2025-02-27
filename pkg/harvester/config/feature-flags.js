@@ -42,7 +42,8 @@ const featuresV141 = [
 
 // TODO: add v1.4.2 official release note
 const featuresV142 = [
-  ...featuresV141
+  ...featuresV141,
+  'refreshIntervalInSecond'
 ];
 
 // TODO: add v1.5.0 official release note
