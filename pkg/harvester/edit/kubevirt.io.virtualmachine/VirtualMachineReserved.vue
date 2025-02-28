@@ -47,6 +47,7 @@ export default {
     :input-exponent="2"
     :increment="1024"
     :output-modifier="true"
+    suffix="Mi"
     @update:value="change"
   />
 </template>

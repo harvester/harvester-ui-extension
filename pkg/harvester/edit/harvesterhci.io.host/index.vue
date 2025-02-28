@@ -185,7 +185,7 @@ export default {
         minExponent:  3,
         maxExponent:  3,
         maxPrecision: 2,
-        suffix:       'iB',
+        suffix:       'i',
       };
 
       const longhornDisks = Object.keys(diskStatus).map((key) => {
@@ -457,7 +457,7 @@ export default {
           const devPath = d.spec?.devPath;
           const deviceType = d.status?.deviceStatus?.details?.deviceType;
           const sizeBytes = d.status?.deviceStatus?.capacity?.sizeBytes;
-          const size = formatSi(sizeBytes, { increment: 1024 });
+          const size = formatSi(sizeBytes, { increment: 1024, suffix: 'i' });
           const parentDevice = d.status?.deviceStatus?.parentDevice;
           const isChildAdded = this.newDisks.find((newDisk) => newDisk.blockDevice?.status?.deviceStatus?.parentDevice === devPath);
           const name = d.displayName;

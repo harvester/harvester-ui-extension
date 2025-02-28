@@ -254,6 +254,7 @@ export default {
             :label="t('harvester.fields.size')"
             :mode="mode"
             :disabled="true"
+            suffix="Gi"
             @update:value="update"
           />
         </InputOrDisplay>

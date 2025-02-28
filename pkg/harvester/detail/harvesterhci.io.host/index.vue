@@ -178,7 +178,7 @@ export default {
         minExponent:  3,
         maxExponent:  3,
         maxPrecision: 2,
-        suffix:       'iB',
+        suffix:       'i',
       };
 
       const longhornDisks = Object.keys(diskStatus).map((key) => {

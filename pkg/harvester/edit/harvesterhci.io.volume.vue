@@ -377,6 +377,7 @@ export default {
           :disabled="value?.isLonghornV2 && isEdit"
           required
           class="mb-20"
+          suffix="Gi"
           @update:value="update"
         />
 

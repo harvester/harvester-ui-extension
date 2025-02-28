@@ -129,13 +129,17 @@ export default {
     },
 
     imageVirtualSize() {
-      return this.selectedImage?.virtualSize;
+      if (this.selectedImage?.virtualSize) {
+        return this.selectedImage.virtualSize.replace(' ', '');
+      }
+
+      return '0';
     },
 
     diskSize() {
       const size = this.value?.size || '0';
 
-      return `${ size.replace('Gi', '') } GB`;
+      return size;
     },
 
     imageVirtualSizeInByte() {
@@ -332,7 +336,7 @@ export default {
             :mode="mode"
             :required="validateRequired"
             :disable="isLonghornV2"
-            suffix="GiB"
+            suffix="Gi"
             @update:value="update"
           />
         </InputOrDisplay>

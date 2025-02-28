@@ -88,7 +88,7 @@ export function vmDisks(spec, getters, errors, validatorArgs, displayKey, value)
       }
 
       if (typeValue?.spec?.resources?.requests?.storage && !/^([0-9][0-9]{0,8})[a-zA-Z]+$/.test(typeValue?.spec?.resources?.requests?.storage)) {
-        const message = getters['i18n/t']('harvester.validation.generic.maximumSize', { max: '999999999 GiB' });
+        const message = getters['i18n/t']('harvester.validation.generic.maximumSize', { max: '999999999 Gi' });
 
         errors.push(getters['i18n/t']('harvester.validation.generic.tabError', { prefix, message }));
       }

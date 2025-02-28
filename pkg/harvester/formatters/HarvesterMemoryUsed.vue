@@ -51,7 +51,7 @@ export default {
     memoryUnits() {
       const exponent = exponentNeeded(this.memoryTotal, 1024);
 
-      return `${ UNITS[exponent] }iB`;
+      return `${ UNITS[exponent] }i`;
     },
 
     node() {

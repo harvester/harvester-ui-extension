@@ -6,7 +6,7 @@ export function volumeSize(size, getters, errors, validatorArgs, displayKey, val
   }
 
   if (size && !/^([0-9][0-9]{0,8})[a-zA-Z]+$/.test(size)) {
-    const message = getters['i18n/t']('harvester.validation.generic.maximumSize', { max: '999999999 GiB' });
+    const message = getters['i18n/t']('harvester.validation.generic.maximumSize', { max: '999999999 Gi' });
 
     errors.push(message);
   }

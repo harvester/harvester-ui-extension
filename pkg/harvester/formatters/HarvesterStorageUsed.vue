@@ -75,13 +75,13 @@ export default {
     allocatedUnits() {
       const exponent = exponentNeeded(this.storageStats.total, 1024);
 
-      return `${ UNITS[exponent] }iB`;
+      return `${ UNITS[exponent] }i`;
     },
 
     usedUnits() {
       const exponent = exponentNeeded(this.storageStats.maximum, 1024);
 
-      return `${ UNITS[exponent] }iB`;
+      return `${ UNITS[exponent] }i`;
     },
 
     formatUsed() {

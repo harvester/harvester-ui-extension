@@ -113,6 +113,7 @@ export default {
           :output-modifier="true"
           :disabled="disabled"
           required
+          suffix="Gi"
           class="mb-20"
           @update:value="change"
         />

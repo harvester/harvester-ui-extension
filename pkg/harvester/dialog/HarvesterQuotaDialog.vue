@@ -92,7 +92,7 @@ export default {
         :input-exponent="3"
         :increment="1024"
         :output-modifier="true"
-        suffix="GiB"
+        suffix="Gi"
         class="mb-20"
       />
     </template>

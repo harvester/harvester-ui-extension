@@ -243,8 +243,8 @@ export default class HciVmImage extends HarvesterResource {
     return formatSi(size, {
       increment:    1024,
       maxPrecision: 2,
-      suffix:       'B',
-      firstSuffix:  'B',
+      suffix:       'i',
+      firstSuffix:  'i',
     });
   }
 
@@ -258,8 +258,8 @@ export default class HciVmImage extends HarvesterResource {
     return formatSi(virtualSize, {
       increment:    1024,
       maxPrecision: 2,
-      suffix:       'B',
-      firstSuffix:  'B',
+      suffix:       'i',
+      firstSuffix:  'i',
     });
   }
 

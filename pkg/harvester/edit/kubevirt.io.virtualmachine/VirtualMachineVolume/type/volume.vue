@@ -258,6 +258,7 @@ export default {
             :required="validateRequired"
             :label="t('harvester.fields.size')"
             :disabled="isLonghornV2"
+            suffix="Gi"
             @update:value="update"
           />
         </InputOrDisplay>
