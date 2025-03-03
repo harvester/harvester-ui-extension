@@ -25,6 +25,7 @@ import { HCI_SETTING } from '../../config/settings';
 import { HCI } from '../../types';
 import { parseVolumeClaimTemplates } from '../../utils/vm';
 import impl, { QGA_JSON, USB_TABLET } from './impl';
+import { GIBIBYTE } from '../../utils/unit';
 
 const LONGHORN_V2_DATA_ENGINE = 'longhorn-system/v2-data-engine';
 
@@ -448,7 +449,7 @@ export default {
           if (!isIsoImage) {
             imageSizeGiB = Math.max(imageSizeGiB, 10);
           }
-          size = `${ imageSizeGiB }Gi`;
+          size = `${ imageSizeGiB }${ GIBIBYTE }`;
         }
 
         out.push({
@@ -558,7 +559,7 @@ export default {
             volumeName,
             container,
             accessMode,
-            size:       `${ formatSize }Gi`,
+            size:       `${ formatSize }${ GIBIBYTE }`,
             volumeMode: volumeMode || this.customVolumeMode,
             image,
             type,
@@ -973,7 +974,7 @@ export default {
 
     parseVolumeClaimTemplate(R, dataVolumeName) {
       if (!String(R.size).includes('Gi') && R.size) {
-        R.size = `${ R.size }Gi`;
+        R.size = `${ R.size }${ GIBIBYTE }`;
       }
 
       const out = {

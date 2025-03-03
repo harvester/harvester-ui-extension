@@ -1,3 +1,5 @@
+import { GIBIBYTE } from '../utils/unit';
+
 export function volumeSize(size, getters, errors, validatorArgs, displayKey, value) {
   if (!size) {
     const key = getters['i18n/t']('harvester.volume.size');
@@ -6,7 +8,7 @@ export function volumeSize(size, getters, errors, validatorArgs, displayKey, val
   }
 
   if (size && !/^([0-9][0-9]{0,8})[a-zA-Z]+$/.test(size)) {
-    const message = getters['i18n/t']('harvester.validation.generic.maximumSize', { max: '999999999 Gi' });
+    const message = getters['i18n/t']('harvester.validation.generic.maximumSize', { max: `999999999 ${ GIBIBYTE }` });
 
     errors.push(message);
   }

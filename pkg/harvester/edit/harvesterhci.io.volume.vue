@@ -21,6 +21,7 @@ import { InterfaceOption, VOLUME_DATA_SOURCE_KIND } from '../config/harvester-ma
 import { HCI, VOLUME_SNAPSHOT } from '../types';
 import { LVM_DRIVER } from '../models/harvester/storage.k8s.io.storageclass';
 import { DATA_ENGINE_V2 } from '../models/harvester/persistentvolumeclaim';
+import { GIBIBYTE } from '../utils/unit';
 
 export default {
   name: 'HarvesterVolume',
@@ -86,6 +87,7 @@ export default {
       imageId,
       snapshots: [],
       images:    [],
+      GIBIBYTE
     };
   },
 
@@ -288,7 +290,7 @@ export default {
         const imageSize = Math.max(imageResource?.status?.size, imageResource?.status?.virtualSize);
 
         if (imageSize) {
-          this.storage = `${ Math.ceil(imageSize / 1024 / 1024 / 1024) }Gi`;
+          this.storage = `${ Math.ceil(imageSize / 1024 / 1024 / 1024) }${ GIBIBYTE }`;
         }
       }
       this.update();
@@ -377,7 +379,7 @@ export default {
           :disabled="value?.isLonghornV2 && isEdit"
           required
           class="mb-20"
-          suffix="Gi"
+          :suffix="GIBIBYTE"
           @update:value="update"
         />
 

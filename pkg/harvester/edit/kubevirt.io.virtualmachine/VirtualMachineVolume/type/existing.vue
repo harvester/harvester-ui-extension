@@ -11,6 +11,7 @@ import { _CREATE } from '@shell/config/query-params';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { HCI } from '../../../../types';
 import { VOLUME_TYPE, InterfaceOption } from '../../../../config/harvester-map';
+import { GIBIBYTE } from '../../../../utils/unit';
 
 export default {
   name: 'HarvesterEditExisting',
@@ -59,6 +60,7 @@ export default {
     }
 
     return {
+      GIBIBYTE,
       VOLUME_TYPE,
       InterfaceOption,
       loading: false,
@@ -254,7 +256,7 @@ export default {
             :label="t('harvester.fields.size')"
             :mode="mode"
             :disabled="true"
-            suffix="Gi"
+            :suffix="GIBIBYTE"
             @update:value="update"
           />
         </InputOrDisplay>

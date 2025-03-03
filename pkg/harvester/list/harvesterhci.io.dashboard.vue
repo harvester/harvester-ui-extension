@@ -25,6 +25,7 @@ import { isEmpty } from '@shell/utils/object';
 import { HCI } from '../types';
 import HarvesterUpgrade from '../components/HarvesterUpgrade';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
+import { UNIT_SUFFIX } from '../utils/unit';
 
 dayjs.extend(utc);
 dayjs.extend(minMax);
@@ -32,13 +33,13 @@ dayjs.extend(minMax);
 const PARSE_RULES = {
   format: {
     addSuffix:        true,
-    firstSuffix:      'B',
+    firstSuffix:      UNIT_SUFFIX,
     increment:        1024,
     maxExponent:      99,
     maxPrecision:     2,
     minExponent:      0,
     startingExponent: 0,
-    suffix:           'i',
+    suffix:           UNIT_SUFFIX,
   }
 };
 

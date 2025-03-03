@@ -2,6 +2,7 @@
 import ConsumptionGauge from '@shell/components/ConsumptionGauge';
 import { LONGHORN } from '@shell/config/types';
 import { formatSi, exponentNeeded, UNITS } from '@shell/utils/units';
+import { UNIT_SUFFIX } from '../utils/unit';
 
 export default {
   name:       'HarvesterStorageUsed',
@@ -75,13 +76,13 @@ export default {
     allocatedUnits() {
       const exponent = exponentNeeded(this.storageStats.total, 1024);
 
-      return `${ UNITS[exponent] }i`;
+      return `${ UNITS[exponent] }${ UNIT_SUFFIX }`;
     },
 
     usedUnits() {
       const exponent = exponentNeeded(this.storageStats.maximum, 1024);
 
-      return `${ UNITS[exponent] }i`;
+      return `${ UNITS[exponent] }${ UNIT_SUFFIX }`;
     },
 
     formatUsed() {
