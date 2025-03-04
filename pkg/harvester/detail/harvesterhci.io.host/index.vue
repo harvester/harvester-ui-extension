@@ -9,7 +9,7 @@ import ArrayListGrouped from '@shell/components/form/ArrayListGrouped';
 import Loading from '@shell/components/Loading.vue';
 import SortableTable from '@shell/components/SortableTable';
 import Banner from '@components/Banner/Banner.vue';
-
+import { UNIT_SUFFIX } from '../../utils/unit';
 import metricPoller from '@shell/mixins/metric-poller';
 import {
   METRIC, NODE, LONGHORN, POD, EVENT
@@ -178,7 +178,7 @@ export default {
         minExponent:  3,
         maxExponent:  3,
         maxPrecision: 2,
-        suffix:       'i',
+        suffix:       UNIT_SUFFIX,
       };
 
       const longhornDisks = Object.keys(diskStatus).map((key) => {
