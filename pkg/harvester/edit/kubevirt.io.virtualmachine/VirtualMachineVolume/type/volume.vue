@@ -12,6 +12,7 @@ import LabelValue from '@shell/components/LabelValue';
 import { ucFirst } from '@shell/utils/string';
 import { LVM_DRIVER } from '../../../../models/harvester/storage.k8s.io.storageclass';
 import { DATA_ENGINE_V2 } from '../../../../models/harvester/persistentvolumeclaim';
+import { GIBIBYTE } from '../../../../utils/unit';
 
 export default {
   name: 'HarvesterEditVolume',
@@ -58,6 +59,7 @@ export default {
 
   data() {
     return {
+      GIBIBYTE,
       VOLUME_TYPE,
       InterfaceOption,
       loading: false,
@@ -140,7 +142,7 @@ export default {
             minExponent: 3,
           });
 
-          this.value.size = `${ formatSize }Gi`;
+          this.value.size = `${ formatSize }${ GIBIBYTE }`;
         }
       },
       deep:      true,
@@ -258,6 +260,7 @@ export default {
             :required="validateRequired"
             :label="t('harvester.fields.size')"
             :disabled="isLonghornV2"
+            :suffix="GIBIBYTE"
             @update:value="update"
           />
         </InputOrDisplay>

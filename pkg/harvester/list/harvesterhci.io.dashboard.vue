@@ -8,9 +8,7 @@ import Banner from '@components/Banner/Banner.vue';
 import MessageLink from '@shell/components/MessageLink';
 import SortableTable from '@shell/components/SortableTable';
 import { allHash, setPromiseResult } from '@shell/utils/promise';
-import {
-  parseSi, formatSi, exponentNeeded, UNITS, createMemoryValues
-} from '@shell/utils/units';
+import { parseSi, formatSi, exponentNeeded, UNITS } from '@shell/utils/units';
 import { REASON } from '@shell/config/table-headers';
 import {
   EVENT, METRIC, NODE, SERVICE, PVC, LONGHORN, POD, COUNT, NETWORK_ATTACHMENT
@@ -27,22 +25,21 @@ import { isEmpty } from '@shell/utils/object';
 import { HCI } from '../types';
 import HarvesterUpgrade from '../components/HarvesterUpgrade';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
+import { UNIT_SUFFIX } from '../utils/unit';
 
 dayjs.extend(utc);
 dayjs.extend(minMax);
 
 const PARSE_RULES = {
-  memory: {
-    format: {
-      addSuffix:        true,
-      firstSuffix:      'B',
-      increment:        1024,
-      maxExponent:      99,
-      maxPrecision:     2,
-      minExponent:      0,
-      startingExponent: 0,
-      suffix:           'iB',
-    }
+  format: {
+    addSuffix:        true,
+    firstSuffix:      UNIT_SUFFIX,
+    increment:        1024,
+    maxExponent:      99,
+    maxPrecision:     2,
+    minExponent:      0,
+    startingExponent: 0,
+    suffix:           UNIT_SUFFIX,
   }
 };
 
@@ -402,13 +399,13 @@ export default {
     storageUsed() {
       const stats = this.storageStats;
 
-      return this.createMemoryValues(stats.maximum, stats.used);
+      return this.createDisplayValues(stats.maximum, stats.used);
     },
 
     storageAllocated() {
       const stats = this.storageStats;
 
-      return this.createMemoryValues(stats.total, stats.scheduled);
+      return this.createDisplayValues(stats.total, stats.scheduled);
     },
 
     vmEvents() {
@@ -454,7 +451,7 @@ export default {
         return total + node.memoryReserved;
       }, 0);
 
-      return createMemoryValues(this.memoryTotal, useful);
+      return this.createDisplayValues(this.memoryTotal, useful);
     },
 
     availableNodes() {
@@ -494,7 +491,7 @@ export default {
     },
 
     ramUsed() {
-      return createMemoryValues(this.memoryTotal, this.metricAggregations?.memory);
+      return this.createDisplayValues(this.memoryTotal, this.metricAggregations?.memory);
     },
 
     hasMetricNodeSchema() {
@@ -516,10 +513,12 @@ export default {
   },
 
   methods: {
-    createMemoryValues(total, useful) {
+    createDisplayValues(total, useful) {
       const parsedTotal = parseSi((total || '0').toString());
+
       const parsedUseful = parseSi((useful || '0').toString());
-      const format = this.createMemoryFormat(parsedTotal);
+      const format = this.createFormat(parsedTotal);
+
       const formattedTotal = formatSi(parsedTotal, format);
       let formattedUseful = formatSi(parsedUseful, {
         ...format,
@@ -538,24 +537,24 @@ export default {
         useful: Number(parsedUseful),
         formattedTotal,
         formattedUseful,
-        units:  this.createMemoryUnits(parsedTotal),
+        units:  this.createUnits(parsedTotal),
       };
     },
 
-    createMemoryFormat(n) {
-      const exponent = exponentNeeded(n, PARSE_RULES.memory.format.increment);
+    createFormat(n) {
+      const exponent = exponentNeeded(n, PARSE_RULES.format.increment);
 
       return {
-        ...PARSE_RULES.memory.format,
+        ...PARSE_RULES.format,
         maxExponent: exponent,
         minExponent: exponent,
       };
     },
 
-    createMemoryUnits(n) {
-      const exponent = exponentNeeded(n, PARSE_RULES.memory.format.increment);
+    createUnits(n) {
+      const exponent = exponentNeeded(n, PARSE_RULES.format.increment);
 
-      return `${ UNITS[exponent] }${ PARSE_RULES.memory.format.suffix }`;
+      return `${ UNITS[exponent] }${ PARSE_RULES.format.suffix }`;
     },
 
     async fetchClusterResources(type, opt = {}, store) {

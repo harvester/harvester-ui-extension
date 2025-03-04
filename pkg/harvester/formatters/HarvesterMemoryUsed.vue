@@ -2,7 +2,7 @@
 import ConsumptionGauge from '@shell/components/ConsumptionGauge';
 import { METRIC, NODE } from '@shell/config/types';
 import { formatSi, exponentNeeded, UNITS, parseSi } from '@shell/utils/units';
-
+import { UNIT_SUFFIX } from '../utils/unit';
 export default {
   name:       'HarvesterMemoryUsed',
   components: { ConsumptionGauge },
@@ -51,7 +51,7 @@ export default {
     memoryUnits() {
       const exponent = exponentNeeded(this.memoryTotal, 1024);
 
-      return `${ UNITS[exponent] }iB`;
+      return `${ UNITS[exponent] }${ UNIT_SUFFIX }`;
     },
 
     node() {

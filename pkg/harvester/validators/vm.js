@@ -2,6 +2,7 @@ import { PVC } from '@shell/config/types';
 import { isValidMac, isValidDNSLabelName } from '@pkg/utils/regular';
 import { SOURCE_TYPE } from '@pkg/config/harvester-map';
 import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
+import { GIBIBYTE } from '../utils/unit';
 
 const maxNameLength = 63;
 
@@ -88,7 +89,7 @@ export function vmDisks(spec, getters, errors, validatorArgs, displayKey, value)
       }
 
       if (typeValue?.spec?.resources?.requests?.storage && !/^([0-9][0-9]{0,8})[a-zA-Z]+$/.test(typeValue?.spec?.resources?.requests?.storage)) {
-        const message = getters['i18n/t']('harvester.validation.generic.maximumSize', { max: '999999999 GiB' });
+        const message = getters['i18n/t']('harvester.validation.generic.maximumSize', { max: `999999999 ${ GIBIBYTE }` });
 
         errors.push(getters['i18n/t']('harvester.validation.generic.tabError', { prefix, message }));
       }

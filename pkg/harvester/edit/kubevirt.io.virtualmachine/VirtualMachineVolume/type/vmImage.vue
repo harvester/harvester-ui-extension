@@ -12,6 +12,7 @@ import { VOLUME_TYPE, InterfaceOption } from '../../../../config/harvester-map';
 import { _VIEW } from '@shell/config/query-params';
 import LabelValue from '@shell/components/LabelValue';
 import { ucFirst } from '@shell/utils/string';
+import { GIBIBYTE } from '../../../../utils/unit';
 
 export default {
   name: 'HarvesterEditVMImage',
@@ -67,6 +68,7 @@ export default {
 
   data() {
     return {
+      GIBIBYTE,
       VOLUME_TYPE,
       InterfaceOption,
       loading: false,
@@ -129,13 +131,17 @@ export default {
     },
 
     imageVirtualSize() {
-      return this.selectedImage?.virtualSize;
+      if (this.selectedImage?.virtualSize) {
+        return this.selectedImage.virtualSize.replace(' ', '');
+      }
+
+      return '0';
     },
 
     diskSize() {
       const size = this.value?.size || '0';
 
-      return `${ size.replace('Gi', '') } GB`;
+      return size;
     },
 
     imageVirtualSizeInByte() {
@@ -183,7 +189,7 @@ export default {
             minExponent: 3,
           });
 
-          this.value.size = `${ formatSize }Gi`;
+          this.value.size = `${ formatSize }${ GIBIBYTE }`;
         }
       },
       deep:      true,
@@ -225,7 +231,7 @@ export default {
         if (!isIsoImage) {
           imageSizeGiB = Math.max(imageSizeGiB, 10);
         }
-        this.value['size'] = `${ imageSizeGiB }Gi`;
+        this.value['size'] = `${ imageSizeGiB }${ GIBIBYTE }`;
       }
 
       this.update();
@@ -332,7 +338,7 @@ export default {
             :mode="mode"
             :required="validateRequired"
             :disable="isLonghornV2"
-            suffix="GiB"
+            :suffix="GIBIBYTE"
             @update:value="update"
           />
         </InputOrDisplay>

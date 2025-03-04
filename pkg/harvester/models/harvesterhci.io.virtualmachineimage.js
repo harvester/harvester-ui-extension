@@ -12,6 +12,7 @@ import { HCI } from '../types';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
 import HarvesterResource from './harvester';
 import { CSI_SECRETS } from '@pkg/harvester/config/harvester-map';
+import { UNIT_SUFFIX } from '../utils/unit';
 
 const {
   CSI_PROVISIONER_SECRET_NAME,
@@ -243,8 +244,8 @@ export default class HciVmImage extends HarvesterResource {
     return formatSi(size, {
       increment:    1024,
       maxPrecision: 2,
-      suffix:       'B',
-      firstSuffix:  'B',
+      suffix:       UNIT_SUFFIX,
+      firstSuffix:  UNIT_SUFFIX,
     });
   }
 
@@ -258,8 +259,8 @@ export default class HciVmImage extends HarvesterResource {
     return formatSi(virtualSize, {
       increment:    1024,
       maxPrecision: 2,
-      suffix:       'B',
-      firstSuffix:  'B',
+      suffix:       UNIT_SUFFIX,
+      firstSuffix:  UNIT_SUFFIX,
     });
   }
 

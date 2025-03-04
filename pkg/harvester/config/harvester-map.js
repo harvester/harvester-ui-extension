@@ -1,3 +1,4 @@
+// TODO: delete this not used variable
 export const MemoryUnit = [{
   label: 'Mi',
   value: 'Mi'

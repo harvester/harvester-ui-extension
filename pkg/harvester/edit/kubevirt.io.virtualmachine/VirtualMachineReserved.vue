@@ -1,6 +1,6 @@
 <script>
 import UnitInput from '@shell/components/form/UnitInput';
-
+import { MEBIBYTE } from '../../utils/unit';
 export default {
   name: 'HarvesterReserved',
 
@@ -20,7 +20,7 @@ export default {
   },
 
   data() {
-    return { memory: this.reservedMemory };
+    return { MEBIBYTE, memory: this.reservedMemory };
   },
 
   watch: {
@@ -47,6 +47,7 @@ export default {
     :input-exponent="2"
     :increment="1024"
     :output-modifier="true"
+    :suffix="MEBIBYTE"
     @update:value="change"
   />
 </template>

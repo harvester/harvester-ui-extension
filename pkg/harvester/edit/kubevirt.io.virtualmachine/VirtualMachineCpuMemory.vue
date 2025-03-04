@@ -1,6 +1,7 @@
 <script>
 import UnitInput from '@shell/components/form/UnitInput';
 import InputOrDisplay from '@shell/components/InputOrDisplay';
+import { GIBIBYTE } from '../../utils/unit';
 
 export default {
   name: 'HarvesterEditCpuMemory',
@@ -30,6 +31,7 @@ export default {
 
   data() {
     return {
+      GIBIBYTE,
       localCpu:    this.cpu,
       localMemory: this.memory
     };
@@ -63,7 +65,7 @@ export default {
       if (String(this.localMemory).includes('Gi')) {
         memory = this.localMemory;
       } else {
-        memory = `${ this.localMemory }Gi`;
+        memory = `${ this.localMemory }${ GIBIBYTE }`;
       }
       if (memory.includes('null')) {
         memory = null;
@@ -113,6 +115,7 @@ export default {
           :output-modifier="true"
           :disabled="disabled"
           required
+          :suffix="GIBIBYTE"
           class="mb-20"
           @update:value="change"
         />

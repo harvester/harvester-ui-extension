@@ -4,6 +4,7 @@ import { formatSi, exponentNeeded, UNITS } from '@shell/utils/units';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { LONGHORN, METRIC } from '@shell/config/types';
 import { Banner } from '@components/Banner';
+import { UNIT_SUFFIX } from '../../utils/unit';
 import HarvesterCPUUsed from '../../formatters/HarvesterCPUUsed';
 import HarvesterMemoryUsed from '../../formatters/HarvesterMemoryUsed';
 import HarvesterStorageUsed from '../../formatters/HarvesterStorageUsed';
@@ -121,7 +122,7 @@ export default {
     memoryUnits() {
       const exponent = exponentNeeded(this.memoryTotal, 1024);
 
-      return `${ UNITS[exponent] }iB`;
+      return `${ UNITS[exponent] }${ UNIT_SUFFIX }`;
     },
 
     nodeType() {
