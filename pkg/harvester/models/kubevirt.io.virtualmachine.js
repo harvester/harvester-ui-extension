@@ -700,8 +700,25 @@ export default class VirtVm extends HarvesterResource {
     return null;
   }
 
-  get isBeingStopped() {
-    if (this && !this.isVMExpectedRunning && this.isVMCreated && this.vmi?.status?.phase !== VMIPhase.Succeeded) {
+  get isPending() {
+    if (this &&
+      !this.isVMExpectedRunning &&
+      this.isVMCreated &&
+      this.vmi?.status?.phase === VMIPhase.Pending
+    ) {
+      return { status: VMIPhase.Pending };
+    }
+
+    return null;
+  }
+
+  get isStopping() {
+    if (this &&
+      !this.isVMExpectedRunning &&
+      this.isVMCreated &&
+      this.vmi?.status?.phase !== VMIPhase.Succeeded &&
+      this.vmi?.status?.phase !== VMIPhase.Pending
+    ) {
       return { status: STOPPING };
     }
 
@@ -736,7 +753,7 @@ export default class VirtVm extends HarvesterResource {
   }
 
   get isUnschedulable() {
-    if (this.isBeingStopped || this.isStarting) {
+    if (this.isStopping || this.isStarting) {
       const condition = this.status?.conditions?.find((c) => c.reason === UNSCHEDULABLE);
 
       if (!!condition) {
@@ -852,7 +869,8 @@ export default class VirtVm extends HarvesterResource {
       this.isUnschedulable?.status ||
       this.isPaused?.status ||
       this.isVMError?.status ||
-      this.isBeingStopped?.status ||
+      this.isPending?.status ||
+      this.isStopping?.status ||
       this.isOff?.status ||
       this.isError?.status ||
       this.isRunning?.status ||
