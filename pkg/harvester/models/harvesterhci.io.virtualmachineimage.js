@@ -201,7 +201,7 @@ export default class HciVmImage extends HarvesterResource {
   }
 
   get imageStorageClass() {
-    return this?.metadata?.annotations[HCI_ANNOTATIONS.STORAGE_CLASS] || '';
+    return this?.metadata?.annotations?.[HCI_ANNOTATIONS.STORAGE_CLASS] || '';
   }
 
   get imageMessage() {
