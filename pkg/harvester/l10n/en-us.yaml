@@ -99,6 +99,12 @@ harvester:
         tip: Please enter a virtual machine name!
         success: 'Virtual machine { name } cloned successfully.'
         failed: 'Failed clone virtual machine!'
+    downloadImage:
+      title: Download Image
+      banner: 'This action takes a while depending on the image size ({ size }). Please be patient.'
+      convertMessage: 'Harvester will convert { name } into qcow2 format.'
+      startMessage : 'The download process will auto start once the conversion is complete.'
+      download: Download
     exportImage:
       title: Export to Image
       name: Name
