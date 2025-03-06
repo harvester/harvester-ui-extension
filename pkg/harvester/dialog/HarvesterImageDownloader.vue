@@ -42,10 +42,6 @@ export default {
       return this.image?.name || '';
     },
 
-    imageDisplayName() {
-      return this.image?.displayName || '';
-    },
-
     imageVirtualSize() {
       return this.image?.virtualSize || this.image?.downSize || '';
     }
@@ -124,8 +120,6 @@ export default {
         <Banner color="info">
           {{ t('harvester.modal.downloadImage.banner', { size: imageVirtualSize }) }}
         </Banner>
-        {{ t('harvester.modal.downloadImage.convertMessage', { name: imageDisplayName }) }}
-        <br /><br />
         {{ t('harvester.modal.downloadImage.startMessage') }}
         <br /><br />
       </template>
