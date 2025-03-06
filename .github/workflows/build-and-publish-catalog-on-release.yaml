@@ -1,0 +1,36 @@
+name: Build Harvester Catalog Image and Publish on Release
+
+on:
+  workflow_dispatch:
+  release:
+    types: [released]
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run tests
+        uses: ./.github/actions/lint
+
+  build-and-push-extension-catalog:
+    needs: lint
+    uses: ./.github/workflows/build-extension-catalog.yml
+    permissions:
+      actions: write
+      contents: read
+      packages: write
+      id-token: write
+    with:
+      registry_target: docker.io
+      registry_user: rancher
+      repository_name: harvester-ui-catalog
+    secrets: inherit
