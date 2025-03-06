@@ -336,6 +336,10 @@ export default class HciPv extends HarvesterResource {
     return this.volumeProvider === LONGHORN_DRIVER;
   }
 
+  get isLonghornV1() {
+    return this.isLonghorn && !this.isLonghornV2;
+  }
+
   get isLonghornV2() {
     return this.dataEngine === DATA_ENGINE_V2;
   }

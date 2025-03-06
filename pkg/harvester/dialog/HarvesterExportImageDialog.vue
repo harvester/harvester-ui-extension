@@ -34,9 +34,14 @@ export default {
 
     await allHash(hash);
 
-    const defaultStorage = this.$store.getters[`${ inStore }/all`](STORAGE_CLASS).find((s) => s.isDefault);
+    const allStorages = this.allStorageClasses;
+    const defaultStorage = allStorages.find((s) => s.isDefault);
 
-    this['storageClassName'] = defaultStorage?.metadata?.name || 'longhorn';
+    if (this.isLonghornV1Volume) {
+      this['storageClassName'] = defaultStorage?.metadata?.name || 'longhorn';
+    } else {
+      this['storageClassName'] = this.nonLonghornV1StorageClasses[0]?.metadata?.name || '';
+    }
   },
 
   data() {
@@ -54,7 +59,7 @@ export default {
     ...mapGetters({ t: 'i18n/t' }),
 
     actionResource() {
-      return this.resources[0];
+      return this.resources[0] || {};
     },
 
     namespaces() {
@@ -73,15 +78,33 @@ export default {
       return out;
     },
 
+    isLonghornV1Volume() {
+      return this.actionResource?.isLonghornV1 === true;
+    },
+
     disableSave() {
       return !(this.name && this.namespace && this.storageClassName);
     },
 
-    storageClassOptions() {
+    allStorageClasses() {
       const inStore = this.$store.getters['currentProduct'].inStore;
-      const storages = this.$store.getters[`${ inStore }/all`](STORAGE_CLASS);
 
-      const out = storages.filter((s) => !s.parameters?.backingImage).map((s) => {
+      return this.$store.getters[`${ inStore }/all`](STORAGE_CLASS) || [];
+    },
+
+    nonLonghornV1StorageClasses() {
+      return this.allStorageClasses.filter((s) => s.isLonghornV1 === false) || [];
+    },
+
+    storageClassOptions() {
+      let storages = this.allStorageClasses;
+
+      // Volume with non-longhorn v1 sc can't be exported to longhorn v1 sc image
+      if (!this.isLonghornV1Volume) {
+        storages = this.allStorageClasses.filter((s) => s.isLonghornV1 === false);
+      }
+
+      const options = storages.filter((s) => !s.parameters?.backingImage).map((s) => {
         const label = s.isDefault ? `${ s.name } (${ this.t('generic.default') })` : s.name;
 
         return {
@@ -90,7 +113,7 @@ export default {
         };
       }) || [];
 
-      return out;
+      return options;
     },
   },
 
