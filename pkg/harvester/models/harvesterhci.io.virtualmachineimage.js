@@ -73,7 +73,7 @@ export default class HciVmImage extends HarvesterResource {
         disabled: !this.isReady,
       },
       {
-        action:  'download',
+        action:  'imageDownload',
         enabled: this.links?.download,
         icon:    'icon icon-download',
         label:   this.t('asyncButton.download.action'),
@@ -394,7 +394,19 @@ export default class HciVmImage extends HarvesterResource {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('thirdPartyStorage');
   }
 
-  download() {
+  imageDownload(resources = this) {
+    // spec.backend is introduced in v1.5.0. If it's not set, it's an old image can be downloaded via link
+    if (this.spec?.backend === 'cdi') {
+      this.$dispatch('promptModal', {
+        resources,
+        component: 'HarvesterImageDownloader'
+      });
+    } else {
+      this.downloadViaLink();
+    }
+  }
+
+  downloadViaLink() {
     window.location.href = this.links.download;
   }
 }

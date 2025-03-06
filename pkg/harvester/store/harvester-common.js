@@ -5,16 +5,33 @@ import { featureEnabled, getVersion } from '../utils/feature-flags';
 
 const state = function() {
   return {
-    latestBundleId:      '',
-    bundlePending:       false,
-    showBundleModal:     false,
-    bundlePercentage:    0,
-    uploadingImages:     [],
-    uploadingImageError: {},
+    // support bundle
+    latestBundleId:          '',
+    bundlePending:           false,
+    showBundleModal:         false,
+    bundlePercentage:        0,
+    uploadingImages:         [],
+    uploadingImageError:     {},
+    // download cdi image
+    downloadImageId:            '',
+    downloadImageInProgress:       false,
+    isDownloadImageCancel:      false,
   };
 };
 
 const mutations = {
+  setDownloadImageId(state, id) {
+    state.downloadImageId = id;
+  },
+
+  setDownloadImageCancel(state, value) {
+    state.isDownloadImageCancel = value;
+  },
+
+  setDownloadImageInProgress(state, value) {
+    state.downloadImageInProgress = value;
+  },
+
   setLatestBundleId(state, bundleId) {
     state.latestBundleId = bundleId;
   },
@@ -49,6 +66,14 @@ const mutations = {
 const getters = {
   getBundleId(state) {
     return state.latestBundleId;
+  },
+
+  isDownloadImageCancel(state) {
+    return state.isDownloadImageCancel;
+  },
+
+  isDownloadImageInProgress(state) {
+    return state.downloadImageInProgress;
   },
 
   isBundlePending(state) {
@@ -98,6 +123,70 @@ const getters = {
 };
 
 const actions = {
+  async downloadImageProgress({
+    state, dispatch, commit, rootGetters
+  }) {
+    const parse = Parse(window.history.href);
+
+    const id = state.downloadImageId; // id is image_ns / image_name
+
+    let imageCrd = await dispatch(
+      'harvester/find',
+      { type: HCI.VM_IMAGE_DOWNLOADER, id },
+      { root: true }
+    );
+
+    await commit('setDownloadImageInProgress', true);
+
+    let count = 0;
+
+    const timer = setInterval(async() => {
+      count = count + 1;
+      if (count % 3 === 0) {
+        // ws maybe disconnect, force to get the latest status
+        imageCrd = await dispatch(
+          'harvester/find',
+          {
+            type: HCI.VM_IMAGE_DOWNLOADER,
+            id,
+            opt:  { force: true }
+          },
+          { root: true }
+        );
+      }
+
+      // If is cancel, clear the timer
+      if (state.isDownloadImageCancel === true) {
+        clearInterval(timer);
+
+        return;
+      }
+
+      // converting image status becomes ready
+      if (imageCrd?.status?.status === 'Ready') {
+        imageCrd = rootGetters['harvester/byId'](HCI.VM_IMAGE_DOWNLOADER, id);
+
+        setTimeout(() => {
+          commit('setDownloadImageInProgress', false);
+          dispatch('promptModal'); // bring undefined data will close the promptModal
+        }, 600);
+
+        if (rootGetters['isMultiCluster']) {
+          const clusterId = rootGetters['clusterId'];
+          const prefix = `/k8s/clusters/${ clusterId }`;
+
+          window.location.href = `${ parse.origin }${ prefix }/v1/harvester/${ HCI.IMAGE }/${ id }/download`;
+        } else {
+          const link = `${ parse.origin }/v1/harvester/${ HCI.IMAGE }/${ id }/download`;
+
+          window.location.href = link;
+        }
+
+        clearInterval(timer);
+      }
+    }, 1000);
+  },
+
   async bundleProgress({
     state, dispatch, commit, rootGetters
   }) {
@@ -117,7 +206,7 @@ const actions = {
     const timer = setInterval(async() => {
       count = count + 1;
       if (count % 3 === 0) {
-        // ws mayby disconnect
+        // ws maybe disconnect
         bundleCrd = await dispatch(
           'harvester/find',
           {
