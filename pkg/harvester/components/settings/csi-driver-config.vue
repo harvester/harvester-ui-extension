@@ -75,7 +75,11 @@ export default {
       const csiDrivers = this.$store.getters[`${ inStore }/all`](CSI_DRIVER) || [];
 
       return this.configArr.length >= csiDrivers.length;
-    }
+    },
+
+    allowEmptySnapshotClassNameFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('allowEmptySnapshotClassName');
+    },
   },
 
   methods: {
@@ -139,7 +143,7 @@ export default {
             errors.push(this.t('validation.required', { key: this.t('harvester.setting.csiDriverConfig.volumeSnapshotClassName') }, true));
           }
 
-          if (!config.value.backupVolumeSnapshotClassName) {
+          if (!this.allowEmptySnapshotClassNameFeatureEnabled && !config.value.backupVolumeSnapshotClassName) {
             errors.push(this.t('validation.required', { key: this.t('harvester.setting.csiDriverConfig.backupVolumeSnapshotClassName') }, true));
           }
         });
@@ -159,6 +163,14 @@ export default {
     },
 
     disableEdit(driver) {
+      return driver === LONGHORN_DRIVER;
+    },
+
+    isBackupVolumeSnapshotClassNameDisabled(driver) {
+      return driver === LONGHORN_DRIVER || this.allowEmptySnapshotClassNameFeatureEnabled;
+    },
+
+    isBackupVolumeSnapshotClassNameSelectable(driver) {
       return driver === LONGHORN_DRIVER;
     },
 
@@ -227,9 +239,10 @@ export default {
             v-model:value="driver.value.backupVolumeSnapshotClassName"
             :mode="mode"
             required
-            :disabled="disableEdit(driver.key)"
+            :disabled="isBackupVolumeSnapshotClassNameDisabled(driver.key)"
             :options="getVolumeSnapshotOptions(driver.key)"
             :label="t('harvester.setting.csiDriverConfig.backupVolumeSnapshotClassName')"
+            @selectable="isBackupVolumeSnapshotClassNameSelectable(driver.key)"
             @keydown.native.enter.prevent="()=>{}"
             @update:value="update"
           />
