@@ -11,6 +11,24 @@ defaults:
     working-directory: ./
 
 jobs:
+  setup-release-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      release_tag: ${{ steps.determine_tag.outputs.release_tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine release tag
+        id: determine_tag
+        run: |
+          if [[ "${{ github.ref_name }}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            RELEASE_TAG="harvester-${BASH_REMATCH[1]}"
+            echo "${RELEASE_TAG}"
+            echo "release_tag=${RELEASE_TAG}" >> $GITHUB_OUTPUT
+          else
+            echo "Error: invalid tag format." && exit 1
+          fi
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -22,6 +40,7 @@ jobs:
         uses: ./.github/actions/lint
   build-extension-charts:
     needs:
+      - setup-release-tag
       - lint
     uses: rancher/dashboard/.github/workflows/build-extension-charts.yml@master
     permissions:
@@ -31,4 +50,4 @@ jobs:
       pages: write
     with:
       target_branch: gh-pages
-      tagged_release: ${{ github.ref_name }}
+      tagged_release: '${{ needs.setup-release-tag.outputs.release_tag }}'
