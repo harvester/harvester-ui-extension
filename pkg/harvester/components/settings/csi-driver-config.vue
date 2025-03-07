@@ -196,6 +196,7 @@ export default {
     <InfoBox
       v-for="(driver, idx) in configArr"
       :key="idx"
+      class="box"
     >
       <button
         :disabled="disableEdit(driver.key)"
