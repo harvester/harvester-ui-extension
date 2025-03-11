@@ -301,14 +301,14 @@ export default {
 
           <ProgressBarList
             :title="t('harvester.upgradePage.upgradeNode')"
-            :precent="nodesPercent"
+            :percent="nodesPercent"
             :list="nodesStatus"
           />
           <p class="bordered-section"></p>
 
           <ProgressBarList
             :title="t('harvester.upgradePage.upgradeSysService')"
-            :precent="sysServiceTotal"
+            :percent="sysServiceTotal"
             :list="sysServiceUpgradeMessage"
           />
         </div>
