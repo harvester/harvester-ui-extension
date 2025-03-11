@@ -162,6 +162,10 @@ export default {
       this.configArr.splice(idx, 1);
     },
 
+    isBackupVolumeSnapshotRequired(driver) {
+      return driver === LONGHORN_DRIVER;
+    },
+
     disableEdit(driver) {
       return driver === LONGHORN_DRIVER;
     },
@@ -239,9 +243,9 @@ export default {
           <LabeledSelect
             v-model:value="driver.value.backupVolumeSnapshotClassName"
             :mode="mode"
-            required
             :disabled="isBackupVolumeSnapshotClassNameDisabled(driver.key)"
             :options="getVolumeSnapshotOptions(driver.key)"
+            :required="isBackupVolumeSnapshotRequired(driver.key)"
             :label="t('harvester.setting.csiDriverConfig.backupVolumeSnapshotClassName')"
             @selectable="isBackupVolumeSnapshotClassNameSelectable(driver.key)"
             @keydown.native.enter.prevent="()=>{}"
