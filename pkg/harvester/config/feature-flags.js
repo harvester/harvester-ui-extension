@@ -35,8 +35,7 @@ const featuresV140 = [
   'improveMaintenanceMode',
 ];
 
-// TODO: add v1.4.1 official release note
-// https://github.com/harvester/dashboard/releases/tag/v1.4.1-rc1
+// https://github.com/harvester/dashboard/releases/tag/v1.4.1
 const featuresV141 = [
   ...featuresV140
 ];
@@ -49,7 +48,7 @@ const featuresV142 = [
 
 // TODO: add v1.5.0 official release note
 const featuresV150 = [
-  ...featuresV141
+  ...featuresV142
 ];
 
 export const RELEASE_FEATURES = {
