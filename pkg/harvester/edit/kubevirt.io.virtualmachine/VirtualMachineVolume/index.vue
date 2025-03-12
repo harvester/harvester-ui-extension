@@ -17,6 +17,7 @@ import { PLUGIN_DEVELOPER, DEV } from '@shell/store/prefs';
 import { SOURCE_TYPE } from '../../../config/harvester-map';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../../config/harvester';
 import { HCI } from '../../../types';
+import { VOLUME_MODE } from '@pkg/harvester/config/types';
 
 export default {
   emits: ['update:value'],
@@ -62,7 +63,7 @@ export default {
 
     customVolumeMode: {
       type:    String,
-      default: 'Block'
+      default: VOLUME_MODE.Block
     },
 
     customAccessMode: {

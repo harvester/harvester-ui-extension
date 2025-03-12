@@ -22,6 +22,7 @@ import { HCI, VOLUME_SNAPSHOT } from '../types';
 import { LVM_DRIVER } from '../models/harvester/storage.k8s.io.storageclass';
 import { DATA_ENGINE_V2 } from '../models/harvester/persistentvolumeclaim';
 import { GIBIBYTE } from '../utils/unit';
+import { VOLUME_MODE } from '@pkg/harvester/config/types';
 
 export default {
   name: 'HarvesterVolume',
@@ -73,7 +74,8 @@ export default {
 
   data() {
     if (this.mode === _CREATE) {
-      this.value.spec.volumeMode = 'Block';
+      // default volumeMode to Block
+      this.value.spec.volumeMode = VOLUME_MODE.BLOCK;
       this.value.spec.accessModes = ['ReadWriteMany'];
     }
 
@@ -124,6 +126,10 @@ export default {
 
     interfaceOption() {
       return InterfaceOption;
+    },
+
+    volumeModeOptions() {
+      return Object.values(VOLUME_MODE);
     },
 
     imageOption() {
@@ -177,6 +183,25 @@ export default {
       const inStore = this.$store.getters['currentProduct'].inStore;
 
       return this.$store.getters[`${ inStore }/all`](STORAGE_CLASS);
+    },
+
+    isLonghornStorageClass() {
+      const selectedSC = this.storageClasses.find((sc) => sc.name === this.value?.spec?.storageClassName) || {};
+
+      return selectedSC && selectedSC.isLonghorn;
+    },
+
+    showVolumeMode() {
+      // we won't let user choose volumeMode if source = vmimage
+      if (!this.value.thirdPartyStorageFeatureEnabled || this.isVMImage || !!this.value?.spec?.storageClassName === false) {
+        return false;
+      }
+
+      if (this.isLonghornStorageClass) {
+        return false;
+      }
+
+      return true;
     },
 
     storageClassOptions() {
@@ -237,7 +262,43 @@ export default {
     }
   },
 
+  watch: {
+    'source'(neu) {
+      if (neu === 'url') {
+        this.setBlockVolumeMode();
+        this.deleteVolumeForVmAnnotation();
+      }
+    },
+    'value.spec.storageClassName'() {
+      if (this.isLonghornStorageClass) {
+        this.setBlockVolumeMode();
+        this.deleteVolumeForVmAnnotation();
+      }
+    },
+    'value.spec.volumeMode'(neu) {
+      if (neu === VOLUME_MODE.FILE_SYSTEM) {
+        this.setVolumeForVmAnnotation();
+      } else if (neu === VOLUME_MODE.BLOCK ) {
+        this.deleteVolumeForVmAnnotation();
+      }
+    }
+  },
+
   methods: {
+    setBlockVolumeMode() {
+      this.value.spec.volumeMode = VOLUME_MODE.BLOCK;
+    },
+
+    setVolumeForVmAnnotation() {
+      this.value.setAnnotation(HCI_ANNOTATIONS.VOLUME_FOR_VM, 'true');
+    },
+
+    deleteVolumeForVmAnnotation() {
+      if (this.value?.metadata?.annotations?.[HCI_ANNOTATIONS.VOLUME_FOR_VM]) {
+        delete this.value.metadata.annotations[HCI_ANNOTATIONS.VOLUME_FOR_VM];
+      }
+    },
+
     getAccessMode() {
       if (!this.longhornV2LVMSupport) {
         return ['ReadWriteMany'];
@@ -359,13 +420,25 @@ export default {
         />
 
         <LabeledSelect
-          v-if="source === 'blank'"
+          v-if="isBlank"
           v-model:value="value.spec.storageClassName"
           :options="storageClassOptions"
           :label="t('harvester.storage.storageClass.label')"
           :mode="mode"
           class="mb-20"
           :disabled="!isCreate"
+          @update:value="update"
+        />
+
+        <LabeledSelect
+          v-if="showVolumeMode"
+          v-model:value="value.spec.volumeMode"
+          :label="t('harvester.volume.volumeMode')"
+          :options="volumeModeOptions"
+          required
+          :disabled="!isCreate"
+          :mode="mode"
+          class="mb-20"
           @update:value="update"
         />
 
