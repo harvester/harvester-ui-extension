@@ -50,6 +50,7 @@ export const HCI = {
   STORAGE_NETWORK:                  'storage-network.settings.harvesterhci.io',
   ADDON_EXPERIMENTAL:               'addon.harvesterhci.io/experimental',
   VOLUME_ERROR:                     'longhorn.io/volume-scheduling-error',
+  VOLUME_FOR_VM:                    'harvesterhci.io/volumeForVirtualMachine',
   KVM_AMD_CPU:                      'cpu-feature.node.kubevirt.io/svm',
   KVM_INTEL_CPU:                    'cpu-feature.node.kubevirt.io/vmx',
   NODE_MANUFACTURER:                'manufacturer',

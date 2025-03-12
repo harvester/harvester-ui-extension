@@ -7,3 +7,8 @@ export const NETWORK_TYPE = {
   L2VLAN:   'L2VlanNetwork',
   UNTAGGED: 'UntaggedNetwork'
 };
+
+export const VOLUME_MODE = {
+  BLOCK:       'Block',
+  FILE_SYSTEM: 'Filesystem'
+};

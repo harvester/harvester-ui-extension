@@ -791,6 +791,7 @@ harvester:
       datasource: Data Source
       details: Details
     size: Size
+    volumeMode: Volume Mode
     source: Source
     kind: Kind
     sourceOptions:

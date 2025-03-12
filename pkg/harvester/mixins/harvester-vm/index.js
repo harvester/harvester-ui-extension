@@ -26,6 +26,7 @@ import { HCI } from '../../types';
 import { parseVolumeClaimTemplates } from '../../utils/vm';
 import impl, { QGA_JSON, USB_TABLET } from './impl';
 import { GIBIBYTE } from '../../utils/unit';
+import { VOLUME_MODE } from '@pkg/harvester/config/types';
 
 const LONGHORN_V2_DATA_ENGINE = 'longhorn-system/v2-data-engine';
 
@@ -261,7 +262,7 @@ export default {
     },
 
     customVolumeMode() {
-      return this.storageClassSetting.volumeMode || 'Block';
+      return this.storageClassSetting.volumeMode || VOLUME_MODE.BLOCK;
     },
 
     customAccessMode() {
@@ -463,7 +464,7 @@ export default {
           type,
           storageClassName: '',
           image:            this.imageId,
-          volumeMode:       'Block',
+          volumeMode:       VOLUME_MODE.BLOCK,
           isEncrypted,
           volumeBackups,
         });
@@ -522,7 +523,7 @@ export default {
               accessMode = pvcResource?.spec?.accessModes?.[0] || 'ReadWriteMany';
               size = pvcResource?.spec?.resources?.requests?.storage || '10Gi';
               storageClassName = pvcResource?.spec?.storageClassName;
-              volumeMode = pvcResource?.spec?.volumeMode || 'Block';
+              volumeMode = pvcResource?.spec?.volumeMode || VOLUME_MODE.BLOCK;
               volumeName = pvcResource?.metadata?.name || '';
             }
 
