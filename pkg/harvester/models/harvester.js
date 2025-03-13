@@ -66,4 +66,8 @@ export default class HarvesterResource extends SteveModel {
       return this.hasLink('self') && this.$rootGetters['prefs/get'](DEV);
     }
   }
+
+  cleanForSave(data, _forNew) {
+    return data;
+  }
 }
