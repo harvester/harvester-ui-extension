@@ -61,6 +61,10 @@ export default class HciUpgrade extends HarvesterResource {
     return this?.status?.imageID;
   }
 
+  cleanForSave(data, _forNew) {
+    return data;
+  }
+
   get upgradeMessage() {
     const upgradeMessage = [];
     const nodeStatuses = this?.status?.nodeStatuses || {};
