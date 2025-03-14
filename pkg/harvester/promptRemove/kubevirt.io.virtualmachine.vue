@@ -16,14 +16,12 @@ export default {
         return [];
       }
     },
-
     names: {
       type:    Array,
       default: () => {
         return [];
       }
     },
-
     type: {
       type:     String,
       required: true
@@ -68,12 +66,6 @@ export default {
       });
 
       return out;
-    },
-
-    plusMore() {
-      const remaining = this.toRemove.length - this.names.length;
-
-      return this.t('promptRemove.andOthers', { count: remaining });
     },
   },
 
@@ -143,7 +135,7 @@ export default {
   <div>
     <div class="mt-10">
       {{ t('promptRemove.attemptingToRemove', {type}) }}
-      <span v-clean-html="resourceNames(names, plusMore, t)"></span>
+      <span v-clean-html="resourceNames(names, t)"></span>
 
       <div class="mt-10">
         {{ t('harvester.virtualMachine.promptRemove.title') }}
