@@ -3,7 +3,7 @@ name: Build Harvester Catalog Image and Publish on Release
 on:
   workflow_dispatch:
   release:
-    types: [released]
+    types: [published]
 
 defaults:
   run:
