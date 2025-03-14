@@ -106,6 +106,12 @@ export default {
         :label="t('harvester.modal.cloneVM.name')"
         required
       />
+      <Banner
+        v-for="(err, i) in errors"
+        :key="i"
+        color="error"
+        :label="err"
+      />
     </template>
 
     <template
@@ -127,11 +133,6 @@ export default {
           @click="create"
         />
       </div>
-
-      <Banner
-        v-for="(err, i) in errors"
-        :key="i"
-      />
     </template>
   </Card>
 </template>
