@@ -245,12 +245,6 @@ export default {
       });
     },
 
-    defaultStorageClass() {
-      const defaultStorage = this.$store.getters[`${ this.inStore }/all`](STORAGE_CLASS).find( (O) => O.isDefault);
-
-      return defaultStorage;
-    },
-
     storageClassSetting() {
       try {
         const storageClassValue = this.$store.getters[`${ this.inStore }/all`](HCI.SETTING).find( (O) => O.id === HCI_SETTING.DEFAULT_STORAGE_CLASS)?.value;

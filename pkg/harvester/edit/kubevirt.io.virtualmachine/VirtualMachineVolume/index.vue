@@ -7,8 +7,7 @@ import UnitInput from '@shell/components/form/UnitInput';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import ModalWithCard from '@shell/components/ModalWithCard';
-
-import { PVC } from '@shell/config/types';
+import { PVC, STORAGE_CLASS } from '@shell/config/types';
 import { clone } from '@shell/utils/object';
 import { ucFirst, randomStr } from '@shell/utils/string';
 import { removeObject } from '@shell/utils/array';
@@ -115,6 +114,12 @@ export default {
 
     isCreate() {
       return this.mode === _CREATE;
+    },
+
+    defaultStorageClass() {
+      const defaultStorage = this.$store.getters['harvester/all'](STORAGE_CLASS).find((sc) => sc.isDefault);
+
+      return defaultStorage;
     },
 
     showVolumeTip() {
