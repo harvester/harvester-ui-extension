@@ -97,9 +97,6 @@ export default {
     },
 
     showVolumeMode() {
-      // console.log('this.thirdPartyStorageClassEnabled=', this.thirdPartyStorageClassEnabled);
-      // console.log('🚀 ~ this.value:', this.value);
-
       if (!this.thirdPartyStorageClassEnabled || !!this.value?.storageClassName === false) {
         return false;
       }
@@ -150,6 +147,8 @@ export default {
       immediate: true,
       handler(neu) {
         this.value.accessMode = this.getAccessMode(neu);
+        this.value.volumeMode = this.getVolumeMode(neu, this.value.volumeMode);
+        this.update();
       }
     },
 
@@ -181,6 +180,20 @@ export default {
   },
 
   methods: {
+    getVolumeMode(storageClassName, originalVolumeMode) {
+      if (!this.thirdPartyStorageClassEnabled) {
+        return VOLUME_MODE.BLOCK;
+      }
+      const storageClass = this.storageClasses.find((sc) => sc.name === storageClassName);
+
+      // longhorn v1, v2 use block volumeMode
+      if (storageClass && storageClass.isLonghorn) {
+        return VOLUME_MODE.BLOCK;
+      }
+
+      return originalVolumeMode;
+    },
+
     getAccessMode(storageClassName) {
       if (!this.longhornV2LVMSupport) {
         return 'ReadWriteMany';
@@ -331,6 +344,7 @@ export default {
             :label="t('harvester.volume.volumeMode')"
             :mode="mode"
             :options="volumeModeOptions"
+            :disabled="isEdit"
             required
             @update:value="update"
           />
