@@ -10,7 +10,7 @@ import { Banner } from '@components/Banner';
 
 import CreateEditView from '@shell/mixins/create-edit-view';
 
-const DEFAULT_VALUE = { image: { repo: 'rancher/harvester-nvidia-driver-toolkit' } };
+const DEFAULT_VALUE = { image: { repository: 'rancher/harvester-nvidia-driver-toolkit' } };
 
 export default {
   name:       'EditAddonNvidiaDriverToolkit',
@@ -122,7 +122,7 @@ export default {
           >
             <div class="col span-6">
               <LabeledInput
-                v-model:value="valuesContentJson.image.repo"
+                v-model:value="valuesContentJson.image.repository"
                 :mode="mode"
                 :required="true"
                 label-key="harvester.addons.nvidiaDriverToolkit.image.repository"
