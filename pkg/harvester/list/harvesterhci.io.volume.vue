@@ -59,10 +59,7 @@ export default {
     if (!pvcSchema?.collectionMethods.find((x) => x.toLowerCase() === 'post')) {
       this.$store.dispatch('type-map/configureType', { match: HCI.VOLUME, isCreatable: false });
     }
-    // we only show the non golden image PVCs in the list
-    const pvcs = hash.pvcs.filter((pvc) => pvc?.metadata?.annotations?.[HCI_ANNOTATIONS.GOLDEN_IMAGE] !== 'true');
-
-    this.rows = pvcs;
+    this.rows = hash.pvcs;
   },
 
   data() {
@@ -73,7 +70,10 @@ export default {
     schema() {
       return schema;
     },
-
+    filterRows() {
+      // we only show the non golden image PVCs in the list
+      return this.rows.filter((pvc) => pvc?.metadata?.annotations?.[HCI_ANNOTATIONS.GOLDEN_IMAGE] !== 'true');
+    },
     headers() {
       return [
         STATE,
@@ -150,7 +150,7 @@ export default {
     :groupable="true"
     default-sort-by="age"
     :namespaced="true"
-    :rows="rows"
+    :rows="filterRows"
     :schema="schema"
     key-field="_key"
   >
