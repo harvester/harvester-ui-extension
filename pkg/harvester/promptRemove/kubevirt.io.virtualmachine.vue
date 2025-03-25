@@ -67,6 +67,12 @@ export default {
 
       return out;
     },
+
+    plusMore() {
+      const remaining = this.toRemove.length - this.names.length;
+
+      return this.t('promptRemove.andOthers', { count: remaining });
+    },
   },
 
   watch: {
@@ -135,7 +141,7 @@ export default {
   <div>
     <div class="mt-10">
       {{ t('promptRemove.attemptingToRemove', {type}) }}
-      <span v-clean-html="resourceNames(names, t)"></span>
+      <span v-clean-html="resourceNames(names, plusMore, t)"></span>
 
       <div class="mt-10">
         {{ t('harvester.virtualMachine.promptRemove.title') }}
