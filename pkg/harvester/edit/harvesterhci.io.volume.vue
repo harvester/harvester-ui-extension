@@ -307,10 +307,10 @@ export default {
       const storageClassName = this.value.spec.storageClassName;
       const storageClass = this.storageClasses.find((sc) => sc.name === storageClassName);
 
-      let readWriteOnce = this.value.isLvm || this.value.isLonghornV2;
+      let readWriteOnce = this.value.isLvm || (!this.value.thirdPartyStorageFeatureEnabled && this.value.isLonghornV2);
 
       if (storageClass) {
-        readWriteOnce = storageClass.provisioner === LVM_DRIVER || storageClass.parameters?.dataEngine === DATA_ENGINE_V2;
+        readWriteOnce = storageClass.provisioner === LVM_DRIVER || (!this.value.thirdPartyStorageFeatureEnabled && storageClass.parameters?.dataEngine === DATA_ENGINE_V2);
       }
 
       return readWriteOnce ? ['ReadWriteOnce'] : ['ReadWriteMany'];
