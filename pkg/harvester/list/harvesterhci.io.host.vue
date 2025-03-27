@@ -101,14 +101,14 @@ export default {
         const metricCol = [
           {
             name:          'cpu',
-            labelKey:      'node.detail.glance.consumptionGauge.cpu',
+            labelKey:      'harvester.dashboard.hardwareResourceGauge.cpu',
             value:         'id',
             formatter:     'HarvesterCPUUsed',
             formatterOpts: { showUsed: true },
           },
           {
             name:          'memory',
-            labelKey:      'node.detail.glance.consumptionGauge.memory',
+            labelKey:      'harvester.dashboard.hardwareResourceGauge.memory',
             value:         'id',
             formatter:     'HarvesterMemoryUsed',
             formatterOpts: { showUsed: true },
