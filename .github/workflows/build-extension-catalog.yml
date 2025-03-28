@@ -6,9 +6,6 @@ on:
       registry_target:
         required: true
         type: string
-      repository_name:
-        required: true
-        type: string
       registry_user:
         required: true
         type: string
@@ -69,13 +66,5 @@ jobs:
 
       - name: Build and push UI image
         run: |
-          publish="yarn publish-pkgs -c -r ${{ inputs.registry_target }} -o ${{ inputs.registry_user }}"
+          publish="yarn publish-pkgs -cp -r ${{ inputs.registry_target }} -o ${{ inputs.registry_user }}"
           $publish
-
-          REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
-          IMAGE_VERSION=$(cat package.json | jq .version | sed 's/"//g')
-          FULL_IMAGE_NAME=$(echo ${{ inputs.registry_target }}/${{ inputs.registry_user }}/ui-extension-$REPO_NAME:$IMAGE_VERSION)
-          IMAGE_ID=$(docker inspect --format='{{.Id}}' $FULL_IMAGE_NAME)
-
-          docker tag $IMAGE_ID ${{ inputs.registry_target }}/${{ inputs.registry_user }}/${{ inputs.repository_name }}:$IMAGE_VERSION
-          docker push ${{ inputs.registry_target }}/${{ inputs.registry_user }}/${{ inputs.repository_name }}:$IMAGE_VERSION
