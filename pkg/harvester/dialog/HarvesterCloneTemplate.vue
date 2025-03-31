@@ -120,6 +120,12 @@ export default {
         v-model:value="description"
         :label="t('harvester.modal.createTemplate.description')"
       />
+      <Banner
+        v-for="(err, i) in errors"
+        :key="i"
+        color="error"
+        :label="err"
+      />
     </template>
 
     <template #actions>
@@ -138,11 +144,6 @@ export default {
             @click="save"
           />
         </div>
-
-        <Banner
-          v-for="(err, i) in errors"
-          :key="i"
-        />
       </div>
     </template>
   </Card>

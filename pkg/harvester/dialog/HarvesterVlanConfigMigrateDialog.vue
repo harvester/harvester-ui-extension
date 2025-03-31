@@ -107,6 +107,12 @@ export default {
         :placeholder="t('harvester.harvesterVlanConfigMigrateDialog.targetClusterNetwork.placeholder')"
         :options="clusterNetworks"
       />
+      <Banner
+        v-for="(err, i) in errors"
+        :key="i"
+        color="error"
+        :label="err"
+      />
     </template>
 
     <template #actions>
@@ -125,11 +131,6 @@ export default {
             @click="apply"
           />
         </div>
-
-        <Banner
-          v-for="(err, i) in errors"
-          :key="i"
-        />
       </div>
     </template>
   </Card>

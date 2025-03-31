@@ -90,6 +90,12 @@ export default {
         v-clean-html="t('harvester.virtualMachine.unplug.title', { name: diskName })"
         class="text-default-text"
       />
+      <Banner
+        v-for="(err, i) in errors"
+        :key="i"
+        color="error"
+        :label="err"
+      />
     </template>
 
     <template #actions>
@@ -111,13 +117,6 @@ export default {
             @click="save"
           />
         </div>
-
-        <Banner
-          v-for="(err, i) in errors"
-          :key="i"
-          color="error"
-          :label="err"
-        />
       </div>
     </template>
   </Card>

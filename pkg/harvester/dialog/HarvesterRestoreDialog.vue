@@ -136,6 +136,12 @@ export default {
         :options="backupOption"
         required
       />
+      <Banner
+        v-for="(err, i) in errors"
+        :key="i"
+        color="error"
+        :label="err"
+      />
     </template>
 
     <template #actions>
@@ -154,11 +160,6 @@ export default {
             @click="saveRestore"
           />
         </div>
-
-        <Banner
-          v-for="(err, i) in errors"
-          :key="i"
-        />
       </div>
     </template>
   </Card>
