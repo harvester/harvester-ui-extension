@@ -128,6 +128,12 @@ export default {
       <Banner color="warning">
         <span>{{ t('harvester.modal.ejectCDROM.warnTip') }}</span>
       </Banner>
+      <Banner
+        v-for="(err, i) in errors"
+        :key="i"
+        color="error"
+        :label="err"
+      />
     </template>
 
     <template #actions>
@@ -147,13 +153,6 @@ export default {
             @click="remove"
           />
         </div>
-
-        <Banner
-          v-for="(err, i) in errors"
-          :key="i"
-          color="error"
-          :label="err"
-        />
       </div>
     </template>
   </Card>

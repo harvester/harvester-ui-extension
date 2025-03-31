@@ -138,6 +138,8 @@ export default {
         <Banner
           v-for="(error, i) in errors"
           :key="i"
+          :label="error"
+          color="error"
         />
       </div>
     </template>

@@ -187,6 +187,12 @@ export default {
         class="mt-20"
         required
       />
+      <Banner
+        v-for="(err, i) in errors"
+        :key="i"
+        color="error"
+        :label="err"
+      />
     </template>
 
     <template #actions>
@@ -205,11 +211,6 @@ export default {
             @click="save"
           />
         </div>
-
-        <Banner
-          v-for="(err, i) in errors"
-          :key="i"
-        />
       </div>
     </template>
   </Card>

@@ -96,6 +96,12 @@ export default {
         :suffix="GIBIBYTE"
         class="mb-20"
       />
+      <Banner
+        v-for="(err, i) in errors"
+        :key="i"
+        color="error"
+        :label="err"
+      />
     </template>
 
     <template #actions>
@@ -109,12 +115,6 @@ export default {
           </button>
           <AsyncButton @click="save" />
         </div>
-        <Banner
-          v-for="(err, i) in errors"
-          :key="i"
-          color="error"
-          :label="err"
-        />
       </div>
     </template>
   </Card>

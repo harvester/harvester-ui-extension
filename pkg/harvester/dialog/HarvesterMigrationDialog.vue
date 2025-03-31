@@ -161,6 +161,12 @@ export default {
         :placeholder="t('harvester.modal.migration.fields.nodeName.placeholder')"
         :options="nodeNameList"
       />
+      <Banner
+        v-for="(err, i) in errors"
+        :key="i"
+        color="error"
+        :label="err"
+      />
     </template>
 
     <template
@@ -181,12 +187,6 @@ export default {
           @click="apply"
         />
       </div>
-      <Banner
-        v-for="(err, i) in errors"
-        :key="i"
-        color="error"
-        :label="err"
-      />
     </template>
   </Card>
 </template>
