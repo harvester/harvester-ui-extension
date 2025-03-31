@@ -122,16 +122,15 @@ export default {
         </Banner>
         {{ t('harvester.modal.downloadImage.startMessage') }}
         <br /><br />
-      </template>
-
-      <template #actions>
         <Banner
           v-for="(err, i) in errors"
           :key="i"
           color="error"
-        >
-          {{ err }}
-        </Banner>
+          :label="err"
+        />
+      </template>
+
+      <template #actions>
         <div class="actions">
           <div class="buttons">
             <button
