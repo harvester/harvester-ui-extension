@@ -70,16 +70,16 @@ export default {
           v-clean-html="t('harvester.modal.restart.tip')"
           class="pl-10 pr-10"
         />
+        <Banner
+          v-for="(err, i) in errors"
+          :key="i"
+          color="error"
+          :label="err"
+        />
       </template>
 
       <template #actions>
         <div class="bottom">
-          <Banner
-            v-for="(err, i) in errors"
-            :key="i"
-            color="error"
-            :label="err"
-          />
           <div class="buttons">
             <button
               class="btn role-secondary mr-10"
