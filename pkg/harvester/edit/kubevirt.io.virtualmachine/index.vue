@@ -421,8 +421,13 @@ export default {
       }
 
       return new Promise((resolve) => {
-        this.isOpen = true;
+        // Resolve immediately if there's no restart dialog in edit as yaml
+        if (!this?.$refs?.restartDialog) {
+          this.value.doActionGrowl('restart', {});
 
+          return resolve();
+        }
+        this.isOpen = true;
         this.$nextTick(() => {
           this.$refs.restartDialog.resolve = resolve;
         });
