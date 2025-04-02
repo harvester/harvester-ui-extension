@@ -669,7 +669,7 @@ export default {
         }
       });
 
-      if (!this.secretName || this.needNewSecret) {
+      if (!this.secretName) {
         this.secretName = this.generateSecretName(this.secretNamePrefix);
       }
 
