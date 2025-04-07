@@ -2,6 +2,7 @@
 import { isEqual } from 'lodash';
 import { mapGetters } from 'vuex';
 import Tabbed from '@shell/components/Tabbed';
+import { clone } from '@shell/utils/object';
 import Tab from '@shell/components/Tabbed/Tab';
 import { Checkbox } from '@components/Form/Checkbox';
 import CruResource from '@shell/components/CruResource';
@@ -17,7 +18,6 @@ import UsbDevices from './VirtualMachineUSBDevices/index';
 import KeyValue from '@shell/components/form/KeyValue';
 
 import { clear } from '@shell/utils/array';
-import { clone } from '@shell/utils/object';
 import { saferDump } from '@shell/utils/create-yaml';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
@@ -410,26 +410,29 @@ export default {
       const cloneDeepNewVM = clone(this.value);
 
       delete cloneDeepNewVM?.metadata;
+      delete cloneDeepNewVM?.__clone;
+
       delete this.cloneVM?.metadata;
       delete this.cloneVM?.__clone;
 
       const oldVM = JSON.parse(JSON.stringify(this.cloneVM));
       const newVM = JSON.parse(JSON.stringify(cloneDeepNewVM));
 
+      // we won't show restart dialog in yaml page as we don't have a way to detect change in yaml editor.
+      // only check VM is changed in form page.
       if (isEqual(oldVM, newVM)) {
         return;
       }
 
       return new Promise((resolve) => {
-        // Resolve immediately if there's no restart dialog in edit as yaml
-        if (!this?.$refs?.restartDialog) {
-          this.value.doActionGrowl('restart', {});
-
-          return resolve();
-        }
         this.isOpen = true;
+
         this.$nextTick(() => {
-          this.$refs.restartDialog.resolve = resolve;
+          if (this?.$refs?.restartDialog) {
+            this.$refs.restartDialog.resolve = resolve;
+          } else {
+            return resolve();
+          }
         });
       });
     },
