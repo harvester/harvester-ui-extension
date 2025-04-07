@@ -97,11 +97,13 @@ export default {
       });
 
       const devices = [
-        ...this.otherDevices(this.value.domain.devices.hostDevices || []),
+        ...this.otherDevices(this.value?.domain?.devices?.hostDevices || []),
         ...formatted,
       ];
 
-      set(this.value.domain.devices, 'hostDevices', devices);
+      if (devices.length > 0) {
+        set(this.value.domain.devices, 'hostDevices', devices);
+      }
     }
   },
 
@@ -121,7 +123,9 @@ export default {
           return inUse;
         }
 
-        vm.hostDevices.forEach((device) => {
+        const hostDevices = vm?.hostDevices || [];
+
+        hostDevices.forEach((device) => {
           inUse[device.name] = { usedBy: [vm.metadata.name] };
         });
 

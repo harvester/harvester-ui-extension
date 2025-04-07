@@ -871,7 +871,7 @@ export default {
         }
       }
 
-      if (out.length === 0 && !!this.spec.template.spec.accessCredentials) {
+      if (out.length === 0 && !!this.spec.template.spec.accessCredentials === false) {
         delete this.spec.template.spec.accessCredentials;
       } else {
         this.spec.template.spec.accessCredentials = out;
