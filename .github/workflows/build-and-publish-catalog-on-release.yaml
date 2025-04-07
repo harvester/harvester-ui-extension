@@ -32,5 +32,4 @@ jobs:
     with:
       registry_target: docker.io
       registry_user: rancher
-      repository_name: harvester-ui-catalog
     secrets: inherit
