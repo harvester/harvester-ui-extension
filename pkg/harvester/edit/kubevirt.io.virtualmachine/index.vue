@@ -212,7 +212,10 @@ export default {
       }
 
       return false;
-    }
+    },
+    usbPassthroughEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('usbPassthrough');
+    },
   },
 
   watch: {
@@ -682,7 +685,7 @@ export default {
       </Tab>
 
       <Tab
-        v-if="enabledPCI"
+        v-if="enabledPCI && usbPassthroughEnabled"
         :label="t('harvester.tab.usbDevices')"
         name="usbDevices"
         :weight="-7"
