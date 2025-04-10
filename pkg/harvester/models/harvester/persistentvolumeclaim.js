@@ -344,6 +344,10 @@ export default class HciPv extends HarvesterResource {
     return this.dataEngine === DATA_ENGINE_V2;
   }
 
+  get isGoldenImageVolume() {
+    return this?.metadata?.annotations?.[HCI_ANNOTATIONS.GOLDEN_IMAGE] === 'true';
+  }
+
   get thirdPartyStorageFeatureEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('thirdPartyStorage');
   }

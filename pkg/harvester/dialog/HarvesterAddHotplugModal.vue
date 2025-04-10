@@ -57,6 +57,10 @@ export default {
             if (!!pvc.metadata?.annotations?.[HCI_ANNOTATIONS.IMAGE_ID]) {
               return false;
             }
+            // we won't show golden image volume in the hot plug volume modal
+            if (pvc.isGoldenImageVolume) {
+              return false;
+            }
 
             return !pvc.attachVM;
           })
