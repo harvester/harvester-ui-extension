@@ -35,7 +35,17 @@ function latestMinorVersion(v) {
 }
 
 export const featureEnabled = (featureKey, serverVersion) => {
+  const minSupportedVersion = '1.3.0';
+
   const version = getVersion(serverVersion);
+
+  if (semver.lt(version.replace('v', ''), minSupportedVersion)) {
+    // eslint-disable-next-line no-console
+    console.error('Harvester ui extension only supports Harvester cluster version greater or equal to 1.3.0. Current version: ', version);
+
+    return false;
+  }
+
   let releasedFeatures = RELEASE_FEATURES[version];
 
   if (!releasedFeatures) {
