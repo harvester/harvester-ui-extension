@@ -41,7 +41,7 @@ export const featureEnabled = (featureKey, serverVersion) => {
 
   if (semver.lt(version.replace('v', ''), minSupportedVersion)) {
     // eslint-disable-next-line no-console
-    console.error('Harvester ui extension only supports Harvester cluster version greater or equal to 1.3.0. Current version: ', version);
+    console.error(`Harvester UI extension only supports Harvester cluster version >= ${ minSupportedVersion }. Current version: ${ version }`);
 
     return false;
   }
