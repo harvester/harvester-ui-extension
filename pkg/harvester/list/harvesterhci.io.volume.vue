@@ -6,10 +6,8 @@ import {
 } from '@shell/config/types';
 import { STATE, AGE, NAME, NAMESPACE } from '@shell/config/table-headers';
 import HarvesterVolumeState from '../formatters/HarvesterVolumeState';
-
 import { allSettled } from '../utils/promise';
 import { HCI, VOLUME_SNAPSHOT } from '../types';
-import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 
 const schema = {
   id:         HCI.VOLUME,
@@ -72,7 +70,7 @@ export default {
     },
     filterRows() {
       // we only show the non golden image PVCs in the list
-      return this.rows.filter((pvc) => pvc?.metadata?.annotations?.[HCI_ANNOTATIONS.GOLDEN_IMAGE] !== 'true');
+      return this.rows.filter((pvc) => !pvc?.isGoldenImageVolume);
     },
     headers() {
       return [

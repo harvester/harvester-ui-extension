@@ -111,7 +111,7 @@ export default {
               return false;
             }
 
-            if (pvc.metadata?.annotations?.[HCI_ANNOTATIONS.GOLDEN_IMAGE] === 'true') {
+            if (pvc.isGoldenImageVolume) {
               return false;
             }
 
