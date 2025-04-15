@@ -485,6 +485,7 @@ export default {
     },
 
     generateYaml() {
+      this.showYaml = this?.$refs?.vmCruResource?.showYaml || false;
       this.parseVM();
       const out = saferDump(this.value);
 
@@ -498,6 +499,7 @@ export default {
   <CruResource
     v-if="spec"
     id="vm"
+    ref="vmCruResource"
     :done-route="doneRoute"
     :resource="value"
     :cancel-event="true"
