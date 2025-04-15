@@ -140,6 +140,7 @@ export default {
     return {
       OS,
       isClone,
+      showYaml:                      false,
       spec:                          null,
       osType:                        'linux',
       sshKey:                        [],
@@ -269,7 +270,7 @@ export default {
 
     needNewSecret() {
       // When creating a template it is always necessary to create a new secret.
-      return this.resourceType === HCI.VM_VERSION || this.isCreate;
+      return this.showYaml ? false : this.resourceType === HCI.VM_VERSION || this.isCreate;
     },
 
     defaultTerminationSetting() {
@@ -669,7 +670,7 @@ export default {
         }
       });
 
-      if (!this.secretName) {
+      if (this.needNewSecret || !this.secretName) {
         this.secretName = this.generateSecretName(this.secretNamePrefix);
       }
 
