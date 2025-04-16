@@ -420,8 +420,10 @@ export default {
       delete this.cloneVM?.__clone;
 
       // add empty hostDevices to old VM as CRD does not have it.
-      if (this.cloneVM?.spec?.template?.spec?.domain?.devices?.hostDevices === undefined) {
-        this.cloneVM.spec.template.spec.domain.devices.hostDevices = [];
+      const devicesObj = this.cloneVM?.spec?.template?.spec?.domain?.devices;
+
+      if (devicesObj && devicesObj.hostDevices === undefined) {
+        devicesObj.hostDevices = [];
       }
 
       const oldVM = JSON.parse(JSON.stringify(this.cloneVM));
