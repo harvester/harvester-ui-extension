@@ -2,7 +2,7 @@
 import { isEqual } from 'lodash';
 import { mapGetters } from 'vuex';
 import Tabbed from '@shell/components/Tabbed';
-import { clone } from '@shell/utils/object';
+import { clone, set } from '@shell/utils/object';
 import Tab from '@shell/components/Tabbed/Tab';
 import { Checkbox } from '@components/Form/Checkbox';
 import CruResource from '@shell/components/CruResource';
@@ -423,7 +423,7 @@ export default {
       const devicesObj = this.cloneVM?.spec?.template?.spec?.domain?.devices;
 
       if (devicesObj && devicesObj.hostDevices === undefined) {
-        devicesObj.hostDevices = [];
+        set(devicesObj, 'hostDevices', []);
       }
 
       const oldVM = JSON.parse(JSON.stringify(this.cloneVM));
