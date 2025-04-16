@@ -62,7 +62,7 @@ export const HCI_ALLOWED_SETTINGS = {
   },
   [HCI_SETTING.OVERCOMMIT_CONFIG]:                      { kind: 'json', from: 'import' },
   [HCI_SETTING.SUPPORT_BUNDLE_TIMEOUT]:                 {},
-  [HCI_SETTING.SUPPORT_BUNDLE_EXPIRATION]:              {},
+  [HCI_SETTING.SUPPORT_BUNDLE_EXPIRATION]:              { kind: 'number' },
   [HCI_SETTING.SUPPORT_BUNDLE_NODE_COLLECTION_TIMEOUT]: { featureFlag: 'supportBundleNodeCollectionTimeoutSetting' },
   [HCI_SETTING.SUPPORT_BUNDLE_IMAGE]:                   { kind: 'json', from: 'import' },
   [HCI_SETTING.STORAGE_NETWORK]:                        {
