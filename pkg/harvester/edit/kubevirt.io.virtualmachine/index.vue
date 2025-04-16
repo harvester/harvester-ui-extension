@@ -2,7 +2,7 @@
 import { isEqual } from 'lodash';
 import { mapGetters } from 'vuex';
 import Tabbed from '@shell/components/Tabbed';
-import { clone } from '@shell/utils/object';
+import { clone, set } from '@shell/utils/object';
 import Tab from '@shell/components/Tabbed/Tab';
 import { Checkbox } from '@components/Form/Checkbox';
 import CruResource from '@shell/components/CruResource';
@@ -16,7 +16,6 @@ import PodAffinity from '@shell/components/form/PodAffinity';
 import VGpuDevices from './VirtualMachineVGpuDevices/index';
 import UsbDevices from './VirtualMachineUSBDevices/index';
 import KeyValue from '@shell/components/form/KeyValue';
-
 import { clear } from '@shell/utils/array';
 import { saferDump } from '@shell/utils/create-yaml';
 import { exceptionToErrorsArray } from '@shell/utils/error';
@@ -412,11 +411,20 @@ export default {
       }
       const cloneDeepNewVM = clone(this.value);
 
+      // new VM
       delete cloneDeepNewVM?.metadata;
       delete cloneDeepNewVM?.__clone;
 
+      // old VM
       delete this.cloneVM?.metadata;
       delete this.cloneVM?.__clone;
+
+      // add empty hostDevices to old VM as CRD does not have it.
+      const devicesObj = this.cloneVM?.spec?.template?.spec?.domain?.devices;
+
+      if (devicesObj && devicesObj.hostDevices === undefined) {
+        set(devicesObj, 'hostDevices', []);
+      }
 
       const oldVM = JSON.parse(JSON.stringify(this.cloneVM));
       const newVM = JSON.parse(JSON.stringify(cloneDeepNewVM));
