@@ -101,9 +101,7 @@ export default {
         ...formatted,
       ];
 
-      if (devices.length > 0) {
-        set(this.value.domain.devices, 'hostDevices', devices);
-      }
+      set(this.value.domain.devices, 'hostDevices', devices);
     }
   },
 

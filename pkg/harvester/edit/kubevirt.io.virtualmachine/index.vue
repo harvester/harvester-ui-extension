@@ -16,7 +16,6 @@ import PodAffinity from '@shell/components/form/PodAffinity';
 import VGpuDevices from './VirtualMachineVGpuDevices/index';
 import UsbDevices from './VirtualMachineUSBDevices/index';
 import KeyValue from '@shell/components/form/KeyValue';
-
 import { clear } from '@shell/utils/array';
 import { saferDump } from '@shell/utils/create-yaml';
 import { exceptionToErrorsArray } from '@shell/utils/error';
@@ -412,11 +411,18 @@ export default {
       }
       const cloneDeepNewVM = clone(this.value);
 
+      // new VM
       delete cloneDeepNewVM?.metadata;
       delete cloneDeepNewVM?.__clone;
 
+      // old VM
       delete this.cloneVM?.metadata;
       delete this.cloneVM?.__clone;
+
+      // add empty hostDevices to old VM as CRD does not have it.
+      if (this.cloneVM?.spec?.template?.spec?.domain?.devices?.hostDevices === undefined) {
+        this.cloneVM.spec.template.spec.domain.devices.hostDevices = [];
+      }
 
       const oldVM = JSON.parse(JSON.stringify(this.cloneVM));
       const newVM = JSON.parse(JSON.stringify(cloneDeepNewVM));
