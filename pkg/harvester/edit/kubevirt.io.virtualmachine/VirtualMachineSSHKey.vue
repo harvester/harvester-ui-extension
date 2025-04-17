@@ -6,8 +6,7 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import ModalWithCard from '@shell/components/ModalWithCard';
 
-import { clone } from '@shell/utils/object';
-import { _VIEW } from '@shell/config/query-params';
+import { _VIEW, _EDIT } from '@shell/config/query-params';
 
 import { NAMESPACE } from '@shell/config/types';
 import { HCI } from '../../types';
@@ -91,6 +90,9 @@ export default {
     },
 
     sshOption() {
+      if (this.mode === _VIEW || this.mode === _EDIT) {
+        return [];
+      }
       const out = this.$store.getters['harvester/all'](HCI.SSH).map( (O) => {
         return {
           label: O.id,
@@ -126,10 +128,9 @@ export default {
       this.checkedSsh = neu;
     },
 
-    checkedSsh(val, old) {
-      if ( val.includes(_NEW)) {
-        this['checkedSsh'] = old;
-        this.update();
+    checkedSsh(val) {
+      // if click on Create a New...
+      if (val.includes(_NEW)) {
         this.show();
       }
     }
@@ -175,6 +176,7 @@ export default {
 
       if (res.id) {
         this.checkedSsh.push(`${ this.namespace }/${ this.sshName }`);
+        this.update();
       }
     },
 
@@ -232,7 +234,9 @@ export default {
     },
 
     update() {
-      this.$emit('update:sshKey', clone(this.checkedSsh));
+      const sshKeys = this.checkedSsh.filter((key) => key !== _NEW);
+
+      this.$emit('update:sshKey', sshKeys);
     },
   }
 };
@@ -243,7 +247,7 @@ export default {
     <LabeledSelect
       v-model:value="checkedSsh"
       :label="t('harvester.virtualMachine.input.sshKey')"
-      :taggable="true"
+      :taggable="!disabled"
       :mode="mode"
       :multiple="true"
       :searchable="searchable"

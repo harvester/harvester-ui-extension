@@ -894,8 +894,8 @@ export default {
     },
 
     /**
-     * Generate user data yaml which is decide by the "Install guest agent",
-     * "OS type", "SSH Keys" and user input.
+     * Generate user data yaml which is decided by the
+     * "Install guest agent", "OS type", "SSH keys" and user input.
      * @param config
      */
     getUserData(config) {
@@ -1212,7 +1212,6 @@ export default {
 
       let secret = this.getSecret(vm.spec);
 
-      // const userData = this.getUserData({ osType: this.osType, installAgent: this.installAgent });
       if (!secret && this.isEdit && this.secretRef) {
         // When editing the vm, if the userData and networkData are deleted, we also need to clean up the secret values
         secret = this.secretRef;
@@ -1590,9 +1589,13 @@ export default {
     },
 
     sshKey(neu, old) {
+      // refresh yaml editor to get the latest userScript
+      this.userScript = this.getUserData({ installAgent: this.installAgent, osType: this.osType });
+      this.refreshYamlEditor();
+
       const _diff = difference(old, neu);
 
-      if (_diff.length && this.isEdit) {
+      if (_diff.length > 0 && this.isCreate) {
         this.deleteSSHFromUserData(_diff);
       }
     }
