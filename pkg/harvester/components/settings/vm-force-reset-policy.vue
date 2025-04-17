@@ -59,7 +59,7 @@ export default {
         name="model"
         :options="[true,false]"
         :labels="[t('generic.enabled'), t('generic.disabled')]"
-        @input="update"
+        @update:value="update"
       />
 
       <LabeledInput

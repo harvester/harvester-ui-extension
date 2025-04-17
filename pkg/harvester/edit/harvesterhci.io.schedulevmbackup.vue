@@ -233,7 +233,7 @@ export default {
           :disabled="isEdit || isView"
           :mode="mode"
           row
-          @input="onTypeChange"
+          @update:value="onTypeChange"
         />
       </div>
       <div class="row mb-30">
