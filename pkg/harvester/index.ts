@@ -6,6 +6,7 @@ import harvesterCommonStore from './store/harvester-common';
 import harvesterStore from './store/harvester-store';
 import customValidators from './validators';
 import { PRODUCT_NAME } from './config/harvester';
+import { defineAsyncComponent } from 'vue';
 
 // Init the package
 export default function (plugin: IPlugin) {
@@ -20,7 +21,7 @@ export default function (plugin: IPlugin) {
 
   // Built-in icon
   plugin.metadata.icon = require('./icon.svg');
-  
+
   plugin.addProduct(require('./config/harvester-cluster'));
 
   plugin.addDashboardStore(harvesterCommonStore.config.namespace, harvesterCommonStore.specifics, harvesterCommonStore.config);
@@ -28,4 +29,8 @@ export default function (plugin: IPlugin) {
   plugin.validators = customValidators;
 
   plugin.addRoutes(extensionRoutes);
+
+  plugin.register('component', 'NavHeaderRight', defineAsyncComponent(() =>
+    import('./components/HarvesterUpgradeHeader.vue')
+  ));
 }
