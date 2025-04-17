@@ -101,7 +101,7 @@ export default {
     v-bind="$attrs"
     :headers="headers"
     :sub-rows="true"
-    :groupable="false"
+    :groupable="true"
     :rows="rows"
     :group-title-by="groupTitleBy"
     :group-by="groupBy"
