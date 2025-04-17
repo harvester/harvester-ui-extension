@@ -2,6 +2,7 @@ import { MODE, _CREATE } from '@shell/config/query-params';
 import { HCI } from '../types';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
 import HarvesterResource from './harvester';
+import { clone } from '@shell/utils/object';
 
 export default class HciVmTemplate extends HarvesterResource {
   get availableActions() {
@@ -70,5 +71,13 @@ export default class HciVmTemplate extends HarvesterResource {
 
   get defaultVersion() {
     return this.status?.defaultVersion;
+  }
+
+  get doneOverride() {
+    const detailLocation = clone(this.listLocation);
+
+    detailLocation.params.resource = HCI.VM_VERSION;
+
+    return detailLocation;
   }
 }
