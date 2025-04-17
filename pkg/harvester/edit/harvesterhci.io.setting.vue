@@ -4,7 +4,7 @@ import { RadioGroup } from '@components/Form/Radio';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { TextAreaAutoGrow } from '@components/Form/TextArea';
-
+import UnitInput from '@shell/components/form/UnitInput';
 import CreateEditView from '@shell/mixins/create-edit-view';
 
 import { HCI_ALLOWED_SETTINGS, HCI_SINGLE_CLUSTER_ALLOWED_SETTING, HCI_SETTING } from '../config/settings';
@@ -15,7 +15,8 @@ export default {
     LabeledInput,
     LabeledSelect,
     RadioGroup,
-    TextAreaAutoGrow
+    TextAreaAutoGrow,
+    UnitInput
   },
 
   mixins: [CreateEditView],
@@ -128,6 +129,13 @@ export default {
         await this.clusterRegistrationUrlTip();
       }
 
+      // remove any leading zeros (e.g. '0123' becomes 123)
+      if (this.setting.kind === 'number' && this.value.value) {
+        const num = Number(this.value.value);
+
+        this.value.value = isNaN(num) ? 0 : `${ num }`;
+      }
+
       this.save(done);
     },
 
@@ -236,6 +244,13 @@ export default {
         <TextAreaAutoGrow
           v-model:value="value.value"
           :min-height="254"
+        />
+      </div>
+      <div v-else-if="setting.kind === 'number'">
+        <LabeledInput
+          v-model:value="value.value"
+          :label="t('advancedSettings.edit.value')"
+          type="number"
         />
       </div>
       <div v-else>
