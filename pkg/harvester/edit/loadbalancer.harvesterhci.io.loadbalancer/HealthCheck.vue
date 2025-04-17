@@ -65,7 +65,7 @@ export default {
           :labels="[t('generic.disabled'),t('generic.enabled')]"
           :options="[false, true]"
           :disabled="disabled"
-          @input="onToggle"
+          @update:value="onToggle"
         />
       </div>
     </div>
