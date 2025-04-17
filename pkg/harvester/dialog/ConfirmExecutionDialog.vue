@@ -48,6 +48,7 @@ export default {
       return this.resources.map((obj) => obj.nameDisplay).slice(0, 5);
     },
 
+    // Todo use @shell/utils/string/resourceNames
     resourceNames() {
       return this.names.reduce((res, name, i) => {
         if (i >= 5) {
