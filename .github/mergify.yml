@@ -2,6 +2,7 @@ pull_request_rules:
 - name: Automatically open backport PR to release-harvester-v1.5
   conditions:
     - base=main
+    - label="require backport 1.5"
   actions:
     backport:
       branches:
