@@ -50,35 +50,45 @@ export default class HciVmImage extends HarvesterResource {
       canCreateVM = false;
     }
 
-    return [
+    const customActions = this.isReady ? [
       {
         action:   'createFromImage',
         enabled:  canCreateVM,
         icon:     'icon icon-circle-plus',
         label:    this.t('harvester.action.createVM'),
-        disabled: !this.isReady,
       },
       {
         action:   'encryptImage',
         enabled:  this.volumeEncryptionFeatureEnabled && !this.isEncrypted,
         icon:     'icon icon-lock',
         label:    this.t('harvester.action.encryptImage'),
-        disabled: !this.isReady,
       },
       {
         action:   'decryptImage',
         enabled:  this.volumeEncryptionFeatureEnabled && this.isEncrypted,
         icon:     'icon icon-unlock',
         label:    this.t('harvester.action.decryptImage'),
-        disabled: !this.isReady,
       },
       {
-        action:  'imageDownload',
-        enabled: this.links?.download,
-        icon:    'icon icon-download',
-        label:   this.t('asyncButton.download.action'),
-      },
-      ...out
+        action:   'imageDownload',
+        enabled:  this.links?.download,
+        icon:     'icon icon-download',
+        label:    this.t('asyncButton.download.action'),
+      }
+    ] : [];
+
+    let filteredOut;
+
+    if (customActions.length > 0) {
+      filteredOut = out;
+    } else {
+      // if the first item is a divider, remove it from the array
+      filteredOut = out[0]?.divider ? out.slice(1) : out;
+    }
+
+    return [
+      ...customActions,
+      ...filteredOut
     ];
   }
 
