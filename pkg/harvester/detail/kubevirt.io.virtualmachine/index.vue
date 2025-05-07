@@ -27,6 +27,8 @@ import { formatSi } from '@shell/utils/units';
 
 const VM_METRICS_DETAIL_URL = '/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy/d/harvester-vm-detail-1/vm-info-detail?orgId=1';
 
+const VM_MIGRATION_DETAIL_URL = '/api/v1/namespaces/cattle-monitoring-system/services/http:rancher-monitoring-grafana:80/proxy/d/harvester-vm-migration-details-1/harvester-vm-migration-details?orgId=1';
+
 export default {
   name: 'VMIDetailsPage',
 
@@ -63,6 +65,7 @@ export default {
       hasResourceQuotaSchema: false,
       switchToCloud:          false,
       VM_METRICS_DETAIL_URL,
+      VM_MIGRATION_DETAIL_URL,
       showVmMetrics:          false,
     };
   },
@@ -78,6 +81,7 @@ export default {
       events:   this.$store.dispatch(`${ inStore }/findAll`, { type: EVENT }),
       allSSHs:  this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.SSH }),
       vmis:     this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VMI }),
+      vmims:     this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VMIM }),
       restore:  this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.RESTORE }),
     };
 
@@ -131,6 +135,31 @@ export default {
       return this.$store.getters[`${ inStore }/all`](EVENT);
     },
 
+    vmim() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const vmimList = this.$store.getters[`${ inStore }/all`](HCI.VMIM) || [];
+
+      const migrationUid = this.vmi?.status?.migrationState?.migrationUid;
+      const vmim = vmimList.find((VMIM) => VMIM?.metadata?.uid === migrationUid);
+
+      return vmim;
+    },
+
+    migrationEvents() {
+      const migrationVMName = this.vmim?.metadata.name || '';
+
+      if (migrationVMName === '') {
+        return [];
+      }
+
+      return this.allEvents.filter((e) => {
+        const { creationTimestamp } = this.value?.metadata || {};
+        const involvedName = e?.involvedObject?.name;
+
+        return involvedName === migrationVMName && e.firstTimestamp >= creationTimestamp;
+      }).sort((a, b) => a.lastTimestamp > b.lastTimestamp);
+    },
+
     events() {
       return this.allEvents.filter((e) => {
         const { name, creationTimestamp } = this.value?.metadata || {};
@@ -138,7 +167,6 @@ export default {
         const pvcName = this.value.persistentVolumeClaimName || [];
 
         const involvedName = e?.involvedObject?.name;
-
         const matchPVC = pvcName.find((name) => name === involvedName);
 
         return (involvedName === name || involvedName === podName || matchPVC) && e.firstTimestamp >= creationTimestamp;
@@ -156,6 +184,10 @@ export default {
         namespace: this.value.namespace,
         vm:        this.value.name
       };
+    },
+
+    liveMigrationProgressEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('liveMigrationProgress');
     },
   },
 
@@ -346,7 +378,21 @@ export default {
         <Migration
           :value="value"
           :vmi-resource="vmi"
+          :vmim-resource="vmim"
         />
+        <div v-if="showVmMetrics && liveMigrationProgressEnabled">
+          <DashboardMetrics
+            :detail-url="VM_MIGRATION_DETAIL_URL"
+            graph-height="640px"
+            :has-summary-and-detail="false"
+            :vars="graphVars"
+            class="mb-30"
+          />
+          <Events
+            :resource="vmi"
+            :events="migrationEvents"
+          />
+        </div>
       </Tab>
 
       <Tab

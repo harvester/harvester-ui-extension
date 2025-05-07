@@ -17,6 +17,13 @@ export default {
       default:  () => {
         return {};
       }
+    },
+    vmimResource: {
+      type:     Object,
+      required: true,
+      default:  () => {
+        return {};
+      }
     }
   },
 
@@ -25,6 +32,12 @@ export default {
   },
 
   computed: {
+    liveMigrationProgressEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('liveMigrationProgress');
+    },
+    migrationPhase() {
+      return this.vmimResource?.status?.phase || 'N/A';
+    },
     migrationState() {
       return this.localResource?.status?.migrationState;
     },
@@ -58,6 +71,18 @@ export default {
 
 <template>
   <div>
+    <div
+      v-if="liveMigrationProgressEnabled"
+      class="row mb-20"
+    >
+      <div class="col span-6">
+        <LabelValue
+          :name="t('harvester.virtualMachine.detail.details.phase')"
+          :value="migrationPhase"
+        />
+      </div>
+    </div>
+
     <div class="row mb-20">
       <div class="col span-6">
         <LabelValue

@@ -33,7 +33,8 @@ const FEATURE_FLAGS = {
     'efiPersistentState',
     'untaggedNetworkSetting',
     'skipSingleReplicaDetachedVol',
-    'thirdPartyStorage'
+    'thirdPartyStorage',
+    'liveMigrationProgress'
   ],
   'v1.5.1': [],
   'v1.6.0': []
