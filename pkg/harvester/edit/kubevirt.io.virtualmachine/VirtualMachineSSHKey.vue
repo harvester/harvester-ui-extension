@@ -1,13 +1,11 @@
 <script>
 import { mapGetters } from 'vuex';
 import { randomStr } from '@shell/utils/string';
-
+import { clone } from '@shell/utils/object';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import ModalWithCard from '@shell/components/ModalWithCard';
-
 import { _VIEW, _EDIT } from '@shell/config/query-params';
-
 import { NAMESPACE } from '@shell/config/types';
 import { HCI } from '../../types';
 
@@ -131,6 +129,7 @@ export default {
     checkedSsh(val) {
       // if click on Create a New...
       if (val.includes(_NEW)) {
+        this.checkedSsh = this.checkedSsh.filter((key) => key !== _NEW);
         this.show();
       }
     }
@@ -234,9 +233,7 @@ export default {
     },
 
     update() {
-      const sshKeys = this.checkedSsh.filter((key) => key !== _NEW);
-
-      this.$emit('update:sshKey', sshKeys);
+      this.$emit('update:sshKey', clone(this.checkedSsh));
     },
   }
 };
