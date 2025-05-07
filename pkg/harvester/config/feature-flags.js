@@ -59,7 +59,8 @@ const featuresV150 = [
   'efiPersistentState',
   'untaggedNetworkSetting',
   'skipSingleReplicaDetachedVol',
-  'thirdPartyStorage'
+  'thirdPartyStorage',
+  'liveMigrationProgress',
 ];
 
 // TODO: https://github.com/harvester/harvester-ui-extension/releases/tag/v1.5.1
