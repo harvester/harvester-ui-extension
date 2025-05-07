@@ -54,7 +54,7 @@ const featuresV143 = [
 
 // https://github.com/harvester/harvester-ui-extension/releases/tag/v1.5.0
 const featuresV150 = [
-  ...featuresV142,
+  ...featuresV143,
   'tpmPersistentState',
   'efiPersistentState',
   'untaggedNetworkSetting',
@@ -67,12 +67,10 @@ const featuresV151 = [
   ...featuresV150
 ];
 
-
 // TODO: https://github.com/harvester/harvester-ui-extension/releases/tag/v1.6.0
 const featuresV160 = [
   ...featuresV151
 ];
-
 
 export const RELEASE_FEATURES = {
   'v1.3.0': featuresV130,
