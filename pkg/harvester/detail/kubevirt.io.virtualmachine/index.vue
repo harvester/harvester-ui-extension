@@ -380,19 +380,19 @@ export default {
           :vmi-resource="vmi"
           :vmim-resource="vmim"
         />
-        <div v-if="showVmMetrics && liveMigrationProgressEnabled">
-          <DashboardMetrics
-            :detail-url="VM_MIGRATION_DETAIL_URL"
-            graph-height="640px"
-            :has-summary-and-detail="false"
-            :vars="graphVars"
-            class="mb-30"
-          />
-          <Events
-            :resource="vmi"
-            :events="migrationEvents"
-          />
-        </div>
+        <DashboardMetrics
+          v-if="showVmMetrics && liveMigrationProgressEnabled"
+          :detail-url="VM_MIGRATION_DETAIL_URL"
+          graph-height="640px"
+          :has-summary-and-detail="false"
+          :vars="graphVars"
+          class="mb-30"
+        />
+        <Events
+          v-if="liveMigrationProgressEnabled"
+          :resource="vmi"
+          :events="migrationEvents"
+        />
       </Tab>
 
       <Tab
