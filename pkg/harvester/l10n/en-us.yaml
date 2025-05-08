@@ -745,6 +745,7 @@ harvester:
         dedicatedResources: Dedicated Resources
         down: Virtual machine not running
         affinityRules: Affinity Rules
+        phase: Phase
         sourceNode: Source Node
         targetNode: Target Node
         started: Started
