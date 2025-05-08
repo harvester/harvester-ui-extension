@@ -922,7 +922,9 @@ export default {
           return undefined;
         }
 
-        return userDataYaml;
+        const hasCloudComment = this.hasCloudConfigComment(userDataYaml);
+
+        return hasCloudComment ? userDataYaml : `#cloud-config\n${ userDataYaml }`;
       } catch (e) {
         console.error('Error: Unable to parse yaml document', e); // eslint-disable-line no-console
 
@@ -1443,7 +1445,6 @@ export default {
           sshAuthorizedKeys.splice(index, 1);
         }
       });
-
       const userDataJson = this.convertToJson(this.userScript);
 
       userDataJson.ssh_authorized_keys = sshAuthorizedKeys;
@@ -1579,19 +1580,9 @@ export default {
        */
       handler(neu) {
         if (this.deleteAgent) {
-          let out = this.getUserData({
+          this['userScript'] = this.getUserData({
             installAgent: neu, osType: this.osType, deletePackage: this.deletePackage
           });
-
-          if (neu) {
-            const hasCloudComment = this.hasCloudConfigComment(out);
-
-            if (!hasCloudComment) {
-              out = `#cloud-config\n${ out }`;
-            }
-          }
-
-          this['userScript'] = out;
           this.refreshYamlEditor();
         }
         this.deleteAgent = true;
@@ -1616,15 +1607,16 @@ export default {
     },
 
     sshKey(neu, old) {
-      // refresh yaml editor to get the latest userScript
-      this.userScript = this.getUserData({ installAgent: this.installAgent, osType: this.osType });
-      this.refreshYamlEditor();
-
       const _diff = difference(old, neu);
 
+      // delete removed ssh key in userdata if needed
       if (_diff.length > 0 && this.isCreate) {
         this.deleteSSHFromUserData(_diff);
       }
+
+      // refresh yaml editor to get the latest userScript
+      this.userScript = this.getUserData({ installAgent: this.installAgent, osType: this.osType });
+      this.refreshYamlEditor();
     }
   }
 };
