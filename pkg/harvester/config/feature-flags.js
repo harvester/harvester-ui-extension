@@ -1,4 +1,6 @@
-const featureFlags = {
+import semver from 'semver';
+
+const FEATURE_FLAGS = {
   'v1.3.0': [
     'supportHarvesterClusterVersion'
   ],
@@ -38,13 +40,14 @@ const featureFlags = {
 };
 
 const generateFeatureFlags = () => {
-  const versions = Object.keys(featureFlags);
+  const versions = [...Object.keys(FEATURE_FLAGS)].filter((version) => semver.valid(version)).sort(semver.compare);
+
   const generatedFlags = {};
 
   versions.forEach((version, index) => {
     const previousVersion = versions[index - 1];
 
-    generatedFlags[version] = previousVersion ? [...generatedFlags[previousVersion], ...featureFlags[version]] : [...featureFlags[version]];
+    generatedFlags[version] = previousVersion ? [...generatedFlags[previousVersion], ...FEATURE_FLAGS[version]] : [...FEATURE_FLAGS[version]];
   });
 
   return generatedFlags;
