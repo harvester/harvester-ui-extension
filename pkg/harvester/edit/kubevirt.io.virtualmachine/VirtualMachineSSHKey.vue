@@ -5,13 +5,7 @@ import { clone } from '@shell/utils/object';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import ModalWithCard from '@shell/components/ModalWithCard';
-<<<<<<< HEAD
-import { _VIEW, _EDIT } from '@shell/config/query-params';
-=======
-
 import { _VIEW } from '@shell/config/query-params';
-
->>>>>>> 8410f75 (Remove unneeded condition (#279))
 import { NAMESPACE } from '@shell/config/types';
 import { HCI } from '../../types';
 
