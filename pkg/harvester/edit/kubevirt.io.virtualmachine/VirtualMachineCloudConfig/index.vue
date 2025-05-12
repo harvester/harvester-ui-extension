@@ -28,6 +28,10 @@ export default {
       type:    String,
       default: ''
     },
+    osType:{
+      type:    String,
+      default: ''
+    },
     userScript: {
       type:    String,
       default: ''
@@ -203,6 +207,7 @@ export default {
       <DataTemplate
         ref="userTemplate"
         :value="userScript"
+        :os-type="osType"
         type="user"
         :view-code="viewCode"
         :mode="mode"
@@ -219,6 +224,7 @@ export default {
         ref="networkTemplate"
         :value="networkScript"
         type="network"
+        :os-type="osType"
         :view-code="viewCode"
         :mode="mode"
         :config-id="configNetworkId"

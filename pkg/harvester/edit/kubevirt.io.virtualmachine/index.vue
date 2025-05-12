@@ -862,6 +862,7 @@ export default {
           ref="yamlEditor"
           :user-script="userScript"
           :mode="mode"
+          :os-type="osType"
           :view-code="isWindows"
           :namespace="value.metadata.namespace"
           :network-script="networkScript"

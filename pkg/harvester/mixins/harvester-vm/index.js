@@ -914,6 +914,8 @@ export default {
           userDataDoc.deleteIn(['ssh_authorized_keys']);
         }
 
+        console.log("🚀 ~ getUserData ~ config.installAgent:", config.installAgent)
+
         userDataDoc = config.installAgent ? this.mergeQGA({ userDataDoc, ...config }) : this.deleteQGA({ userDataDoc, ...config });
         const userDataYaml = userDataDoc.toString();
 
@@ -1590,15 +1592,23 @@ export default {
       }
     },
 
-    osType(neu) {
-      const out = this.getUserData({ installAgent: this.installAgent, osType: neu });
+    osType(neu, old) {
+      this.installAgent = old === 'windows' ? true : this.installAgent
+      // console.log(' watch osType this.installAgent=', this.installAgent)
+      let out = this.getUserData({ installAgent: this.installAgent, osType: neu });
 
+      if(old === 'windows'){
+        out = this.getInitUserData({ osType })
+      }
+
+      // console.log("🚀 watch osType ~ out:", out)
       this['userScript'] = out;
       this.refreshYamlEditor();
     },
 
     userScript(neu, old) {
       const hasInstallAgent = this.hasInstallAgent(neu, this.osType, this.installAgent);
+      // console.log("🚀 ~ watch userScript ~ hasInstallAgent:", hasInstallAgent)
 
       if (hasInstallAgent !== this.installAgent) {
         this.deleteAgent = false;
