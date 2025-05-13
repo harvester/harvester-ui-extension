@@ -20,7 +20,7 @@ export default {
       type:    String,
       default: 'create'
     },
-    osType:{
+    osType: {
       type:    String,
       default: ''
     },
@@ -68,12 +68,11 @@ export default {
   },
 
   watch: {
-    osType(neu){
-      console.log("🚀 ~ watch ostype neu = ", neu);
-      if(neu === 'windows'){
+    osType(neu) {
+      if (neu === 'windows') {
         this.id = '';
       }
-    }, 
+    },
 
     value(neu) {
       this.yamlScript = neu;

@@ -77,6 +77,7 @@ export default {
     getMatchQGA(osType) {
       const _QGA_JSON = clone(QGA_JSON);
       let hasCustomQGA = false;
+
       OS.forEach((O) => {
         if (O.match) {
           hasCustomQGA = O.match.find((type) => type === osType);

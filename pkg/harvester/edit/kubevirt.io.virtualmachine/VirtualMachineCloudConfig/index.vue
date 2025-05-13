@@ -28,7 +28,7 @@ export default {
       type:    String,
       default: ''
     },
-    osType:{
+    osType: {
       type:    String,
       default: ''
     },
