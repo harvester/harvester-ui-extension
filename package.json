@@ -20,7 +20,7 @@
     "cronstrue": "2.50.0",
     "d3-color": "3.1.0",
     "ejs": "3.1.10",
-    "follow-redirects": "1.15.2",
+    "follow-redirects": "1.15.6",
     "glob": "7.2.3",
     "glob-parent": "6.0.2",
     "json5": "2.2.3",
