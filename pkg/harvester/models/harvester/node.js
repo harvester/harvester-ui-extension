@@ -115,8 +115,7 @@ export default class HciNode extends HarvesterResource {
   promptRemove(resources = this) {
     this.$dispatch('promptModal', {
       resources,
-      warningMessageKey: 'promptRemove.confirmRelatedResource',
-      component:         'ConfirmRelatedToRemoveDialog'
+      component: 'ConfirmRelatedToRemoveDialog'
     });
   }
 

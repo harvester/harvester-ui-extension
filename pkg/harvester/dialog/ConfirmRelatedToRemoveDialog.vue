@@ -51,7 +51,11 @@ export default {
     },
 
     warningMessage() {
+<<<<<<< HEAD
       if (this.modalData.warningMessage) return this.modalData.warningMessage;
+=======
+      if (this.modalData.warningMessage) return this.t(this.modalData.warningMessage);
+>>>>>>> 2584768 (refactor: the promptRemove.confirmRelatedResource message needs to be refactored (#293))
 
       const isPlural = this.type.endsWith('s');
       const thisOrThese = isPlural ? 'these' : 'this';
@@ -128,7 +132,7 @@ export default {
     },
 
     protip() {
-      return this.t('promptRemove.protip', { alternateLabel });
+      return this.t('dialog.promptRemove.protip', { alternateLabel });
     },
   },
 
@@ -164,7 +168,7 @@ export default {
   >
     <template #title>
       <h4 class="text-default-text">
-        {{ t('promptRemove.title') }}
+        {{ t(title, { type }, true) }}
       </h4>
     </template>
 
@@ -174,6 +178,7 @@ export default {
           v-clean-html="warningMessage"
         ></span>
 
+<<<<<<< HEAD
         <div
           v-if="needConfirmation"
           class="mt-20"
@@ -197,6 +202,26 @@ export default {
           <div class="text-info mt-20">
             {{ protip }}
           </div>
+=======
+        <div class="mt-10 mb-10">
+          <span
+            v-clean-html="t('dialog.promptRemove.confirmName', {
+              type: formattedType,
+              nameToMatch: escapeHtml(nameToMatch)
+            }, true)"
+          ></span>
+        </div>
+        <div class="mb-10">
+          <CopyToClipboardText :text="nameToMatch" />
+        </div>
+        <input
+          id="confirm"
+          v-model="confirmName"
+          type="text"
+        />
+        <div class="text-info mt-20">
+          {{ protip }}
+>>>>>>> 2584768 (refactor: the promptRemove.confirmRelatedResource message needs to be refactored (#293))
         </div>
         <Banner
           v-for="(error, i) in errors"
