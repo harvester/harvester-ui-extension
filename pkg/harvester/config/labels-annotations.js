@@ -66,4 +66,5 @@ export const HCI = {
   VM_DEVICE_ALLOCATION_DETAILS:     'harvesterhci.io/deviceAllocationDetails',
   SVM_BACKUP_ID:                    'harvesterhci.io/svmbackupId',
   DISABLE_LONGHORN_V2_ENGINE:       'node.longhorn.io/disable-v2-data-engine',
+  K8s_ARCH:                         'kubernetes.io/arch'
 };
