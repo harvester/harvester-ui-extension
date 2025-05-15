@@ -7,7 +7,6 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import UpgradeInfo from '../../../../components/UpgradeInfo';
-
 import { HCI } from '../../../../types';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../../../config/harvester';
 
@@ -112,7 +111,7 @@ export default {
 
     async save(buttonCb) {
       let res = null;
-
+      console.log('imageValue=',this.imageValue)
       this.errors = [];
       if (!this.imageValue.spec.displayName && this.uploadImage) {
         this.errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('generic.name') }));
@@ -196,7 +195,7 @@ export default {
         const splitName = suffixName?.split('.') || [];
         const fileSuffix = splitName?.pop()?.toLowerCase();
 
-        if (splitName.length > 1 && fileSuffix === 'iso' && !this.imageValue.spec.displayName) {
+        if (splitName.length > 1 && fileSuffix === 'iso' && suffixName !== this.imageValue.spec.displayName) {
           this.imageValue.spec.displayName = suffixName;
         }
       },
@@ -204,7 +203,8 @@ export default {
     },
 
     file(neu) {
-      if (!this.imageValue.spec.displayName && neu.name) {
+      // update name input if select new image
+      if (neu.name && neu.name !== this.imageValue.spec.displayName) {
         this.imageValue.spec.displayName = neu.name;
       }
     }
@@ -249,7 +249,7 @@ export default {
 
       <div v-if="uploadImage">
         <LabeledInput
-          v-model.trim="imageValue.spec.displayName"
+          v-model:value.trim="imageValue.spec.displayName"
           class="mb-20"
           label-key="harvester.fields.name"
           required
@@ -285,7 +285,7 @@ export default {
 
         <LabeledInput
           v-if="sourceType === 'download'"
-          v-model.trim="imageValue.spec.url"
+          v-model:value.trim="imageValue.spec.url"
           class="labeled-input--tooltip"
           required
           label-key="harvester.image.url"
@@ -334,6 +334,7 @@ export default {
 
 <style lang="scss" scoped>
 #air-gap {
+  padding: 20px;
   :deep() .image-group .radio-group {
     display: flex;
     .radio-container {

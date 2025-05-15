@@ -21,14 +21,6 @@ export default {
   },
 
   async fetch() {
-    let isDev;
-
-    try {
-      isDev = this.$store.getters['prefs/get'](VIEW_IN_API);
-    } catch {
-      isDev = this.$store.getters['prefs/get'](DEV);
-    }
-
     const isSingleProduct = !!this.$store.getters['isSingleProduct'];
     const inStore = this.$store.getters['currentProduct'].inStore;
 
@@ -77,7 +69,7 @@ export default {
       };
 
       s.hide = s.canHide = (s.kind === 'json' || s.kind === 'multiline' || s.customFormatter === 'json' || s.data.customFormatter === 'json');
-      s.hasActions = !s.readOnly || isDev;
+      s.hasActions = true;
       initSettings.push(s);
     });
 
