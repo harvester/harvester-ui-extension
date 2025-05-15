@@ -186,10 +186,10 @@ export default class HciNode extends HarvesterResource {
 
   get isKVMDisable() {
     // Arm based
-    const isARMMachine = this.metadata.label?.[HCI_ANNOTATIONS.K8s_ARCH]?.includes('arm');
+    const isARMMachine = this.metadata.labels?.[HCI_ANNOTATIONS.K8S_ARCH]?.includes('arm');
 
     if (isARMMachine) {
-      return !!this.status.capacity['devices.kubevirt.io/kvm'];
+      return this.status.capacity['devices.kubevirt.io/kvm'] && this.status.capacity['devices.kubevirt.io/kvm'] === '0';
     }
 
     return this.metadata?.labels?.[HCI_ANNOTATIONS.KVM_AMD_CPU] === 'false' || this.metadata?.labels?.[HCI_ANNOTATIONS.KVM_INTEL_CPU] === 'false';
