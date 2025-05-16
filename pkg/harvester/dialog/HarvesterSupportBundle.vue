@@ -1,4 +1,5 @@
 <script>
+import { NAMESPACE } from '@shell/config/types';
 import { randomStr } from '@shell/utils/string';
 import { exceptionToErrorsArray, stringify } from '@shell/utils/error';
 import { LabeledInput } from '@components/Form/LabeledInput';
@@ -6,7 +7,12 @@ import AsyncButton from '@shell/components/AsyncButton';
 import GraphCircle from '@shell/components/graph/Circle';
 import { Banner } from '@components/Banner';
 import AppModal from '@shell/components/AppModal';
+import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { HCI } from '../types';
+import { HCI_SETTING } from '../config/settings';
+
+const SELECT_ALL = 'select_all';
+const UNSELECT_ALL = 'unselect_all';
 
 export default {
   name: 'SupportBundle',
@@ -17,14 +23,26 @@ export default {
     AsyncButton,
     Banner,
     AppModal,
+    LabeledSelect
+  },
+
+  async fetch() {
+    await this.$store.dispatch('harvester/findAll', { type: NAMESPACE });
   },
 
   data() {
+    const versionSetting = this.$store.getters['harvester/byId'](HCI.SETTING, HCI_SETTING.SERVER_VERSION);
+    const bundleNsSetting = this.$store.getters['harvester/byId'](HCI.SETTING, HCI_SETTING.SUPPORT_BUNDLE_NAMESPACES);
+    const cluster = this.$store.getters['currentCluster'];
+
     return {
+      isOpen:      false,
+      errors:      [],
+      namespaces:  (bundleNsSetting?.value || '').split(',').map((ns) => ns.trim()),
       url:         '',
       description: '',
-      errors:      [],
-      isOpen:      false,
+      version:     versionSetting?.currentVersion || '',
+      clusterName: cluster?.id || '',
     };
   },
 
@@ -39,23 +57,37 @@ export default {
 
     percentage() {
       return this.$store.getters['harvester-common/getBundlePercentage'];
+    },
+
+    allNamespaces() {
+      return this.$store.getters['harvester/all'](NAMESPACE)
+        .map((ns) => ({ label: ns.id, value: ns.id }));
+    },
+
+    allNamespaceValues() {
+      return this.allNamespaces.map((ns) => ns.value);
+    },
+
+    namespaceOptions() {
+      const allSelected = this.namespaces.length === this.allNamespaceValues.length &&
+                          this.allNamespaceValues.every((val) => this.namespaces.includes(val));
+
+      const controlOption = allSelected ? { label: this.t('harvester.modal.bundle.namespace.unselectAll'), value: UNSELECT_ALL } : { label: this.t('harvester.modal.bundle.namespace.selectAll'), value: SELECT_ALL };
+
+      return [controlOption, ...this.allNamespaces];
     }
   },
 
   watch: {
     isShowBundleModal: {
+      immediate: true,
       handler(show) {
-        if (show) {
-          this.$nextTick(() => {
-            this.isOpen = true;
-          });
-        } else {
-          this.isOpen = false;
-          this.url = '';
-          this.description = '';
+        this.isOpen = show;
+
+        if (!show) {
+          this.resetForm();
         }
-      },
-      immediate: true
+      }
     },
   },
 
@@ -65,14 +97,29 @@ export default {
     close() {
       this.isOpen = false;
       this.$store.commit('harvester-common/toggleBundleModal', false);
-      this.backUpName = '';
+      this.resetForm();
+    },
+
+    resetForm() {
+      this.url = '';
+      this.description = '';
+      this.namespaces = [];
+    },
+
+    updateNamespaces(selected) {
+      if (selected.includes(SELECT_ALL)) {
+        this.namespaces = [...this.allNamespaceValues];
+      } else if (selected.includes(UNSELECT_ALL)) {
+        this.namespaces = [];
+      } else {
+        this.namespaces = selected.filter((val) => val !== SELECT_ALL && val !== UNSELECT_ALL);
+      }
     },
 
     async save(buttonCb) {
       this.errors = [];
-
-      const name = `bundle-${ randomStr(5).toLowerCase() }`;
-      const namespace = 'harvester-system';
+      const name = `bundle-${ this.clusterName }-${ this.version }-${ randomStr(5).toLowerCase() }`;
+      const namespace = this.namespaces.join(',');
 
       const bundleCrd = {
         apiVersion: 'harvesterhci.io/v1beta1',
@@ -126,12 +173,20 @@ export default {
           v-if="!bundlePending"
           class="content"
         >
+          <LabeledSelect
+            v-model:value="namespaces"
+            :clearable="true"
+            :multiple="true"
+            :options="namespaceOptions"
+            label-key="nameNsDescription.namespace.label"
+            class="mb-20 label-select"
+            @update:value="updateNamespaces"
+          />
           <LabeledInput
             v-model:value="url"
             :label="t('harvester.modal.bundle.url')"
             class="mb-20"
           />
-
           <LabeledInput
             v-model:value="description"
             :label="t('harvester.modal.bundle.description')"
@@ -194,6 +249,10 @@ export default {
     max-height: 100vh;
   }
 
+  .labeled-select.taggable ::v-deep(.vs__selected-options .vs__selected.vs__selected > button) {
+    margin: 0 7px;
+  }
+
   .bundle {
     cursor: pointer;
     color: var(--primary);
@@ -204,8 +263,6 @@ export default {
   }
 
   .content {
-    height: 218px;
-
     .circle {
       padding-top: 20px;
       height: 160px;

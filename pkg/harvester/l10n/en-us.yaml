@@ -136,6 +136,9 @@ harvester:
       delete: Delete
     bundle:
       title: Generate a Support Bundle
+      namespace:
+        selectAll: 'Select All'
+        unselectAll: 'Unselect All'
       url: Issue URL
       description: Description
       requiredDesc: Description is required!
