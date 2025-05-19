@@ -186,9 +186,16 @@ export default class HciNode extends HarvesterResource {
   }
 
   get isKVMDisable() {
+    // Arm based
+    const isARMMachine = this.metadata.labels?.[HCI_ANNOTATIONS.K8S_ARCH]?.includes('arm');
+
+    if (isARMMachine) {
+      return this.status.capacity['devices.kubevirt.io/kvm'] && this.status.capacity['devices.kubevirt.io/kvm'] === '0';
+    }
+
     const allNotExist = !this.metadata?.labels?.[HCI_ANNOTATIONS.KVM_AMD_CPU] && !this.metadata?.labels?.[HCI_ANNOTATIONS.KVM_INTEL_CPU];
 
-    return this.metadata?.labels?.[HCI_ANNOTATIONS.KVM_AMD_CPU] === 'false' || this.metadata?.labels?.[HCI_ANNOTATIONS.KVM_INTEL_CPU] === 'false' || allNotExist;
+    return allNotExist || this.metadata?.labels?.[HCI_ANNOTATIONS.KVM_AMD_CPU] === 'false' || this.metadata?.labels?.[HCI_ANNOTATIONS.KVM_INTEL_CPU] === 'false';
   }
 
   get stateDisplay() {
