@@ -52,9 +52,10 @@ export default {
         checksum:    ''
       },
     });
-
+   
     this.value = value;
     this.imageValue = imageValue;
+    console.log('imageValue=', this.imageValue)
   },
 
   data() {
@@ -111,7 +112,7 @@ export default {
 
     async save(buttonCb) {
       let res = null;
-      console.log('imageValue=',this.imageValue)
+      
       this.errors = [];
       if (!this.imageValue.spec.displayName && this.uploadImage) {
         this.errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('generic.name') }));
@@ -125,23 +126,23 @@ export default {
           this.imageValue.metadata.annotations[HCI_ANNOTATIONS.OS_UPGRADE_IMAGE] = 'True';
 
           if (this.sourceType === UPLOAD) {
-            this.imageValue.spec.sourceType = UPLOAD;
-            const file = this.file;
+            // this.imageValue.spec.sourceType = UPLOAD;
+            // const file = this.file;
 
-            if (!file.name) {
-              this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.selectExitImage'));
-              buttonCb(false);
+            // if (!file.name) {
+            //   this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.selectExitImage'));
+            //   buttonCb(false);
 
-              return;
-            }
+            //   return;
+            // }
 
-            this.imageValue.spec.url = '';
+            // this.imageValue.spec.url = '';
 
-            this.imageValue.metadata.annotations[HCI_ANNOTATIONS.IMAGE_NAME] = file.name;
+            // this.imageValue.metadata.annotations[HCI_ANNOTATIONS.IMAGE_NAME] = file.name;
 
-            res = await this.imageValue.save();
+            // res = await this.imageValue.save();
 
-            res.uploadImage(file);
+            // res.uploadImage(file);
           } else if (this.sourceType === DOWNLOAD) {
             this.imageValue.spec.sourceType = DOWNLOAD;
             if (!this.imageValue.spec.url) {
@@ -178,8 +179,29 @@ export default {
       }
     },
 
-    handleFileUpload() {
+    async uploadFile(file){
+      this.imageValue.spec.sourceType = UPLOAD;
+      // const file = this.file;
+
+      if (!file.name) {
+        this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.selectExitImage'));
+        // buttonCb(false);
+
+        return;
+      }
+
+      this.imageValue.spec.url = '';
+
+      this.imageValue.metadata.annotations[HCI_ANNOTATIONS.IMAGE_NAME] = file.name;
+
+      res = await this.imageValue.save();
+
+      res.uploadImage(file);
+    },
+
+    async handleFileUpload() {
       this.file = this.$refs.file.files[0];
+      await this.uploadFile(this.file)
     },
 
     selectFile() {
