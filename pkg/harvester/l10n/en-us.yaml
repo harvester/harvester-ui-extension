@@ -848,6 +848,8 @@ harvester:
         =1 {1 image is uploading, please do not refresh or close the page.}
         other {{count} images are uploading, please do not refresh or close the page.}
         }
+      osUpgrade:
+        uploading: "{name} is uploading, please do not refresh or close the page."
     checksum: Checksum
     checksumTip: Validate the image using the SHA512 checksum, if specified.
 
@@ -1086,7 +1088,7 @@ harvester:
         addConfig: Add Configuration
 
     upgrade:
-      selectExitImage: Please select the OS image to upgrade.
+      unknownImageName: Image name is not found.
       imageUrl: Please input a valid image URL.
       chooseFile: Please select to upload an image.
       checksum: Checksum

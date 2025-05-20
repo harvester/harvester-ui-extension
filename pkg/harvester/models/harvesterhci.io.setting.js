@@ -28,9 +28,8 @@ export default class HciSetting extends HarvesterResource {
     }
 
     const schema = this.$getters['schemaFor'](HCI.UPGRADE);
-    console.log("🚀 ~ HciSetting ~ get_availableActions ~ schema:", schema?.collectionMethods)
+
     const hasUpgradeAccess = !!schema?.collectionMethods.find((x) => ['post'].includes(x.toLowerCase()));
-    console.log("🚀 ~ HciSetting ~ get_availableActions ~ hasUpgradeAccess:", hasUpgradeAccess)
 
     if (this.id === HCI_SETTING.SERVER_VERSION && hasUpgradeAccess) {
       const latestUpgrade = this.$getters['all'](HCI.UPGRADE).find((upgrade) => upgrade.isLatestUpgrade);

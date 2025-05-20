@@ -2,7 +2,6 @@
 import { mapGetters } from 'vuex';
 import { Banner } from '@components/Banner';
 import Loading from '@shell/components/Loading';
-import { VIEW_IN_API, DEV } from '@shell/store/prefs';
 import { MANAGEMENT } from '@shell/config/types';
 import { allHash } from '@shell/utils/promise';
 import Tabbed from '@shell/components/Tabbed/index.vue';
