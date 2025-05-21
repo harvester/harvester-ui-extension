@@ -305,7 +305,7 @@ export default class HciVmImage extends HarvesterResource {
   }
 
   get uploadImage() {
-    return async(file) => {
+    return async(file, opt) => {
       const formData = new FormData();
 
       formData.append('chunk', file);
@@ -319,6 +319,7 @@ export default class HciVmImage extends HarvesterResource {
             'File-Size':    file.size,
           },
           params: { size: file.size },
+          signal: opt.signal,
         });
       } catch (err) {
         this.$ctx.commit('harvester-common/uploadError', { name: this.name, message: err.message }, { root: true });

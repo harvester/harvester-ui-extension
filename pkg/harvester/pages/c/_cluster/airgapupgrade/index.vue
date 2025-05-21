@@ -59,17 +59,24 @@ export default {
     this.imageValue = imageValue;
   },
 
+  beforeUnmount() {
+    if (this.uploadController) {
+      this.uploadController.abort();
+    }
+  },
+
   data() {
     return {
-      value:         null,
-      file:          {},
-      uploadImageId: '',
-      imageId:       '',
-      imageSource:   IMAGE_METHOD.NEW,
-      sourceType:    UPLOAD,
-      imageValue:    null,
-      errors:        [],
-      enableLogging: true,
+      value:            null,
+      file:             {},
+      uploadImageId:    '',
+      imageId:          '',
+      imageSource:      IMAGE_METHOD.NEW,
+      sourceType:       UPLOAD,
+      uploadController: null,
+      imageValue:       null,
+      errors:           [],
+      enableLogging:    true,
       IMAGE_METHOD
     };
   },
@@ -136,6 +143,9 @@ export default {
 
   methods: {
     done() {
+      if (this.uploadController) {
+        this.uploadController.abort();
+      }
       this.$router.push({
         name:   this.doneRoute,
         params: { resource: HCI.SETTING, product: 'harvester' }
@@ -210,10 +220,17 @@ export default {
       this.imageValue.spec.url = '';
       this.imageValue.metadata.annotations[HCI_ANNOTATIONS.IMAGE_NAME] = fileName;
 
-      const res = await this.imageValue.save();
+      try {
+        const res = await this.imageValue.save();
 
-      this.uploadImageId = res.id;
-      res.uploadImage(file);
+        this.uploadImageId = res.id;
+        this.uploadController = new AbortController();
+        const signal = this.uploadController.signal;
+
+        await res.uploadImage(file, { signal });
+      } catch (e) {
+        this.errors = exceptionToErrorsArray(e);
+      }
     },
 
     async handleFileUpload() {

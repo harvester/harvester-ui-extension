@@ -7,7 +7,7 @@ import { allHash } from '@shell/utils/promise';
 import Tabbed from '@shell/components/Tabbed/index.vue';
 import Tab from '@shell/components/Tabbed/Tab.vue';
 import Settings from '@pkg/harvester/components/SettingList.vue';
-import { HCI_ALLOWED_SETTINGS, HCI_SINGLE_CLUSTER_ALLOWED_SETTING } from '../config/settings';
+import { HCI_ALLOWED_SETTINGS, HCI_SINGLE_CLUSTER_ALLOWED_SETTING, HCI_SETTING } from '../config/settings';
 import { HCI } from '../types';
 
 export default {
@@ -68,7 +68,7 @@ export default {
       };
 
       s.hide = s.canHide = (s.kind === 'json' || s.kind === 'multiline' || s.customFormatter === 'json' || s.data.customFormatter === 'json');
-      s.hasActions = true;
+      s.hasActions = s.id === HCI_SETTING.SERVER_VERSION ? true : !s.readOnly;
       initSettings.push(s);
     });
 
