@@ -7,9 +7,10 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import UpgradeInfo from '../../../../components/UpgradeInfo';
-
 import { HCI } from '../../../../types';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../../../config/harvester';
+import ImagePercentageBar from '@shell/components/formatter/ImagePercentageBar';
+import { Banner } from '@components/Banner';
 
 const IMAGE_METHOD = {
   NEW:   'new',
@@ -22,7 +23,7 @@ const UPLOAD = 'upload';
 export default {
   name:       'HarvesterAirgapUpgrade',
   components: {
-    Checkbox, CruResource, LabeledSelect, LabeledInput, RadioGroup, UpgradeInfo
+    Checkbox, CruResource, LabeledSelect, LabeledInput, RadioGroup, UpgradeInfo, ImagePercentageBar, Banner
   },
 
   inheritAttrs: false,
@@ -58,16 +59,24 @@ export default {
     this.imageValue = imageValue;
   },
 
+  beforeUnmount() {
+    if (this.uploadController) {
+      this.uploadController.abort();
+    }
+  },
+
   data() {
     return {
-      value:         null,
-      file:          {},
-      imageId:       '',
-      imageSource:   IMAGE_METHOD.NEW,
-      sourceType:    UPLOAD,
-      imageValue:    null,
-      errors:        [],
-      enableLogging: true,
+      value:            null,
+      file:             {},
+      uploadImageId:    '',
+      imageId:          '',
+      imageSource:      IMAGE_METHOD.NEW,
+      sourceType:       UPLOAD,
+      uploadController: null,
+      imageValue:       null,
+      errors:           [],
+      enableLogging:    true,
       IMAGE_METHOD
     };
   },
@@ -100,10 +109,43 @@ export default {
     canEnableLogging() {
       return this.$store.getters['harvester/schemaFor'](HCI.UPGRADE_LOG);
     },
+
+    uploadProgress() {
+      const image = this.$store.getters['harvester/byId'](HCI.IMAGE, this.imageValue.id);
+
+      return image?.status?.progress;
+    },
+
+    enableSave() {
+      if (this.sourceType === DOWNLOAD) {
+        return true;
+      }
+
+      if (this.sourceType === UPLOAD) {
+        return this.fileName === '' ? true : this.uploadProgress === 100;
+      }
+
+      return true;
+    },
+
+    showProgressBar() {
+      return this.sourceType === UPLOAD && this.fileName !== '';
+    },
+
+    showUploadingWarningBanner() {
+      return this.fileName !== '' && this.uploadProgress !== 100;
+    },
+
+    disableUploadButton() {
+      return this.sourceType === UPLOAD && this.fileName !== '' && this.uploadProgress !== 100;
+    },
   },
 
   methods: {
     done() {
+      if (this.uploadController) {
+        this.uploadController.abort();
+      }
       this.$router.push({
         name:   this.doneRoute,
         params: { resource: HCI.SETTING, product: 'harvester' }
@@ -125,24 +167,8 @@ export default {
         if (this.imageSource === IMAGE_METHOD.NEW) {
           this.imageValue.metadata.annotations[HCI_ANNOTATIONS.OS_UPGRADE_IMAGE] = 'True';
 
-          if (this.sourceType === UPLOAD) {
-            this.imageValue.spec.sourceType = UPLOAD;
-            const file = this.file;
-
-            if (!file.name) {
-              this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.selectExitImage'));
-              buttonCb(false);
-
-              return;
-            }
-
-            this.imageValue.spec.url = '';
-
-            this.imageValue.metadata.annotations[HCI_ANNOTATIONS.IMAGE_NAME] = file.name;
-
-            res = await this.imageValue.save();
-
-            res.uploadImage(file);
+          if (this.sourceType === UPLOAD && this.uploadImageId !== '') {
+            this.value.spec.image = this.uploadImageId;
           } else if (this.sourceType === DOWNLOAD) {
             this.imageValue.spec.sourceType = DOWNLOAD;
             if (!this.imageValue.spec.url) {
@@ -153,9 +179,8 @@ export default {
             }
 
             res = await this.imageValue.save();
+            this.value.spec.image = res.id;
           }
-
-          this.value.spec.image = res.id;
         } else if (this.imageSource === IMAGE_METHOD.EXIST) {
           if (!this.imageId) {
             this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.chooseFile'));
@@ -179,8 +204,39 @@ export default {
       }
     },
 
-    handleFileUpload() {
+    async uploadFile(file) {
+      const fileName = file.name;
+
+      this.imageValue.spec.sourceType = UPLOAD;
+      this.imageValue.spec.displayName = fileName;
+      this.imageValue.metadata.annotations[HCI_ANNOTATIONS.OS_UPGRADE_IMAGE] = 'True';
+
+      if (!fileName) {
+        this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.unknownImageName'));
+
+        return;
+      }
+
+      this.imageValue.spec.url = '';
+      this.imageValue.metadata.annotations[HCI_ANNOTATIONS.IMAGE_NAME] = fileName;
+
+      try {
+        const res = await this.imageValue.save();
+
+        this.uploadImageId = res.id;
+        this.uploadController = new AbortController();
+        const signal = this.uploadController.signal;
+
+        await res.uploadImage(file, { signal });
+      } catch (e) {
+        this.errors = exceptionToErrorsArray(e);
+      }
+    },
+
+    async handleFileUpload() {
       this.file = this.$refs.file.files[0];
+      this.errors = [];
+      await this.uploadFile(this.file);
     },
 
     selectFile() {
@@ -196,15 +252,15 @@ export default {
         const splitName = suffixName?.split('.') || [];
         const fileSuffix = splitName?.pop()?.toLowerCase();
 
-        if (splitName.length > 1 && fileSuffix === 'iso' && !this.imageValue.spec.displayName) {
+        if (splitName.length > 1 && fileSuffix === 'iso' && suffixName !== this.imageValue.spec.displayName) {
           this.imageValue.spec.displayName = suffixName;
         }
       },
       deep: true
     },
-
     file(neu) {
-      if (!this.imageValue.spec.displayName && neu.name) {
+      // update name input if select new image
+      if (neu.name && neu.name !== this.imageValue.spec.displayName) {
         this.imageValue.spec.displayName = neu.name;
       }
     }
@@ -227,6 +283,7 @@ export default {
       :errors="errors"
       :can-yaml="false"
       finish-button-mode="upgrade"
+      :validation-passed="enableSave"
       :cancel-event="true"
       @finish="save"
       @cancel="done"
@@ -244,12 +301,16 @@ export default {
           t('harvester.upgradePage.selectExisting'),
         ]"
       />
-
+      <Banner
+        v-if="showUploadingWarningBanner"
+        color="warning"
+        :label="t('harvester.image.warning.osUpgrade.uploading', { name: file.name })"
+      />
       <UpgradeInfo />
 
       <div v-if="uploadImage">
         <LabeledInput
-          v-model.trim="imageValue.spec.displayName"
+          v-model:value.trim="imageValue.spec.displayName"
           class="mb-20"
           label-key="harvester.fields.name"
           required
@@ -285,7 +346,7 @@ export default {
 
         <LabeledInput
           v-if="sourceType === 'download'"
-          v-model.trim="imageValue.spec.url"
+          v-model:value.trim="imageValue.spec.url"
           class="labeled-input--tooltip"
           required
           label-key="harvester.image.url"
@@ -298,6 +359,7 @@ export default {
           <button
             type="button"
             class="btn role-primary"
+            :disabled="disableUploadButton"
             @click="selectFile"
           >
             {{ t('harvester.image.uploadFile') }}
@@ -318,6 +380,11 @@ export default {
             {{ fileName ? fileName : t('harvester.generic.noFileChosen') }}
           </span>
         </div>
+        <ImagePercentageBar
+          v-if="showProgressBar"
+          class="mt-20"
+          :value="uploadProgress"
+        />
       </div>
 
       <LabeledSelect
@@ -334,11 +401,16 @@ export default {
 
 <style lang="scss" scoped>
 #air-gap {
+  padding: 20px;
+
   :deep() .image-group .radio-group {
     display: flex;
     .radio-container {
       margin-right: 30px;
     }
+  }
+  .parent {
+    grid-template-columns:auto 40px;
   }
   .chooseFile {
     display: flex;

@@ -2,13 +2,12 @@
 import { mapGetters } from 'vuex';
 import { Banner } from '@components/Banner';
 import Loading from '@shell/components/Loading';
-import { VIEW_IN_API, DEV } from '@shell/store/prefs';
 import { MANAGEMENT } from '@shell/config/types';
 import { allHash } from '@shell/utils/promise';
 import Tabbed from '@shell/components/Tabbed/index.vue';
 import Tab from '@shell/components/Tabbed/Tab.vue';
 import Settings from '@pkg/harvester/components/SettingList.vue';
-import { HCI_ALLOWED_SETTINGS, HCI_SINGLE_CLUSTER_ALLOWED_SETTING } from '../config/settings';
+import { HCI_ALLOWED_SETTINGS, HCI_SINGLE_CLUSTER_ALLOWED_SETTING, HCI_SETTING } from '../config/settings';
 import { HCI } from '../types';
 
 export default {
@@ -21,14 +20,6 @@ export default {
   },
 
   async fetch() {
-    let isDev;
-
-    try {
-      isDev = this.$store.getters['prefs/get'](VIEW_IN_API);
-    } catch {
-      isDev = this.$store.getters['prefs/get'](DEV);
-    }
-
     const isSingleProduct = !!this.$store.getters['isSingleProduct'];
     const inStore = this.$store.getters['currentProduct'].inStore;
 
@@ -77,7 +68,7 @@ export default {
       };
 
       s.hide = s.canHide = (s.kind === 'json' || s.kind === 'multiline' || s.customFormatter === 'json' || s.data.customFormatter === 'json');
-      s.hasActions = !s.readOnly || isDev;
+      s.hasActions = s.id === HCI_SETTING.SERVER_VERSION ? true : !s.readOnly;
       initSettings.push(s);
     });
 
