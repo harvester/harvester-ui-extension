@@ -309,7 +309,8 @@ export default class HciVmImage extends HarvesterResource {
       const formData = new FormData();
 
       formData.append('chunk', file);
-
+      let result = null;
+  
       try {
         this.$ctx.commit('harvester-common/uploadStart', this.metadata.name, { root: true });
 

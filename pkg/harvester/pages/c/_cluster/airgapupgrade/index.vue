@@ -14,8 +14,9 @@ import { Banner } from '@components/Banner';
 import isEmpty from 'lodash/isEmpty';
 
 const IMAGE_METHOD = {
-  NEW:   'new',
-  EXIST: 'exist'
+  NEW:    'new',
+  EXIST:  'exist',
+  DELETE: 'delete'
 };
 
 const DOWNLOAD = 'download';
@@ -53,18 +54,20 @@ export default {
 
   data() {
     return {
-      value:            null,
-      file:             {},
-      uploadImageId:    '',
-      imageId:          '',
-      imageSource:      IMAGE_METHOD.NEW,
-      sourceType:       UPLOAD,
-      uploadController: null,
-      uploadResult:     null,
-      imageValue:       null,
-      errors:           [],
-      enableLogging:    true,
-      IMAGE_METHOD
+      value:             null,
+      file:              {},
+      uploadImageId:     '',
+      imageId:           '',
+      deleteImageId:     '',
+      deleteImageResult: '',
+      imageSource:       IMAGE_METHOD.NEW,
+      sourceType:        UPLOAD,
+      uploadController:  null,
+      uploadResult:      null,
+      imageValue:        null,
+      enableLogging:     true,
+      IMAGE_METHOD,
+      errors:            [],
     };
   },
 
@@ -73,20 +76,43 @@ export default {
       return `${ HARVESTER_PRODUCT }-c-cluster-resource`;
     },
 
-    osImageOptions() {
-      return this.$store.getters['harvester/all'](HCI.IMAGE)
-        .filter((I) => I.isOSImage)
-        .map((I) => {
-          return {
-            label:    I.spec.displayName,
-            value:    I.id,
-            disabled: !I.isReady
-          };
-        });
+    finishButtonMode() {
+      return this.deleteExistImage ? 'delete' : 'upgrade';
     },
 
-    uploadImage() {
+    allOSImages() {
+      return this.$store.getters['harvester/all'](HCI.IMAGE).filter((I) => I.isOSImage) || [];
+    },
+
+    deleteOSImageOptions() {
+      return this.allOSImages.map((I) => {
+        return {
+          label:    I.spec.displayName,
+          value:    I.id,
+        };
+      });
+    },
+
+    osImageOptions() {
+      return this.allOSImages.map((I) => {
+        return {
+          label:    I.spec.displayName,
+          value:    I.id,
+          disabled: !I.isReady
+        };
+      });
+    },
+
+    createNewImage() {
       return this.imageSource === IMAGE_METHOD.NEW;
+    },
+
+    selectExistImage() {
+      return this.imageSource === IMAGE_METHOD.EXIST;
+    },
+
+    deleteExistImage() {
+      return this.imageSource === IMAGE_METHOD.DELETE;
     },
 
     fileName() {
@@ -103,7 +129,7 @@ export default {
       return image?.status?.progress;
     },
 
-    enableSave() {
+    enableUpgrade() {
       if (this.sourceType === DOWNLOAD) {
         return true;
       }
@@ -115,20 +141,29 @@ export default {
       return true;
     },
 
-    showProgressBar() {
-      return this.sourceType === UPLOAD && this.fileName !== '';
-    },
-
-    showUploadSuccessBanner() {
-      return isEmpty(this.errors) && this.showUploadingWarningBanner === false && this.uploadResult?._status === 200;
-    },
-
-    showUploadingWarningBanner() {
+    isUploading(){
+      console.log('this.uploadProgress=', this.uploadProgress)
       return this.fileName !== '' && this.uploadProgress !== 100;
     },
 
+    showProgressBar() {
+      return this.createNewImage && this.sourceType === UPLOAD && this.isUploading;
+    },
+
+    showUploadSuccessBanner() {
+      return this.createNewImage && this.fileName !== '' && isEmpty(this.errors) && !this.showUploadingWarningBanner && this.uploadResult?._status === 200;
+    },
+
+    showUploadingWarningBanner() {
+      return this.createNewImage && this.isUploading;
+    },
+
+    showDeleteImageSuccessBanner() {
+      return this.deleteExistImage && this.deleteImageResult?._status === 200;
+    },
+
     disableUploadButton() {
-      return this.sourceType === UPLOAD && this.fileName !== '' && this.uploadProgress !== 100;
+      return this.sourceType === UPLOAD && this.isUploading;
     },
   },
 
@@ -162,9 +197,10 @@ export default {
 
     async save(buttonCb) {
       let res = null;
-
+      this.file = {};
       this.errors = [];
-      if (!this.imageValue.spec.displayName && this.uploadImage) {
+
+      if (!this.imageValue.spec.displayName && this.createNewImage) {
         this.errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('generic.name') }));
         buttonCb(false);
 
@@ -172,6 +208,29 @@ export default {
       }
 
       try {
+        if (this.deleteExistImage) {
+          // if not select image, show error
+          if (!this.deleteImageId) {
+            this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.deleteImage'));
+            buttonCb(false);
+
+            return;
+          }
+
+          // if select image, delete image
+          const image = this.$store.getters['harvester/byId'](HCI.IMAGE, this.deleteImageId);
+
+          if (image) {
+            await this.handleImageDelete(image);
+            this.deleteImageId = '';
+            buttonCb(true);
+
+            return;
+          }
+
+          return;
+        }
+
         if (this.imageSource === IMAGE_METHOD.NEW) {
           this.imageValue.metadata.annotations[HCI_ANNOTATIONS.OS_UPGRADE_IMAGE] = 'True';
 
@@ -198,7 +257,6 @@ export default {
 
           this.value.spec.image = this.imageId;
         }
-
         if (this.canEnableLogging) {
           this.value.spec.logEnabled = this.enableLogging;
         }
@@ -251,10 +309,20 @@ export default {
       }
     },
 
+    async handleImageDelete(image) {
+      try {
+        this.deleteImageResult = await this.$store.dispatch('harvester/request', {
+          url:    `/v1/harvester/${ HCI.IMAGE }s/${ image.id }`,
+          method: 'DELETE',
+        });
+      } catch (e) {
+        this.errors = [e?.message] || exceptionToErrorsArray(e);
+      }
+    },
+
     async handleFileUpload() {
       this.uploadImageId = '';
       this.errors = [];
-      console.log('🚀 ~ handleFileUpload ~ this.$refs.file:', this.$refs.file);
       this.file = this.$refs.file?.files[0];
       if (this.file) {
         await this.initImageValue();
@@ -269,6 +337,13 @@ export default {
   },
 
   watch: {
+    imageSource(neu) {
+      if (neu !== IMAGE_METHOD.DELETE) {
+        this.deleteImageId = '';
+        this.deleteImageResult = null;
+      }
+    },
+
     'imageValue.spec.url': {
       handler(neu) {
         const suffixName = neu?.split('/')?.pop();
@@ -305,8 +380,8 @@ export default {
       mode="create"
       :errors="errors"
       :can-yaml="false"
-      finish-button-mode="upgrade"
-      :validation-passed="enableSave"
+      :finish-button-mode="finishButtonMode"
+      :validation-passed="enableUpgrade"
       :cancel-event="true"
       @finish="save"
       @cancel="done"
@@ -319,13 +394,21 @@ export default {
         :options="[
           IMAGE_METHOD.NEW,
           IMAGE_METHOD.EXIST,
+          IMAGE_METHOD.DELETE,
         ]"
         :labels="[
           t('harvester.upgradePage.uploadNew'),
           t('harvester.upgradePage.selectExisting'),
+          t('harvester.upgradePage.deleteExisting'),
         ]"
       />
       <UpgradeInfo />
+      <Banner
+        v-if="showDeleteImageSuccessBanner"
+        color="success"
+        class="mt-0 mb-30"
+        :label="t('harvester.setting.upgrade.deleteSuccess', { name: deleteImageResult?.spec?.displayName })"
+      />
       <Banner
         v-if="showUploadSuccessBanner"
         color="success"
@@ -338,7 +421,8 @@ export default {
         class="mt-0 mb-30"
         :label="t('harvester.image.warning.osUpgrade.uploading', { name: file.name })"
       />
-      <div v-if="uploadImage">
+
+      <div v-if="createNewImage">
         <LabeledInput
           v-model:value.trim="imageValue.spec.displayName"
           class="mb-20"
@@ -416,11 +500,18 @@ export default {
           :value="uploadProgress"
         />
       </div>
-
       <LabeledSelect
-        v-else
+        v-if="selectExistImage"
         v-model:value="imageId"
         :options="osImageOptions"
+        required
+        class="mb-20"
+        label-key="harvester.fields.image"
+      />
+      <LabeledSelect
+        v-if="deleteExistImage"
+        v-model:value="deleteImageId"
+        :options="deleteOSImageOptions"
         required
         class="mb-20"
         label-key="harvester.fields.image"
