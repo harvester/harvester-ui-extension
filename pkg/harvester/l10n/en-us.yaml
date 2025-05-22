@@ -878,7 +878,7 @@ harvester:
     upgradeNode: Upgrading Node
     upgradeSysService: Upgrading System Service
     upgradeImage: Download Upgrade Image
-    osUpgrade: OS Upgrade
+    osUpgrade: Cluster Upgrade
     uploadNew: Upload New Image
     selectExisting: Select Existing Image
     createRepository: Creating Upgrade Repository
@@ -1092,6 +1092,9 @@ harvester:
       imageUrl: Please input a valid image URL.
       chooseFile: Please select to upload an image.
       checksum: Checksum
+      networkError: Network error, failed to upload the image.
+      cancelUpload: Cancelled the image upload.
+      uploadSuccess:  "{name} uploaded successfully."
     harvesterMonitoring:
       label: Harvester Monitoring
       section:
