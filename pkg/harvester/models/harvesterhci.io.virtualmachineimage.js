@@ -305,7 +305,7 @@ export default class HciVmImage extends HarvesterResource {
   }
 
   get uploadImage() {
-    return async(file, opt) => {
+    return async(file, opt = {}) => {
       const formData = new FormData();
 
       formData.append('chunk', file);
