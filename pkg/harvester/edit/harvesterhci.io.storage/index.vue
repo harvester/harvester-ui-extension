@@ -286,7 +286,7 @@ export default {
     :validation-passed="true"
     :apply-hooks="applyHooks"
     :errors="errors"
-    @error="e=>errors = e"
+    @error="e=>errors=e"
     @finish="save"
     @cancel="done"
   >

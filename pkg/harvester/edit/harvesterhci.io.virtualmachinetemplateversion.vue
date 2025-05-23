@@ -219,6 +219,7 @@ export default {
     :errors="errors"
     :apply-hooks="applyHooks"
     @finish="saveVMT"
+    @error="e=>errors=e"
   >
     <NameNsDescription
       :value="templateValue"

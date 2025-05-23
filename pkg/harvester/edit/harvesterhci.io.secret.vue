@@ -234,7 +234,7 @@ export default {
       :resource="value"
       :errors="errors"
       @finish="saveSecret"
-      @error="e=>errors = e"
+      @error="e=>errors=e"
     >
       <NameNsDescription
         :value="value"
