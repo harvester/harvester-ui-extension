@@ -157,6 +157,7 @@ export default {
       diskRows:                      [],
       networkRows:                   [],
       machineType:                   '',
+      machineTypes:                  [],
       secretName:                    '',
       secretRef:                     null,
       showAdvanced:                  false,
@@ -279,6 +280,12 @@ export default {
       return Number(setting?.value || setting?.default);
     },
 
+    defaultMachineType() {
+      if (this.machineTypes.includes('q35')) return 'q35';
+
+      return this.machineTypes[0];
+    },
+
     affinityLabels() {
       return {
         namespaceInputLabel:      this.t('harvester.virtualMachine.affinity.namespaces.label'),
@@ -295,6 +302,9 @@ export default {
 
   async created() {
     await this.$store.dispatch(`${ this.inStore }/findAll`, { type: SECRET });
+    const machineTypes = await this.$store.dispatch('harvester/request', { url: '/v1/harvester/clusters/local?link=machineTypes' });
+
+    this.machineTypes = machineTypes;
     this.getInitConfig({ value: this.value, init: this.isCreate });
   },
 
@@ -331,7 +341,8 @@ export default {
       const maintenanceStrategy = vm.metadata.labels?.[HCI_ANNOTATIONS.VM_MAINTENANCE_MODE_STRATEGY] || 'Migrate';
 
       const runStrategy = spec.runStrategy || 'RerunOnFailure';
-      const machineType = value.machineType;
+      const machineType = spec.template.spec.domain?.machine?.type || this.defaultMachineType;
+
       const cpu = spec.template.spec.domain?.cpu?.cores;
       const memory = spec.template.spec.domain.resources.limits.memory;
       const reservedMemory = vm.metadata?.annotations?.[HCI_ANNOTATIONS.VM_RESERVED_MEMORY];

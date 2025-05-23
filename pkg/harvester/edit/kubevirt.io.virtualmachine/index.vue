@@ -114,13 +114,7 @@ export default {
     },
 
     machineTypeOptions() {
-      return [{
-        label: 'None',
-        value: ''
-      }, {
-        label: 'q35',
-        value: 'q35'
-      }];
+      return this.machineTypes.map((type) => ({ label: type, value: type }));
     },
 
     templateOptions() {
