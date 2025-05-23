@@ -54,26 +54,31 @@ export default {
 
   data() {
     return {
-      value:             null,
-      file:              {},
-      uploadImageId:     '',
-      imageId:           '',
-      deleteImageId:     '',
-      deleteImageResult: '',
-      imageSource:       IMAGE_METHOD.NEW,
-      sourceType:        UPLOAD,
-      uploadController:  null,
-      uploadResult:      null,
-      imageValue:        null,
-      enableLogging:     true,
+      value:                        null,
+      file:                         {},
+      uploadImageId:                '',
+      imageId:                      '',
+      deleteImageId:                '',
+      deleteImageResult:            '',
+      imageSource:                  IMAGE_METHOD.NEW,
+      sourceType:                   UPLOAD,
+      uploadController:             null,
+      uploadResult:                 null,
+      imageValue:                   null,
+      enableLogging:                true,
       IMAGE_METHOD,
-      errors:            [],
+      skipSingleReplicaDetachedVol: false,
+      errors:                       [],
     };
   },
 
   computed: {
     doneRoute() {
       return `${ HARVESTER_PRODUCT }-c-cluster-resource`;
+    },
+
+    skipSingleReplicaDetachedVolFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('skipSingleReplicaDetachedVol');
     },
 
     finishButtonMode() {
@@ -141,8 +146,7 @@ export default {
       return true;
     },
 
-    isUploading(){
-      console.log('this.uploadProgress=', this.uploadProgress)
+    isUploading() {
       return this.fileName !== '' && this.uploadProgress !== 100;
     },
 
@@ -160,6 +164,10 @@ export default {
 
     showDeleteImageSuccessBanner() {
       return this.deleteExistImage && this.deleteImageResult?._status === 200;
+    },
+
+    showUpgradeOptions() {
+      return this.createNewImage || this.selectExistImage;
     },
 
     disableUploadButton() {
@@ -197,6 +205,7 @@ export default {
 
     async save(buttonCb) {
       let res = null;
+
       this.file = {};
       this.errors = [];
 
@@ -257,8 +266,12 @@ export default {
 
           this.value.spec.image = this.imageId;
         }
+
         if (this.canEnableLogging) {
           this.value.spec.logEnabled = this.enableLogging;
+        }
+        if (this.skipSingleReplicaDetachedVolFeatureEnabled) {
+          this.value.metadata.annotations = { [HCI_ANNOTATIONS.SKIP_SINGLE_REPLICA_DETACHED_VOL]: JSON.stringify(this.skipSingleReplicaDetachedVol) };
         }
 
         await this.value.save();
@@ -422,6 +435,30 @@ export default {
         :label="t('harvester.image.warning.osUpgrade.uploading', { name: file.name })"
       />
 
+      <div
+        v-if="showUpgradeOptions"
+        class="mt-10 mb-10"
+      >
+        <Checkbox
+          v-if="canEnableLogging"
+          v-model:value="enableLogging"
+          class="check mb-20"
+          type="checkbox"
+          :label="t('harvester.upgradePage.enableLogging')"
+        />
+        <div
+          v-if="skipSingleReplicaDetachedVolFeatureEnabled"
+          class="mb-20"
+        >
+          <Checkbox
+            v-model:value="skipSingleReplicaDetachedVol"
+            class="check"
+            type="checkbox"
+            :label="t('harvester.upgradePage.skipSingleReplicaDetachedVol')"
+          />
+        </div>
+      </div>
+
       <div v-if="createNewImage">
         <LabeledInput
           v-model:value.trim="imageValue.spec.displayName"
@@ -434,14 +471,6 @@ export default {
           v-model:value="imageValue.spec.checksum"
           class="mb-10"
           label-key="harvester.setting.upgrade.checksum"
-        />
-
-        <Checkbox
-          v-if="canEnableLogging"
-          v-model:value="enableLogging"
-          class="check mb-20"
-          type="checkbox"
-          :label="t('harvester.upgradePage.enableLogging')"
         />
 
         <RadioGroup
