@@ -80,6 +80,7 @@ export default {
     :apply-hooks="applyHooks"
     @finish="save"
     @cancel="done"
+    @error="e=>errors=e"
   >
     <NameNsDescription
       :value="value"

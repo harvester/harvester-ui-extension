@@ -81,6 +81,7 @@ export default {
     :apply-hooks="applyHooks"
     :yaml-modifiers="yamlModifiers"
     @finish="save"
+    @error="e=>errors=e"
   >
     <NameNsDescription
       :value="value"

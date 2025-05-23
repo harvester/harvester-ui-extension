@@ -190,6 +190,7 @@ export default {
     :errors="errors"
     :apply-hooks="applyHooks"
     @finish="saveNetwork"
+    @error="e=>errors=e"
   >
     <NameNsDescription
       ref="nd"

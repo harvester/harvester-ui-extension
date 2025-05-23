@@ -519,6 +519,7 @@ export default {
     :apply-hooks="applyHooks"
     @finish="saveVM"
     @cancel="cancelAction"
+    @error="e=>errors = e"
   >
     <RadioGroup
       v-if="isCreate"
