@@ -309,11 +309,12 @@ export default class HciVmImage extends HarvesterResource {
       const formData = new FormData();
 
       formData.append('chunk', file);
+      let result = null;
 
       try {
         this.$ctx.commit('harvester-common/uploadStart', this.metadata.name, { root: true });
 
-        await this.doAction('upload', formData, {
+        result = await this.doAction('upload', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
             'File-Size':    file.size,
@@ -330,6 +331,8 @@ export default class HciVmImage extends HarvesterResource {
       }
 
       this.$ctx.commit('harvester-common/uploadEnd', this.metadata.name, { root: true });
+
+      return Promise.resolve(result);
     };
   }
 
