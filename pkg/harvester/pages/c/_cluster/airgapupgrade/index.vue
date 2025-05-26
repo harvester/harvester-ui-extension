@@ -59,7 +59,6 @@ export default {
       uploadImageId:                '',
       imageId:                      '',
       deleteImageId:                '',
-      deleteImageResult:            '',
       imageSource:                  IMAGE_METHOD.NEW,
       sourceType:                   UPLOAD,
       uploadController:             null,
@@ -79,10 +78,6 @@ export default {
 
     skipSingleReplicaDetachedVolFeatureEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('skipSingleReplicaDetachedVol');
-    },
-
-    finishButtonMode() {
-      return this.deleteExistImage ? 'delete' : 'upgrade';
     },
 
     allOSImages() {
@@ -135,6 +130,10 @@ export default {
     },
 
     enableUpgrade() {
+      if (this.deleteExistImage) {
+        return false;
+      }
+
       if (this.sourceType === DOWNLOAD) {
         return true;
       }
@@ -160,10 +159,6 @@ export default {
 
     showUploadingWarningBanner() {
       return this.createNewImage && this.isUploading;
-    },
-
-    showDeleteImageSuccessBanner() {
-      return this.deleteExistImage && this.deleteImageResult?._status === 200;
     },
 
     showUpgradeOptions() {
@@ -230,8 +225,7 @@ export default {
           const image = this.$store.getters['harvester/byId'](HCI.IMAGE, this.deleteImageId);
 
           if (image) {
-            await this.handleImageDelete(image);
-            this.deleteImageId = '';
+            this.handleImageDelete(image);
             buttonCb(true);
 
             return;
@@ -286,19 +280,26 @@ export default {
     async uploadFile(file) {
       const fileName = file.name;
 
-      this.imageValue.spec.sourceType = UPLOAD;
-      this.imageValue.spec.displayName = fileName;
-      this.imageValue.metadata.annotations[HCI_ANNOTATIONS.OS_UPGRADE_IMAGE] = 'True';
-      this.errors = [];
-
       if (!fileName) {
         this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.unknownImageName'));
 
         return;
       }
+      const isDuplicatedFile = this.allOSImages.some((I) => I.spec.displayName === fileName);
 
-      this.imageValue.spec.url = '';
+      if (isDuplicatedFile) {
+        this.errors.push(this.$store.getters['i18n/t']('harvester.upgradePage.upload.duplicatedFile'));
+        this.file = {};
+
+        return;
+      }
+
+      this.errors = [];
+      this.imageValue.spec.sourceType = UPLOAD;
+      this.imageValue.spec.displayName = fileName;
+      this.imageValue.metadata.annotations[HCI_ANNOTATIONS.OS_UPGRADE_IMAGE] = 'True';
       this.imageValue.metadata.annotations[HCI_ANNOTATIONS.IMAGE_NAME] = fileName;
+      this.imageValue.spec.url = '';
 
       try {
         const res = await this.imageValue.save();
@@ -322,14 +323,15 @@ export default {
       }
     },
 
-    async handleImageDelete(image) {
-      try {
-        this.deleteImageResult = await this.$store.dispatch('harvester/request', {
-          url:    `/v1/harvester/${ HCI.IMAGE }s/${ image.id }`,
-          method: 'DELETE',
+    handleImageDelete(imageId) {
+      const image = this.allOSImages.find((I) => I.id === imageId);
+
+      if (image) {
+        this.$store.dispatch('harvester/promptModal', {
+          resources: [image],
+          component: 'HarvesterOSImageDeleteDialog'
         });
-      } catch (e) {
-        this.errors = [e?.message] || exceptionToErrorsArray(e);
+        this.deleteImageId = '';
       }
     },
 
@@ -353,7 +355,6 @@ export default {
     imageSource(neu) {
       if (neu !== IMAGE_METHOD.DELETE) {
         this.deleteImageId = '';
-        this.deleteImageResult = null;
       }
     },
 
@@ -393,7 +394,7 @@ export default {
       mode="create"
       :errors="errors"
       :can-yaml="false"
-      :finish-button-mode="finishButtonMode"
+      finish-button-mode="upgrade"
       :validation-passed="enableUpgrade"
       :cancel-event="true"
       @finish="save"
@@ -415,13 +416,9 @@ export default {
           t('harvester.upgradePage.deleteExisting'),
         ]"
       />
-      <UpgradeInfo />
-      <Banner
-        v-if="showDeleteImageSuccessBanner"
-        color="success"
-        class="mt-0 mb-30"
-        :label="t('harvester.setting.upgrade.deleteSuccess', { name: deleteImageResult?.spec?.displayName })"
-      />
+
+      <UpgradeInfo v-if="createNewImage || selectExistImage" />
+
       <Banner
         v-if="showUploadSuccessBanner"
         color="success"
@@ -537,14 +534,25 @@ export default {
         class="mb-20"
         label-key="harvester.fields.image"
       />
-      <LabeledSelect
+
+      <div
         v-if="deleteExistImage"
-        v-model:value="deleteImageId"
-        :options="deleteOSImageOptions"
-        required
-        class="mb-20"
-        label-key="harvester.fields.image"
-      />
+        class="mt-20"
+      >
+        <Banner
+          color="info"
+          class="mt-10 mb-30"
+          :label="t('harvester.upgradePage.deleteHeader')"
+        />
+        <LabeledSelect
+          v-model:value="deleteImageId"
+          :options="deleteOSImageOptions"
+          required
+          class="mb-20"
+          label-key="harvester.fields.image"
+          @update:value="handleImageDelete"
+        />
+      </div>
     </CruResource>
   </div>
 </template>
