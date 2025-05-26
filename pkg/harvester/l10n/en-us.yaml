@@ -276,6 +276,7 @@ harvester:
     quotas: Quotas
     snapshots: Snapshots
     instanceLabel: Instance Labels
+    annotations: Annotations
   fields:
     version: Version
     name: Name
@@ -792,6 +793,8 @@ harvester:
       banner: These labels are automatically synchronized to the virtual machine instance.
     labels:
       banner: These key values are added as labels to the virtual machine.
+    annotations:
+      banner: These key values are added as annotations to the virtual machine.
 
   volume:
     label: Volumes

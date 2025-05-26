@@ -762,9 +762,30 @@ export default {
       </Tab>
 
       <Tab
+        name="annotations"
+        :label="t('harvester.tab.annotations')"
+        :weight="-11"
+      >
+        <Banner color="info">
+          <t k="harvester.virtualMachine.annotations.banner" />
+        </Banner>
+        <KeyValue
+          key="annotations"
+          :value="value.annotations"
+          :protected-keys="value.systemAnnotations || []"
+          :toggle-filter="toggler"
+          :add-label="t('labels.addAnnotation')"
+          :mode="mode"
+          :read-allowed="false"
+          :value-can-be-empty="true"
+          @update:value="value.setAnnotations($event)"
+        />
+      </Tab>
+
+      <Tab
         name="advanced"
         :label="t('harvester.tab.advanced')"
-        :weight="-11"
+        :weight="-12"
       >
         <div class="row mb-20">
           <div class="col span-6">
