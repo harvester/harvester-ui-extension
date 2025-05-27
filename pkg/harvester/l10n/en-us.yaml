@@ -229,6 +229,8 @@ harvester:
           {count, plural,
           =1 {core}
           other {cores}}
+    harvesterIpAddress:
+      customIpTooltip: "Custom IP (set via annotation)"
   tableHeaders:
     imageEncryption: Encryption
     size: Size

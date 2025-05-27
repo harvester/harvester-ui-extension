@@ -68,5 +68,6 @@ export const HCI = {
   SVM_BACKUP_ID:                    'harvesterhci.io/svmbackupId',
   DISABLE_LONGHORN_V2_ENGINE:       'node.longhorn.io/disable-v2-data-engine',
   K8S_ARCH:                         'kubernetes.io/arch',
-  IMAGE_DISPLAY_NAME:               'harvesterhci.io/imageDisplayName'
+  IMAGE_DISPLAY_NAME:               'harvesterhci.io/imageDisplayName',
+  CUSTOM_IP:                        'harvesterhci.io/custom-ip'
 };

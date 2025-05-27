@@ -35,11 +35,26 @@ export default {
   },
 
   computed: {
-    // Return VM instance IP and VM annotation IP
     ips() {
-      return [...this.vmiIp, ...this.networkAnnotationIP]
-        .filter(Boolean)
-        .sort((a, b) => a.ip < b.ip ? -1 : 1);
+      if (this.vmiIp.length) {
+        return [...this.vmiIp, ...this.networkAnnotationIP]
+          .filter(Boolean)
+          .sort((a, b) => a.ip < b.ip ? -1 : 1);
+      }
+
+      return this.customAnnotationIP;
+    },
+
+    customAnnotationIP() {
+      const annotationIp = get(this.row, `metadata.annotations."${ HCI_ANNOTATIONS.CUSTOM_IP }"`);
+
+      if (annotationIp && isIpv4(annotationIp)) {
+        return [{
+          name: 'custom-ip', ip: annotationIp, isCustom: true
+        }];
+      }
+
+      return [];
     },
 
     networkAnnotationIP() {
@@ -97,12 +112,13 @@ export default {
 <template>
   <div v-if="showIP">
     <span
-      v-for="{ip, name} in ips"
-      :key="ip"
+      v-for="{ ip, name, isCustom } in ips"
+      :key="`${ip}-${name}`"
     >
       <CopyToClipboardText
-        v-clean-tooltip="name"
+        v-clean-tooltip="isCustom ? t('harvester.formatters.harvesterIpAddress.customIpTooltip') : name"
         :text="ip"
+        :plain="isCustom"
       />
     </span>
   </div>
