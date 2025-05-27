@@ -313,7 +313,7 @@ export default class HciVmImage extends HarvesterResource {
       try {
         this.$ctx.commit('harvester-common/uploadStart', this.metadata.name, { root: true });
 
-        await this.doAction('upload', formData, {
+        const result = await this.doAction('upload', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
             'File-Size':    file.size,
@@ -321,15 +321,15 @@ export default class HciVmImage extends HarvesterResource {
           params: { size: file.size },
           signal: opt.signal,
         });
+
+        return result;
       } catch (err) {
         this.$ctx.commit('harvester-common/uploadError', { name: this.name, message: err.message }, { root: true });
-
         this.$ctx.commit('harvester-common/uploadEnd', this.metadata.name, { root: true });
-
-        return Promise.reject(err);
+        throw err;
+      } finally {
+        this.$ctx.commit('harvester-common/uploadEnd', this.metadata.name, { root: true });
       }
-
-      this.$ctx.commit('harvester-common/uploadEnd', this.metadata.name, { root: true });
     };
   }
 

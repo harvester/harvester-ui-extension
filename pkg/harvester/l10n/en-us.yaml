@@ -61,6 +61,7 @@ harvester:
       tip: 'Upload an icon to replace the Harvester favicon in the browser tab. Max file size is 20KB'
   productLabel: 'Harvester'
   modal:
+    
     backup:
       success: 'Backup { backUpName } has been initiated.'
       addBackup: Add Backup
@@ -99,6 +100,9 @@ harvester:
         tip: Please enter a virtual machine name!
         success: 'Virtual machine { name } cloned successfully.'
         failed: 'Failed clone virtual machine!'
+    osImage:
+      title: Delete Image
+      message: Are you sure you want to delete the image { name } ?
     downloadImage:
       title: Download Image
       banner: 'This action takes a while depending on the image size ({ size }). Please be patient.'
@@ -872,14 +876,18 @@ harvester:
     upgradeNode: Upgrading Node
     upgradeSysService: Upgrading System Service
     upgradeImage: Download Upgrade Image
-    osUpgrade: OS Upgrade
+    osUpgrade: Cluster Upgrade
     uploadNew: Upload New Image
+    deleteHeader: Please select an image to delete.
+    deleteExisting: Delete Existing Image
     selectExisting: Select Existing Image
     createRepository: Creating Upgrade Repository
     succeeded: Succeeded
     releaseTip: Please read the upgrade documentation carefully. You can view details on the <a href="{url}" target="_blank">Harvester Release Notes</a>.
     checkReady: I have read and understood the upgrade instructions related to this Harvester version.
     pending: Pending
+    upload: 
+      duplicatedFile: The file you are trying to upload already exists.
     repoInfo:
       upgradeStatus: Upgrade Status
       os: OS
@@ -1086,6 +1094,11 @@ harvester:
       imageUrl: Please input a valid image URL.
       chooseFile: Please select to upload an image.
       checksum: Checksum
+      networkError: Unable to upload the image. Resolve network issues that may have occurred and try again.
+      cancelUpload: Cancelled the image upload.
+      uploadSuccess:  "{name} uploaded successfully. Press Upgrade button to start the cluster upgrade process."
+      deleteImage: Please select an image to delete.
+      deleteSuccess: "{name} deleted successfully."
     harvesterMonitoring:
       label: Harvester Monitoring
       section:

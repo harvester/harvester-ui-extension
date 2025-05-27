@@ -43,7 +43,7 @@ export default {
           {{ t('harvester.upgradePage.upgradeInfo.tip') }}
         </p>
 
-        <p class="mb-5">
+        <p>
           {{ t('harvester.upgradePage.upgradeInfo.moreNotes') }} <a
             :href="releaseVersion"
             target="_blank"
