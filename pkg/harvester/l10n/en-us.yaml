@@ -107,7 +107,7 @@ harvester:
         failed: 'Failed clone virtual machine!'
     osImage:
       title: Delete Image
-      message: Are you sure you want to delete the image {name} ? 
+      message: Are you sure you want to delete the image { name } ?
     downloadImage:
       title: Download Image
       banner: 'This action takes a while depending on the image size ({ size }). Please be patient.'
@@ -1100,7 +1100,7 @@ harvester:
       imageUrl: Please input a valid image URL.
       chooseFile: Please select to upload an image.
       checksum: Checksum
-      networkError: Unable to upload the image. A network error has occurred. Please try again.
+      networkError: Unable to upload the image. Resolve network issues that may have occurred and try again.
       cancelUpload: Cancelled the image upload.
       uploadSuccess:  "{name} uploaded successfully. Press Upgrade button to start the cluster upgrade process."
       deleteImage: Please select an image to delete.

@@ -328,8 +328,10 @@ export default {
 
       if (image) {
         this.$store.dispatch('harvester/promptModal', {
-          resources: [image],
-          component: 'HarvesterOSImageDeleteDialog'
+          resources:        [image],
+          component:        'ConfirmRelatedToRemoveDialog',
+          needConfirmation: false,
+          warningMessage:   this.$store.getters['i18n/t']('harvester.modal.osImage.message', { name: image.displayName })
         });
         this.deleteImageId = '';
       }
