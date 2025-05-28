@@ -28,6 +28,7 @@ export default class HciSetting extends HarvesterResource {
     }
 
     const schema = this.$getters['schemaFor'](HCI.UPGRADE);
+
     const hasUpgradeAccess = !!schema?.collectionMethods.find((x) => ['post'].includes(x.toLowerCase()));
 
     if (this.id === HCI_SETTING.SERVER_VERSION && hasUpgradeAccess) {
@@ -38,7 +39,7 @@ export default class HciSetting extends HarvesterResource {
         enabled:  true,
         icon:     'icon icon-refresh',
         label:    this.t('harvester.upgradePage.upgrade'),
-        disabled: !!latestUpgrade && !latestUpgrade?.isUpgradeSucceeded
+        disabled: !!latestUpgrade && latestUpgrade?.isUpgradeSucceeded
       });
     }
 
