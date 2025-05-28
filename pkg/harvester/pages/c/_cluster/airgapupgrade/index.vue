@@ -11,10 +11,12 @@ import { HCI } from '../../../../types';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../../../config/harvester';
 import ImagePercentageBar from '@shell/components/formatter/ImagePercentageBar';
 import { Banner } from '@components/Banner';
+import isEmpty from 'lodash/isEmpty';
 
 const IMAGE_METHOD = {
-  NEW:   'new',
-  EXIST: 'exist'
+  NEW:    'new',
+  EXIST:  'exist',
+  DELETE: 'delete'
 };
 
 const DOWNLOAD = 'download';
@@ -40,23 +42,8 @@ export default {
       spec: { image: '' }
     });
 
-    const imageValue = await this.$store.dispatch('harvester/create', {
-      type:     HCI.IMAGE,
-      metadata: {
-        name:         '',
-        namespace:    'harvester-system',
-        generateName: 'image-',
-        annotations:  {}
-      },
-      spec: {
-        sourceType:  UPLOAD,
-        displayName: '',
-        checksum:    ''
-      },
-    });
-
+    await this.initImageValue();
     this.value = value;
-    this.imageValue = imageValue;
   },
 
   beforeUnmount() {
@@ -67,17 +54,20 @@ export default {
 
   data() {
     return {
-      value:            null,
-      file:             {},
-      uploadImageId:    '',
-      imageId:          '',
-      imageSource:      IMAGE_METHOD.NEW,
-      sourceType:       UPLOAD,
-      uploadController: null,
-      imageValue:       null,
-      errors:           [],
-      enableLogging:    true,
-      IMAGE_METHOD
+      value:                        null,
+      file:                         {},
+      uploadImageId:                '',
+      imageId:                      '',
+      deleteImageId:                '',
+      imageSource:                  IMAGE_METHOD.NEW,
+      sourceType:                   UPLOAD,
+      uploadController:             null,
+      uploadResult:                 null,
+      imageValue:                   null,
+      enableLogging:                true,
+      IMAGE_METHOD,
+      skipSingleReplicaDetachedVol: false,
+      errors:                       [],
     };
   },
 
@@ -86,20 +76,43 @@ export default {
       return `${ HARVESTER_PRODUCT }-c-cluster-resource`;
     },
 
-    osImageOptions() {
-      return this.$store.getters['harvester/all'](HCI.IMAGE)
-        .filter((I) => I.isOSImage)
-        .map((I) => {
-          return {
-            label:    I.spec.displayName,
-            value:    I.id,
-            disabled: !I.isReady
-          };
-        });
+    skipSingleReplicaDetachedVolFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('skipSingleReplicaDetachedVol');
     },
 
-    uploadImage() {
+    allOSImages() {
+      return this.$store.getters['harvester/all'](HCI.IMAGE).filter((I) => I.isOSImage) || [];
+    },
+
+    deleteOSImageOptions() {
+      return this.allOSImages.map((I) => {
+        return {
+          label:    I.spec.displayName,
+          value:    I.id,
+        };
+      });
+    },
+
+    osImageOptions() {
+      return this.allOSImages.map((I) => {
+        return {
+          label:    I.spec.displayName,
+          value:    I.id,
+          disabled: !I.isReady
+        };
+      });
+    },
+
+    createNewImage() {
       return this.imageSource === IMAGE_METHOD.NEW;
+    },
+
+    selectExistImage() {
+      return this.imageSource === IMAGE_METHOD.EXIST;
+    },
+
+    deleteExistImage() {
+      return this.imageSource === IMAGE_METHOD.DELETE;
     },
 
     fileName() {
@@ -116,7 +129,11 @@ export default {
       return image?.status?.progress;
     },
 
-    enableSave() {
+    enableUpgrade() {
+      if (this.deleteExistImage) {
+        return false;
+      }
+
       if (this.sourceType === DOWNLOAD) {
         return true;
       }
@@ -128,16 +145,28 @@ export default {
       return true;
     },
 
-    showProgressBar() {
-      return this.sourceType === UPLOAD && this.fileName !== '';
-    },
-
-    showUploadingWarningBanner() {
+    isUploading() {
       return this.fileName !== '' && this.uploadProgress !== 100;
     },
 
+    showProgressBar() {
+      return this.createNewImage && this.sourceType === UPLOAD && this.isUploading;
+    },
+
+    showUploadSuccessBanner() {
+      return this.createNewImage && this.fileName !== '' && isEmpty(this.errors) && !this.showUploadingWarningBanner && this.uploadResult?._status === 200;
+    },
+
+    showUploadingWarningBanner() {
+      return this.createNewImage && this.isUploading;
+    },
+
+    showUpgradeOptions() {
+      return this.createNewImage || this.selectExistImage;
+    },
+
     disableUploadButton() {
-      return this.sourceType === UPLOAD && this.fileName !== '' && this.uploadProgress !== 100;
+      return this.sourceType === UPLOAD && this.isUploading;
     },
   },
 
@@ -152,11 +181,30 @@ export default {
       });
     },
 
+    async initImageValue() {
+      this.imageValue = await this.$store.dispatch('harvester/create', {
+        type:     HCI.IMAGE,
+        metadata: {
+          name:         '',
+          namespace:    'harvester-system',
+          generateName: 'image-',
+          annotations:  {}
+        },
+        spec: {
+          sourceType:  UPLOAD,
+          displayName: '',
+          checksum:    ''
+        },
+      });
+    },
+
     async save(buttonCb) {
       let res = null;
 
+      this.file = {};
       this.errors = [];
-      if (!this.imageValue.spec.displayName && this.uploadImage) {
+
+      if (!this.imageValue.spec.displayName && this.createNewImage) {
         this.errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('generic.name') }));
         buttonCb(false);
 
@@ -164,6 +212,28 @@ export default {
       }
 
       try {
+        if (this.deleteExistImage) {
+          // if not select image, show error
+          if (!this.deleteImageId) {
+            this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.deleteImage'));
+            buttonCb(false);
+
+            return;
+          }
+
+          // if select image, delete image
+          const image = this.$store.getters['harvester/byId'](HCI.IMAGE, this.deleteImageId);
+
+          if (image) {
+            this.handleImageDelete(image);
+            buttonCb(true);
+
+            return;
+          }
+
+          return;
+        }
+
         if (this.imageSource === IMAGE_METHOD.NEW) {
           this.imageValue.metadata.annotations[HCI_ANNOTATIONS.OS_UPGRADE_IMAGE] = 'True';
 
@@ -194,12 +264,15 @@ export default {
         if (this.canEnableLogging) {
           this.value.spec.logEnabled = this.enableLogging;
         }
+        if (this.skipSingleReplicaDetachedVolFeatureEnabled) {
+          this.value.metadata.annotations = { [HCI_ANNOTATIONS.SKIP_SINGLE_REPLICA_DETACHED_VOL]: JSON.stringify(this.skipSingleReplicaDetachedVol) };
+        }
 
         await this.value.save();
         this.done();
         buttonCb(true);
       } catch (e) {
-        this.errors = exceptionToErrorsArray(e);
+        this.errors = [e?.message] || exceptionToErrorsArray(e);
         buttonCb(false);
       }
     },
@@ -207,36 +280,71 @@ export default {
     async uploadFile(file) {
       const fileName = file.name;
 
-      this.imageValue.spec.sourceType = UPLOAD;
-      this.imageValue.spec.displayName = fileName;
-      this.imageValue.metadata.annotations[HCI_ANNOTATIONS.OS_UPGRADE_IMAGE] = 'True';
-
       if (!fileName) {
         this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.unknownImageName'));
 
         return;
       }
+      const isDuplicatedFile = this.allOSImages.some((I) => I.spec.displayName === fileName);
 
-      this.imageValue.spec.url = '';
+      if (isDuplicatedFile) {
+        this.errors.push(this.$store.getters['i18n/t']('harvester.upgradePage.upload.duplicatedFile'));
+        this.file = {};
+
+        return;
+      }
+
+      this.errors = [];
+      this.imageValue.spec.sourceType = UPLOAD;
+      this.imageValue.spec.displayName = fileName;
+      this.imageValue.metadata.annotations[HCI_ANNOTATIONS.OS_UPGRADE_IMAGE] = 'True';
       this.imageValue.metadata.annotations[HCI_ANNOTATIONS.IMAGE_NAME] = fileName;
+      this.imageValue.spec.url = '';
 
       try {
         const res = await this.imageValue.save();
 
         this.uploadImageId = res.id;
         this.uploadController = new AbortController();
+
         const signal = this.uploadController.signal;
 
-        await res.uploadImage(file, { signal });
+        this.uploadResult = await res.uploadImage(file, { signal });
       } catch (e) {
-        this.errors = exceptionToErrorsArray(e);
+        if (e?.code === 'ERR_NETWORK') {
+          this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.networkError'));
+        } else if (e?.code === 'ERR_CANCELED') {
+          this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.cancelUpload'));
+        } else {
+          this.errors = [e?.message] || exceptionToErrorsArray(e);
+        }
+        this.file = {};
+        this.uploadImageId = '';
+      }
+    },
+
+    handleImageDelete(imageId) {
+      const image = this.allOSImages.find((I) => I.id === imageId);
+
+      if (image) {
+        this.$store.dispatch('harvester/promptModal', {
+          resources:        [image],
+          component:        'ConfirmRelatedToRemoveDialog',
+          needConfirmation: false,
+          warningMessage:   this.$store.getters['i18n/t']('harvester.modal.osImage.message', { name: image.displayName })
+        });
+        this.deleteImageId = '';
       }
     },
 
     async handleFileUpload() {
-      this.file = this.$refs.file.files[0];
+      this.uploadImageId = '';
       this.errors = [];
-      await this.uploadFile(this.file);
+      this.file = this.$refs.file?.files[0];
+      if (this.file) {
+        await this.initImageValue();
+        await this.uploadFile(this.file);
+      }
     },
 
     selectFile() {
@@ -246,6 +354,12 @@ export default {
   },
 
   watch: {
+    imageSource(neu) {
+      if (neu !== IMAGE_METHOD.DELETE) {
+        this.deleteImageId = '';
+      }
+    },
+
     'imageValue.spec.url': {
       handler(neu) {
         const suffixName = neu?.split('/')?.pop();
@@ -283,10 +397,11 @@ export default {
       :errors="errors"
       :can-yaml="false"
       finish-button-mode="upgrade"
-      :validation-passed="enableSave"
+      :validation-passed="enableUpgrade"
       :cancel-event="true"
       @finish="save"
       @cancel="done"
+      @error="e=>errors = e"
     >
       <RadioGroup
         v-model:value="imageSource"
@@ -295,20 +410,55 @@ export default {
         :options="[
           IMAGE_METHOD.NEW,
           IMAGE_METHOD.EXIST,
+          IMAGE_METHOD.DELETE,
         ]"
         :labels="[
           t('harvester.upgradePage.uploadNew'),
           t('harvester.upgradePage.selectExisting'),
+          t('harvester.upgradePage.deleteExisting'),
         ]"
+      />
+
+      <UpgradeInfo v-if="createNewImage || selectExistImage" />
+
+      <Banner
+        v-if="showUploadSuccessBanner"
+        color="success"
+        class="mt-0 mb-30"
+        :label="t('harvester.setting.upgrade.uploadSuccess', { name: file.name })"
       />
       <Banner
         v-if="showUploadingWarningBanner"
         color="warning"
+        class="mt-0 mb-30"
         :label="t('harvester.image.warning.osUpgrade.uploading', { name: file.name })"
       />
-      <UpgradeInfo />
 
-      <div v-if="uploadImage">
+      <div
+        v-if="showUpgradeOptions"
+        class="mt-10 mb-10"
+      >
+        <Checkbox
+          v-if="canEnableLogging"
+          v-model:value="enableLogging"
+          class="check mb-20"
+          type="checkbox"
+          :label="t('harvester.upgradePage.enableLogging')"
+        />
+        <div
+          v-if="skipSingleReplicaDetachedVolFeatureEnabled"
+          class="mb-20"
+        >
+          <Checkbox
+            v-model:value="skipSingleReplicaDetachedVol"
+            class="check"
+            type="checkbox"
+            :label="t('harvester.upgradePage.skipSingleReplicaDetachedVol')"
+          />
+        </div>
+      </div>
+
+      <div v-if="createNewImage">
         <LabeledInput
           v-model:value.trim="imageValue.spec.displayName"
           class="mb-20"
@@ -320,14 +470,6 @@ export default {
           v-model:value="imageValue.spec.checksum"
           class="mb-10"
           label-key="harvester.setting.upgrade.checksum"
-        />
-
-        <Checkbox
-          v-if="canEnableLogging"
-          v-model:value="enableLogging"
-          class="check mb-20"
-          type="checkbox"
-          :label="t('harvester.upgradePage.enableLogging')"
         />
 
         <RadioGroup
@@ -386,15 +528,33 @@ export default {
           :value="uploadProgress"
         />
       </div>
-
       <LabeledSelect
-        v-else
+        v-if="selectExistImage"
         v-model:value="imageId"
         :options="osImageOptions"
         required
         class="mb-20"
         label-key="harvester.fields.image"
       />
+
+      <div
+        v-if="deleteExistImage"
+        class="mt-20"
+      >
+        <Banner
+          color="info"
+          class="mt-10 mb-30"
+          :label="t('harvester.upgradePage.deleteHeader')"
+        />
+        <LabeledSelect
+          v-model:value="deleteImageId"
+          :options="deleteOSImageOptions"
+          required
+          class="mb-20"
+          label-key="harvester.fields.image"
+          @update:value="handleImageDelete"
+        />
+      </div>
     </CruResource>
   </div>
 </template>
