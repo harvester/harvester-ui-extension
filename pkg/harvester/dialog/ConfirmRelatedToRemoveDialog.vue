@@ -171,7 +171,7 @@ export default {
     <template #body>
       <div class="pl-10 pr-10">
         <span
-          v-clean-html="t(warningMessageKey, { type, names: resourceNames }, true)"
+          v-clean-html="warningMessage"
         ></span>
 
         <div
