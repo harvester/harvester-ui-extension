@@ -42,10 +42,6 @@ export default {
   computed: {
     ...mapState('action-menu', ['modalData']),
 
-<<<<<<< HEAD
-    warningMessageKey() {
-      return this.modalData.warningMessageKey;
-=======
     title() {
       return this.modalData.title || 'dialog.promptRemove.title';
     },
@@ -65,7 +61,6 @@ export default {
       });
 
       return defaultMessage;
->>>>>>> dbbad01 (Add OS upgrade features (#311))
     },
 
     names() {
@@ -179,23 +174,6 @@ export default {
           v-clean-html="t(warningMessageKey, { type, names: resourceNames }, true)"
         ></span>
 
-<<<<<<< HEAD
-        <div class="mt-10 mb-10">
-          <span
-            v-clean-html="t('promptRemove.confirmName', { nameToMatch: escapeHtml(nameToMatch) }, true)"
-          ></span>
-        </div>
-        <div class="mb-10">
-          <CopyToClipboardText :text="nameToMatch" />
-        </div>
-        <input
-          id="confirm"
-          v-model="confirmName"
-          type="text"
-        />
-        <div class="text-info mt-20">
-          {{ protip }}
-=======
         <div
           v-if="needConfirmation"
           class="mt-20"
@@ -219,7 +197,6 @@ export default {
           <div class="text-info mt-20">
             {{ protip }}
           </div>
->>>>>>> dbbad01 (Add OS upgrade features (#311))
         </div>
         <Banner
           v-for="(error, i) in errors"
