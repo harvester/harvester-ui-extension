@@ -212,28 +212,6 @@ export default {
       }
 
       try {
-        if (this.deleteExistImage) {
-          // if not select image, show error
-          if (!this.deleteImageId) {
-            this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.deleteImage'));
-            buttonCb(false);
-
-            return;
-          }
-
-          // if select image, delete image
-          const image = this.$store.getters['harvester/byId'](HCI.IMAGE, this.deleteImageId);
-
-          if (image) {
-            this.handleImageDelete(image);
-            buttonCb(true);
-
-            return;
-          }
-
-          return;
-        }
-
         if (this.imageSource === IMAGE_METHOD.NEW) {
           this.imageValue.metadata.annotations[HCI_ANNOTATIONS.OS_UPGRADE_IMAGE] = 'True';
 
@@ -241,6 +219,7 @@ export default {
             this.value.spec.image = this.uploadImageId;
           } else if (this.sourceType === DOWNLOAD) {
             this.imageValue.spec.sourceType = DOWNLOAD;
+
             if (!this.imageValue.spec.url) {
               this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.imageUrl'));
               buttonCb(false);
@@ -254,6 +233,7 @@ export default {
         } else if (this.imageSource === IMAGE_METHOD.EXIST) {
           if (!this.imageId) {
             this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.chooseFile'));
+            buttonCb(false);
 
             return;
           }
