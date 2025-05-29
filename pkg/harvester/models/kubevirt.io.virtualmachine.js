@@ -1205,6 +1205,10 @@ export default class VirtVm extends HarvesterResource {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('thirdPartyStorage');
   }
 
+  get vmMachineTypesFeatureEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('vmMachineTypes');
+  }
+
   setInstanceLabels(val) {
     if ( !this.spec?.template?.metadata?.labels ) {
       set(this, 'spec.template.metadata.labels', {});
