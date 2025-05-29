@@ -125,6 +125,7 @@ export default {
     :resource="value"
     :mode="mode"
     :apply-hooks="applyHooks"
+    @error="e=>errors=e"
   >
     <Tabbed
       v-if="spec"

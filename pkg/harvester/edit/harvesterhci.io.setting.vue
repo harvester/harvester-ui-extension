@@ -185,7 +185,7 @@ export default {
     :subtypes="[]"
     :can-yaml="false"
     :cancel-event="true"
-    @error="e => (errors = e)"
+    @error="e=>errors=e"
     @finish="saveSettings"
     @cancel="done"
   >

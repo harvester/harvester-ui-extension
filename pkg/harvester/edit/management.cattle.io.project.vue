@@ -213,7 +213,7 @@ export default {
     :subtypes="[]"
     :can-yaml="false"
     :validation-passed="fvFormIsValid"
-    @error="e=>errors = e"
+    @error="e=>errors=e"
     @finish="save"
     @cancel="done"
   >

@@ -64,6 +64,7 @@ export default {
       :errors="errors"
       :apply-hooks="applyHooks"
       @finish="save"
+      @error="e=>errors=e"
     >
       <NameNsDescription
         :value="value"

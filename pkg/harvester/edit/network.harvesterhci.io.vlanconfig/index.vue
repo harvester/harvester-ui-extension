@@ -373,6 +373,7 @@ export default {
     :mode="mode"
     :errors="errors"
     @finish="save"
+    @error="e=>errors=e"
   >
     <NameNsDescription
       :value="value"

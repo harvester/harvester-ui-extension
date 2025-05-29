@@ -374,7 +374,7 @@ export default {
     :generate-yaml="generateYaml"
     :apply-hooks="applyHooks"
     @finish="save"
-    @error="e=>errors = e"
+    @error="e=>errors=e"
   >
     <NameNsDescription
       :value="value"

@@ -189,7 +189,7 @@ export default {
     :resource="value"
     :subtypes="[]"
     :cancel-event="true"
-    @error="e=>errors = e"
+    @error="e=>errors=e"
     @finish="save"
     @cancel="done"
   >

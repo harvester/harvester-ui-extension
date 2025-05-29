@@ -381,7 +381,7 @@ export default {
       :cancel-event="true"
       @finish="save"
       @cancel="done"
-      @error="e=>errors = e"
+      @error="e=>errors=e"
     >
       <RadioGroup
         v-model:value="imageSource"
