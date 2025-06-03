@@ -193,7 +193,7 @@ export default {
         spec: {
           sourceType:  UPLOAD,
           displayName: '',
-          checksum:    ''
+          checksum:    this.imageValue?.spec?.checksum || '',
         },
       });
     },
@@ -296,7 +296,7 @@ export default {
         } else if (e?.code === 'ERR_CANCELED') {
           this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.cancelUpload'));
         } else {
-          this.errors = [e?.message] || exceptionToErrorsArray(e);
+          this.errors = exceptionToErrorsArray(e);
         }
         this.file = {};
         this.uploadImageId = '';
