@@ -3,10 +3,6 @@ fullnameOverride: ""
 plugin:
   enabled: true
   versionOverride: ""
-  endpoint: >-
-    https://raw.githubusercontent.com/harvester/harvester-ui-extension/v1.5-head/extensions/harvester/1.5.1-rc2
-  compressedEndpoint: >-
-    https://raw.githubusercontent.com/harvester/harvester-ui-extension/v1.5-head/extensions/harvester/1.5.1-rc2.tgz
   noCache: false
   noAuth: false
   metadata:

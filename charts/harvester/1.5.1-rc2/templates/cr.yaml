@@ -8,8 +8,7 @@ spec:
   plugin:
     name: {{ include "extension-server.fullname" . }}
     version: {{ (semver (default .Chart.AppVersion .Values.plugin.versionOverride)).Original }}
-    endpoint: {{ .Values.plugin.endpoint | quote }}
-    compressedEndpoint: {{ .Values.plugin.compressedEndpoint | quote }}
+    endpoint: https://raw.githubusercontent.com/harvester/harvester-ui-extension/v1.5-head/extensions/harvester/1.5.1-rc2
     noCache: {{ .Values.plugin.noCache }}
     noAuth: {{ .Values.plugin.noAuth }}
     metadata: {{ include "extension-server.pluginMetadata" . | indent 6 }}

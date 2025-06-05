@@ -14,16 +14,16 @@ plugin/harvester-1.5.1-rc2.umd.min.431.js
 plugin/harvester-1.5.1-rc2.umd.min.431.js.map
 plugin/harvester-1.5.1-rc2.umd.min.472.js
 plugin/harvester-1.5.1-rc2.umd.min.472.js.map
+plugin/harvester-1.5.1-rc2.umd.min.494.js
+plugin/harvester-1.5.1-rc2.umd.min.494.js.map
 plugin/harvester-1.5.1-rc2.umd.min.545.js
 plugin/harvester-1.5.1-rc2.umd.min.545.js.map
+plugin/harvester-1.5.1-rc2.umd.min.559.js
+plugin/harvester-1.5.1-rc2.umd.min.559.js.map
+plugin/harvester-1.5.1-rc2.umd.min.588.js
+plugin/harvester-1.5.1-rc2.umd.min.588.js.map
 plugin/harvester-1.5.1-rc2.umd.min.60.js
 plugin/harvester-1.5.1-rc2.umd.min.60.js.map
-plugin/harvester-1.5.1-rc2.umd.min.683.js
-plugin/harvester-1.5.1-rc2.umd.min.683.js.map
-plugin/harvester-1.5.1-rc2.umd.min.694.js
-plugin/harvester-1.5.1-rc2.umd.min.694.js.map
-plugin/harvester-1.5.1-rc2.umd.min.794.js
-plugin/harvester-1.5.1-rc2.umd.min.794.js.map
 plugin/harvester-1.5.1-rc2.umd.min.876.js
 plugin/harvester-1.5.1-rc2.umd.min.876.js.map
 plugin/harvester-1.5.1-rc2.umd.min.954.js
@@ -162,7 +162,6 @@ plugin/img/rke.a01f31e7.svg
 plugin/img/rke2.a01f31e7.svg
 plugin/img/setup-step-one.7b236b40.svg
 plugin/img/shibboleth.35ea1d68.svg
-plugin/img/sks.af115826.svg
 plugin/img/slack.34dfd73f.svg
 plugin/img/softlayer.5d9a5c2a.svg
 plugin/img/sunglasses.157dca2a.svg
@@ -171,5 +170,6 @@ plugin/img/tencenttke.42042615.svg
 plugin/img/vmwarevsphere-black.454d68ed.svg
 plugin/img/vmwarevsphere.94d59db3.svg
 plugin/img/webhook.f86c012b.svg
+plugin/img/wechat-qr-code.c0468b45.jpg
 plugin/img/windows.f862ed7d.svg
 plugin/package.json
