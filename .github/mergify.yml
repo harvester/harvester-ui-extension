@@ -12,6 +12,19 @@ pull_request_rules:
       labels:
         - "v1.5 backport PR"
 
+- name: Automatically open backport PR to release-harvester-v1.0
+  conditions:
+    - base=main
+    - label="require backport 1.0"
+  actions:
+    backport:
+      branches:
+        - "release-harvester-v1.0"
+      assignees:
+        - "{{ author }}"
+      labels:
+        - "v1.0 backport PR"
+
 - name: Ask to resolve conflict
   conditions:
     - conflict
