@@ -1,6 +1,5 @@
 <script>
 import CreateEditView from '@shell/mixins/create-edit-view';
-
 import { Banner } from '@components/Banner';
 import { LabeledInput } from '@components/Form/LabeledInput';
 
@@ -62,7 +61,7 @@ export default {
 
     <div
       class="row"
-      @update:value="update"
+      @input="update"
     >
       <div class="col span-12">
         <LabeledInput
