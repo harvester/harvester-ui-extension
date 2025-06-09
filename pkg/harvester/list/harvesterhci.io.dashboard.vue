@@ -132,6 +132,7 @@ export default {
 
     const hash = {
       vms:              this.fetchClusterResources(HCI.VM),
+      pvcs:             this.fetchClusterResources(PVC),
       nodes:            this.fetchClusterResources(NODE),
       events:           this.fetchClusterResources(EVENT),
       metricNodes:      this.fetchClusterResources(METRIC.NODE),
@@ -221,6 +222,7 @@ export default {
       nodes:                  [],
       metricNodes:            [],
       vms:                    [],
+      pvcs:                   [],
       monitoring:             {},
       VM_DASHBOARD_METRICS_URL,
       CLUSTER_METRICS_SUMMARY_URL,
@@ -283,6 +285,14 @@ export default {
           };
 
           out[resource.type].name = this.t(`typeLabel."${ resource.spoofed.name }"`, { count: out[resource.type].total });
+        }
+
+        if (resource.type === PVC) {
+          // filter out the golden image volumes
+          const goldenImageVolumeCount = (this.pvcs || []).filter((pvc) => pvc.isGoldenImageVolume).length;
+
+          out[resource.type].useful = out[resource.type].useful - goldenImageVolumeCount;
+          out[resource.type].total = out[resource.type].total - goldenImageVolumeCount;
         }
 
         if (resource.type === HCI.BLOCK_DEVICE) {
