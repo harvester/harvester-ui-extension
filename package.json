@@ -6,7 +6,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@rancher/shell": "3.0.5-rc.2",
+    "@rancher/shell": "3.0.5-rc.3",
     "cache-loader": "^4.1.0",
     "color": "4.2.3",
     "ip": "2.0.1",
