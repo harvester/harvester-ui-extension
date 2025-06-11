@@ -291,7 +291,7 @@ export default {
 
           const res = await this.value.save();
 
-          await res.uploadImage(file);
+          res.uploadImage(file);
 
           buttonCb(true);
           this.done();
