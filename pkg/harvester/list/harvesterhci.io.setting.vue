@@ -85,7 +85,7 @@ export default {
   },
 
   data() {
-    return { initSettings: [] };
+    return { initSettings: [], searchQuery: '' };
   },
 
   computed: {
@@ -135,9 +135,21 @@ export default {
         {{ t('harvester.setting.modifiedMessage') }}
       </div>
     </Banner>
-
+    <div class="fixed-header-actions harvester-settings-search">
+      <div class="search row">
+        <input
+          ref="searchQuery"
+          v-model="searchQuery"
+          type="search"
+          class="input-sm search-box"
+          :aria-label="t('sortableTable.searchLabel')"
+          aria-describedby="describe-filter-sortable-table"
+          :placeholder="t('sortableTable.search')"
+        >
+      </div>
+    </div>
     <Tabbed
-      class="mt-30"
+      class="mt-15"
     >
       <Tab
         name="advanced"
@@ -146,6 +158,7 @@ export default {
       >
         <Settings
           :settings="settings"
+          :search-query="searchQuery"
           category="advanced"
         />
       </Tab>
@@ -156,6 +169,7 @@ export default {
       >
         <Settings
           :settings="settings"
+          :search-query="searchQuery"
           category="ui"
         />
       </Tab>
@@ -167,4 +181,20 @@ export default {
 .settings-banner {
   margin-top: 0;
 }
+
+.harvester-settings-search {
+  padding: 0;
+}
+
+.search {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.search-box {
+  height: 40px;
+  margin-left: 10px;
+  min-width: 180px;
+}
+
 </style>
