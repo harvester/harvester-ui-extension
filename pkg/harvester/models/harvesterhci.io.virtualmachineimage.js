@@ -43,6 +43,11 @@ export default class HciVmImage extends HarvesterResource {
 
     out = out.filter( (A) => !toFilter.includes(A.action));
 
+    // filter out clone action if not encrypted or decrypted
+    if (!this.isEncrypted && !this.isDecrypted) {
+      out = out.filter(({ action }) => action !== 'goToClone');
+    }
+
     const schema = this.$getters['schemaFor'](HCI.VM);
     let canCreateVM = true;
 
@@ -202,6 +207,13 @@ export default class HciVmImage extends HarvesterResource {
   get isEncrypted() {
     return this.spec.sourceType === 'clone' &&
     this.spec.securityParameters?.cryptoOperation === 'encrypt' &&
+    !!this.spec.securityParameters?.sourceImageName &&
+    !!this.spec.securityParameters?.sourceImageNamespace;
+  }
+
+  get isDecrypted() {
+    return this.spec.sourceType === 'clone' &&
+    this.spec.securityParameters?.cryptoOperation === 'decrypt' &&
     !!this.spec.securityParameters?.sourceImageName &&
     !!this.spec.securityParameters?.sourceImageNamespace;
   }
