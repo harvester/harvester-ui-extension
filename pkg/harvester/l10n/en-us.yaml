@@ -1041,7 +1041,7 @@ harvester:
       accessKeyId: Specify your access key ID
       secretAccessKey: Specify your secret access key
       cert: Upload a self-signed SSL certificate
-    noSearchMatch: No search setting match your search.
+    noSearchMatch: No settings match your search.
     vlanChangeTip: The newly modified default network interface only applies to newly added nodes, not existing ones.
     defaultPhysicalNIC: Default Network Interface
     modifiedMessage: Settings that have been customized from default settings are tagged with 'Modified'.

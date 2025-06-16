@@ -55,13 +55,23 @@ export default {
     settings: {
       deep: true,
       handler() {
-        this['categorySettings'] = this.filterCategorySettings();
+        this.categorySettings = this.filterCategorySettings();
+        this.filteredSettings = this.filterSearchSettings(this.categorySettings, this.searchQuery);
       }
     },
     searchQuery: {
       immediate: true,
       handler(newQuery) {
-        this.filteredSettings = this.filterSearchSettings(this.categorySettings, newQuery);
+        // force close all json settings when search query is empty
+        if (newQuery === '') {
+          this.filteredSettings = this.closeJsonSettings(this.categorySettings);
+
+          return;
+        }
+
+        const filtered = this.filterSearchSettings(this.categorySettings, newQuery);
+
+        this.filteredSettings = this.openJsonSettings(filtered);
       }
     }
   },
@@ -97,10 +107,16 @@ export default {
 
         // filter by json value
         if (setting.kind === 'json' && setting.json) {
-          // clean up the json string to remove unwanted characters
-          const jsonValue = setting.json?.toLowerCase()?.replace('(\n|\/|\{|\"|\})/gm', '') || '';
+          try {
+            const json = JSON.parse(setting.json);
+            const jsonString = JSON.stringify(json).toLowerCase();
 
-          return jsonValue.includes(searchQuery);
+            return jsonString.includes(searchQuery);
+          } catch (e) {
+            console.error(`${ setting.id }: wrong format`, e); // eslint-disable-line no-console
+
+            return false;
+          }
         }
 
         // filter by default value
@@ -145,12 +161,20 @@ export default {
       return HCI_ALLOWED_SETTINGS.find((setting) => setting.id === id);
     },
 
+    openJsonSettings(settings) {
+      return settings.map((s) => s.hide ? { ...s, hide: false } : s);
+    },
+
+    closeJsonSettings(settings) {
+      return settings.map((s) => s.hide ? { ...s, hide: true } : s);
+    },
+
     toggleHide(s) {
-      this.filteredSettings.find((setting) => {
-        if (setting.id === s.id) {
-          setting.hide = !setting.hide;
-        }
-      });
+      const setting = this.filteredSettings.find((setting) => setting.id === s.id);
+
+      if (setting) {
+        setting.hide = !setting.hide;
+      }
     },
 
     async testConnect(buttonDone, value) {

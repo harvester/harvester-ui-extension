@@ -138,12 +138,10 @@ export default {
     <div class="fixed-header-actions harvester-settings-search">
       <div class="search row">
         <input
-          ref="searchQuery"
           v-model="searchQuery"
           type="search"
           class="input-sm search-box"
           :aria-label="t('sortableTable.searchLabel')"
-          aria-describedby="describe-filter-sortable-table"
           :placeholder="t('sortableTable.search')"
         >
       </div>
