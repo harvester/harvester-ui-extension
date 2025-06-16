@@ -30,15 +30,22 @@ export default {
     category: {
       type:     String,
       required: true,
+    },
+
+    searchQuery: {
+      type:    String,
+      default: ''
     }
   },
 
   data() {
     const categorySettings = this.filterCategorySettings();
+    const filteredSettings = this.filterSearchSettings(categorySettings, this.searchQuery);
 
     return {
       HCI_SETTING,
       categorySettings,
+      filteredSettings,
     };
   },
 
@@ -50,10 +57,61 @@ export default {
       handler() {
         this['categorySettings'] = this.filterCategorySettings();
       }
+    },
+    searchQuery: {
+      immediate: true,
+      handler(newQuery) {
+        this.filteredSettings = this.filterSearchSettings(this.categorySettings, newQuery);
+      }
     }
   },
 
   methods: {
+    filterSearchSettings(settings, searchKey) {
+      if (!searchKey) {
+        return this.filterCategorySettings();
+      }
+      const searchQuery = searchKey.toLowerCase();
+
+      return settings.filter((setting) => {
+        const id = setting.id?.toLowerCase() || '';
+
+        // filter by id
+        if (id.includes(searchQuery) ) {
+          return true;
+        }
+
+        const description = this.t(setting.description, {}, true)?.toLowerCase() || '';
+
+        // filter by description
+        if (description.includes(searchQuery)) {
+          return true;
+        }
+
+        // filter by customized value
+        if (setting.customized === true && setting.data?.value) {
+          const value = setting.data.value?.toLowerCase() || '';
+
+          return value.includes(searchQuery);
+        }
+
+        // filter by json value
+        if (setting.kind === 'json' && setting.json) {
+          // clean up the json string to remove unwanted characters
+          const jsonValue = setting.json?.toLowerCase()?.replace('(\n|\/|\{|\"|\})/gm', '') || '';
+
+          return jsonValue.includes(searchQuery);
+        }
+
+        // filter by default value
+        if (setting.data?.default) {
+          return setting.data?.default.includes(searchQuery);
+        }
+
+        return false;
+      });
+    },
+
     filterCategorySettings() {
       return this.settings.filter((s) => {
         if (!this.getFeatureEnabled(s.featureFlag)) {
@@ -88,7 +146,7 @@ export default {
     },
 
     toggleHide(s) {
-      this.categorySettings.find((setting) => {
+      this.filteredSettings.find((setting) => {
         if (setting.id === s.id) {
           setting.hide = !setting.hide;
         }
@@ -126,7 +184,7 @@ export default {
 <template>
   <div>
     <div
-      v-for="(setting, i) in categorySettings"
+      v-for="(setting, i) in filteredSettings"
       :key="i"
       class="advanced-setting mb-20"
     >
@@ -221,6 +279,12 @@ export default {
         {{ setting.data.errMessage }}
       </Banner>
     </div>
+    <div
+      v-if="filteredSettings.length === 0"
+      class="advanced-setting mb-20 no-search-match"
+    >
+      <p> {{ t('harvester.setting.noSearchMatch') }} </p>
+    </div>
   </div>
 </template>
 
@@ -270,5 +334,9 @@ export default {
   border-radius: 5px;
   padding: 2px 10px;
   font-size: 12px;
+}
+
+.no-search-match {
+  text-align: center;
 }
 </style>
