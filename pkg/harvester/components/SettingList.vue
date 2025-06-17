@@ -1,5 +1,6 @@
 <script>
 import { mapGetters } from 'vuex';
+import ActionMenu from '@shell/components/ActionMenuShell.vue';
 import { Banner } from '@components/Banner';
 import AsyncButton from '@shell/components/AsyncButton';
 import { HCI_ALLOWED_SETTINGS, HCI_SETTING } from '../config/settings';
@@ -19,6 +20,7 @@ export default {
   components: {
     AsyncButton,
     Banner,
+    ActionMenu
   },
 
   props: {
@@ -151,15 +153,6 @@ export default {
       return id ? this.$store.getters['harvester-common/getFeatureEnabled'](id) : true;
     },
 
-    showActionMenu(e, setting) {
-      const actionElement = e.srcElement;
-
-      this.$store.commit(`action-menu/show`, {
-        resources: setting.data,
-        elem:      actionElement
-      });
-    },
-
     getSettingOption(id) {
       return HCI_ALLOWED_SETTINGS.find((setting) => setting.id === id);
     },
@@ -238,15 +231,12 @@ export default {
           :id="setting.id"
           class="action"
         >
-          <button
-            aria-haspopup="true"
-            aria-expanded="false"
-            type="button"
-            class="btn btn-sm role-multi-action actions"
-            @click="showActionMenu($event, setting)"
-          >
-            <i class="icon icon-actions" />
-          </button>
+          <action-menu
+            :resource="setting.data"
+            :button-aria-label="t('advancedSettings.edit.label')"
+            data-testid="action-button"
+            button-role="tertiary"
+          />
         </div>
       </div>
       <div value>
