@@ -32,14 +32,11 @@ export default class HciSetting extends HarvesterResource {
     const hasUpgradeAccess = !!schema?.collectionMethods.find((x) => ['post'].includes(x.toLowerCase()));
 
     if (this.id === HCI_SETTING.SERVER_VERSION && hasUpgradeAccess) {
-      const latestUpgrade = this.$getters['all'](HCI.UPGRADE).find((upgrade) => upgrade.isLatestUpgrade);
-
       out.unshift({
         action:   'goToAirgapUpgrade',
         enabled:  true,
         icon:     'icon icon-refresh',
         label:    this.t('harvester.upgradePage.upgrade'),
-        disabled: !!latestUpgrade && latestUpgrade?.isUpgradeSucceeded
       });
     }
 
