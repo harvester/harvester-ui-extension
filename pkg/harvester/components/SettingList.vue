@@ -46,6 +46,7 @@ export default {
       HCI_SETTING,
       categorySettings,
       filteredSettings,
+      originalHideMap: this.createHideMap(categorySettings)
     };
   },
 
@@ -62,21 +63,23 @@ export default {
     searchQuery: {
       immediate: true,
       handler(newQuery) {
-        // force close all json settings when search query is empty
-        if (newQuery === '') {
-          this.filteredSettings = this.closeJsonSettings(this.categorySettings);
-
-          return;
-        }
-
         const filtered = this.filterSearchSettings(this.categorySettings, newQuery);
 
-        this.filteredSettings = this.openJsonSettings(filtered);
+        this.filteredSettings = newQuery ? this.openJsonSettings(filtered) : filtered.map((s) => ({ ...s, hide: this.originalHideMap[s.id] ?? false }));
       }
     }
   },
 
   methods: {
+    createHideMap(settings = []) {
+      const map = settings.reduce((acc, s) => {
+        acc[s.id] = s.hide ?? false;
+
+        return acc;
+      }, {} );
+
+      return map;
+    },
     filterSearchSettings(settings, searchKey) {
       if (!searchKey) {
         return this.filterCategorySettings();
@@ -165,15 +168,12 @@ export default {
       return settings.map((s) => s.hide ? { ...s, hide: false } : s);
     },
 
-    closeJsonSettings(settings) {
-      return settings.map((s) => s.hide ? { ...s, hide: true } : s);
-    },
-
     toggleHide(s) {
       const setting = this.filteredSettings.find((setting) => setting.id === s.id);
 
       if (setting) {
         setting.hide = !setting.hide;
+        this.originalHideMap[setting.id] = setting.hide;
       }
     },
 
