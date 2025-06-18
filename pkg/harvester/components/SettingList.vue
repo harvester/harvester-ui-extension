@@ -1,6 +1,6 @@
 <script>
 import { mapGetters } from 'vuex';
-import ActionMenu from '@shell/components/ActionMenuShell.vue';
+import ActionMenu from '@shell/components/ActionMenuShell';
 import { Banner } from '@components/Banner';
 import AsyncButton from '@shell/components/AsyncButton';
 import { HCI_ALLOWED_SETTINGS, HCI_SETTING } from '../config/settings';
@@ -231,7 +231,7 @@ export default {
           :id="setting.id"
           class="action"
         >
-          <action-menu
+          <ActionMenu
             :resource="setting.data"
             :button-aria-label="t('advancedSettings.edit.label')"
             data-testid="action-button"
