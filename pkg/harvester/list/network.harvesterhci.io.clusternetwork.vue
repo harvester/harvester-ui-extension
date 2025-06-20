@@ -37,7 +37,7 @@ export default {
   },
 
   computed: {
-    groupPreference: mapPref(GROUP_RESOURCES),
+    // groupPreference: mapPref(GROUP_RESOURCES),
 
     headers() {
       return [
@@ -121,7 +121,9 @@ export default {
           availableActions:      []
         };
       });
-
+      console.log('this.rows',this.rows )
+      console.log('fakeRows',fakeRows)
+      console.log('rowsWithFakeClusterNetworks', [...this.rows, ...fakeRows])
       return [...this.rows, ...fakeRows];
     },
   },
@@ -169,6 +171,7 @@ export default {
     },
 
     groupLabel(group) {
+      console.log("🚀 ~ groupLabel ~ group:", group)
       const row = group.rows[0];
 
       if (row.isFake) {
@@ -209,7 +212,6 @@ export default {
                 {{ groupLabel(group) }}
               </span>
             </div>
-
             <div class="right">
               <router-link
                 v-if="isClusterNetworkCreatable && group.key !== 'mgmt'"

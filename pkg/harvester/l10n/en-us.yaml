@@ -1013,6 +1013,9 @@ harvester:
         progress: Restore in progress
         complete: Restore completed
 
+  vpc:
+    label: Virtual Private Cloud
+    noChild: There is no subnet defined in this Virtual Private Cloud.
   network:
     label: Virtual Machine Networks
     tabs:
@@ -1344,7 +1347,7 @@ harvester:
     create:
       button:
         label: Create a Cluster Network
-    clusterNetwork: There are no network configurations defined.
+    clusterNetwork: mgmtmgmtmgmt
     mgmt: mgmt is a built-in cluster management network and does not support any additional network configurations.
     notExist: 'Cluster Network "{ clusterNetwork }" does not exist'
     notReady: 'Cluster Network "{ clusterNetwork }" is not ready'
