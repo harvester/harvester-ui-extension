@@ -52,6 +52,11 @@ dialog:
       message: "Are you sure you want to continue stop the {type} {names}?"
     pause:
       message: "Are you sure you want to continue pause the {type} {names}?"
+  promptRemove:
+    title: "Delete {type}"
+    warningMessage: "Deleting the selected {type} permanently removes all resources on {thisOrThese} {type}. This action is irreversible. Do you want to continue?"
+    confirmName: "Type <b>{nameToMatch}</b> to delete the {type}:"
+    protip: "Tip: Hold the {alternateLabel} key while clicking Delete to bypass the confirmation step."
 
 harvester:
   branding:
@@ -785,7 +790,7 @@ harvester:
     instanceLabels:
       banner: These labels are automatically synchronized to the virtual machine instance.
     labels:
-      banner: These key values are added as labels to the virtual machine.  
+      banner: These key values are added as labels to the virtual machine.
 
   volume:
     label: Volumes

@@ -128,7 +128,7 @@ export default {
     },
 
     protip() {
-      return this.t('promptRemove.protip', { alternateLabel });
+      return this.t('dialog.promptRemove.protip', { alternateLabel });
     },
   },
 
@@ -164,7 +164,7 @@ export default {
   >
     <template #title>
       <h4 class="text-default-text">
-        {{ t('promptRemove.title') }}
+        {{ t(title, { type }, true) }}
       </h4>
     </template>
 

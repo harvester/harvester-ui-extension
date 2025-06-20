@@ -67,8 +67,7 @@ export default class HciNamespace extends namespace {
   promptRemove(resources = this) {
     this.$dispatch('promptModal', {
       resources,
-      warningMessageKey: 'promptRemove.confirmRelatedResource',
-      component:         'ConfirmRelatedToRemoveDialog'
+      component: 'ConfirmRelatedToRemoveDialog'
     });
   }
 
