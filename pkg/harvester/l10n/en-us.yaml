@@ -136,21 +136,24 @@ harvester:
       delete: Delete
     bundle:
       title: Generate a Support Bundle
-      namespace:
-        selectAll: 'Select All'
-        unselectAll: 'Unselect All'
+      titleDescription: Collect system-related logs in Harvester to assist with troubleshooting and support.
+      tip: Each field below specifies an aspect of the support bundle. For detailed explanations, please refer to the <a href="{doc}" target="_blank">documentation</a>.
       url: Issue URL
       description: Description
-      titleDescription: Collect system-related logs in Harvester to help with troubleshooting and support.
+      namespaces:
+        label: Namespaces
+        tooltip: Select additional namespaces to include in the bundle. <br>See docs support-bundle-namespaces for detail.
+        selectAll: 'Select All'
+        unselectAll: 'Unselect All'
       timeout:
         label: Timeout
-        tooltip: Number of minutes Harvester allows for completion of the support bundle generation process.
+        tooltip: Minutes allows for completion of the support bundle generation process.<br>See docs support-bundle-timeout for detail.
       expiration:
         label: Expiration
-        tooltip: Number of minutes before deleting packaged but not downloaded support bundle.
+        tooltip: Minutes before deleting packaged but not downloaded support bundle.<br>See docs support-bundle-expiration for detail.
       nodeTimeout:
         label: Node Collection Timeout
-        tooltip: Minutes allowed for collecting logs/configurations on nodes.
+        tooltip: Minutes allowed for collecting logs/configurations on nodes.<br>See docs support-bundle-node-collection-timeout for detail.
     hotplug:
       success: 'Volume { diskName } is mounted to the virtual machine { vm }.'
       title: Add Volume

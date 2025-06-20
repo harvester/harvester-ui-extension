@@ -10,6 +10,8 @@ import AppModal from '@shell/components/AppModal';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { HCI } from '../types';
 import { HCI_SETTING } from '../config/settings';
+import { DOC } from '../config/doc-links';
+import { docLink } from '../utils/feature-flags';
 
 const SELECT_ALL = 'select_all';
 const UNSELECT_ALL = 'unselect_all';
@@ -75,10 +77,16 @@ export default {
       const allSelected = this.namespaces.length === this.allNamespaceValues.length &&
                           this.allNamespaceValues.every((val) => this.namespaces.includes(val));
 
-      const controlOption = allSelected ? { label: this.t('harvester.modal.bundle.namespace.unselectAll'), value: UNSELECT_ALL } : { label: this.t('harvester.modal.bundle.namespace.selectAll'), value: SELECT_ALL };
+      const controlOption = allSelected ? { label: this.t('harvester.modal.bundle.namespaces.unselectAll'), value: UNSELECT_ALL } : { label: this.t('harvester.modal.bundle.namespaces.selectAll'), value: SELECT_ALL };
 
       return [controlOption, ...this.allNamespaces];
-    }
+    },
+
+    docLink() {
+      const version = this.$store.getters['harvester-common/getServerVersion']();
+
+      return docLink(DOC.SUPPORT_BUNDLE_NAMESPACES, version);
+    },
   },
 
   watch: {
@@ -123,16 +131,27 @@ export default {
     },
 
     updateNumberValue(field, value) {
-      const num = Number(value);
-
-      if (!Number.isInteger(num) || num < 0) {
+      if (value === '') {
         this[field] = '';
-      } else {
-        this[field] = String(num);
+
+        return;
+      }
+
+      const num = Number(value);
+      const isValid = Number.isInteger(num) && num >= 0;
+
+      this[field] = isValid ? String(num) : '';
+    },
+
+    onKeyDown(e) {
+      if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+        e.preventDefault();
       }
     },
 
     async save(buttonCb) {
+      this.errors = [];
+
       const name = `bundle-${ this.clusterName }-${ this.version }-${ randomStr(5).toLowerCase() }`;
       const namespace = 'harvester-system';
 
@@ -191,53 +210,61 @@ export default {
           v-if="!bundlePending"
           class="content"
         >
+          <p
+            v-clean-html="t('harvester.modal.bundle.tip', { doc: docLink }, true)"
+            class="mb-20"
+          ></p>
           <LabeledInput
             v-model:value="url"
             :label="t('harvester.modal.bundle.url')"
-            class="mb-20"
+            class="mb-10"
           />
           <LabeledInput
             v-model:value="description"
             required
             :label="t('harvester.modal.bundle.description')"
             type="multiline"
-            :min-height="120"
-            class="mb-20"
+            :min-height="80"
+            class="mb-10"
           />
           <LabeledSelect
             v-model:value="namespaces"
+            :label="t('harvester.modal.bundle.namespaces.label')"
             :clearable="true"
             :multiple="true"
             :options="namespaceOptions"
-            label-key="nameNsDescription.namespace.label"
-            class="mb-20 label-select"
+            class="mb-10 label-select"
+            :tooltip="t('harvester.modal.bundle.namespaces.tooltip', _ , true)"
             @update:value="updateNamespaces"
           />
           <LabeledInput
             v-model:value="timeout"
             :label="t('harvester.modal.bundle.timeout.label')"
-            class="mb-20"
+            class="mb-10"
             type="number"
             :min="0"
-            :tooltip="t('harvester.modal.bundle.timeout.tooltip')"
+            :tooltip="t('harvester.modal.bundle.timeout.tooltip', _ , true)"
+            @keydown="onKeyDown"
             @update:value="val => updateNumberValue('timeout', val)"
           />
           <LabeledInput
             v-model:value="expiration"
             :label="t('harvester.modal.bundle.expiration.label')"
-            class="mb-20"
+            class="mb-10"
             type="number"
             :min="0"
-            :tooltip="t('harvester.modal.bundle.expiration.tooltip')"
+            :tooltip="t('harvester.modal.bundle.expiration.tooltip', _ , true)"
+            @keydown="onKeyDown"
             @update:value="val => updateNumberValue('expiration', val)"
           />
           <LabeledInput
             v-model:value="nodeTimeout"
             :label="t('harvester.modal.bundle.nodeTimeout.label')"
-            class="mb-20"
+            class="mb-10"
             type="number"
             :min="0"
-            :tooltip="t('harvester.modal.bundle.nodeTimeout.tooltip')"
+            :tooltip="t('harvester.modal.bundle.nodeTimeout.tooltip', _ , true)"
+            @keydown="onKeyDown"
             @update:value="val => updateNumberValue('nodeTimeout', val)"
           />
         </div>
@@ -249,7 +276,7 @@ export default {
           <div class="circle">
             <GraphCircle
               primary-stroke-color="green"
-              secondary-stroke-color="white"
+              secondary-stroke-color="lightgrey"
               :stroke-width="6"
               :percentage="percentage"
               :show-text="true"
@@ -310,7 +337,7 @@ export default {
 
   .content {
     .circle {
-      padding-top: 20px;
+      padding: 10px 0;
       height: 160px;
     }
   }
