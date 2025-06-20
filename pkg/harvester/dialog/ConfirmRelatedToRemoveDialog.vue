@@ -51,7 +51,7 @@ export default {
     },
 
     warningMessage() {
-      if (this.modalData.warningMessage) return this.t(this.modalData.warningMessage);
+      if (this.modalData.warningMessage) return this.modalData.warningMessage;
 
       const isPlural = this.type.endsWith('s');
       const thisOrThese = isPlural ? 'these' : 'this';
