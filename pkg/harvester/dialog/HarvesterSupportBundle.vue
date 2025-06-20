@@ -38,11 +38,14 @@ export default {
     return {
       isOpen:      false,
       errors:      [],
-      namespaces:  (bundleNsSetting?.value || '').split(',').map((ns) => ns.trim()),
-      url:         '',
-      description: '',
       version:     versionSetting?.currentVersion || '',
       clusterName: cluster?.id || '',
+      url:         '',
+      description: '',
+      namespaces:  (bundleNsSetting?.value || '').split(',').map((ns) => ns.trim()),
+      timeout:     '',
+      expiration:  '',
+      nodeTimeout: ''
     };
   },
 
@@ -104,6 +107,9 @@ export default {
       this.url = '';
       this.description = '';
       this.namespaces = [];
+      this.timeout = '';
+      this.expiration = '';
+      this.nodeTimeout = '';
     },
 
     updateNamespaces(selected) {
@@ -116,29 +122,41 @@ export default {
       }
     },
 
+    updateNumberValue(field, value) {
+      const num = Number(value);
+
+      if (!Number.isInteger(num) || num < 0) {
+        this[field] = '';
+      } else {
+        this[field] = String(num);
+      }
+    },
+
     async save(buttonCb) {
-      this.errors = [];
       const name = `bundle-${ this.clusterName }-${ this.version }-${ randomStr(5).toLowerCase() }`;
-      const namespace = this.namespaces.join(',');
+      const namespace = 'harvester-system';
+
+      const spec = {
+        description: this.description.trim(),
+        ...(this.url.trim() && { issueURL: this.url.trim() }),
+        ...(this.namespaces.length > 0 && { extraCollectionNamespaces: this.namespaces }),
+        ...(this.timeout !== '' && { timeout: Number(this.timeout) }),
+        ...(this.expiration !== '' && { expiration: Number(this.expiration) }),
+        ...(this.nodeTimeout !== '' && { nodeTimeout: Number(this.nodeTimeout) }),
+      };
 
       const bundleCrd = {
         apiVersion: 'harvesterhci.io/v1beta1',
         type:       HCI.SUPPORT_BUNDLE,
         kind:       'SupportBundle',
-        metadata:   {
-          name,
-          namespace
-        },
-        spec: {
-          issueURL:    this.url,
-          description: this.description
-        }
+        metadata:   { name, namespace },
+        spec,
       };
 
-      const inStore = this.$store.getters['currentProduct'].inStore;
-      const bundleValue = await this.$store.dispatch(`${ inStore }/create`, bundleCrd);
-
       try {
+        const inStore = this.$store.getters['currentProduct'].inStore;
+        const bundleValue = await this.$store.dispatch(`${ inStore }/create`, bundleCrd);
+
         await bundleValue.save();
 
         this.$store.commit('harvester-common/setLatestBundleId', `${ namespace }/${ name }`, { root: true });
@@ -173,6 +191,19 @@ export default {
           v-if="!bundlePending"
           class="content"
         >
+          <LabeledInput
+            v-model:value="url"
+            :label="t('harvester.modal.bundle.url')"
+            class="mb-20"
+          />
+          <LabeledInput
+            v-model:value="description"
+            required
+            :label="t('harvester.modal.bundle.description')"
+            type="multiline"
+            :min-height="120"
+            class="mb-20"
+          />
           <LabeledSelect
             v-model:value="namespaces"
             :clearable="true"
@@ -183,16 +214,31 @@ export default {
             @update:value="updateNamespaces"
           />
           <LabeledInput
-            v-model:value="url"
-            :label="t('harvester.modal.bundle.url')"
+            v-model:value="timeout"
+            :label="t('harvester.modal.bundle.timeout.label')"
             class="mb-20"
+            type="number"
+            :min="0"
+            :tooltip="t('harvester.modal.bundle.timeout.tooltip')"
+            @update:value="val => updateNumberValue('timeout', val)"
           />
           <LabeledInput
-            v-model:value="description"
-            :label="t('harvester.modal.bundle.description')"
-            type="multiline"
-            :min-height="120"
-            required
+            v-model:value="expiration"
+            :label="t('harvester.modal.bundle.expiration.label')"
+            class="mb-20"
+            type="number"
+            :min="0"
+            :tooltip="t('harvester.modal.bundle.expiration.tooltip')"
+            @update:value="val => updateNumberValue('expiration', val)"
+          />
+          <LabeledInput
+            v-model:value="nodeTimeout"
+            :label="t('harvester.modal.bundle.nodeTimeout.label')"
+            class="mb-20"
+            type="number"
+            :min="0"
+            :tooltip="t('harvester.modal.bundle.nodeTimeout.tooltip')"
+            @update:value="val => updateNumberValue('nodeTimeout', val)"
           />
         </div>
 

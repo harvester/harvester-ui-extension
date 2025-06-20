@@ -141,8 +141,16 @@ harvester:
         unselectAll: 'Unselect All'
       url: Issue URL
       description: Description
-      requiredDesc: Description is required!
       titleDescription: Collect system-related logs in Harvester to help with troubleshooting and support.
+      timeout:
+        label: Timeout
+        tooltip: Number of minutes Harvester allows for completion of the support bundle generation process.
+      expiration:
+        label: Expiration
+        tooltip: Number of minutes before deleting packaged but not downloaded support bundle.
+      nodeTimeout:
+        label: Node Collection Timeout
+        tooltip: Minutes allowed for collecting logs/configurations on nodes.
     hotplug:
       success: 'Volume { diskName } is mounted to the virtual machine { vm }.'
       title: Add Volume
