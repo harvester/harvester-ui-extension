@@ -2,12 +2,9 @@
 import Loading from '@shell/components/Loading';
 import ResourceTable from '@shell/components/ResourceTable';
 import Masthead from '@shell/components/ResourceList/Masthead';
-
 import { allHash } from '@shell/utils/promise';
 import { STATE, AGE, NAME } from '@shell/config/table-headers';
-import { mapPref, GROUP_RESOURCES } from '@shell/store/prefs';
 import { NODE } from '@shell/config/types';
-
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
 import { CLUSTER_NETWORK } from '../config/query-params';
 import { HCI } from '../types';
@@ -37,8 +34,6 @@ export default {
   },
 
   computed: {
-    groupPreference: mapPref(GROUP_RESOURCES),
-
     headers() {
       return [
         STATE,
@@ -209,7 +204,6 @@ export default {
                 {{ groupLabel(group) }}
               </span>
             </div>
-
             <div class="right">
               <router-link
                 v-if="isClusterNetworkCreatable && group.key !== 'mgmt'"
