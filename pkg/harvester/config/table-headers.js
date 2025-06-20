@@ -1,6 +1,7 @@
 /**
  * Harvester
  */
+import { DESCRIPTION } from '@shell/config/table-headers';
 
 // image
 export const IMAGE_DOWNLOAD_SIZE = {
@@ -96,5 +97,10 @@ export const IMAGE_STORAGE_CLASS = {
   sort:     'imageStorageClass',
   value:    'imageStorageClass',
   align:    'left',
-  width:    200,
+  width:    150,
+};
+
+export const HARVESTER_DESCRIPTION = {
+  ...DESCRIPTION,
+  width: 150,
 };
