@@ -1,14 +1,11 @@
 <script>
-import { Banner } from '@components/Banner';
 import Loading from '@shell/components/Loading';
 import ResourceTable from '@shell/components/ResourceTable';
-import BadgeState from '@shell/components/formatter/BadgeStateFormatter';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
 import { NAME, AGE, NAMESPACE, STATE } from '@shell/config/table-headers';
-import { SCHEMA } from '@shell/config/types';
 import { allHash } from '@shell/utils/promise';
-import { HCI as HCI_ANNOTATIONS } from '../config/labels-annotations';
 import { HCI } from '../types';
+import { VPC } from '../config/query-params';
 
 // const schema = {
 //   id:         HCI.VPC,
@@ -47,12 +44,11 @@ import { HCI } from '../types';
 // ];
 
 export default {
-  name:       'HarvesterVPC',
+  name: 'HarvesterVPC',
+
   components: {
     ResourceTable,
-    Banner,
     Loading,
-    BadgeState,
   },
 
   inheritAttrs: false,
@@ -67,26 +63,19 @@ export default {
   async fetch() {
     const _hash = {};
 
-    if(this.$store.getters[`harvester/schemaFor`](HCI.SUBNET)){
-      _hash.rows = this.$store.dispatch(`harvester/findAll`, { type: HCI.SUBNET })
+    if (this.$store.getters[`harvester/schemaFor`](HCI.SUBNET)) {
+      _hash.rows = this.$store.dispatch(`harvester/findAll`, { type: HCI.SUBNET });
     }
 
     if (this.$store.getters[`harvester/schemaFor`](HCI.VPC)) {
       _hash.vpcs = this.$store.dispatch(`harvester/findAll`, { type: HCI.VPC });
     }
 
-    const hash = await allHash(_hash);
-
-    this.rows = hash.rows || [];
-    this.vpcs = hash.vpcs || [];
+    await allHash(_hash);
   },
 
   data() {
-    return {
-      HCI, 
-      rows:         [],
-      vpcs :        [],
-    };
+    return { HCI };
   },
 
   computed: {
@@ -107,7 +96,8 @@ export default {
       const vpcs = this.$store.getters[`harvester/all`](HCI.VPC) || [];
 
       const out = vpcs.map((v) => {
-        const hasChild = v.status.subnets.length > 0
+        const hasChild = v.status.subnets.length > 0;
+
         return {
           ...v,
           hasChild
@@ -117,8 +107,11 @@ export default {
       return out;
     },
 
+    isSubnetCreatable() {
+      return (this.subnetSchema?.collectionMethods || []).includes('POST');
+    },
+
     rowsWithFakeVpcs() {
-      console.log('this.vpcWithoutSubnets=',this.vpcWithoutSubnets)
       const fakeRows = this.vpcWithoutSubnets.map((vpc) => {
         return {
           groupByLabel:          vpc.id,
@@ -129,12 +122,11 @@ export default {
           availableActions:      []
         };
       });
-      console.log("🚀 ~ fakeRows ~ fakeRows:", fakeRows)
-      console.log("🚀 ~ rowsWithFakeVpcs :",[...this.rows, ...fakeRows])
+
       return [...this.rows, ...fakeRows];
     },
 
-    createVPCLocation(){
+    createVPCLocation() {
       const location = {
         name:   `${ HARVESTER_PRODUCT }-c-cluster-resource-create`,
         params: {
@@ -150,25 +142,52 @@ export default {
       return this.$store.getters[`harvester/schemaFor`](HCI.VPC);
     },
 
-    subnetSchema(){
+    subnetSchema() {
       return this.$store.getters[`harvester/schemaFor`](HCI.SUBNET);
     },
   },
-  methods:{ 
+  methods: {
     groupLabel(group) {
-      console.log("🚀 ~ groupLabel ~ group:", group)
-      const row = group.rows[0];
-      console.log("🚀 ~ groupLabel ~ row:", row)
-
-      if (row.isFake) {
-        return `${ this.t('harvester.vpc.label') }: ${ row.nameDisplay }`;
-      }
+      // console.log("🚀 ~ groupLabel ~ group:", group)
+      // const row = group.rows[0];
+      // console.log("🚀 ~ groupLabel ~ row:", row)
+      // // no subne rows
+      // if (row.isFake) {
+      //   return `${ this.t('harvester.vpc.label') }: ${ row.nameDisplay }`;
+      // }
 
       return `${ this.t('harvester.vpc.label') }: ${ group.key }`;
     },
 
     slotName(vpc) {
       return `main-row:${ vpc }`;
+    },
+
+    createSubnetLocation(group) {
+      const vpc = group.key;
+
+      const location = {
+        name:   `${ HARVESTER_PRODUCT }-c-cluster-resource-create`,
+        params: {
+          product:  HARVESTER_PRODUCT,
+          resource: HCI.SUBNET,
+        },
+      };
+
+      location.query = { [VPC]: vpc };
+
+      return location;
+    },
+
+    showVpcAction(event, group) {
+      const vpc = group.key;
+
+      const resource = this.$store.getters[`harvester/byId`](HCI.VPC, vpc);
+
+      this.$store.commit(`action-menu/show`, {
+        resources: [resource],
+        elem:      event.target
+      });
     },
   },
 
@@ -205,15 +224,31 @@ export default {
               {{ groupLabel(group) }}
             </span>
           </div>
+          <div class="right">
+            <router-link
+              v-if="isSubnetCreatable"
+              class="btn btn-sm role-secondary mr-5"
+              :to="createSubnetLocation(group)"
+            >
+              {{ t('harvester.vpc.createSubnet') }}
+            </router-link>
+            <button
+              type="button"
+              class="btn btn-sm role-multi-action actions mr-10"
+              @click="showVpcAction($event, group)"
+            >
+              <i class="icon icon-actions" />
+            </button>
+          </div>
         </div>
       </template>
       <template
-        v-for="(vpc, i) in vpcWithoutSubnets"
+        v-for="(vpc) in vpcWithoutSubnets"
+        :key="vpc.id"
         v-slot:[slotName(vpc.id)]
       >
         <tr
           v-show="!vpc.hasChild"
-          :key="vpc.id"
           class="main-row"
         >
           <td

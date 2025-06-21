@@ -565,7 +565,6 @@ export function init($plugin, store) {
     exact: false
   });
 
-
   configureType(HCI.SNAPSHOT, {
     isCreatable: false,
     location:    {

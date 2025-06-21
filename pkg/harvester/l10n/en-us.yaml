@@ -1016,6 +1016,24 @@ harvester:
   vpc:
     label: Virtual Private Cloud
     noChild: There is no subnet defined in this Virtual Private Cloud.
+    createSubnet: Create Subnet
+    staticRoutes:
+      label: Static Routes
+      cidr:
+        label: CIDR
+        placeholder: e.g. 172.16.0.0/16
+      nextHopIP:
+        label: Next Hop IP
+        placeholder: e.g. 169.254.0.2
+    vpcPeerings:
+      label: VPC Peerings
+      localConnectIP:
+        label: Local Connect IP
+        placeholder: e.g. 169.254.0.1
+      remoteVpc:
+        label: Remote VPC
+    
+   
   network:
     label: Virtual Machine Networks
     tabs:
@@ -1685,6 +1703,11 @@ typeLabel:
     {count, plural,
       one { Virtual Machine Backup }
       other { Virtual Machine Backups }
+    }
+  kubeovn.io.vpc: |-
+    {count, plural,
+      one { Virtual Private Cloud }
+      other { Virtual Private Clouds }
     }
   harvesterhci.io.cloudtemplate: |-
     {count, plural,

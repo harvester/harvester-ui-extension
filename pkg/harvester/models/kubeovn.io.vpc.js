@@ -1,16 +1,35 @@
+// import { isEmpty } from 'lodash';
 import { clone } from '@shell/utils/object';
+// import { insertAt } from '@shell/utils/array';
+// import { HOSTNAME } from '@shell/config/labels-annotations';
+// import { matching } from '@shell/utils/selector';
+// import { NODE } from '@shell/config/types';
 import { HCI } from '../types';
 import HarvesterResource from './harvester';
 
-export default class HciSubnet extends HarvesterResource {
-  get groupByVpc() {
-    return this.spec?.vpc || '';
+export default class HciVPC extends HarvesterResource {
+  // applyDefaults() {
+  //   const defaultSpec = {
+  //     uplink: {
+  //       nics:           [],
+  //       linkAttributes: {},
+  //       bondOptions:    { mode: 'active-backup' },
+  //     },
+  //   };
+
+  //   set(this, 'spec', this.spec || defaultSpec);
+  //   set(this, 'spec.uplink.linkAttributes', this.spec?.uplink?.linkAttributes || {});
+  //   set(this, 'spec.uplink.bondOptions', this.spec?.uplink?.bondOptions || {});
+  // }
+
+  get parentNameOverride() {
+    return this.$rootGetters['i18n/t'](`typeLabel."${ HCI.VPC }"`, { count: 1 })?.trim();
   }
 
   get doneOverride() {
     const detailLocation = clone(this.listLocation);
 
-    detailLocation.params.resource = HCI.SUBNET;
+    detailLocation.params.resource = HCI.VPC;
 
     return detailLocation;
   }
@@ -20,7 +39,7 @@ export default class HciSubnet extends HarvesterResource {
       ...this.listLocation,
       params: {
         ...this.listLocation.params,
-        resource: HCI.SUBNET
+        resource: HCI.VPC
       }
     };
   }
