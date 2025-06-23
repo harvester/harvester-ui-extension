@@ -13,7 +13,7 @@ import { allHash } from '@shell/utils/promise';
 import { HCI } from '../types';
 import { NETWORK_TYPE } from '../config/types';
 
-const { L2VLAN, UNTAGGED } = NETWORK_TYPE;
+const { L2VLAN, UNTAGGED, OVERLAY } = NETWORK_TYPE;
 
 const AUTO = 'auto';
 const MANUAL = 'manual';
@@ -44,14 +44,17 @@ export default {
 
   data() {
     const config = JSON.parse(this.value.spec.config);
+
     const annotations = this.value?.metadata?.annotations || {};
     const layer3Network = JSON.parse(annotations[HCI_LABELS_ANNOTATIONS.NETWORK_ROUTE] || '{}');
 
-    if ((config.bridge || '').endsWith('-br')) {
-      config.bridge = config.bridge.slice(0, -3);
-    }
-
     const type = this.value.vlanType || L2VLAN ;
+
+    if ([L2VLAN, UNTAGGED].includes(type)) {
+      if ((config.bridge || '').endsWith('-br')) {
+        config.bridge = config.bridge.slice(0, -3);
+      }
+    }
 
     return {
       config,
@@ -88,6 +91,14 @@ export default {
       }];
     },
 
+    kubeovnVpcSubnetSupport() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('kubeovnVpcSubnet');
+    },
+
+    longhornV2LVMSupport() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('longhornV2LVMSupport');
+    },
+
     clusterNetworkOptions() {
       const inStore = this.$store.getters['currentProduct'].inStore;
       const clusterNetworks = this.$store.getters[`${ inStore }/all`](HCI.CLUSTER_NETWORK) || [];
@@ -103,8 +114,30 @@ export default {
       });
     },
 
-    networkType() {
-      return [L2VLAN, UNTAGGED];
+    networkTypes() {
+      const types = [L2VLAN, UNTAGGED];
+
+      if (this.kubeovnVpcSubnetSupport) {
+        types.push(OVERLAY);
+      }
+
+      return types;
+    },
+
+    isL2VlanNetwork() {
+      if (this.isView) {
+        return this.value.vlanType === L2VLAN;
+      }
+
+      return this.type === L2VLAN;
+    },
+
+    isOverlayNetwork() {
+      if (this.isView) {
+        return this.value.vlanType === OVERLAY;
+      }
+
+      return this.type === OVERLAY;
     },
 
     isUntaggedNetwork() {
@@ -116,36 +149,53 @@ export default {
     }
   },
 
+  watch: {
+    type(newType) {
+      if (newType === OVERLAY) {
+        this.config.type = 'kube-ovn';
+        this.config.provider = `${ this.value.metadata.name }.${ this.value.metadata.namespace }.ovn`;
+        this.config.server_socket = '/run/openvswitch/kube-ovn-daemon.sock';
+      } else {
+        this.config.type = 'bridge';
+        this.config.promiscMode = true;
+        this.config.ipam = {};
+        delete this.config.provider;
+      }
+    }
+  },
+
   methods: {
     async saveNetwork(buttonCb) {
       const errors = [];
 
-      if (!this.config.vlan && !this.isUntaggedNetwork) {
-        errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('tableHeaders.networkVlan') }));
-      }
-
-      if (!this.config.bridge) {
-        errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('harvester.network.clusterNetwork.label') }));
-      }
-
-      if (this.layer3Network.mode === MANUAL) {
-        if (!this.layer3Network.gateway) {
-          errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('harvester.network.layer3Network.gateway.label') }));
+      if (this.isL2VlanNetwork || this.isUntaggedNetwork) {
+        if (!this.config.vlan && !this.isUntaggedNetwork) {
+          errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('tableHeaders.networkVlan') }));
         }
-        if (!this.layer3Network.cidr) {
-          errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('harvester.network.layer3Network.cidr.label') }));
+
+        if (!this.config.bridge) {
+          errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('harvester.network.clusterNetwork.label') }));
         }
+
+        if (this.layer3Network.mode === MANUAL) {
+          if (!this.layer3Network.gateway) {
+            errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('harvester.network.layer3Network.gateway.label') }));
+          }
+          if (!this.layer3Network.cidr) {
+            errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('harvester.network.layer3Network.cidr.label') }));
+          }
+        }
+
+        if (errors.length > 0) {
+          buttonCb(false);
+          this.errors = errors;
+
+          return false;
+        }
+        this.value.setAnnotation(HCI_LABELS_ANNOTATIONS.NETWORK_ROUTE, JSON.stringify(this.layer3Network));
       }
 
-      if (errors.length > 0) {
-        buttonCb(false);
-        this.errors = errors;
-
-        return false;
-      }
-
-      this.value.setAnnotation(HCI_LABELS_ANNOTATIONS.NETWORK_ROUTE, JSON.stringify(this.layer3Network));
-
+      // console.log('call this.save, this.value=', this.value);
       await this.save(buttonCb);
     },
 
@@ -169,14 +219,23 @@ export default {
     updateBeforeSave() {
       this.config.name = this.value.metadata.name;
 
+      if (this.isOverlayNetwork) {
+        this.config.provider = `${ this.value.metadata.name }.${ this.value.metadata.namespace }.ovn`;
+        delete this.config.bridge;
+        delete this.config.promiscMode;
+        delete this.config.vlan;
+        delete this.config.ipam;
+      }
+
       if (this.isUntaggedNetwork) {
         delete this.config.vlan;
       }
 
-      this.value.spec.config = JSON.stringify({
-        ...this.config,
-        bridge: `${ this.config.bridge }-br`,
-      });
+      if (this.isL2VlanNetwork || this.isUntaggedNetwork) {
+        this.config.bridge = `${ this.config.bridge }-br`;
+      }
+
+      this.value.spec.config = JSON.stringify({ ...this.config });
     },
   }
 };
@@ -212,14 +271,14 @@ export default {
         <LabeledSelect
           v-model:value="type"
           class="mb-20"
-          :options="networkType"
+          :options="networkTypes"
           :mode="mode"
           :label="t('harvester.fields.type')"
           required
         />
 
         <LabeledInput
-          v-if="!isUntaggedNetwork"
+          v-if="isL2VlanNetwork"
           v-model:value.number="config.vlan"
           class="mb-20"
           required
@@ -229,25 +288,19 @@ export default {
           :mode="mode"
           @update:value="input"
         />
-
-        <div class="row">
-          <div
-            class="col span-12"
-          >
-            <LabeledSelect
-              v-model:value="config.bridge"
-              class="mb-20"
-              :label="t('harvester.network.clusterNetwork.label')"
-              required
-              :options="clusterNetworkOptions"
-              :mode="mode"
-              :placeholder="t('harvester.network.clusterNetwork.selectPlaceholder')"
-            />
-          </div>
-        </div>
+        <LabeledSelect
+          v-if="!isOverlayNetwork"
+          v-model:value="config.bridge"
+          class="mb-20"
+          :label="t('harvester.network.clusterNetwork.label')"
+          required
+          :options="clusterNetworkOptions"
+          :mode="mode"
+          :placeholder="t('harvester.network.clusterNetwork.selectPlaceholder')"
+        />
       </Tab>
       <Tab
-        v-if="!isUntaggedNetwork"
+        v-if="isL2VlanNetwork"
         name="layer3Network"
         :label="t('harvester.network.tabs.layer3Network')"
         :weight="98"
