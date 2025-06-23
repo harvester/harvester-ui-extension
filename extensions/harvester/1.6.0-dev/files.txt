@@ -4,14 +4,14 @@ plugin/harvester-1.6.0-dev.umd.min.160.js
 plugin/harvester-1.6.0-dev.umd.min.160.js.map
 plugin/harvester-1.6.0-dev.umd.min.207.js
 plugin/harvester-1.6.0-dev.umd.min.207.js.map
+plugin/harvester-1.6.0-dev.umd.min.268.js
+plugin/harvester-1.6.0-dev.umd.min.268.js.map
 plugin/harvester-1.6.0-dev.umd.min.327.js
 plugin/harvester-1.6.0-dev.umd.min.327.js.map
 plugin/harvester-1.6.0-dev.umd.min.37.js
 plugin/harvester-1.6.0-dev.umd.min.37.js.map
 plugin/harvester-1.6.0-dev.umd.min.395.js
 plugin/harvester-1.6.0-dev.umd.min.395.js.map
-plugin/harvester-1.6.0-dev.umd.min.413.js
-plugin/harvester-1.6.0-dev.umd.min.413.js.map
 plugin/harvester-1.6.0-dev.umd.min.431.js
 plugin/harvester-1.6.0-dev.umd.min.431.js.map
 plugin/harvester-1.6.0-dev.umd.min.472.js
@@ -28,6 +28,8 @@ plugin/harvester-1.6.0-dev.umd.min.694.js
 plugin/harvester-1.6.0-dev.umd.min.694.js.map
 plugin/harvester-1.6.0-dev.umd.min.819.js
 plugin/harvester-1.6.0-dev.umd.min.819.js.map
+plugin/harvester-1.6.0-dev.umd.min.908.js
+plugin/harvester-1.6.0-dev.umd.min.908.js.map
 plugin/harvester-1.6.0-dev.umd.min.csv.js
 plugin/harvester-1.6.0-dev.umd.min.csv.js.map
 plugin/harvester-1.6.0-dev.umd.min.detail.js
@@ -72,6 +74,7 @@ plugin/img/cloudca-black.2c8fc541.svg
 plugin/img/cloudca.fb088dd5.svg
 plugin/img/cloudscale-black.87d94917.svg
 plugin/img/cloudscale.dd348191.svg
+plugin/img/cognito.0f11062a.svg
 plugin/img/custom.2ff19310.svg
 plugin/img/custom.6f45244d.svg
 plugin/img/decoration-cloud-big-white.4229596e.svg
