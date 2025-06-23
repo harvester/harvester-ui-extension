@@ -1,15 +1,23 @@
 <script>
 import CruResource from '@shell/components/CruResource';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
+// import LabeledSelect from '@shell/components/form/LabeledSelect';
 import Tab from '@shell/components/Tabbed/Tab';
+// import ArrayListSelect from '@shell/components/form/ArrayListSelect';
 import Loading from '@shell/components/Loading';
+// import { Banner } from '@components/Banner';
 import CreateEditView from '@shell/mixins/create-edit-view';
+// import { NODE } from '@shell/config/types';
 import { _CREATE, _VIEW } from '@shell/config/query-params';
+// import { isEmpty, throttle } from 'lodash';
 import { set } from '@shell/utils/object';
+// import { uniq, findBy } from '@shell/utils/array';
+// import ArrayList from '@shell/components/form/ArrayList';
+// import { allHash } from '@shell/utils/promise';
+// import { HOSTNAME } from '@shell/config/labels-annotations';
+// import { matching } from '@shell/utils/selector';
 // import { HCI } from '../../types';
 import ResourceTabs from '@shell/components/form/ResourceTabs/index';
-import StaticRoutes from './StaticRoutes';
-import VpcPeerings from './VpcPeerings';
 
 // const createObject = {
 //   apiVersion: 'harvesterhci.io/v1beta1',
@@ -23,7 +31,7 @@ import VpcPeerings from './VpcPeerings';
 // };
 
 export default {
-  name: 'EditVPC',
+  name: 'EditSubnet',
 
   emits: ['update:value'],
 
@@ -31,10 +39,8 @@ export default {
     CruResource,
     NameNsDescription,
     Tab,
-    StaticRoutes,
     ResourceTabs,
     Loading,
-    VpcPeerings
   },
 
   mixins: [CreateEditView],
@@ -47,13 +53,41 @@ export default {
       vpcPeerings:  [],
     });
 
-    return { staticRoutes: [] };
+    return {
+      staticRoutes: [],
+      // defaultStaticRoutes: {
+      //   cidr:      '',
+      //   nextHopIP: [],
+      // },
+    };
   },
+
+  // async fetch() {
+  //   const inStore = this.$store.getters['currentProduct'].inStore;
+
+  //   const hash = {
+  //     linkMonitors: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.LINK_MONITOR }),
+  //     nodes:        this.$store.dispatch(`${ inStore }/findAll`, { type: NODE }),
+  //   };
+
+  //   await allHash(hash);
+  // },
 
   computed: {
     modeOverride() {
       return this.isCreate ? _CREATE : _VIEW;
     },
+    // nodeOptions() {
+    //   const inStore = this.$store.getters['currentProduct'].inStore;
+    //   const nodes = this.$store.getters[`${ inStore }/all`](NODE);
+
+    //   return nodes.filter((n) => n.isEtcd !== 'true').map((node) => {
+    //     return {
+    //       label: node.nameDisplay,
+    //       value: node.id
+    //     };
+    //   });
+    // },
 
     // mtu: {
     //   get() {
@@ -181,21 +215,6 @@ export default {
       },
       deep: true
     }
-    // 'value.spec.uplink.nics'(neu) {
-    // nicOptions(options) {
-    //   const nics = this.value.spec?.uplink?.nics || [];
-    //   const nicErrors = [];
-
-    //   nics.map((n) => {
-    //     const option = options.find((option) => option.value === n);
-
-    //     if ((option && option?.disabled) || !option) {
-    //       nicErrors.push(this.t('harvester.vlanConfig.uplink.nics.validate.available', { nic: n }, true));
-    //     }
-    //   });
-
-    //   this.nicErrors = uniq(nicErrors);
-    // },
   },
 };
 
@@ -230,24 +249,6 @@ export default {
         :weight="-1"
         class="bordered-table"
       >
-        <StaticRoutes
-          v-model:value="value.spec.staticRoutes"
-          class="col span-12"
-          :mode="mode"
-        />
-      </Tab>
-      <Tab
-        name="vpcPeerings"
-        :label="t('harvester.vpc.vpcPeerings.label')"
-        :weight="-2"
-        class="bordered-table"
-      >
-        <VpcPeerings
-          v-model:value="value.spec.vpcPeerings"
-          class="col span-12"
-          :mode="mode"
-          :vpc="value"
-        />
       </Tab>
     </ResourceTabs>
   </CruResource>

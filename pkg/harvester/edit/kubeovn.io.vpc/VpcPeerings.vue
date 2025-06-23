@@ -21,6 +21,10 @@ export default {
       type:    String,
       default: _EDIT,
     },
+    vpc: {
+      type:    Object,
+      default: () => ({}),
+    },
   },
 
   async fetch() {
@@ -28,17 +32,23 @@ export default {
   },
 
   data() {
-    return {
-      rows: [{
-        localConnectIP:  '',
-        remoteVpc:      '',
-      }],
-    };
+    const rows = (this.value || []).map((row) => {
+      return {
+        localConnectIP:      row.localConnectIP || '',
+        remoteVpc:      row.remoteVpc || '',
+      };
+    });
+
+    return { rows };
   },
 
   computed: {
     isView() {
       return this.mode === _VIEW;
+    },
+
+    isEdit() {
+      return this.mode === _EDIT;
     },
 
     showAdd() {
@@ -50,7 +60,10 @@ export default {
     },
 
     remoteVpcOptions() {
-      const vpcs = this.$store.getters['harvester/all'](HCI.VPC) || [];
+      const allVpcs = this.$store.getters['harvester/all'](HCI.VPC) || [];
+
+      // filter self-vpc if editing
+      const vpcs = this.isEdit ? allVpcs.filter((v) => v.id !== this.vpc.id) : allVpcs;
 
       return vpcs.map((n) => ({
         label: n.id,

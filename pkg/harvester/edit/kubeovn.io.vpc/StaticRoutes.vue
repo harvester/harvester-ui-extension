@@ -20,12 +20,14 @@ export default {
   },
 
   data() {
-    return {
-      rows: [{
-        cidr:      '',
-        nextHopIP: '',
-      }],
-    };
+    const rows = (this.value || []).map((row) => {
+      return {
+        cidr:      row.cidr || '',
+        nextHopIP: row.nextHopIP || '',
+      };
+    });
+
+    return { rows };
   },
 
   computed: {
