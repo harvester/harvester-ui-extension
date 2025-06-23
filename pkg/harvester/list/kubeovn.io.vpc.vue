@@ -96,7 +96,7 @@ export default {
       const vpcs = this.$store.getters[`harvester/all`](HCI.VPC) || [];
 
       const out = vpcs.map((v) => {
-        const hasChild = v.status.subnets.length > 0;
+        const hasChild = v.status?.subnets?.length > 0 || false;
 
         return {
           ...v,
