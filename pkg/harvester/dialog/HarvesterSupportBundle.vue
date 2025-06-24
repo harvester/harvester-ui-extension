@@ -87,6 +87,10 @@ export default {
 
       return docLink(DOC.SUPPORT_BUNDLE_NAMESPACES, version);
     },
+
+    customSupportBundleFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('customSupportBundle');
+    },
   },
 
   watch: {
@@ -189,7 +193,7 @@ export default {
 };
 </script>
 
-<template>
+<<template>
   <div class="bundleModal">
     <app-modal
       v-if="isOpen"
@@ -202,78 +206,12 @@ export default {
       @close="close"
     >
       <div class="p-20">
-        <h2>
-          {{ t('harvester.modal.bundle.title') }}
-        </h2>
-
-        <div
-          v-if="!bundlePending"
-          class="content"
-        >
-          <p
-            v-clean-html="t('harvester.modal.bundle.tip', { doc: docLink }, true)"
-            class="mb-20"
-          ></p>
-          <LabeledInput
-            v-model:value="url"
-            :label="t('harvester.modal.bundle.url')"
-            class="mb-10"
-          />
-          <LabeledInput
-            v-model:value="description"
-            required
-            :label="t('harvester.modal.bundle.description')"
-            type="multiline"
-            :min-height="80"
-            class="mb-10"
-          />
-          <LabeledSelect
-            v-model:value="namespaces"
-            :label="t('harvester.modal.bundle.namespaces.label')"
-            :clearable="true"
-            :multiple="true"
-            :options="namespaceOptions"
-            class="mb-10 label-select"
-            :tooltip="t('harvester.modal.bundle.namespaces.tooltip', _ , true)"
-            @update:value="updateNamespaces"
-          />
-          <LabeledInput
-            v-model:value="timeout"
-            :label="t('harvester.modal.bundle.timeout.label')"
-            class="mb-10"
-            type="number"
-            :min="0"
-            :tooltip="t('harvester.modal.bundle.timeout.tooltip', _ , true)"
-            @keydown="onKeyDown"
-            @update:value="val => updateNumberValue('timeout', val)"
-          />
-          <LabeledInput
-            v-model:value="expiration"
-            :label="t('harvester.modal.bundle.expiration.label')"
-            class="mb-10"
-            type="number"
-            :min="0"
-            :tooltip="t('harvester.modal.bundle.expiration.tooltip', _ , true)"
-            @keydown="onKeyDown"
-            @update:value="val => updateNumberValue('expiration', val)"
-          />
-          <LabeledInput
-            v-model:value="nodeTimeout"
-            :label="t('harvester.modal.bundle.nodeTimeout.label')"
-            class="mb-10"
-            type="number"
-            :min="0"
-            :tooltip="t('harvester.modal.bundle.nodeTimeout.tooltip', _ , true)"
-            @keydown="onKeyDown"
-            @update:value="val => updateNumberValue('nodeTimeout', val)"
-          />
-        </div>
-
-        <div
-          v-else
-          class="content"
-        >
-          <div class="circle">
+        <h2>{{ t('harvester.modal.bundle.title') }}</h2>
+        <div class="content">
+          <div
+            v-if="bundlePending"
+            class="circle mb-20"
+          >
             <GraphCircle
               primary-stroke-color="green"
               secondary-stroke-color="lightgrey"
@@ -282,33 +220,92 @@ export default {
               :show-text="true"
             />
           </div>
-        </div>
+          <template v-else>
+            <p
+              v-clean-html="t('harvester.modal.bundle.tip', { doc: docLink }, true)"
+              class="mb-20"
+            />
+            <LabeledInput
+              v-model:value="url"
+              :label="t('harvester.modal.bundle.url')"
+              class="mb-10"
+            />
+            <LabeledInput
+              v-model:value="description"
+              required
+              :label="t('harvester.modal.bundle.description')"
+              type="multiline"
+              :min-height="80"
+              class="mb-10"
+            />
 
-        <div
-          v-for="(err, idx) in errors"
-          :key="idx"
-        >
-          <Banner
-            color="error"
-            :label="stringify(err)"
-          />
-        </div>
-
-        <div class="footer mt-20">
-          <button
-            class="btn btn-sm role-secondary mr-10"
-            @click="close"
+            <template v-if="customSupportBundleFeatureEnabled">
+              <LabeledSelect
+                v-model:value="namespaces"
+                :label="t('harvester.modal.bundle.namespaces.label')"
+                :clearable="true"
+                :multiple="true"
+                :options="namespaceOptions"
+                class="mb-10 label-select"
+                :tooltip="t('harvester.modal.bundle.namespaces.tooltip', _, true)"
+                @update:value="updateNamespaces"
+              />
+              <LabeledInput
+                v-model:value="timeout"
+                :label="t('harvester.modal.bundle.timeout.label')"
+                class="mb-10"
+                type="number"
+                :min="0"
+                :tooltip="t('harvester.modal.bundle.timeout.tooltip', _, true)"
+                @keydown="onKeyDown"
+                @update:value="val => updateNumberValue('timeout', val)"
+              />
+              <LabeledInput
+                v-model:value="expiration"
+                :label="t('harvester.modal.bundle.expiration.label')"
+                class="mb-10"
+                type="number"
+                :min="0"
+                :tooltip="t('harvester.modal.bundle.expiration.tooltip', _, true)"
+                @keydown="onKeyDown"
+                @update:value="val => updateNumberValue('expiration', val)"
+              />
+              <LabeledInput
+                v-model:value="nodeTimeout"
+                :label="t('harvester.modal.bundle.nodeTimeout.label')"
+                class="mb-10"
+                type="number"
+                :min="0"
+                :tooltip="t('harvester.modal.bundle.nodeTimeout.tooltip', _, true)"
+                @keydown="onKeyDown"
+                @update:value="val => updateNumberValue('nodeTimeout', val)"
+              />
+            </template>
+          </template>
+          <div
+            v-for="(err, idx) in errors"
+            :key="idx"
           >
-            {{ t('generic.close') }}
-          </button>
-
-          <AsyncButton
-            type="submit"
-            mode="generate"
-            class="btn btn-sm bg-primary"
-            :disabled="bundlePending"
-            @click="save"
-          />
+            <Banner
+              color="error"
+              :label="stringify(err)"
+            />
+          </div>
+          <div class="footer mt-20">
+            <button
+              class="btn btn-sm role-secondary mr-10"
+              @click="close"
+            >
+              {{ t('generic.close') }}
+            </button>
+            <AsyncButton
+              type="submit"
+              mode="generate"
+              class="btn btn-sm bg-primary"
+              :disabled="bundlePending"
+              @click="save"
+            />
+          </div>
         </div>
       </div>
     </app-modal>
