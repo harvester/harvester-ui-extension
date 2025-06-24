@@ -4,6 +4,7 @@ export const DOC = {
   RANCHER_INTEGRATION_URL:   `/rancher/rancher-integration`,
   KSMTUNED_MODE:             `/host/#ksmtuned-mode`,
   UPGRADE_URL:               `/upgrade/index`,
+  UPGRADE_CONFIG_URL:        `/advanced/index#upgrade-config`,
   STORAGE_NETWORK_EXAMPLE:   `/advanced/storagenetwork#configuration-example`,
   SUPPORT_BUNDLE_NAMESPACES: `/advanced/index/#support-bundle-namespaces`,
 };

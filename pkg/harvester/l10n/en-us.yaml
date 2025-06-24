@@ -694,7 +694,7 @@ harvester:
       network:
         label: Network Data Template
         title: "Network Data:"
-        tip: "The network-data configuration allows you to customize the instance’s networking interfaces by assigning subnet configuration, virtual device creation (bonds, bridges, VLANs) routes and DNS configuration. <a href='https://cloudinit.readthedocs.io/en/latest/reference/network-config-format-v1.html' target='_blank'>Learn more</a>"
+        tip: "The network-data configuration allows you to customize the instance's networking interfaces by assigning subnet configuration, virtual device creation (bonds, bridges, VLANs) routes and DNS configuration. <a href='https://cloudinit.readthedocs.io/en/latest/reference/network-config-format-v1.html' target='_blank'>Learn more</a>"
     scheduling:
       affinity:
         anyNode: 'Run virtual machine on any available node'
@@ -1128,6 +1128,10 @@ harvester:
       uploadSuccess:  "{name} uploaded successfully. Press Upgrade button to start the cluster upgrade process."
       deleteImage: Please select an image to delete.
       deleteSuccess: "{name} deleted successfully."
+      imagePreloadStrategy: Image Preload Strategy
+      restoreVM: Restore VM
+      strategyType: Strategy Type
+      concurrency: Concurrency
     harvesterMonitoring:
       label: Harvester Monitoring
       section:
@@ -1621,6 +1625,7 @@ advancedSettings:
     'harv-kubeconfig-default-token-ttl-minutes': 'TTL (in minutes) applied on Harvester administration kubeconfig files. Default is 0, which means to never expire.'
     'harv-longhorn-v2-data-engine-enabled': 'Enable the Longhorn V2 data engine. Default is false. <ul><li>Changing this setting will restart RKE2 on all nodes. This will not affect running VM workloads.</li><li>If you see "not enough hugepages-2Mi capacity" errors when enabling this setting, wait a minute for the error to clear. If the error remains, reboot the affected node.</li></ul>'
     'harv-additional-guest-memory-overhead-ratio': 'The ratio for kubevirt to adjust the VM overhead memory. The value could be zero, empty value or floating number between 1.0 and 10.0, default to 1.5.'
+    'harv-upgrade-config': 'Configure image preloading and VM restore options for upgrades. See related fields in <a href="{url}" target="_blank" rel="noopener">settings/upgrade-config</a>'
 
 typeLabel:
   kubevirt.io.virtualmachine: |-

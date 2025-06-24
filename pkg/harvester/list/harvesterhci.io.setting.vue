@@ -116,7 +116,15 @@ export default {
         return {
           ...s,
           description: isHarvester ? `advancedSettings.descriptions.harv-${ s.id }` : `advancedSettings.descriptions.${ s.id }`,
-          customized:  (!s.readOnly && s.data.value && s.data.value !== s.data.default) || s.data.hasCustomized
+          customized:  (!s.readOnly && s.data.value && (
+            s.kind === 'json' ? (() => {
+              try {
+                return JSON.stringify(JSON.parse(s.data.value)) !== JSON.stringify(JSON.parse(s.data.default));
+              } catch {
+                return s.data.value !== s.data.default;
+              }
+            })() : s.data.value !== s.data.default
+          )) || s.data.hasCustomized
         };
       });
     }
