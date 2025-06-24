@@ -193,7 +193,7 @@ export default {
 };
 </script>
 
-<<template>
+<template>
   <div class="bundleModal">
     <app-modal
       v-if="isOpen"
