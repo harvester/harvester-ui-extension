@@ -43,21 +43,18 @@ export default {
   },
 
   data() {
-    const versionSetting = this.$store.getters['harvester/byId'](HCI.SETTING, HCI_SETTING.SERVER_VERSION);
-    const cluster = this.$store.getters['currentCluster'];
-
     return {
-      isOpen:                    false,
-      errors:                    [],
-      version:                   versionSetting?.currentVersion || '',
-      clusterName:               cluster?.id || '',
-      url:                       '',
-      description:               '',
+      isOpen:            false,
+      errors:            [],
+      version:           '',
+      clusterName:       '',
+      url:               '',
+      description:       '',
       namespaces:        [],
-      defaultNamespaces:         [],
-      timeout:                   '',
-      expiration:                '',
-      nodeTimeout:               ''
+      defaultNamespaces: [],
+      timeout:           '',
+      expiration:        '',
+      nodeTimeout:       '',
     };
   },
 
@@ -78,12 +75,12 @@ export default {
       const allNamespaces = this.$store.getters['harvester/all'](NAMESPACE).map((ns) => ns.id);
       const defaultNamespacesIds = this.defaultNamespaces.map((ns) => ns.id);
 
-      return allNamespaces.filter((ns) => !defaultNamespacesIds.includes(ns));
+      return allNamespaces.filter((ns) => !defaultNamespacesIds.includes(ns) || this.namespaces.includes(ns));
     },
 
     namespaceOptions() {
       const allSelected = this.namespaces.length === this.availableNamespaces.length &&
-                        this.availableNamespaces.every((ns) => this.namespaces.includes(ns));
+        this.availableNamespaces.every((ns) => this.namespaces.includes(ns));
 
       const controlOption = allSelected ? { label: this.t('harvester.modal.bundle.namespaces.unselectAll'), value: UNSELECT_ALL } : { label: this.t('harvester.modal.bundle.namespaces.selectAll'), value: SELECT_ALL };
 
@@ -106,10 +103,14 @@ export default {
       immediate: true,
       handler(show) {
         this.isOpen = show;
+      }
+    },
 
-        if (!show) {
-          this.resetForm();
-        }
+    isOpen(newVal) {
+      if (newVal) {
+        this.loadDefaultSettings();
+      } else {
+        this.resetForm();
       }
     },
   },
@@ -120,7 +121,25 @@ export default {
     close() {
       this.isOpen = false;
       this.$store.commit('harvester-common/toggleBundleModal', false);
-      this.resetForm();
+    },
+
+    loadDefaultSettings() {
+      const cluster = this.$store.getters['currentCluster'];
+      const versionSetting = this.$store.getters['harvester/byId'](HCI.SETTING, HCI_SETTING.SERVER_VERSION);
+      const namespacesSetting = this.$store.getters['harvester/byId'](HCI.SETTING, HCI_SETTING.SUPPORT_BUNDLE_NAMESPACES);
+      const timeoutSetting = this.$store.getters['harvester/byId'](HCI.SETTING, HCI_SETTING.SUPPORT_BUNDLE_TIMEOUT);
+      const expirationSetting = this.$store.getters['harvester/byId'](HCI.SETTING, HCI_SETTING.SUPPORT_BUNDLE_EXPIRATION);
+      const nodeTimeoutSetting = this.$store.getters['harvester/byId'](HCI.SETTING, HCI_SETTING.SUPPORT_BUNDLE_NODE_COLLECTION_TIMEOUT);
+
+      this.version = versionSetting?.currentVersion || '';
+      this.clusterName = cluster?.id || '';
+      this.namespaces = (namespacesSetting?.value ?? namespacesSetting?.default ?? '').split(',').map((ns) => ns.trim()).filter((ns) => ns);
+      this.timeout = timeoutSetting?.value ?? timeoutSetting?.default ?? '';
+      this.expiration = expirationSetting?.value ?? expirationSetting?.default ?? '';
+      this.nodeTimeout = nodeTimeoutSetting?.value ?? nodeTimeoutSetting?.default ?? '';
+      this.url = '';
+      this.description = '';
+      this.errors = [];
     },
 
     resetForm() {
@@ -130,6 +149,7 @@ export default {
       this.timeout = '';
       this.expiration = '';
       this.nodeTimeout = '';
+      this.errors = [];
     },
 
     updateNamespaces(selected) {
