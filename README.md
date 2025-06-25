@@ -45,6 +45,81 @@ To run as a Rancher extension, follow the [Rancher UI Extension Guide](https://e
 API=https://your-rancher-ip yarn dev
 ```
 
+## Commit Message Guidelines
+
+This project uses [commit-lint](https://commitlint.js.org/) with [Conventional Commits](https://www.conventionalcommits.org/) to ensure consistent and meaningful commit messages.
+
+### Commit Message Format
+
+All commit messages must follow the conventional commit format:
+
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Supported Types
+
+- **feat**: New features
+- **fix**: Bug fixes
+- **docs**: Documentation changes
+- **style**: Code style changes (formatting, missing semicolons, etc.)
+- **refactor**: Code refactoring
+- **perf**: Performance improvements
+- **test**: Adding or updating tests
+- **build**: Build system or external dependencies
+- **ci**: CI/CD changes
+- **chore**: Other changes that don't modify src or test files
+- **revert**: Reverts a previous commit
+- **wip**: Work in progress
+- **deps**: Dependency updates
+- **security**: Security fixes
+
+### Examples
+
+```bash
+# Feature
+git commit -m "feat: add new virtual machine creation wizard"
+
+# Bug fix
+git commit -m "fix: resolve memory leak in VM console"
+
+# Documentation
+git commit -m "docs: update installation instructions"
+
+# Breaking change
+git commit -m "feat!: change API endpoint structure
+
+BREAKING CHANGE: The /api/v1/vms endpoint has been replaced with /api/v2/vms"
+```
+
+### Git Hooks
+
+The project uses [Husky](https://typicode.github.io/husky/) to automatically validate commit messages and run linting before commits:
+
+- **pre-commit**: Runs ESLint to ensure code quality
+- **commit-msg**: Validates commit message format using commit-lint
+
+These hooks are automatically installed when you run `yarn install`.
+
+### Manual Validation
+
+You can manually validate commit messages:
+
+```bash
+# Validate the last commit
+yarn commitlint
+
+# Validate a specific commit
+npx commitlint --from <commit-hash>
+
+# Validate a range of commits
+npx commitlint --from <start-hash> --to <end-hash>
+```
+
 ## Branch Structure
 
 - **`main`** – Main development branch

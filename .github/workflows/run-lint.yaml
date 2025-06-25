@@ -17,7 +17,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0  # Need full history for commit-lint
 
       - name: Run tests
         uses: ./.github/actions/lint
+
+      - name: Validate commit messages
+        shell: bash
+        run: |
+          echo "GITHUB_EVENT_NAME=$GITHUB_EVENT_NAME"
+          echo "GITHUB_BASE_SHA=$GITHUB_BASE_SHA"
+          echo "GITHUB_HEAD_SHA=$GITHUB_HEAD_SHA"
+          echo "GITHUB_BEFORE=$GITHUB_BEFORE"
+          echo "GITHUB_AFTER=$GITHUB_AFTER"
+
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && [ -n "$GITHUB_BASE_SHA" ] && [ -n "$GITHUB_HEAD_SHA" ]; then
+            FROM="$GITHUB_BASE_SHA"
+            TO="$GITHUB_HEAD_SHA"
+          elif [ -n "$GITHUB_BEFORE" ] && [ -n "$GITHUB_AFTER" ]; then
+            FROM="$GITHUB_BEFORE"
+            TO="$GITHUB_AFTER"
+          else
+            echo "No valid commit range found, skipping commitlint."
+            exit 0
+          fi
+
+          echo "FROM=$FROM"
+          echo "TO=$TO"
+          npx commitlint --from "$FROM" --to "$TO" --verbose
+        env:
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          GITHUB_BEFORE: ${{ github.event.before }}
+          GITHUB_AFTER: ${{ github.event.after }}
