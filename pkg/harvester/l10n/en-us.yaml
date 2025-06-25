@@ -142,18 +142,18 @@ harvester:
       description: Description
       namespaces:
         label: Namespaces
-        tooltip: Select additional namespaces to include in the support bundle. <br>See docs support-bundle-namespaces for detail.
+        tooltip: Select additional namespaces to include in the support bundle.<br/>See docs support-bundle-namespaces for detail.
         selectAll: 'Select All'
         unselectAll: 'Unselect All'
       timeout:
         label: Timeout
-        tooltip: Minutes allows for completion of the support bundle generation process.<br>See docs support-bundle-timeout for detail.
+        tooltip: Minutes allows for completion of the support bundle generation process.<br/>See docs support-bundle-timeout for detail.
       expiration:
         label: Expiration
-        tooltip: Minutes before deleting packaged but not downloaded support bundle.<br>See docs support-bundle-expiration for detail.
+        tooltip: Minutes before deleting packaged but not downloaded support bundle.<br/>See docs support-bundle-expiration for detail.
       nodeTimeout:
         label: Node Collection Timeout
-        tooltip: Minutes allowed for collecting logs/configurations on nodes.<br>See docs support-bundle-node-collection-timeout for detail.
+        tooltip: Minutes allowed for collecting logs/configurations on nodes.<br/>See docs support-bundle-node-collection-timeout for detail.
     hotplug:
       success: 'Volume { diskName } is mounted to the virtual machine { vm }.'
       title: Add Volume

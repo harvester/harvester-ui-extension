@@ -34,7 +34,7 @@ export default {
     await this.$store.dispatch('harvester/findAll', { type: NAMESPACE });
 
     try {
-      const url = this.$store.getters['harvester-common/getHarvesterClusterUrl']('/v1/harvester/namespaces?link=supportbundle');
+      const url = this.$store.getters['harvester-common/getHarvesterClusterUrl']('v1/harvester/namespaces?link=supportbundle');
       const response = await this.$store.dispatch('harvester/request', { url });
 
       this.defaultNamespaces = response.data || [];
@@ -80,8 +80,10 @@ export default {
     },
 
     namespaceOptions() {
+      if (this.availableNamespaces.length === 0) return [];
+
       const allSelected = this.namespaces.length === this.availableNamespaces.length &&
-        this.availableNamespaces.every((ns) => this.namespaces.includes(ns));
+      this.availableNamespaces.every((ns) => this.namespaces.includes(ns));
 
       const controlOption = allSelected ? { label: this.t('harvester.modal.bundle.namespaces.unselectAll'), value: UNSELECT_ALL } : { label: this.t('harvester.modal.bundle.namespaces.selectAll'), value: SELECT_ALL };
 
