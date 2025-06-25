@@ -30,24 +30,32 @@ export default {
 
   async fetch() {
     await this.$store.dispatch('harvester/findAll', { type: NAMESPACE });
+
+    try {
+      const response = await this.$store.dispatch('harvester/request', { url: '/v1/harvester/namespaces?link=supportbundle' });
+
+      this.defaultNamespaces = response.data || [];
+    } catch (error) {
+      this.defaultNamespaces = [];
+    }
   },
 
   data() {
     const versionSetting = this.$store.getters['harvester/byId'](HCI.SETTING, HCI_SETTING.SERVER_VERSION);
-    const bundleNsSetting = this.$store.getters['harvester/byId'](HCI.SETTING, HCI_SETTING.SUPPORT_BUNDLE_NAMESPACES);
     const cluster = this.$store.getters['currentCluster'];
 
     return {
-      isOpen:      false,
-      errors:      [],
-      version:     versionSetting?.currentVersion || '',
-      clusterName: cluster?.id || '',
-      url:         '',
-      description: '',
-      namespaces:  (bundleNsSetting?.value || '').split(',').map((ns) => ns.trim()),
-      timeout:     '',
-      expiration:  '',
-      nodeTimeout: ''
+      isOpen:                    false,
+      errors:                    [],
+      version:                   versionSetting?.currentVersion || '',
+      clusterName:               cluster?.id || '',
+      url:                       '',
+      description:               '',
+      namespaces:        [],
+      defaultNamespaces:         [],
+      timeout:                   '',
+      expiration:                '',
+      nodeTimeout:               ''
     };
   },
 
@@ -64,22 +72,20 @@ export default {
       return this.$store.getters['harvester-common/getBundlePercentage'];
     },
 
-    allNamespaces() {
-      return this.$store.getters['harvester/all'](NAMESPACE)
-        .map((ns) => ({ label: ns.id, value: ns.id }));
-    },
+    availableNamespaces() {
+      const allNamespaces = this.$store.getters['harvester/all'](NAMESPACE).map((ns) => ns.id);
+      const defaultNamespacesIds = this.defaultNamespaces.map((ns) => ns.id);
 
-    allNamespaceValues() {
-      return this.allNamespaces.map((ns) => ns.value);
+      return allNamespaces.filter((ns) => !defaultNamespacesIds.includes(ns));
     },
 
     namespaceOptions() {
-      const allSelected = this.namespaces.length === this.allNamespaceValues.length &&
-                          this.allNamespaceValues.every((val) => this.namespaces.includes(val));
+      const allSelected = this.namespaces.length === this.availableNamespaces.length &&
+                        this.availableNamespaces.every((ns) => this.namespaces.includes(ns));
 
       const controlOption = allSelected ? { label: this.t('harvester.modal.bundle.namespaces.unselectAll'), value: UNSELECT_ALL } : { label: this.t('harvester.modal.bundle.namespaces.selectAll'), value: SELECT_ALL };
 
-      return [controlOption, ...this.allNamespaces];
+      return [controlOption, ...this.availableNamespaces];
     },
 
     docLink() {
@@ -126,7 +132,7 @@ export default {
 
     updateNamespaces(selected) {
       if (selected.includes(SELECT_ALL)) {
-        this.namespaces = [...this.allNamespaceValues];
+        this.namespaces = [...this.availableNamespaces];
       } else if (selected.includes(UNSELECT_ALL)) {
         this.namespaces = [];
       } else {
