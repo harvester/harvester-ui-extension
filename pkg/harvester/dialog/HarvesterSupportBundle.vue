@@ -228,6 +228,7 @@ export default {
           </div>
           <template v-else>
             <p
+              v-if="customSupportBundleFeatureEnabled"
               v-clean-html="t('harvester.modal.bundle.tip', { doc: docLink }, true)"
               class="mb-20"
             />
