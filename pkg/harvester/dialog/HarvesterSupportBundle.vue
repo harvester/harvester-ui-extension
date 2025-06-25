@@ -8,6 +8,7 @@ import GraphCircle from '@shell/components/graph/Circle';
 import { Banner } from '@components/Banner';
 import AppModal from '@shell/components/AppModal';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
+import UnitInput from '@shell/components/form/UnitInput';
 import { HCI } from '../types';
 import { HCI_SETTING } from '../config/settings';
 import { DOC } from '../config/doc-links';
@@ -25,7 +26,8 @@ export default {
     AsyncButton,
     Banner,
     AppModal,
-    LabeledSelect
+    LabeledSelect,
+    UnitInput
   },
 
   async fetch() {
@@ -141,7 +143,7 @@ export default {
     },
 
     updateNumberValue(field, value) {
-      if (value === '') {
+      if (value === '' || value === null || isNaN(value)) {
         this[field] = '';
 
         return;
@@ -257,33 +259,36 @@ export default {
                 :tooltip="t('harvester.modal.bundle.namespaces.tooltip', _, true)"
                 @update:value="updateNamespaces"
               />
-              <LabeledInput
+              <UnitInput
                 v-model:value="timeout"
                 :label="t('harvester.modal.bundle.timeout.label')"
                 class="mb-10"
                 type="number"
                 :min="0"
                 :tooltip="t('harvester.modal.bundle.timeout.tooltip', _, true)"
+                :suffix="timeout > 1 ? 'Minutes' : 'Minute'"
                 @keydown="onKeyDown"
                 @update:value="val => updateNumberValue('timeout', val)"
               />
-              <LabeledInput
+              <UnitInput
                 v-model:value="expiration"
                 :label="t('harvester.modal.bundle.expiration.label')"
                 class="mb-10"
                 type="number"
                 :min="0"
                 :tooltip="t('harvester.modal.bundle.expiration.tooltip', _, true)"
+                :suffix="expiration > 1 ? 'Minutes' : 'Minute'"
                 @keydown="onKeyDown"
                 @update:value="val => updateNumberValue('expiration', val)"
               />
-              <LabeledInput
+              <UnitInput
                 v-model:value="nodeTimeout"
                 :label="t('harvester.modal.bundle.nodeTimeout.label')"
                 class="mb-10"
                 type="number"
                 :min="0"
                 :tooltip="t('harvester.modal.bundle.nodeTimeout.tooltip', _, true)"
+                :suffix="nodeTimeout > 1 ? 'Minutes' : 'Minute'"
                 @keydown="onKeyDown"
                 @update:value="val => updateNumberValue('nodeTimeout', val)"
               />
