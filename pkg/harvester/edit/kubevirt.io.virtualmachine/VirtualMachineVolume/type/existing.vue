@@ -142,10 +142,12 @@ export default {
         return;
       }
 
+      // update this.value with existing volume spec, then update to upstream component
       this.value.accessModes = pvcResource.spec.accessModes[0];
       this.value.size = pvcResource.spec.resources.requests.storage;
       this.value.storageClassName = pvcResource.spec.storageClassName;
       this.value.volumeMode = pvcResource.spec.volumeMode;
+      this.update();
     },
 
     'value.type'(neu) {
