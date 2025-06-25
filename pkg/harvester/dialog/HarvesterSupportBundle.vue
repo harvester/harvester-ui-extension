@@ -34,7 +34,8 @@ export default {
     await this.$store.dispatch('harvester/findAll', { type: NAMESPACE });
 
     try {
-      const response = await this.$store.dispatch('harvester/request', { url: '/v1/harvester/namespaces?link=supportbundle' });
+      const url = this.$store.getters['harvester-common/getHarvesterClusterUrl']('/v1/harvester/namespaces?link=supportbundle');
+      const response = await this.$store.dispatch('harvester/request', { url });
 
       this.defaultNamespaces = response.data || [];
     } catch (error) {
