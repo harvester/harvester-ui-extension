@@ -10,7 +10,7 @@ export default class HciSubnet extends HarvesterResource {
   get doneOverride() {
     const detailLocation = clone(this.listLocation);
 
-    detailLocation.params.resource = HCI.SUBNET;
+    detailLocation.params.resource = HCI.VPC;
 
     return detailLocation;
   }
@@ -20,7 +20,7 @@ export default class HciSubnet extends HarvesterResource {
       ...this.listLocation,
       params: {
         ...this.listLocation.params,
-        resource: HCI.SUBNET
+        resource: HCI.VPC
       }
     };
   }

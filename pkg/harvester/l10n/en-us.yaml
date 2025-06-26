@@ -1015,6 +1015,24 @@ harvester:
         progress: Restore in progress
         complete: Restore completed
 
+  subnet: 
+    cidrBlock:
+      label: CIDR Block
+      placeholder: e.g. 172.20.0.0/16
+    protocols:
+      label: Protocols
+    provider:
+      label: Provider
+    vpc:
+      label: Virtual Private Cloud
+    gateway:
+      label: Gateway IP
+      placeholder: e.g. 172.20.0.1
+    private:
+      label: Private Subnet
+      tooltip: Enable this subnet to connect to other subnet under the same VPC
+    
+  
   vpc:
     label: Virtual Private Cloud
     noChild: There is no subnet defined in this Virtual Private Cloud.
@@ -1031,7 +1049,7 @@ harvester:
       label: VPC Peerings
       localConnectIP:
         label: Local Connect IP
-        placeholder: e.g. 169.254.0.1
+        placeholder: e.g. 169.254.0.1/16
       remoteVpc:
         label: Remote VPC
     
@@ -1100,8 +1118,8 @@ harvester:
       clusterNetwork: Cluster Network
       vlan: VLAN ID
       exclude:
-        label: Exclude
-        placeholder: e.g. 172.16.0.1/32
+        label: Exclude IPs
+        placeholder: e.g. 172.16.0.1
         invalid: '"Exclude list" is invalid.'
         addIp: Add Exclude IP
       warning: 'WARNING: <br/> Any change to storage-network requires shutting down all virtual machines before applying this setting. <br/> Users have to ensure the cluster network is configured and VLAN Configuration will cover all nodes and ensure the network connectivity is working and expected in all nodes.'
