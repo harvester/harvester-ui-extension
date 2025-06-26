@@ -1,34 +1,21 @@
 <script>
 import CruResource from '@shell/components/CruResource';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
-// import LabeledSelect from '@shell/components/form/LabeledSelect';
+import LabeledSelect from '@shell/components/form/LabeledSelect';
+import { LabeledInput } from '@components/Form/LabeledInput';
 import Tab from '@shell/components/Tabbed/Tab';
-// import ArrayListSelect from '@shell/components/form/ArrayListSelect';
+import { NETWORK_ATTACHMENT } from '@shell/config/types';
 import Loading from '@shell/components/Loading';
-// import { Banner } from '@components/Banner';
 import CreateEditView from '@shell/mixins/create-edit-view';
-// import { NODE } from '@shell/config/types';
 import { _CREATE, _VIEW } from '@shell/config/query-params';
-// import { isEmpty, throttle } from 'lodash';
+import Checkbox from '@components/Form/Checkbox/Checkbox';
+import { RadioGroup } from '@components/Form/Radio';
+import { NETWORK_PROTOCOL } from '@pkg/harvester/config/types';
 import { set } from '@shell/utils/object';
-// import { uniq, findBy } from '@shell/utils/array';
-// import ArrayList from '@shell/components/form/ArrayList';
-// import { allHash } from '@shell/utils/promise';
-// import { HOSTNAME } from '@shell/config/labels-annotations';
-// import { matching } from '@shell/utils/selector';
-// import { HCI } from '../../types';
+import ArrayList from '@shell/components/form/ArrayList';
+import { allHash } from '@shell/utils/promise';
+import { HCI } from '../../types';
 import ResourceTabs from '@shell/components/form/ResourceTabs/index';
-
-// const createObject = {
-//   apiVersion: 'harvesterhci.io/v1beta1',
-//   kind:       'Vpc',
-//   metadata:   { name: '', annotations: [] },
-//   type:       HCI.VPC,
-//   spec:       {
-//     staticRoutes: [],
-//     vpcPeerings:  [],
-//   }
-// };
 
 export default {
   name: 'EditSubnet',
@@ -37,8 +24,13 @@ export default {
 
   components: {
     CruResource,
+    LabeledInput,
+    LabeledSelect,
     NameNsDescription,
     Tab,
+    RadioGroup,
+    Checkbox,
+    ArrayList,
     ResourceTabs,
     Loading,
   },
@@ -48,174 +40,117 @@ export default {
   inheritAttrs: false,
 
   data() {
-    set(this.value, 'spec', this.value.spec || {
-      staticRoutes: [],
-      vpcPeerings:  [],
-    });
+    // console.log('this.value = ', this.value);
+    // set(this.value, 'spec', this.value.spec || {
+    //   cidrBlock: '',
+    //   protocol:  NETWORK_PROTOCOL.IPv4,
+    //   provider:  '',
+    //   vpc:       this.$route.query.vpc || '',
+    //   gatewayIP:  '',
+    //   excludeIps: [],
+    //   private:    false
+    // });
 
     return {
-      staticRoutes: [],
-      // defaultStaticRoutes: {
-      //   cidr:      '',
-      //   nextHopIP: [],
-      // },
+      // defaultAddValue: '',
+      // vpc: ,
     };
   },
 
-  // async fetch() {
-  //   const inStore = this.$store.getters['currentProduct'].inStore;
+  created() {
+    if (this.registerBeforeHook) {
+      this.registerBeforeHook(this.validate);
+    }
 
-  //   const hash = {
-  //     linkMonitors: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.LINK_MONITOR }),
-  //     nodes:        this.$store.dispatch(`${ inStore }/findAll`, { type: NODE }),
-  //   };
+    const vpc = this.$route.query.vpc || '';
 
-  //   await allHash(hash);
-  // },
+     set(this.value, 'spec', this.value.spec || {
+      cidrBlock: '',
+      protocol:  NETWORK_PROTOCOL.IPv4,
+      provider:  '',
+      vpc,
+      gatewayIP:  '',
+      excludeIps: [],
+      private:    false
+    });
+  },
+  
+  async fetch() {
+    const inStore = this.$store.getters['currentProduct'].inStore;
+
+    const hash = {
+      vpc: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VPC }),
+      nad: this.$store.dispatch(`${ inStore }/findAll`, { type: NETWORK_ATTACHMENT }),
+    };
+
+    await allHash(hash);
+  },
 
   computed: {
-    modeOverride() {
-      return this.isCreate ? _CREATE : _VIEW;
+    doneLocationOverride() {
+      return this.value.doneOverride;
     },
-    // nodeOptions() {
-    //   const inStore = this.$store.getters['currentProduct'].inStore;
-    //   const nodes = this.$store.getters[`${ inStore }/all`](NODE);
+    
+    tooltip() {
+     this.t('harvester.subnet.private.tooltip', null, true);
+    },
 
-    //   return nodes.filter((n) => n.isEtcd !== 'true').map((node) => {
-    //     return {
-    //       label: node.nameDisplay,
-    //       value: node.id
-    //     };
-    //   });
-    // },
+    protocolOptions(){
+      return Object.values(NETWORK_PROTOCOL);
+    },
+    provider:{
+      get() {
+        const raw = this.value.spec.provider;
+        if (!raw) {
+          return '';
+        }
+        const ns = raw.split('.')[0] || '';
+        const vmNet = raw.split('.')[1] || '';
+        return `${ns}/${vmNet}`; 
+      },
+      set(value) {
+        const ns = value.split('/')[0] || '';
+        const vmNet = value.split('/')[1] || '';
+        const provider = `${vmNet}.${ns}.ovn`;
+        set(this.value, 'spec.provider', provider);
+      }
+    },
 
-    // mtu: {
-    //   get() {
-    //     return this.value?.spec?.uplink?.linkAttributes?.mtu;
-    //   },
+    providerOptions(){
+      console.log('this.value = ', this.value);
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const vmNets = this.$store.getters[`${ inStore }/all`](NETWORK_ATTACHMENT) || []
+      return vmNets.map((n) => ({
+        label: n.id,
+        value: n.id,
+      }));;
+    },
 
-    //   set(value) {
-    //     set(this.value, 'spec.uplink.linkAttributes.mtu', value);
-    //   }
-    // },
-
-    // bondOptionMode: {
-    //   get() {
-    //     return this.value?.spec?.uplink?.bondOptions?.mode;
-    //   },
-
-    //   set(value) {
-    //     set(this.value, 'spec.uplink.bondOptions.mode', value);
-    //   },
-    // },
-
-    // miimon: {
-    //   get() {
-    //     return this.value?.spec?.uplink?.bondOptions?.miimon;
-    //   },
-
-    //   set(value) {
-    //     set(this.value, 'spec.uplink.bondOptions.miimon', value);
-    //   },
-    // },
-
-    // bondOptions() {
-    //   return [
-    //     'balance-rr',
-    //     'active-backup',
-    //     'balance-xor',
-    //     'broadcast',
-    //     '802.3ad',
-    //     'balance-tlb',
-    //     'balance-alb',
-    //   ];
-    // },
-
-    // doneLocationOverride() {
-    //   return this.value.doneOverride;
-    // },
-
-    // nics() {
-    //   const inStore = this.$store.getters['currentProduct'].inStore;
-    //   const linkMonitor = this.$store.getters[`${ inStore }/byId`](HCI.LINK_MONITOR, 'nic') || {};
-    //   const linkStatus = linkMonitor?.status?.linkStatus || {};
-    //   const nodes = this.nodes.map((n) => n.id);
-
-    //   const out = [];
-
-    //   // The node name in the Link monitor is not deleted after the nodes is deleted
-    //   // So the UI needs to filter it first.
-    //   Object.keys(linkStatus).map((nodeName) => {
-    //     if (nodes.includes(nodeName)) {
-    //       const nics = linkStatus[nodeName] || [];
-
-    //       nics.map((nic) => {
-    //         out.push({
-    //           ...nic,
-    //           nodeName,
-    //         });
-    //       });
-    //     }
-    //   });
-
-    //   return out;
-    // },
-
-    // nicOptions() {
-    //   const out = [];
-    //   const map = {};
-
-    //   (this.matchNICs || []).map((nic) => {
-    //     if (nic.masterIndex && !this.originNics.includes(nic.name)) {
-    //       set(map, `${ nic.name }.masterIndex`, true);
-    //     } else if (!findBy(out, 'name', nic.name)) {
-    //       out.push(nic);
-
-    //       set(map, `${ nic.name }.total`, 1);
-    //       set(map, `${ nic.name }.down`, nic.state === 'down' ? 1 : 0);
-    //     } else if (findBy(out, 'name', nic.name)) {
-    //       set(map, `${ nic.name }.total`, map[nic.name].total + 1);
-    //       set(map, `${ nic.name }.down`, nic.state === 'down' ? map[nic.name].down + 1 : map[nic.name].down);
-    //     }
-    //   });
-
-    //   return out.filter((o) => !map[o.name].masterIndex).map((o) => {
-    //     let label = '';
-
-    //     if (map[o.name].down === 0) {
-    //       label = `${ o.name } (Up)`;
-    //     } else if (map[o.name].total === 1) {
-    //       label = `${ o.name } (Down)`;
-    //     } else {
-    //       label = `${ o.name } (${ map[o.name].down }/${ map[o.name].total } Down)`;
-    //     }
-
-    //     return {
-    //       label,
-    //       value:    o.name,
-    //       disabled: map[o.name].down > 0,
-    //     };
-    //   });
-    // },
-
-    // nodes() {
-    //   const inStore = this.$store.getters['currentProduct'].inStore;
-    //   const nodes = this.$store.getters[`${ inStore }/all`](NODE);
-
-    //   return nodes.filter((n) => n.isEtcd !== 'true');
-    // },
+    vpcOptions(){
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const vpcs = this.$store.getters[`${ inStore }/all`](HCI.VPC) || [];
+      return vpcs.map((n) => ({
+        label: n.id,
+        value: n.id,
+      }));
+    }
   },
 
   watch: {
     value: {
       handler(neu) {
-        // const parseDefaultValue = JSON.parse(neu.value);
-
-        // this['parseDefaultValue'] = parseDefaultValue;
+        console.log("🚀 ~ handler ~ neu:", neu.spec)
       },
       deep: true
     }
   },
+  methods:{
+
+    validate(){
+      console.log('call validate')
+      const errors = [];
+    }
+  }
 };
 
 </script>
@@ -244,11 +179,100 @@ export default {
       :side-tabs="true"
     >
       <Tab
-        name="staticRoutes"
-        :label="t('harvester.vpc.staticRoutes.label')"
+        name="Basic"
+        :label="t('generic.basic')"
         :weight="-1"
         class="bordered-table"
       >
+        <div class="row mt-10">
+          <div class="col span-6">
+            <LabeledInput
+              v-model:value="value.spec.cidrBlock"
+              class="mb-20"
+              required
+              :placeholder="t('harvester.subnet.cidrBlock.placeholder')"
+              :label="t('harvester.subnet.cidrBlock.label')"
+              :mode="mode"
+            />
+          </div>
+          <div class="col span-6">
+            <LabeledSelect
+              v-model:value="value.spec.protocol"
+              :label="t('harvester.subnet.protocols.label')"
+              :options="protocolOptions"
+              required
+              :mode="mode"
+            />
+          </div>
+        </div>
+        <div class="row mt-10">
+          <div class="col span-6">
+            <LabeledSelect
+              v-model:value="provider"
+              :label="t('harvester.subnet.provider.label')"
+              :options="providerOptions"
+              required
+              :mode="mode"
+            />
+          </div>
+          <div class="col span-6">
+            <LabeledSelect
+              v-model:value="value.spec.vpc"
+              :label="t('harvester.subnet.vpc.label')"
+              :options="vpcOptions"
+              required
+              :disabled="true"
+              :mode="mode"
+            />
+          </div>
+        </div>
+        <div class="row mt-20">
+          <div class="col span-6">
+            <LabeledInput
+              v-model:value="value.spec.gateway"
+              class="mb-20"
+              :placeholder="t('harvester.subnet.gateway.placeholder')"
+              :label="t('harvester.subnet.gateway.label')"
+              :mode="mode"
+            />
+          </div>
+        </div>
+        <div class="row mt-20">
+          <div class="col span-6">
+            <RadioGroup
+              v-model:value="value.spec.private"
+              name="enabled"
+              :options="[true, false]"
+              :label="t('harvester.subnet.private.label')"
+              :labels="[t('generic.enabled'), t('generic.disabled')]"
+              :mode="mode"
+              tooltip-key="harvester.subnet.private.tooltip"
+            />
+          </div>
+        </div>
+        <ArrayList
+          v-model:value="value.spec.excludeIps"
+          :show-header="true"
+          class="mt-20"
+          :mode="mode"
+          :add-label="t('harvester.setting.storageNetwork.exclude.addIp')"
+        >
+          <template #column-headers>
+            <div class="box">
+              <h3 class="key">
+                {{ t('harvester.setting.storageNetwork.exclude.label') }}
+              </h3>
+            </div>
+          </template>
+          <template #columns="scope">
+            <div class="key">
+              <input
+                v-model="scope.row.value"
+                :placeholder="t('harvester.setting.storageNetwork.exclude.placeholder')"
+              />
+            </div>
+          </template>
+        </ArrayList>
       </Tab>
     </ResourceTabs>
   </CruResource>
@@ -256,7 +280,7 @@ export default {
 
 <style lang="scss" scoped>
 .custom-headers {
-    align-items: center;
+  align-items: center;
 }
 
 </style>
