@@ -1,4 +1,17 @@
 pull_request_rules:
+- name: Automatically open backport PR to release-harvester-v1.6
+  conditions:
+    - base=main
+  actions:
+    backport:
+      branches:
+        - "release-harvester-v1.6"
+      assignees:
+        - "{{ author }}"
+      labels:
+        - "v1.6 backport PR"
+
+pull_request_rules:
 - name: Automatically open backport PR to release-harvester-v1.5
   conditions:
     - base=main
