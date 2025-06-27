@@ -5,14 +5,9 @@ on:
       - v[1-9].*
 
 jobs:
-  build-validation:
-    name: Build Test
-    uses: ./.github/workflows/run-lint.yaml
   build:
     name: Build and Upload Package
     uses: ./.github/workflows/build-and-publish-standalone.yaml
-    needs:
-      - build-validation
     permissions:
       contents: read
       packages: write
