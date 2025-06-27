@@ -84,6 +84,10 @@ export default {
       this.value['_type'] = TYPES.OPAQUE;
     }
 
+    if ( this.realMode === _CLONE) {
+      this.value['_type'] = this.liveValue._type;
+    }
+
     return {
       isCloud,
       nodeDrivers:       null,
