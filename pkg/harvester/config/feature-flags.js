@@ -21,6 +21,7 @@ const FEATURE_FLAGS = {
     'vmSnapshotQuota',
     'longhornV2LVMSupport',
     'improveMaintenanceMode',
+    'upgradeConfigSetting'
   ],
   'v1.4.1': [],
   'v1.4.2': [

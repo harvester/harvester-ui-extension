@@ -34,6 +34,7 @@ export const HCI_SETTING = {
   KUBECONFIG_DEFAULT_TOKEN_TTL_MINUTES:   'kubeconfig-default-token-ttl-minutes',
   LONGHORN_V2_DATA_ENGINE_ENABLED:        'longhorn-v2-data-engine-enabled',
   ADDITIONAL_GUEST_MEMORY_OVERHEAD_RATIO: 'additional-guest-memory-overhead-ratio',
+  UPGRADE_CONFIG:                         'upgrade-config',
 };
 
 export const HCI_ALLOWED_SETTINGS = {
@@ -96,6 +97,12 @@ export const HCI_ALLOWED_SETTINGS = {
     featureFlag:  'longhornV2LVMSupport'
   },
   [HCI_SETTING.ADDITIONAL_GUEST_MEMORY_OVERHEAD_RATIO]: { kind: 'string', from: 'import' },
+  [HCI_SETTING.UPGRADE_CONFIG]:                         {
+    kind:         'json',
+    from:         'import',
+    featureFlag: 'upgradeConfigSetting',
+    docPath:      'UPGRADE_CONFIG_URL'
+  },
 };
 
 export const HCI_SINGLE_CLUSTER_ALLOWED_SETTING = {

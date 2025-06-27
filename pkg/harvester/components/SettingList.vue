@@ -3,7 +3,9 @@ import { mapGetters } from 'vuex';
 import ActionMenu from '@shell/components/ActionMenuShell';
 import { Banner } from '@components/Banner';
 import AsyncButton from '@shell/components/AsyncButton';
-import { HCI_ALLOWED_SETTINGS, HCI_SETTING } from '../config/settings';
+import { HCI_ALLOWED_SETTINGS, HCI_SINGLE_CLUSTER_ALLOWED_SETTING, HCI_SETTING } from '../config/settings';
+import { DOC } from '../config/doc-links';
+import { docLink } from '../utils/feature-flags';
 
 const CATEGORY = {
   ui: [
@@ -96,7 +98,7 @@ export default {
           return true;
         }
 
-        const description = this.t(setting.description, {}, true)?.toLowerCase() || '';
+        const description = this.t(setting.description, this.getDocLinkParams(setting) || {}, true)?.toLowerCase() || '';
 
         // filter by description
         if (description.includes(searchQuery)) {
@@ -193,6 +195,19 @@ export default {
         }
         buttonDone(false);
       }
+    },
+
+    getDocLinkParams(setting) {
+      const settingConfig = HCI_ALLOWED_SETTINGS[setting.id] || HCI_SINGLE_CLUSTER_ALLOWED_SETTING[setting.id];
+
+      if (settingConfig?.docPath) {
+        const version = this.$store.getters['harvester-common/getServerVersion']();
+        const url = docLink(DOC[settingConfig.docPath], version);
+
+        return { url };
+      }
+
+      return {};
     }
   },
 };
@@ -223,7 +238,7 @@ export default {
               Experimental
             </span>
           </h1>
-          <h2 v-clean-html="t(setting.description, {}, true)">
+          <h2 v-clean-html="t(setting.description, getDocLinkParams(setting) || {}, true)">
           </h2>
         </div>
         <div
