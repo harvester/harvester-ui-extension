@@ -22,7 +22,7 @@ jobs:
       - name: Determine release tag
         id: determine_tag
         run: |
-          if [[ "${{ github.ref_name }}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+          if [[ "${{ github.event.release.tag_name }}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
             RELEASE_TAG="harvester-${BASH_REMATCH[1]}"
             echo "${RELEASE_TAG}"
             echo "release_tag=${RELEASE_TAG}" >> $GITHUB_OUTPUT
