@@ -136,10 +136,24 @@ harvester:
       delete: Delete
     bundle:
       title: Generate a Support Bundle
+      titleDescription: Collect system-related logs in Harvester to assist with troubleshooting and support.
+      tip: Each field below specifies an aspect of the support bundle. For detailed explanations, please refer to the <a href="{doc}" target="_blank">documentation</a>.
       url: Issue URL
       description: Description
-      requiredDesc: Description is required!
-      titleDescription: Collect system-related logs in Harvester to help with troubleshooting and support.
+      namespaces:
+        label: Namespaces
+        tooltip: Select additional namespaces to include in the support bundle.<br/>See docs support-bundle-namespaces for detail.
+        selectAll: 'Select All'
+        unselectAll: 'Unselect All'
+      timeout:
+        label: Timeout
+        tooltip: Minutes allows for completion of the support bundle generation process.<br/>See docs support-bundle-timeout for detail.
+      expiration:
+        label: Expiration
+        tooltip: Minutes before deleting packaged but not downloaded support bundle.<br/>See docs support-bundle-expiration for detail.
+      nodeTimeout:
+        label: Node Collection Timeout
+        tooltip: Minutes allowed for collecting logs/configurations on nodes.<br/>See docs support-bundle-node-collection-timeout for detail.
     hotplug:
       success: 'Volume { diskName } is mounted to the virtual machine { vm }.'
       title: Add Volume
@@ -1597,7 +1611,7 @@ advancedSettings:
     'harv-vm-force-reset-policy': Configuration for the force-reset action when a virtual machine is stuck on a node that is down.
     'harv-ssl-parameters': Custom SSL Parameters for TLS validation.
     'harv-storage-network': 'Longhorn storage-network setting.'
-    'harv-support-bundle-namespaces': Specify resources in other namespaces to be collected by the support package.
+    'harv-support-bundle-namespaces': Select additional namespaces to include in the support bundle.
     'harv-auto-disk-provision-paths': Specify the disks(using glob pattern) that Harvester will automatically add as virtual machine storage.
     'harv-support-bundle-image': Support bundle image configuration. Find different versions in <a href="https://hub.docker.com/r/rancher/support-bundle-kit/tags" target="_blank">rancher/support-bundle-kit</a>.
     'harv-release-download-url': This setting allows you to configure the <code>upgrade release download</code> URL address. Harvester will get the ISO URL and checksum value from the (<code>$URL</code>/<code>$VERSION</code>/version.yaml) file hosted by the configured URL.
