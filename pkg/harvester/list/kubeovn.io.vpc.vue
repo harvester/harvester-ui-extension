@@ -7,42 +7,6 @@ import { allHash } from '@shell/utils/promise';
 import { HCI } from '../types';
 import { VPC } from '../config/query-params';
 
-// const schema = {
-//   id:         HCI.VPC,
-//   type:       SCHEMA,
-//   attributes: {
-//     kind:       HCI.VPC,
-//     namespaced: true
-//   },
-//   metadata: { name: HCI.VPC },
-// };
-
-// export const NETWORK_HEADERS = [
-//   NAME,
-//   NAMESPACE,
-//   {
-//     name:     'type',
-//     value:    'vlanType',
-//     sort:     'spec.config',
-//     labelKey: 'tableHeaders.networkType'
-//   },
-//   // {
-//   //   name:     'vlan',
-//   //   value:    'vlanId',
-//   //   sort:     'spec.config',
-//   //   labelKey: 'tableHeaders.networkVlan'
-//   // },
-//   // {
-//   //   name:          'connectivity',
-//   //   value:         'connectivity',
-//   //   labelKey:      'tableHeaders.routeConnectivity',
-//   //   formatter:     'BadgeStateFormatter',
-//   //   formatterOpts: { arbitrary: true },
-//   //   width:         130,
-//   // },
-//   AGE
-// ];
-
 export default {
   name: 'HarvesterVPC',
 
@@ -148,14 +112,6 @@ export default {
   },
   methods: {
     groupLabel(group) {
-      // console.log("🚀 ~ groupLabel ~ group:", group)
-      // const row = group.rows[0];
-      // console.log("🚀 ~ groupLabel ~ row:", row)
-      // // no subne rows
-      // if (row.isFake) {
-      //   return `${ this.t('harvester.vpc.label') }: ${ row.nameDisplay }`;
-      // }
-
       return `${ this.t('harvester.vpc.label') }: ${ group.key }`;
     },
 

@@ -36,24 +36,6 @@ export default {
 
   inheritAttrs: false,
 
-  // data() {
-  //   // console.log('this.value = ', this.value);
-  //   // set(this.value, 'spec', this.value.spec || {
-  //   //   cidrBlock: '',
-  //   //   protocol:  NETWORK_PROTOCOL.IPv4,
-  //   //   provider:  '',
-  //   //   vpc:       this.$route.query.vpc || '',
-  //   //   gatewayIP:  '',
-  //   //   excludeIps: [],
-  //   //   private:    false
-  //   // });
-
-  //   return {
-  //     // defaultAddValue: '',
-  //     // vpc: ,
-  //   };
-  // },
-
   created() {
     if (this.registerBeforeHook) {
       this.registerBeforeHook(this.validate);
@@ -95,6 +77,7 @@ export default {
     protocolOptions() {
       return Object.values(NETWORK_PROTOCOL);
     },
+
     provider: {
       get() {
         const raw = this.value.spec.provider;
@@ -137,18 +120,24 @@ export default {
     }
   },
 
-  // watch: {
-  //   value: {
-  //     handler(neu) {
-  //       console.log("🚀 ~ handler ~ neu:", neu.spec)
-  //     },
-  //     deep: true
-  //   }
-  // },
   methods: {
     validate() {
-      // console.log('call validate');
       const errors = [];
+      const name = this.value?.metadata?.name;
+
+      if (!name) {
+        errors.push(this.t('validation.required', { key: this.t('generic.name') }, true));
+      } else if (!this.value?.spec?.cidrBlock) {
+        errors.push(this.t('validation.required', { key: this.t('harvester.subnet.provider.label') }, true));
+      } else if (!this.value?.spec?.provider) {
+        errors.push(this.t('validation.required', { key: this.t('harvester.subnet.cidrBlock.label') }, true));
+      }
+
+      if (errors.length > 0) {
+        return Promise.reject(errors);
+      } else {
+        return Promise.resolve();
+      }
     }
   }
 };
@@ -284,10 +273,3 @@ export default {
     </ResourceTabs>
   </CruResource>
 </template>
-
-<style lang="scss" scoped>
-.custom-headers {
-  align-items: center;
-}
-
-</style>

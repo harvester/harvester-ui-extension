@@ -195,7 +195,6 @@ export default {
         this.value.setAnnotation(HCI_LABELS_ANNOTATIONS.NETWORK_ROUTE, JSON.stringify(this.layer3Network));
       }
 
-      // console.log('call this.save, this.value=', this.value);
       await this.save(buttonCb);
     },
 
