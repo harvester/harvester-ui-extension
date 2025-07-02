@@ -17,4 +17,4 @@ export const VOLUME_MODE = {
 export const NETWORK_PROTOCOL = {
   IPv4: 'IPv4',
   IPv6: 'IPv6',
-}
+};

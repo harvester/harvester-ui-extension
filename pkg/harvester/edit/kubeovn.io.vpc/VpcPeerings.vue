@@ -62,13 +62,16 @@ export default {
     remoteVpcOptions() {
       const allVpcs = this.$store.getters['harvester/all'](HCI.VPC) || [];
 
-      // filter self-vpc if editing
+      // filter self vpc if editing
       const vpcs = this.isEdit ? allVpcs.filter((v) => v.id !== this.vpc.id) : allVpcs;
 
       return vpcs.map((n) => ({
         label: n.id,
         value: n.id,
       }));
+    },
+    localConnectIPTooltip() {
+      return this.t('harvester.vpc.vpcPeerings.localConnectIP.tooltip');
     },
   },
 
@@ -113,6 +116,12 @@ export default {
         <div class="pool-headers localConnectIP">
           <span class="pool-localConnectIP">
             <t k="harvester.vpc.vpcPeerings.localConnectIP.label" />
+            <i
+              v-clean-tooltip="{content: localConnectIPTooltip, triggers: ['hover', 'touch', 'focus'] }"
+              v-stripped-aria-label="localConnectPTooltip"
+              class="icon icon-info"
+              tabindex="0"
+            />
           </span>
           <span class="pool-remoteVpc">
             <t k="harvester.vpc.vpcPeerings.remoteVpc.label" />
