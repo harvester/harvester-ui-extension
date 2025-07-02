@@ -1017,11 +1017,13 @@ harvester:
 
   subnet: 
     cidrBlock:
+      tooltip: The subnet range in CIDR notation. Note that the CIDR blocks of different Subnets' within the same VPC cannot overlap.
       label: CIDR Block
       placeholder: e.g. 172.20.0.0/16
     protocols:
       label: Protocols
     provider:
+      tooltip: Network provider for this Subnet. Must be one of the Virtual Machine Networks.
       label: Provider
     vpc:
       label: Virtual Private Cloud
@@ -1030,8 +1032,9 @@ harvester:
       placeholder: e.g. 172.20.0.1
     private:
       label: Private Subnet
-      tooltip: Enable this subnet to connect to other subnet under the same VPC
-    
+      tooltip: Enable network isolation for this Subnet. When enabled, VMs can only communicate within this subnet, even if other subnets exist under the same VPC.
+    excludeIPs:
+      tooltip: The IP address list to reserve from automatic assignment. The gateway IP address is always excluded and will be automatically added to the list.
   
   vpc:
     label: Virtual Private Cloud
@@ -1043,11 +1046,13 @@ harvester:
         label: CIDR
         placeholder: e.g. 172.16.0.0/16
       nextHopIP:
+        tooltip: The localConnectIP on the other end of the peering VPC.
         label: Next Hop IP
         placeholder: e.g. 169.254.0.2
     vpcPeerings:
       label: VPC Peerings
       localConnectIP:
+        tooltip:  The designated IP address in CIDR notation of the VPC peering endpoint. Note that both IP addresses (for the VPC and the other VPC) should belong to the same subnet range and should not conflict with the cidrBlock in any existing subnets.
         label: Local Connect IP
         placeholder: e.g. 169.254.0.1/16
       remoteVpc:

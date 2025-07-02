@@ -42,6 +42,9 @@ export default {
     showRemove() {
       return !this.isView;
     },
+    nextHopIPTooltip() {
+      return this.t('harvester.vpc.staticRoutes.nextHopIP.tooltip');
+    },
   },
 
   created() {
@@ -89,11 +92,15 @@ export default {
           </span>
           <span class="pool-nextHopIP">
             <t k="harvester.vpc.staticRoutes.nextHopIP.label" />
+            <i
+              v-clean-tooltip="{content: nextHopIPTooltip, triggers: ['hover', 'touch', 'focus'] }"
+              v-stripped-aria-label="nextHopIPTooltip"
+              class="icon icon-info"
+              tabindex="0"
+            />
           </span>
         </div>
-        <div
-          class="pool-row cidr"
-        >
+        <div class="pool-row cidr">
           <div class="pool-cidr">
             <span v-if="isView">
               {{ row.cidr }}

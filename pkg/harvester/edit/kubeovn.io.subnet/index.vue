@@ -7,8 +7,6 @@ import Tab from '@shell/components/Tabbed/Tab';
 import { NETWORK_ATTACHMENT } from '@shell/config/types';
 import Loading from '@shell/components/Loading';
 import CreateEditView from '@shell/mixins/create-edit-view';
-import { _CREATE, _VIEW } from '@shell/config/query-params';
-import Checkbox from '@components/Form/Checkbox/Checkbox';
 import { RadioGroup } from '@components/Form/Radio';
 import { NETWORK_PROTOCOL } from '@pkg/harvester/config/types';
 import { set } from '@shell/utils/object';
@@ -29,7 +27,6 @@ export default {
     NameNsDescription,
     Tab,
     RadioGroup,
-    Checkbox,
     ArrayList,
     ResourceTabs,
     Loading,
@@ -39,23 +36,23 @@ export default {
 
   inheritAttrs: false,
 
-  data() {
-    // console.log('this.value = ', this.value);
-    // set(this.value, 'spec', this.value.spec || {
-    //   cidrBlock: '',
-    //   protocol:  NETWORK_PROTOCOL.IPv4,
-    //   provider:  '',
-    //   vpc:       this.$route.query.vpc || '',
-    //   gatewayIP:  '',
-    //   excludeIps: [],
-    //   private:    false
-    // });
+  // data() {
+  //   // console.log('this.value = ', this.value);
+  //   // set(this.value, 'spec', this.value.spec || {
+  //   //   cidrBlock: '',
+  //   //   protocol:  NETWORK_PROTOCOL.IPv4,
+  //   //   provider:  '',
+  //   //   vpc:       this.$route.query.vpc || '',
+  //   //   gatewayIP:  '',
+  //   //   excludeIps: [],
+  //   //   private:    false
+  //   // });
 
-    return {
-      // defaultAddValue: '',
-      // vpc: ,
-    };
-  },
+  //   return {
+  //     // defaultAddValue: '',
+  //     // vpc: ,
+  //   };
+  // },
 
   created() {
     if (this.registerBeforeHook) {
@@ -64,17 +61,17 @@ export default {
 
     const vpc = this.$route.query.vpc || '';
 
-     set(this.value, 'spec', this.value.spec || {
-      cidrBlock: '',
-      protocol:  NETWORK_PROTOCOL.IPv4,
-      provider:  '',
+    set(this.value, 'spec', this.value.spec || {
+      cidrBlock:  '',
+      protocol:   NETWORK_PROTOCOL.IPv4,
+      provider:   '',
       vpc,
       gatewayIP:  '',
       excludeIps: [],
       private:    false
     });
   },
-  
+
   async fetch() {
     const inStore = this.$store.getters['currentProduct'].inStore;
 
@@ -90,45 +87,49 @@ export default {
     doneLocationOverride() {
       return this.value.doneOverride;
     },
-    
-    tooltip() {
-     this.t('harvester.subnet.private.tooltip', null, true);
+
+    excludeIPsTooltip() {
+      return this.t('harvester.subnet.excludeIPs.tooltip', null, true);
     },
 
-    protocolOptions(){
+    protocolOptions() {
       return Object.values(NETWORK_PROTOCOL);
     },
-    provider:{
+    provider: {
       get() {
         const raw = this.value.spec.provider;
+
         if (!raw) {
           return '';
         }
         const ns = raw.split('.')[0] || '';
         const vmNet = raw.split('.')[1] || '';
-        return `${ns}/${vmNet}`; 
+
+        return `${ ns }/${ vmNet }`;
       },
       set(value) {
         const ns = value.split('/')[0] || '';
         const vmNet = value.split('/')[1] || '';
-        const provider = `${vmNet}.${ns}.ovn`;
+        const provider = `${ vmNet }.${ ns }.ovn`;
+
         set(this.value, 'spec.provider', provider);
       }
     },
 
-    providerOptions(){
-      console.log('this.value = ', this.value);
+    providerOptions() {
       const inStore = this.$store.getters['currentProduct'].inStore;
-      const vmNets = this.$store.getters[`${ inStore }/all`](NETWORK_ATTACHMENT) || []
+      const vmNets = this.$store.getters[`${ inStore }/all`](NETWORK_ATTACHMENT) || [];
+
       return vmNets.map((n) => ({
         label: n.id,
         value: n.id,
-      }));;
+      }));
     },
 
-    vpcOptions(){
+    vpcOptions() {
       const inStore = this.$store.getters['currentProduct'].inStore;
       const vpcs = this.$store.getters[`${ inStore }/all`](HCI.VPC) || [];
+
       return vpcs.map((n) => ({
         label: n.id,
         value: n.id,
@@ -136,18 +137,17 @@ export default {
     }
   },
 
-  watch: {
-    value: {
-      handler(neu) {
-        console.log("🚀 ~ handler ~ neu:", neu.spec)
-      },
-      deep: true
-    }
-  },
-  methods:{
-
-    validate(){
-      console.log('call validate')
+  // watch: {
+  //   value: {
+  //     handler(neu) {
+  //       console.log("🚀 ~ handler ~ neu:", neu.spec)
+  //     },
+  //     deep: true
+  //   }
+  // },
+  methods: {
+    validate() {
+      // console.log('call validate');
       const errors = [];
     }
   }
@@ -211,6 +211,7 @@ export default {
               v-model:value="provider"
               :label="t('harvester.subnet.provider.label')"
               :options="providerOptions"
+              :tooltip="t('harvester.subnet.provider.tooltip')"
               required
               :mode="mode"
             />
@@ -261,6 +262,12 @@ export default {
             <div class="box">
               <h3 class="key">
                 {{ t('harvester.setting.storageNetwork.exclude.label') }}
+                <i
+                  v-clean-tooltip="{content: excludeIPsTooltip, triggers: ['hover', 'touch', 'focus'] }"
+                  v-stripped-aria-label="excludeIPsTooltip"
+                  class="icon icon-info"
+                  tabindex="0"
+                />
               </h3>
             </div>
           </template>
