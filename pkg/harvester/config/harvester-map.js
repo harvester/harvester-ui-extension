@@ -70,6 +70,7 @@ export const ADD_ONS = {
   RANCHER_MONITORING:               'rancher-monitoring',
   VM_IMPORT_CONTROLLER:             'vm-import-controller',
   LVM_DRIVER:                       'lvm.driver.harvesterhci.io',
+  KUBEOVN_OPERATOR:                 'kubeovn-operator',
 };
 
 export const CSI_SECRETS = {

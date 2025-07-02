@@ -396,6 +396,8 @@ harvester:
       ruleFileTip: 'The file you have chosen ends in an extension that we do not support. We only accept image files that end in .img, .iso, .qcow, .qcow2, .raw.'
     hash:
       sha512: 'Invalid SHA512 checksum.'
+    subnet:
+      excludeIps: 'Exclude IPs cannot be empty. Please remove or fill in the exclude IPs.'
 
   dashboard:
     label: Dashboard
@@ -1035,8 +1037,12 @@ harvester:
       tooltip: Enable network isolation for this Subnet. When enabled, VMs can only communicate within this subnet, even if other subnets exist under the same VPC.
     excludeIPs:
       tooltip: The IP address list to reserve from automatic assignment. The gateway IP address is always excluded and will be automatically added to the list.
-  
+
   vpc:
+    noAddonEnabled:
+      prefix: The kubeovn-operator add-on is not enabled, click
+      middle: here
+      suffix: to enable the add-on to successfully create VPC and subnet.
     label: Virtual Private Cloud
     noChild: There is no subnet defined in this Virtual Private Cloud.
     createSubnet: Create Subnet
@@ -1409,7 +1415,7 @@ harvester:
     create:
       button:
         label: Create a Cluster Network
-    clusterNetwork: mgmtmgmtmgmt
+    clusterNetwork: There are no network configurations defined.
     mgmt: mgmt is a built-in cluster management network and does not support any additional network configurations.
     notExist: 'Cluster Network "{ clusterNetwork }" does not exist'
     notReady: 'Cluster Network "{ clusterNetwork }" is not ready'
