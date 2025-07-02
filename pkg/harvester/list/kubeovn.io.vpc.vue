@@ -3,45 +3,12 @@ import Loading from '@shell/components/Loading';
 import ResourceTable from '@shell/components/ResourceTable';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
 import { NAME, AGE, NAMESPACE, STATE } from '@shell/config/table-headers';
-import { allHash } from '@shell/utils/promise';
 import { HCI } from '../types';
 import { VPC } from '../config/query-params';
-
-// const schema = {
-//   id:         HCI.VPC,
-//   type:       SCHEMA,
-//   attributes: {
-//     kind:       HCI.VPC,
-//     namespaced: true
-//   },
-//   metadata: { name: HCI.VPC },
-// };
-
-// export const NETWORK_HEADERS = [
-//   NAME,
-//   NAMESPACE,
-//   {
-//     name:     'type',
-//     value:    'vlanType',
-//     sort:     'spec.config',
-//     labelKey: 'tableHeaders.networkType'
-//   },
-//   // {
-//   //   name:     'vlan',
-//   //   value:    'vlanId',
-//   //   sort:     'spec.config',
-//   //   labelKey: 'tableHeaders.networkVlan'
-//   // },
-//   // {
-//   //   name:          'connectivity',
-//   //   value:         'connectivity',
-//   //   labelKey:      'tableHeaders.routeConnectivity',
-//   //   formatter:     'BadgeStateFormatter',
-//   //   formatterOpts: { arbitrary: true },
-//   //   width:         130,
-//   // },
-//   AGE
-// ];
+import { ADD_ONS } from '../config/harvester-map';
+import { allHash } from '@shell/utils/promise';
+import MessageLink from '@shell/components/MessageLink';
+import Banner from '@components/Banner/Banner.vue';
 
 export default {
   name: 'HarvesterVPC',
@@ -49,6 +16,8 @@ export default {
   components: {
     ResourceTable,
     Loading,
+    MessageLink,
+    Banner
   },
 
   inheritAttrs: false,
@@ -61,21 +30,32 @@ export default {
   },
 
   async fetch() {
-    const _hash = {};
+    const inStore = this.$store.getters['currentProduct'].inStore;
+    const hash = await allHash({ addons: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.ADD_ONS }) });
 
-    if (this.$store.getters[`harvester/schemaFor`](HCI.SUBNET)) {
-      _hash.rows = this.$store.dispatch(`harvester/findAll`, { type: HCI.SUBNET });
+    this.enabledKubeOvnAddon = hash.addons.find((addon) => addon.name === ADD_ONS.KUBEOVN_OPERATOR)?.spec?.enabled === true;
+
+    if (this.enabledKubeOvnAddon) {
+      try {
+        await allHash({
+          rows: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.SUBNET }),
+          vpcs: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VPC }),
+        });
+        this.$store.dispatch('type-map/configureType', { match: HCI.SUBNET, isCreatable: this.enabledKubeOvnAddon });
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error('Error fetching VPC and Subnet data:', e);
+      }
     }
-
-    if (this.$store.getters[`harvester/schemaFor`](HCI.VPC)) {
-      _hash.vpcs = this.$store.dispatch(`harvester/findAll`, { type: HCI.VPC });
-    }
-
-    await allHash(_hash);
   },
 
   data() {
-    return { HCI };
+    return {
+      HCI,
+      hasBothSchema:       false,
+      enabledKubeOvnAddon: false,
+      to:                  `${ HCI.ADD_ONS }/kube-system/${ ADD_ONS.KUBEOVN_OPERATOR }?mode=edit`
+    };
   },
 
   computed: {
@@ -148,14 +128,6 @@ export default {
   },
   methods: {
     groupLabel(group) {
-      // console.log("🚀 ~ groupLabel ~ group:", group)
-      // const row = group.rows[0];
-      // console.log("🚀 ~ groupLabel ~ row:", row)
-      // // no subne rows
-      // if (row.isFake) {
-      //   return `${ this.t('harvester.vpc.label') }: ${ row.nameDisplay }`;
-      // }
-
       return `${ this.t('harvester.vpc.label') }: ${ group.key }`;
     },
 
@@ -199,6 +171,16 @@ export default {
 
 <template>
   <Loading v-if="$fetchState.pending" />
+  <div v-else-if="!enabledKubeOvnAddon">
+    <Banner color="warning">
+      <MessageLink
+        :to="to"
+        prefix-label="harvester.vpc.noAddonEnabled.prefix"
+        middle-label="harvester.vpc.noAddonEnabled.middle"
+        suffix-label="harvester.vpc.noAddonEnabled.suffix"
+      />
+    </Banner>
+  </div>
   <div v-else>
     <Masthead
       :schema="vpcSchema"

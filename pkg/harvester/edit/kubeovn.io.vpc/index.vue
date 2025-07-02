@@ -4,12 +4,10 @@ import NameNsDescription from '@shell/components/form/NameNsDescription';
 import Tab from '@shell/components/Tabbed/Tab';
 import Loading from '@shell/components/Loading';
 import CreateEditView from '@shell/mixins/create-edit-view';
-import { _CREATE, _VIEW } from '@shell/config/query-params';
-import { set } from '@shell/utils/object';
-// import { HCI } from '../../types';
 import ResourceTabs from '@shell/components/form/ResourceTabs/index';
 import StaticRoutes from './StaticRoutes';
 import VpcPeerings from './VpcPeerings';
+import { set } from '@shell/utils/object';
 
 export default {
   name: 'EditVPC',
@@ -30,6 +28,11 @@ export default {
 
   inheritAttrs: false,
 
+  created() {
+    if (this.registerBeforeHook) {
+      this.registerBeforeHook(this.validate);
+    }
+  },
   data() {
     set(this.value, 'spec', this.value.spec || {
       staticRoutes: [],
@@ -39,22 +42,22 @@ export default {
     return { staticRoutes: [] };
   },
 
-  computed: {
-    modeOverride() {
-      return this.isCreate ? _CREATE : _VIEW;
+  methods: {
+    validate() {
+      const errors = [];
+      const name = this.value?.metadata?.name;
+
+      if (!name) {
+        errors.push(this.t('validation.required', { key: this.t('generic.name') }, true));
+      }
+
+      if (errors.length > 0) {
+        return Promise.reject(errors);
+      } else {
+        return Promise.resolve();
+      }
     },
   },
-
-  // watch: {
-  //   value: {
-  //     handler(neu) {
-  //       // const parseDefaultValue = JSON.parse(neu.value);
-
-  //       // this['parseDefaultValue'] = parseDefaultValue;
-  //     },
-  //     deep: true
-  //   }
-  // },
 };
 
 </script>
@@ -110,10 +113,3 @@ export default {
     </ResourceTabs>
   </CruResource>
 </template>
-
-<style lang="scss" scoped>
-.custom-headers {
-    align-items: center;
-}
-
-</style>

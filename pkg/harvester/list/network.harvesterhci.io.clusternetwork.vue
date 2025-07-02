@@ -4,6 +4,7 @@ import ResourceTable from '@shell/components/ResourceTable';
 import Masthead from '@shell/components/ResourceList/Masthead';
 import { allHash } from '@shell/utils/promise';
 import { STATE, AGE, NAME } from '@shell/config/table-headers';
+import { mapPref, GROUP_RESOURCES } from '@shell/store/prefs';
 import { NODE } from '@shell/config/types';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
 import { CLUSTER_NETWORK } from '../config/query-params';
@@ -34,6 +35,7 @@ export default {
   },
 
   computed: {
+    groupPreference: mapPref(GROUP_RESOURCES),
     headers() {
       return [
         STATE,

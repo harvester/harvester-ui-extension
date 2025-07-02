@@ -2,8 +2,8 @@
 import debounce from 'lodash/debounce';
 import { _EDIT, _VIEW } from '@shell/config/query-params';
 import { removeAt } from '@shell/utils/array';
-import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { HCI } from '../../types';
+import LabeledSelect from '@shell/components/form/LabeledSelect';
 
 export default {
   name: 'VpcPeerings',

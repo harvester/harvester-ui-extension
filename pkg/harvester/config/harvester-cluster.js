@@ -557,12 +557,13 @@ export function init($plugin, store) {
     labelKey:   'harvester.vpc.label',
     name:       HCI.VPC,
     namespaced: true,
-    weight:     188,
+    weight:     187,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.VPC }
     },
-    exact: false
+    exact:      false,
+    ifHaveType: HCI.VPC,
   });
 
   configureType(HCI.SNAPSHOT, {
