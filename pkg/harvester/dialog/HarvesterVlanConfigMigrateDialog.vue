@@ -73,8 +73,10 @@ export default {
 
         data.spec.clusterNetwork = this.clusterNetwork;
 
+        const url = this.$store.getters['harvester-common/getHarvesterClusterUrl'](`v1/harvester/${ HCI.VLAN_CONFIG }s/${ data.id }`);
+
         await this.$store.dispatch('harvester/request', {
-          url:    `/v1/harvester/${ HCI.VLAN_CONFIG }s/${ data.id }`,
+          url,
           method: 'PUT',
           data,
         });
