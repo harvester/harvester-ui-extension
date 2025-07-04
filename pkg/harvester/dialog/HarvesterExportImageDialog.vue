@@ -10,6 +10,7 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { NAMESPACE, STORAGE_CLASS } from '@shell/config/types';
 import { allHash } from '@shell/utils/promise';
+import { INTERNAL_STORAGE_CLASS } from '../config/types';
 
 export default {
   name: 'HarvesterExportImageDialog',
@@ -105,11 +106,18 @@ export default {
       }
 
       const options = storages.filter((s) => !s.parameters?.backingImage).map((s) => {
-        const label = s.isDefault ? `${ s.name } (${ this.t('generic.default') })` : s.name;
+        let label = s.isDefault ? `${ s.name } (${ this.t('generic.default') })` : s.name;
+        const isInternal = s.metadata?.name === INTERNAL_STORAGE_CLASS.VMSTATE_PERSISTENCE ||
+                           s.metadata?.name === INTERNAL_STORAGE_CLASS.LONGHORN_STATIC;
+
+        if (isInternal) {
+          label += ` (${ this.t('harvester.storage.internal.label') })`;
+        }
 
         return {
           label,
-          value: s.name,
+          value:    s.name,
+          disabled: isInternal,
         };
       }) || [];
 

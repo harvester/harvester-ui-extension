@@ -13,6 +13,7 @@ import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
 import HarvesterResource from './harvester';
 import { CSI_SECRETS } from '@pkg/harvester/config/harvester-map';
 import { UNIT_SUFFIX } from '../utils/unit';
+import { INTERNAL_STORAGE_CLASS } from '../config/types';
 
 const {
   CSI_PROVISIONER_SECRET_NAME,
@@ -37,6 +38,15 @@ function isReady() {
   }
 }
 export default class HciVmImage extends HarvesterResource {
+  isInternalStorageClass() {
+    const name = this.status?.storageClassName ||
+                 this.spec?.targetStorageClassName ||
+                 this.metadata?.annotations?.['harvesterhci.io/storageClassName'];
+
+    return name === INTERNAL_STORAGE_CLASS.VMSTATE_PERSISTENCE ||
+           name === INTERNAL_STORAGE_CLASS.LONGHORN_STATIC;
+  }
+
   get availableActions() {
     let out = super._availableActions;
     const toFilter = ['goToEditYaml'];
@@ -46,6 +56,17 @@ export default class HciVmImage extends HarvesterResource {
     // show `Clone` only when imageSource is `download`
     if (this.imageSource !== 'download') {
       out = out.filter(({ action }) => action !== 'goToClone');
+    }
+
+    // Disable delete for internal storage class images
+    if (this.isInternalStorageClass()) {
+      out = out.map((action) => {
+        if (action.action === 'promptRemove') {
+          return { ...action, enabled: false };
+        }
+
+        return action;
+      });
     }
 
     const schema = this.$getters['schemaFor'](HCI.VM);
