@@ -3,6 +3,8 @@ import ResourceTable from '@shell/components/ResourceTable';
 import { Banner } from '@components/Banner';
 import { defaultTableSortGenerationFn } from '@shell/components/ResourceTable.vue';
 import FilterLabel from '../components/FilterLabel';
+import { HCI as HCI_ANNOTATIONS } from '../config/labels-annotations';
+import { isInternalStorageClass } from '../utils/storage-class';
 
 export default {
   name: 'ListHarvesterImage',
@@ -53,6 +55,13 @@ export default {
 
       return base;
     },
+
+    isInternalStorageClass(row) {
+      const name = row?.spec?.targetStorageClassName ||
+                   row?.metadata?.annotations?.[HCI_ANNOTATIONS.STORAGE_CLASS];
+
+      return isInternalStorageClass(name);
+    },
   }
 };
 </script>
@@ -80,15 +89,22 @@ export default {
       </template>
       <template #col:name="{row}">
         <td>
-          <span>
+          <span style="display: inline-flex; align-items: center;">
             <router-link
               v-if="row?.detailLocation"
               :to="row.detailLocation"
+              style="display: inline-flex; align-items: center;"
             >
               {{ row.nameDisplay }}
               <i
+                v-if="isInternalStorageClass(row)"
+                v-clean-tooltip="t('harvester.storage.internal.cannotDeleteTooltip')"
+                class="icon icon-info text-info"
+                style="margin-left: 0.4em;"
+              />
+              <i
                 v-if="row.isEncrypted"
-                class="icon icon-lock"
+                class="icon icon-lock ml-2"
               />
               <i
                 v-if="row.isImportedImage"
@@ -98,6 +114,12 @@ export default {
             </router-link>
             <span v-else>
               {{ row.nameDisplay }}
+              <i
+                v-if="isInternalStorageClass(row)"
+                v-clean-tooltip="t('harvester.storage.internal.cannotDeleteTooltip')"
+                class="icon icon-info text-info"
+                style="margin-left: 0.4em;"
+              />
             </span>
           </span>
         </td>
