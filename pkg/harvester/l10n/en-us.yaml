@@ -878,6 +878,8 @@ harvester:
         uploading: "{name} is uploading, please do not refresh or close the page."
     checksum: Checksum
     checksumTip: Validate the image using the SHA512 checksum, if specified.
+    tooltip:
+      imported: Created automatically by the vm-import-controller
 
   vmTemplate:
     label: Templates

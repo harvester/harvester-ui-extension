@@ -69,5 +69,6 @@ export const HCI = {
   DISABLE_LONGHORN_V2_ENGINE:       'node.longhorn.io/disable-v2-data-engine',
   K8S_ARCH:                         'kubernetes.io/arch',
   IMAGE_DISPLAY_NAME:               'harvesterhci.io/imageDisplayName',
-  CUSTOM_IP:                        'harvesterhci.io/custom-ip'
+  CUSTOM_IP:                        'harvesterhci.io/custom-ip',
+  IMPORTED_IMAGE:                   'migration.harvesterhci.io/imported'
 };

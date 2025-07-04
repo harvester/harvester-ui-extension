@@ -105,8 +105,9 @@ export default {
         })
         .sort((a, b) => (a.creationTimestamp > b.creationTimestamp ? -1 : 1))
         .map((image) => ({
-          label: this.imageOptionLabel(image),
-          value: image.id,
+          label:    this.imageOptionLabel(image),
+          value:    image.id,
+          disabled: image.isImportedImage
         }));
     },
 

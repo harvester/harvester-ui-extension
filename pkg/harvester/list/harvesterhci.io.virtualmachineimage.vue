@@ -90,6 +90,11 @@ export default {
                 v-if="row.isEncrypted"
                 class="icon icon-lock"
               />
+              <i
+                v-if="row.isImportedImage"
+                v-clean-tooltip="t('harvester.image.tooltip.imported')"
+                class="icon icon-info"
+              />
             </router-link>
             <span v-else>
               {{ row.nameDisplay }}
