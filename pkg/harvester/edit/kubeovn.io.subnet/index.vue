@@ -37,10 +37,6 @@ export default {
   inheritAttrs: false,
 
   created() {
-    if (this.registerBeforeHook) {
-      this.registerBeforeHook(this.validate);
-    }
-
     const vpc = this.$route.query.vpc || '';
 
     set(this.value, 'spec', this.value.spec || {
@@ -121,39 +117,35 @@ export default {
   },
 
   methods: {
-    validate() {
+    async saveSubnet(buttonCb) {
       const errors = [];
       const name = this.value?.metadata?.name;
 
-      if (!name) {
-        errors.push(this.t('validation.required', { key: this.t('generic.name') }, true));
-      } else if (!this.value?.spec?.cidrBlock) {
-        errors.push(this.t('validation.required', { key: this.t('harvester.subnet.cidrBlock.label') }, true));
-      } else if (!this.value?.spec?.provider) {
-        errors.push(this.t('validation.required', { key: this.t('harvester.subnet.provider.label') }, true));
-      } else if (this.value.spec.excludeIps.includes('')) {
-        errors.push(this.t('harvester.validation.subnet.excludeIps'));
-      }
+      try {
+        if (!name) {
+          errors.push(this.t('validation.required', { key: this.t('generic.name') }, true));
+        } else if (!this.value?.spec?.cidrBlock) {
+          errors.push(this.t('validation.required', { key: this.t('harvester.subnet.cidrBlock.label') }, true));
+        } else if (!this.value?.spec?.provider) {
+          errors.push(this.t('validation.required', { key: this.t('harvester.subnet.provider.label') }, true));
+        } else if (this.value.spec.excludeIps.includes('')) {
+          errors.push(this.t('harvester.validation.subnet.excludeIps'));
+        }
 
-      if (errors.length > 0) {
-        return Promise.reject(errors);
-      } else {
-        return Promise.resolve();
+        if (errors.length > 0) {
+          buttonCb(false);
+          this.errors = errors;
+
+          return false;
+        }
+        await this.value.save();
+        buttonCb(true);
+        this.done();
+      } catch (e) {
+        this.errors = [e];
+        buttonCb(false);
       }
     },
-    //  async saveSubnet(buttonCb) {
-    //   try {
-    //     this.value.spec.excludeIps = this.value.spec.excludeIps.filter((ip) => {
-    //         return ip && ip.trim() !== '';
-    //     });
-    //     await this.save(buttonCb);
-    //     console.log('this.value.spec=',this.value.spec)
-    //   } catch(e) {
-    //     console.error('Error saving subnet:', e);
-    //     buttonCb(false);
-    //     // this.errors = [this.t('generic.errorOccurred')];
-    //   }
-    // },
   },
 };
 
@@ -168,7 +160,7 @@ export default {
     :mode="mode"
     :apply-hooks="applyHooks"
     :errors="errors"
-    @finish="save"
+    @finish="saveSubnet"
     @error="e=>errors=e"
   >
     <NameNsDescription
@@ -179,6 +171,8 @@ export default {
     />
     <ResourceTabs
       class="mt-15"
+      :need-events="false"
+      :need-related="false"
       :mode="mode"
       :side-tabs="true"
     >
