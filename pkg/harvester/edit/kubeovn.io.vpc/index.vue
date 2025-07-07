@@ -28,11 +28,6 @@ export default {
 
   inheritAttrs: false,
 
-  created() {
-    if (this.registerBeforeHook) {
-      this.registerBeforeHook(this.validate);
-    }
-  },
   data() {
     set(this.value, 'spec', this.value.spec || {
       staticRoutes: [],
@@ -43,18 +38,28 @@ export default {
   },
 
   methods: {
-    validate() {
+    async saveVpc(buttonCb) {
       const errors = [];
-      const name = this.value?.metadata?.name;
 
-      if (!name) {
-        errors.push(this.t('validation.required', { key: this.t('generic.name') }, true));
-      }
+      try {
+        const name = this.value?.metadata?.name;
 
-      if (errors.length > 0) {
-        return Promise.reject(errors);
-      } else {
-        return Promise.resolve();
+        if (!name) {
+          errors.push(this.t('validation.required', { key: this.t('generic.name') }, true));
+        }
+
+        if (errors.length > 0) {
+          buttonCb(false);
+          this.errors = errors;
+
+          return false;
+        }
+        await this.value.save();
+        buttonCb(true);
+        this.done();
+      } catch (e) {
+        this.errors = [e];
+        buttonCb(false);
       }
     },
   },
@@ -71,7 +76,7 @@ export default {
     :mode="mode"
     :apply-hooks="applyHooks"
     :errors="errors"
-    @finish="save"
+    @finish="saveVpc"
     @error="e=>errors=e"
   >
     <NameNsDescription
