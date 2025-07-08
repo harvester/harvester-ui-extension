@@ -57,39 +57,41 @@ export default class HciVmImage extends HarvesterResource {
 
     const customActions = this.isReady ? [
       {
-        action:   'createFromImage',
-        enabled:  canCreateVM,
-        icon:     'icon icon-circle-plus',
-        label:    this.t('harvester.action.createVM'),
+        action:  'createFromImage',
+        enabled: canCreateVM,
+        icon:    'icon icon-circle-plus',
+        label:   this.t('harvester.action.createVM'),
       },
       {
-        action:   'encryptImage',
-        enabled:  this.volumeEncryptionFeatureEnabled && !this.isEncrypted,
-        icon:     'icon icon-lock',
-        label:    this.t('harvester.action.encryptImage'),
+        action:  'encryptImage',
+        enabled: this.volumeEncryptionFeatureEnabled && !this.isEncrypted,
+        icon:    'icon icon-lock',
+        label:   this.t('harvester.action.encryptImage'),
       },
       {
-        action:   'decryptImage',
-        enabled:  this.volumeEncryptionFeatureEnabled && this.isEncrypted,
-        icon:     'icon icon-unlock',
-        label:    this.t('harvester.action.decryptImage'),
+        action:  'decryptImage',
+        enabled: this.volumeEncryptionFeatureEnabled && this.isEncrypted,
+        icon:    'icon icon-unlock',
+        label:   this.t('harvester.action.decryptImage'),
       },
       {
-        action:   'imageDownload',
-        enabled:  this.links?.download,
-        icon:     'icon icon-download',
-        label:    this.t('asyncButton.download.action'),
+        action:  'imageDownload',
+        enabled: this.links?.download,
+        icon:    'icon icon-download',
+        label:   this.t('asyncButton.download.action'),
       }
     ] : [];
 
-    let filteredOut;
+    // imported image only allow download, download yaml and delete actions
+    if (this.isImportedImage) {
+      const custom = customActions.find((a) => a.action === 'imageDownload');
+      const filtered = out.filter(({ action }) => ['download', 'promptRemove'].includes(action));
 
-    if (customActions.length > 0) {
-      filteredOut = out;
-    } else {
-      // if the first item is a divider, remove it from the array
-      filteredOut = out[0]?.divider ? out.slice(1) : out;
+      return custom ? [custom, { divider: true }, ...filtered] : filtered;
     }
+
+    // if the first item is a divider, remove it from the array
+    const filteredOut = customActions.length > 0 ? out : (out[0]?.divider ? out.slice(1) : out);
 
     return [
       ...customActions,
@@ -209,6 +211,10 @@ export default class HciVmImage extends HarvesterResource {
     this.spec.securityParameters?.cryptoOperation === 'encrypt' &&
     !!this.spec.securityParameters?.sourceImageName &&
     !!this.spec.securityParameters?.sourceImageNamespace;
+  }
+
+  get isImportedImage() {
+    return (this.metadata?.labels?.[HCI_ANNOTATIONS.IMPORTED_IMAGE]) === 'true';
   }
 
   get displayNameWithNamespace() {
