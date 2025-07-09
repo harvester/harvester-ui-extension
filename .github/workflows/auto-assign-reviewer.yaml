@@ -1,4 +1,4 @@
-name: "[PR Management] Auto Assign Reviewer"
+name: "[PR Management] Auto Assign Reviewer & Assignee"
 
 on:
   pull_request_target:
@@ -9,8 +9,9 @@ permissions:
 
 jobs:
   auto-assign:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-    - uses: rancher/gh-issue-mgr/auto-assign-action@main
-      with:
-        configuration-path: .github/auto-assign-config.yaml
+      - uses: rancher/gh-issue-mgr/auto-assign-action@main
+        with:
+          configuration-path: .github/auto-assign-config.yaml
