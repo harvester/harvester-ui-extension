@@ -304,6 +304,10 @@ export default {
         return ['ReadWriteMany'];
       }
 
+      if (this.value?.spec?.accessModes && this.value?.spec?.accessModes?.length > 0) {
+        return this.value.spec.accessModes;
+      }
+
       const storageClassName = this.value.spec.storageClassName;
       const storageClass = this.storageClasses.find((sc) => sc.name === storageClassName);
 
