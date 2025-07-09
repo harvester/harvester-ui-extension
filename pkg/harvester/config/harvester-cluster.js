@@ -424,6 +424,7 @@ export function init($plugin, store) {
     [
       HCI.CLUSTER_NETWORK,
       HCI.NETWORK_ATTACHMENT,
+      HCI.VPC,
       HCI.LB,
       HCI.IP_POOL,
     ],
@@ -548,6 +549,21 @@ export function init($plugin, store) {
       params: { resource: HCI.NETWORK_ATTACHMENT }
     },
     exact: false
+  });
+
+  configureType(HCI.VPC, { hiddenNamespaceGroupButton: true, canYaml: false });
+
+  virtualType({
+    labelKey:   'harvester.vpc.label',
+    name:       HCI.VPC,
+    namespaced: true,
+    weight:     187,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VPC }
+    },
+    exact:      false,
+    ifHaveType: HCI.VPC,
   });
 
   configureType(HCI.SNAPSHOT, {
