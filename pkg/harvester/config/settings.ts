@@ -28,6 +28,7 @@ export const HCI_SETTING = {
   RELEASE_DOWNLOAD_URL:                   'release-download-url',
   CCM_CSI_VERSION:                        'harvester-csi-ccm-versions',
   CSI_DRIVER_CONFIG:                      'csi-driver-config',
+  CSI_ONLINE_EXPAND_VALIDATION:           'csi-online-expand-validation',
   VM_TERMINATION_PERIOD:                  'default-vm-termination-grace-period-seconds',
   NTP_SERVERS:                            'ntp-servers',
   AUTO_ROTATE_RKE2_CERTS:                 'auto-rotate-rke2-certs',
@@ -53,12 +54,15 @@ export const HCI_ALLOWED_SETTINGS = {
     from:        'import',
     featureFlag: 'autoRotateRke2CertsSetting'
   },
-  [HCI_SETTING.CSI_DRIVER_CONFIG]:       { kind: 'json', from: 'import' },
-  [HCI_SETTING.SERVER_VERSION]:          { readOnly: true },
-  [HCI_SETTING.UPGRADE_CHECKER_ENABLED]: { kind: 'boolean' },
-  [HCI_SETTING.UPGRADE_CHECKER_URL]:     { kind: 'url' },
-  [HCI_SETTING.HTTP_PROXY]:              { kind: 'json', from: 'import' },
-  [HCI_SETTING.ADDITIONAL_CA]:           {
+  [HCI_SETTING.CSI_DRIVER_CONFIG]:            { kind: 'json', from: 'import' },
+  [HCI_SETTING.CSI_ONLINE_EXPAND_VALIDATION]: {
+    kind: 'json', from: 'import', featureFlag: 'csiOnlineExpandValidation'
+  },
+  [HCI_SETTING.SERVER_VERSION]:               { readOnly: true },
+  [HCI_SETTING.UPGRADE_CHECKER_ENABLED]:      { kind: 'boolean' },
+  [HCI_SETTING.UPGRADE_CHECKER_URL]:          { kind: 'url' },
+  [HCI_SETTING.HTTP_PROXY]:                   { kind: 'json', from: 'import' },
+  [HCI_SETTING.ADDITIONAL_CA]:                {
     kind: 'multiline', canReset: true, from: 'import'
   },
   [HCI_SETTING.OVERCOMMIT_CONFIG]:                      { kind: 'json', from: 'import' },

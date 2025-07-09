@@ -1100,6 +1100,11 @@ harvester:
       provisioner: Provisioner
       volumeSnapshotClassName: Volume Snapshot Class Name
       backupVolumeSnapshotClassName: Backup Volume Snapshot Class Name
+    csiOnlineExpandValidation:
+      provisioner: Provisioner
+      value: Value
+      invalidJsonFormat: "Configuration value is not a valid JSON format: {error}"
+      failedToLoadDrivers: "Failed to load CSI drivers. Error: {error}"
     containerdRegistry:
       mirrors:
         mirrors: Mirrors
@@ -1599,6 +1604,7 @@ advancedSettings:
     'harv-backup-target': Custom backup target to store virtual machine backups.
     'branding': Branding allows administrators to globally re-brand the UI by customizing the Harvester product name, logos, and color scheme.
     'harv-csi-driver-config': Configure additional information for CSI drivers.
+    'harv-csi-online-expand-validation': Allow online volume expansion for specific CSI drivers.
     'harv-containerd-registry': Containerd Registry Configuration to connect private registries.
     'harv-log-level': Configure Harvester server log level. Defaults to Info.
     'harv-server-version': Harvester server version.
