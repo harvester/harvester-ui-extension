@@ -139,10 +139,18 @@ export default {
       const inStore = this.$store.getters['currentProduct'].inStore;
       const vmimList = this.$store.getters[`${ inStore }/all`](HCI.VMIM) || [];
 
-      const migrationUid = this.vmi?.status?.migrationState?.migrationUid;
-      const vmim = vmimList.find((VMIM) => VMIM?.metadata?.uid === migrationUid);
+      const vmiName = this.vmi?.name || '';
 
-      return vmim;
+      // filter the corresponding vmims by vmim.spec.vmiName and find the latest one by creationTimestamp
+      const vmim = vmimList.filter((VMIM) => VMIM?.spec?.vmiName === vmiName).sort((a, b) => {
+        if (a?.metadata?.creationTimestamp > b?.metadata?.creationTimestamp) {
+          return -1;
+        }
+
+        return 1;
+      });
+
+      return vmim.length > 0 && vmim[0] ? vmim[0] : null;
     },
 
     migrationEvents() {
