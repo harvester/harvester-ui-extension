@@ -1,0 +1,62 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - wontfix
+      - duplicate
+      - backport
+    authors:
+      - dependabot
+      - renovate
+  categories:
+    - title: 🚀 Features
+      labels:
+        - enhancement
+        - feature
+        - "feat"
+    - title: 🐛 Bug Fixes
+      labels:
+        - bug
+        - fix
+        - "fix"
+    - title: 🔧 Enhancements
+      labels:
+        - improvement
+        - enhancement
+        - "perf"
+    - title: 📚 Documentation
+      labels:
+        - documentation
+        - docs
+        - "docs"
+    - title: 🏗️ Build & Development
+      labels:
+        - build
+        - ci
+        - "build"
+        - "ci"
+    - title: 🔒 Security
+      labels:
+        - security
+        - "security"
+    - title: 🧪 Tests
+      labels:
+        - test
+        - "test"
+    - title: 🔄 Refactoring
+      labels:
+        - refactor
+        - "refactor"
+    - title: 📦 Dependencies
+      labels:
+        - dependencies
+        - deps
+        - "deps"
+    - title: 🧹 Chores
+      labels:
+        - chore
+        - maintenance
+        - "chore"
+    - title: 📝 Others
+      labels:
+        - "*" 
