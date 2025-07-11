@@ -14,6 +14,7 @@ import { LVM_DRIVER } from '../../../../models/harvester/storage.k8s.io.storagec
 import { DATA_ENGINE_V2 } from '../../../../models/harvester/persistentvolumeclaim';
 import { GIBIBYTE } from '../../../../utils/unit';
 import { VOLUME_MODE } from '@pkg/harvester/config/types';
+import { INTERNAL_STORAGE_CLASS } from '@/pkg/harvester/config/types';
 
 export default {
   name: 'HarvesterEditVolume',
@@ -118,11 +119,18 @@ export default {
 
     storageClassOptions() {
       return this.storageClasses.filter((s) => !s.parameters?.backingImage).map((s) => {
-        const label = s.isDefault ? `${ s.name } (${ this.t('generic.default') })` : s.name;
+        let label = s.isDefault ? `${ s.name } (${ this.t('generic.default') })` : s.name;
+        let disabled = false;
+
+        if (s.name === INTERNAL_STORAGE_CLASS.VMSTATE_PERSISTENCE || s.name === INTERNAL_STORAGE_CLASS.LONGHORN_STATIC) {
+          label += ` (${ this.t('harvester.storage.internal.label') })`;
+          disabled = true;
+        }
 
         return {
           label,
           value: s.name,
+          disabled
         };
       }) || [];
     },

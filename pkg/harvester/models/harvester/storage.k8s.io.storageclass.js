@@ -4,6 +4,7 @@ import { HCI } from '../../types';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../config/harvester';
 import { LONGHORN_DRIVER } from '@shell/config/types';
 import { DATA_ENGINE_V1, DATA_ENGINE_V2 } from '../../models/harvester/persistentvolumeclaim';
+import { INTERNAL_STORAGE_CLASS } from '../../config/types';
 
 export const LVM_DRIVER = 'lvm.driver.harvesterhci.io';
 
@@ -84,5 +85,23 @@ export default class HciStorageClass extends StorageClass {
 
   get thirdPartyStorageFeatureEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('thirdPartyStorage');
+  }
+
+  isInternalStorageClass() {
+    return this.metadata?.name === INTERNAL_STORAGE_CLASS.VMSTATE_PERSISTENCE || this.metadata?.name === INTERNAL_STORAGE_CLASS.LONGHORN_STATIC;
+  }
+
+  get availableActions() {
+    let out = super.availableActions || [];
+
+    out = out.map((action) => {
+      if ((action.action === 'setDefault' || action.action === 'setAsDefault' || action.action === 'promptRemove') && this.isInternalStorageClass()) {
+        return { ...action, enabled: false };
+      }
+
+      return action;
+    });
+
+    return out;
   }
 }

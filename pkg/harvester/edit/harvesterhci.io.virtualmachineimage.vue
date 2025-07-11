@@ -17,6 +17,7 @@ import { VM_IMAGE_FILE_FORMAT } from '../validators/vm-image';
 import { OS } from '../mixins/harvester-vm';
 import { HCI } from '../types';
 import { LVM_DRIVER } from '../models/harvester/storage.k8s.io.storageclass';
+import { INTERNAL_STORAGE_CLASS } from '../config/types';
 
 const ENCRYPT = 'encrypt';
 const DECRYPT = 'decrypt';
@@ -168,11 +169,18 @@ export default {
 
       return filteredStorages
         .map((s) => {
-          const label = s.isDefault ? `${ s.name } (${ this.t('generic.default') })` : s.name;
+          let label = s.isDefault ? `${ s.name } (${ this.t('generic.default') })` : s.name;
+          let disabled = false;
+
+          if (s.name === INTERNAL_STORAGE_CLASS.VMSTATE_PERSISTENCE || s.name === INTERNAL_STORAGE_CLASS.LONGHORN_STATIC) {
+            label += ` (${ this.t('harvester.storage.internal.label') })`;
+            disabled = true;
+          }
 
           return {
             label,
             value: s.name,
+            disabled
           };
         }) || [];
     },
