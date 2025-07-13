@@ -8,7 +8,7 @@ import { NETWORK_ATTACHMENT } from '@shell/config/types';
 import Loading from '@shell/components/Loading';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { RadioGroup } from '@components/Form/Radio';
-import { NETWORK_PROTOCOL } from '@pkg/harvester/config/types';
+import { NETWORK_PROTOCOL, NETWORK_TYPE } from '@pkg/harvester/config/types';
 import { set } from '@shell/utils/object';
 import ArrayList from '@shell/components/form/ArrayList';
 import { allHash } from '@shell/utils/promise';
@@ -81,11 +81,12 @@ export default {
         if (!raw) {
           return '';
         }
-        const ns = raw.split('.')[0] || '';
-        const vmNet = raw.split('.')[1] || '';
+        const vmNet = raw.split('.')[0] || '';
+        const ns = raw.split('.')[1] || '';
 
         return `${ ns }/${ vmNet }`;
       },
+
       set(value) {
         const ns = value.split('/')[0] || '';
         const vmNet = value.split('/')[1] || '';
@@ -99,7 +100,7 @@ export default {
       const inStore = this.$store.getters['currentProduct'].inStore;
       const vmNets = this.$store.getters[`${ inStore }/all`](NETWORK_ATTACHMENT) || [];
 
-      return vmNets.map((n) => ({
+      return vmNets.filter((net) => net.vlanType === NETWORK_TYPE.OVERLAY).map((n) => ({
         label: n.id,
         value: n.id,
       }));

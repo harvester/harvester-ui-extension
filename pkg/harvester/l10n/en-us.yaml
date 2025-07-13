@@ -1025,7 +1025,7 @@ harvester:
     protocol:
       label: Protocol
     provider:
-      tooltip: Network provider for this Subnet. Must be one of the Virtual Machine Networks.
+      tooltip: Network provider for this Subnet. Must be one of the Virtual Machine Networks in OverlayNetwork type.
       label: Provider
     vpc:
       label: Virtual Private Cloud
