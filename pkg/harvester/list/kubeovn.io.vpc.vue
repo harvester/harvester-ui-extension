@@ -3,6 +3,7 @@ import Loading from '@shell/components/Loading';
 import ResourceTable from '@shell/components/ResourceTable';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
 import { NAME, AGE, NAMESPACE, STATE } from '@shell/config/table-headers';
+import { PROVIDER, PROTOCOL, CIDR_BLOCK } from '@pkg/harvester/config/table-headers';
 import { HCI } from '../types';
 import { VPC } from '../config/query-params';
 import { ADD_ONS } from '../config/harvester-map';
@@ -64,6 +65,9 @@ export default {
         STATE,
         NAME,
         NAMESPACE,
+        CIDR_BLOCK,
+        PROTOCOL,
+        PROVIDER,
         AGE
       ];
     },

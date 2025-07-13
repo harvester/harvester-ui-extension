@@ -196,7 +196,7 @@ export default {
           <div class="col span-6">
             <LabeledSelect
               v-model:value="value.spec.protocol"
-              :label="t('harvester.subnet.protocols.label')"
+              :label="t('harvester.subnet.protocol.label')"
               :options="protocolOptions"
               required
               :mode="mode"

@@ -1022,8 +1022,8 @@ harvester:
       tooltip: The subnet range in CIDR notation. Note that the CIDR blocks of different Subnets' within the same VPC cannot overlap.
       label: CIDR Block
       placeholder: e.g. 172.20.0.0/16
-    protocols:
-      label: Protocols
+    protocol:
+      label: Protocol
     provider:
       tooltip: Network provider for this Subnet. Must be one of the Virtual Machine Networks.
       label: Provider
