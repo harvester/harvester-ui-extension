@@ -1035,6 +1035,11 @@ harvester:
     private:
       label: Private Subnet
       tooltip: Enable network isolation for this Subnet. When enabled, VMs can only communicate within this subnet, even if other subnets exist under the same VPC.
+    allowSubnet:
+      label: Allow Subnets
+      tooltip: You can specify certain subnets which can communicate with this subnet.
+      addSubnet: Add Allow Subnet
+      placeholder: e.g. 172.16.0.0/16
     excludeIPs:
       tooltip: The IP address list to reserve from automatic assignment. The gateway IP address is always excluded and will be automatically added to the list.
 

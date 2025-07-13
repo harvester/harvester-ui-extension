@@ -62,8 +62,16 @@ export default {
   },
 
   computed: {
+    showAllowSubnets() {
+      return this.value?.spec?.private === true;
+    },
+
     doneLocationOverride() {
       return this.value.doneOverride;
+    },
+
+    allowSubnetTooltip() {
+      return this.t('harvester.subnet.allowSubnet.tooltip', null, true);
     },
 
     excludeIPsTooltip() {
@@ -250,6 +258,36 @@ export default {
             />
           </div>
         </div>
+        <ArrayList
+          v-if="showAllowSubnets"
+          v-model:value="value.spec.allowSubnets"
+          :show-header="true"
+          class="mt-20"
+          :mode="mode"
+          :add-label="t('harvester.subnet.allowSubnet.addSubnet')"
+        >
+          <template #column-headers>
+            <div class="box">
+              <h3 class="key">
+                {{ t('harvester.subnet.allowSubnet.label') }}
+                <i
+                  v-clean-tooltip="{content: allowSubnetTooltip, triggers: ['hover', 'touch', 'focus'] }"
+                  v-stripped-aria-label="allowSubnetTooltip"
+                  class="icon icon-info"
+                  tabindex="0"
+                />
+              </h3>
+            </div>
+          </template>
+          <template #columns="scope">
+            <div class="key">
+              <input
+                v-model="scope.row.value"
+                :placeholder="t('harvester.subnet.allowSubnet.placeholder')"
+              />
+            </div>
+          </template>
+        </ArrayList>
         <ArrayList
           v-model:value="value.spec.excludeIps"
           :show-header="true"
