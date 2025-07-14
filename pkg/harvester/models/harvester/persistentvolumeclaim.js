@@ -10,7 +10,6 @@ import { HCI, VOLUME_SNAPSHOT } from '../../types';
 import HarvesterResource from '../harvester';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../config/harvester';
 import { LVM_DRIVER } from './storage.k8s.io.storageclass';
-import { INTERNAL_STORAGE_CLASS } from '../../config/types';
 
 const DEGRADED_ERRORS = ['replica scheduling failed', 'precheck new replica failed'];
 
@@ -78,17 +77,6 @@ export default class HciPv extends HarvesterResource {
           ...out
         ];
       }
-    }
-
-    // Disable delete for internal storage classes
-    if (this.spec?.storageClassName === INTERNAL_STORAGE_CLASS.VMSTATE_PERSISTENCE || this.spec?.storageClassName === INTERNAL_STORAGE_CLASS.LONGHORN_STATIC) {
-      out = out.map((action) => {
-        if (['promptRemove'].includes(action.action)) {
-          return { ...action, enabled: false };
-        }
-
-        return action;
-      });
     }
 
     return [
