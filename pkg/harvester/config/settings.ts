@@ -109,6 +109,9 @@ export const HCI_ALLOWED_SETTINGS = {
     featureFlag: 'upgradeConfigSetting',
     docPath:      'UPGRADE_CONFIG_URL'
   },
+  [HCI_SETTING.RANCHER_CLUSTER]:                        {
+    kind: 'custom', from: 'import', canReset: true, featureFlag: 'rancherClusterSetting'
+  },
 };
 
 export const HCI_SINGLE_CLUSTER_ALLOWED_SETTING = {
