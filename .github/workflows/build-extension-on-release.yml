@@ -29,6 +29,32 @@ jobs:
           else
             echo "Error: invalid tag format." && exit 1
           fi
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check package version
+        env:
+          TAG_VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          VERSION=$(jq -r .version package.json)
+          EXTENSION_VERSION=$(jq -r .version pkg/harvester/package.json)
+          PKG_VERSION="v${EXTENSION_VERSION}"
+
+          if [[ "$VERSION" != "$EXTENSION_VERSION" ]]; then
+            echo "Package version mismatch: $VERSION vs $EXTENSION_VERSION"
+            exit 1
+          fi
+
+          if [[ "${TAG_VERSION}" != "$PKG_VERSION" ]]; then
+            echo "Package version $PKG_VERSION in pkg/harvester/package.json does not match tag version ${TAG_VERSION}"
+            exit 1
+          fi
+         
+          echo "Package version and tag version match: ${TAG_VERSION}"
+
   lint:
     runs-on: ubuntu-latest
     steps:
@@ -41,6 +67,7 @@ jobs:
   build-extension-charts:
     needs:
       - setup-release-tag
+      - check-version
       - lint
     uses: rancher/dashboard/.github/workflows/build-extension-charts.yml@master
     permissions:
