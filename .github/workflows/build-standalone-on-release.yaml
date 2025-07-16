@@ -5,16 +5,6 @@ on:
       - v[1-9].*
 
 jobs:
-<<<<<<< HEAD
-  build-validation:
-    name: Build Test
-    uses: ./.github/workflows/run-lint.yaml
-  build:
-    name: Build and Upload Package
-    uses: ./.github/workflows/build-and-publish-standalone.yaml
-    needs:
-      - build-validation
-=======
   check-version:
     runs-on: ubuntu-latest
     steps:
@@ -29,7 +19,6 @@ jobs:
     name: Build and Upload Package
     uses: ./.github/workflows/build-and-publish-standalone.yaml
     needs: check-version
->>>>>>> c541f81 (ci: add package version check (#396))
     permissions:
       contents: read
       packages: write
