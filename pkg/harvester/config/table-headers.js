@@ -112,7 +112,6 @@ export const CIDR_BLOCK = {
   sort:     'cidrBlock',
   value:    'spec.cidrBlock',
   align:    'left',
-  // width:    150,
 };
 
 // The Protocol column in VPC list page
@@ -122,7 +121,6 @@ export const PROTOCOL = {
   sort:     'protocol',
   value:    'spec.protocol',
   align:    'left',
-  // width:    150,
 };
 
 // The Provider column in VPC list page
@@ -132,5 +130,4 @@ export const PROVIDER = {
   sort:     'provider',
   value:    'spec.provider',
   align:    'left',
-  // width:    150,
 };

@@ -6,7 +6,6 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import { RadioGroup } from '@components/Form/Radio';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
-
 import { HCI as HCI_LABELS_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { allHash } from '@shell/utils/promise';
@@ -50,12 +49,6 @@ export default {
 
     const type = this.value.vlanType || L2VLAN ;
 
-    if ([L2VLAN, UNTAGGED].includes(type)) {
-      if ((config.bridge || '').endsWith('-br')) {
-        config.bridge = config.bridge.slice(0, -3);
-      }
-    }
-
     return {
       config,
       type,
@@ -81,6 +74,30 @@ export default {
   },
 
   computed: {
+    clusterBridge: {
+      get() {
+        if (!this.config.bridge) {
+          return '';
+        }
+
+        // remove -br suffix if exists
+        return this.config?.bridge?.endsWith('-br') ? this.config.bridge.slice(0, -3) : '';
+      },
+
+      set(neu) {
+        if (neu === '') {
+          this.config.bridge = '';
+
+          return;
+        }
+
+        if (!neu.endsWith('-br')) {
+          this.config.bridge = `${ neu }-br`;
+        } else {
+          this.config.bridge = neu;
+        }
+      }
+    },
     modeOptions() {
       return [{
         label: this.t('harvester.network.layer3Network.mode.auto'),
@@ -159,7 +176,9 @@ export default {
         this.config.type = 'bridge';
         this.config.promiscMode = true;
         this.config.ipam = {};
+        this.config.bridge = '';
         delete this.config.provider;
+        delete this.config.server_socket;
       }
     }
   },
@@ -230,10 +249,6 @@ export default {
         delete this.config.vlan;
       }
 
-      if (this.isL2VlanNetwork || this.isUntaggedNetwork) {
-        this.config.bridge = `${ this.config.bridge }-br`;
-      }
-
       this.value.spec.config = JSON.stringify({ ...this.config });
     },
   }
@@ -272,6 +287,7 @@ export default {
           class="mb-20"
           :options="networkTypes"
           :mode="mode"
+          :disabled="isEdit"
           :label="t('harvester.fields.type')"
           required
         />
@@ -289,7 +305,7 @@ export default {
         />
         <LabeledSelect
           v-if="!isOverlayNetwork"
-          v-model:value="config.bridge"
+          v-model:value="clusterBridge"
           class="mb-20"
           :label="t('harvester.network.clusterNetwork.label')"
           required
