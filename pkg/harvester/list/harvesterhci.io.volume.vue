@@ -8,6 +8,7 @@ import { STATE, AGE, NAME, NAMESPACE } from '@shell/config/table-headers';
 import HarvesterVolumeState from '../formatters/HarvesterVolumeState';
 import { allSettled } from '../utils/promise';
 import { HCI, VOLUME_SNAPSHOT } from '../types';
+import { INTERNAL_STORAGE_CLASS } from '../config/types';
 
 const schema = {
   id:         HCI.VOLUME,
@@ -130,6 +131,10 @@ export default {
 
     getVMName(row) {
       return row.attachVM?.metadata?.name || '';
+    },
+
+    isInternalStorageClass(storageClassName) {
+      return this.$store.getters['type-map/labelFor'](INTERNAL_STORAGE_CLASS, storageClassName);
     }
   },
 
@@ -170,7 +175,7 @@ export default {
         </router-link>
       </div>
     </template>
-    <template #col:name="{row}">
+    <template #col:name="{ row }">
       <td>
         <span>
           <router-link
