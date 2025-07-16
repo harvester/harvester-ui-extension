@@ -19,8 +19,29 @@ jobs:
         with:
           fetch-depth: 0  # Need full history for commit-lint
 
-      - name: Run tests
+      - name: Run code lint test
         uses: ./.github/actions/lint
+
+      - name: Lint pull request
+        uses: amannn/action-semantic-pull-request@v5.5.3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+            wip
+            deps
+            security
 
       - name: Validate commit messages
         shell: bash
@@ -51,3 +72,5 @@ jobs:
           GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GITHUB_BEFORE: ${{ github.event.before }}
           GITHUB_AFTER: ${{ github.event.after }}
+
+ 
