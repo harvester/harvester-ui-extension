@@ -309,6 +309,7 @@ export default {
           class="mb-20"
           :label="t('harvester.network.clusterNetwork.label')"
           required
+          :disabled="isEdit"
           :options="clusterNetworkOptions"
           :mode="mode"
           :placeholder="t('harvester.network.clusterNetwork.selectPlaceholder')"
