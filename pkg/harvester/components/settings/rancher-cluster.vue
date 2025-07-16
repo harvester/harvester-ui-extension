@@ -3,7 +3,6 @@ import CreateEditView from '@shell/mixins/create-edit-view';
 import { RadioGroup } from '@components/Form/Radio';
 import { TextAreaAutoGrow } from '@components/Form/TextArea';
 import { Banner } from '@components/Banner';
-import AsyncButton from '@shell/components/AsyncButton';
 import { SECRET } from '@shell/config/types';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import FileSelector, { createOnSelected } from '@shell/components/form/FileSelector';
@@ -15,19 +14,34 @@ export default {
     RadioGroup,
     TextAreaAutoGrow,
     Banner,
-    AsyncButton,
     FileSelector
   },
 
   mixins: [CreateEditView],
 
+  props: {
+    value: {
+      type:    Object,
+      default: () => ({}),
+    },
+    registerBeforeHook: {
+      type:     Function,
+      required: false,
+      default:  () => {},
+    },
+    mode: {
+      type:    String,
+      default: 'edit',
+    },
+  },
+
   data() {
     let parseDefaultValue = {};
+    const radioDisabled = false;
 
     try {
       const parsed = JSON.parse(this.value.value || this.value.default || '{}');
 
-      // Initialize with both fields, but only removeUpstreamClusterWhenNamespaceIsDeleted will be saved
       parseDefaultValue = {
         kubeConfig:                                  '',
         removeUpstreamClusterWhenNamespaceIsDeleted: parsed.removeUpstreamClusterWhenNamespaceIsDeleted || false
@@ -43,7 +57,8 @@ export default {
       parseDefaultValue,
       errors:           [],
       isCreatingSecret: false,
-      existingSecret:   null
+      existingSecret:   null,
+      radioDisabled
     };
   },
 
@@ -56,6 +71,9 @@ export default {
   async created() {
     this.update();
     await this.checkExistingSecret();
+    if (this.registerBeforeHook) {
+      this.registerBeforeHook(this.willSave, 'willSave');
+    }
   },
 
   methods: {
@@ -73,53 +91,40 @@ export default {
     async checkExistingSecret() {
       const inStore = this.$store.getters['currentProduct'].inStore;
 
-      // Force refresh secrets from the store
       await this.$store.dispatch(`${ inStore }/findAll`, { type: SECRET });
-
       const secrets = this.$store.getters[`${ inStore }/all`](SECRET) || [];
 
       this.existingSecret = secrets.find((secret) => secret.metadata.name === 'rancher-cluster-config' &&
         secret.metadata.namespace === 'harvester-system'
       );
-
-      // Load existing kubeconfig content if secret exists
       if (this.existingSecret && this.existingSecret.data && this.existingSecret.data.kubeConfig) {
-        // Decode base64 content
         const decodedContent = atob(this.existingSecret.data.kubeConfig);
 
         this.parseDefaultValue.kubeConfig = decodedContent;
-
-        // Trigger update to make it behave like pasted content
         this.$nextTick(() => {
           this.update();
         });
       }
     },
 
-    async createOrUpdateRancherKubeConfigSecret(buttonCb) {
+    async createOrUpdateRancherKubeConfigSecret() {
       this.errors = [];
       this.isCreatingSecret = true;
-
       if (!this.parseDefaultValue.kubeConfig) {
         this.errors.push(this.t('validation.required', { key: this.t('harvester.setting.rancherCluster.kubeConfig') }, true));
-        buttonCb(false);
         this.isCreatingSecret = false;
 
-        return;
+        return Promise.reject(this.errors);
       }
-
       try {
         const inStore = this.$store.getters['currentProduct'].inStore;
-
         let secret;
         const isUpdate = !!this.existingSecret;
 
         if (this.existingSecret) {
-          // Update existing secret
           secret = this.existingSecret;
           secret.setData('kubeConfig', this.parseDefaultValue.kubeConfig);
         } else {
-          // Create new secret
           secret = await this.$store.dispatch(`${ inStore }/create`, {
             apiVersion: 'v1',
             kind:       'Secret',
@@ -131,23 +136,46 @@ export default {
             data: { kubeConfig: btoa(this.parseDefaultValue.kubeConfig) }
           });
         }
-
         await secret.save();
-
-        // Refresh the secret list and update the existing secret reference
         await this.checkExistingSecret();
+        this.$store.dispatch('growl/success', { message: isUpdate ? this.t('harvester.setting.rancherCluster.secretUpdated') : this.t('harvester.setting.rancherCluster.secretCreated') }, { root: true });
+        this.isCreatingSecret = false;
 
-        const message = isUpdate ? this.t('harvester.setting.rancherCluster.secretUpdated') : this.t('harvester.setting.rancherCluster.secretCreated');
-
-        this.$store.dispatch('growl/success', { message }, { root: true });
-
-        buttonCb(true);
+        return Promise.resolve();
       } catch (err) {
         this.errors = exceptionToErrorsArray(err);
-        buttonCb(false);
-      } finally {
         this.isCreatingSecret = false;
+
+        return Promise.reject(this.errors);
       }
+    },
+
+    async willSave() {
+      // Only send secret API if enabled
+      if (this.parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted) {
+        await this.createOrUpdateRancherKubeConfigSecret();
+      }
+      // If disabled, do nothing for secret
+      this.update();
+
+      return Promise.resolve();
+    },
+
+    useDefault() {
+      let defaultVal = false;
+
+      try {
+        const parsed = JSON.parse(this.value.default || '{}');
+
+        defaultVal = parsed.removeUpstreamClusterWhenNamespaceIsDeleted || false;
+      } catch (e) {
+        defaultVal = false;
+      }
+      this.parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted = defaultVal;
+      if (!defaultVal) {
+        this.parseDefaultValue.kubeConfig = '';
+      }
+      this.update();
     }
   },
 
@@ -156,13 +184,18 @@ export default {
       handler(neu) {
         const parsed = JSON.parse(neu.value || neu.default || '{}');
 
-        // Keep kubeConfig field for UI, but only save removeUpstreamClusterWhenNamespaceIsDeleted
         this['parseDefaultValue'] = {
           kubeConfig:                                  this.parseDefaultValue?.kubeConfig || '',
           removeUpstreamClusterWhenNamespaceIsDeleted: parsed.removeUpstreamClusterWhenNamespaceIsDeleted || false
         };
       },
       deep: true
+    },
+    'parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted'(val, oldVal) {
+      if (val && !oldVal && this.existingSecret && this.existingSecret.data && this.existingSecret.data.kubeConfig) {
+        // Populate kubeConfig with the existing secret value
+        this.parseDefaultValue.kubeConfig = atob(this.existingSecret.data.kubeConfig);
+      }
     }
   }
 };
@@ -177,12 +210,12 @@ export default {
     <div class="row mt-20">
       <div class="col span-12">
         <FileSelector
+          v-if="parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted"
           class="btn btn-sm bg-primary mb-10"
           :label="t('generic.readFromFile')"
           @selected="onKeySelected"
         />
-
-        <div>
+        <div v-if="parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted">
           <TextAreaAutoGrow
             v-model:value="parseDefaultValue.kubeConfig"
             :min-height="254"
@@ -200,29 +233,8 @@ export default {
           name="removeUpstreamClusterWhenNamespaceIsDeleted"
           :options="[true, false]"
           :labels="[t('generic.enabled'), t('generic.disabled')]"
+          :disabled="radioDisabled"
           @update:value="update"
-        />
-      </div>
-    </div>
-
-    <div class="row mt-20">
-      <div class="col span-12">
-        <div
-          v-if="existingSecret"
-          class="mb-10"
-        >
-          <Banner color="success">
-            {{ t('harvester.setting.rancherCluster.secretExists') }}
-          </Banner>
-        </div>
-        <AsyncButton
-          :action-label="existingSecret ? t('harvester.setting.rancherCluster.updateSecret') : t('harvester.setting.rancherCluster.createSecret')"
-          :waiting-label="existingSecret ? t('harvester.setting.rancherCluster.updatingSecret') : t('harvester.setting.rancherCluster.creatingSecret')"
-          :success-label="existingSecret ? t('harvester.setting.rancherCluster.secretUpdated') : t('harvester.setting.rancherCluster.secretCreated')"
-          :error-label="t('harvester.setting.rancherCluster.secretCreationFailed')"
-          :loading="isCreatingSecret"
-          :disabled="!hasKubeConfig"
-          @click="createOrUpdateRancherKubeConfigSecret"
         />
       </div>
     </div>
