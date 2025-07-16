@@ -29,19 +29,20 @@ jobs:
           else
             echo "Error: invalid tag format." && exit 1
           fi
-  lint:
+  check-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Check package version
+        env:
+          TAG_VERSION: ${{ github.event.release.tag_name }}
+        run: ./scripts/check-version.sh $TAG_VERSION
 
-      - name: Run tests
-        uses: ./.github/actions/lint
   build-extension-charts:
     needs:
       - setup-release-tag
-      - lint
+      - check-version
     uses: rancher/dashboard/.github/workflows/build-extension-charts.yml@master
     permissions:
       actions: write
