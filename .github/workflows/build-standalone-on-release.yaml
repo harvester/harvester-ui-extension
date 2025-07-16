@@ -12,7 +12,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Check package version
         env:
-          TAG_VERSION: ${{ github.event.release.tag_name }}
+          TAG_VERSION: ${{github.ref_name}}
         run: ./scripts/check-version.sh $TAG_VERSION
 
   build:
