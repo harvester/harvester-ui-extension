@@ -42,7 +42,8 @@ const FEATURE_FLAGS = {
     'vmMachineTypes',
     'customSupportBundle',
     'csiOnlineExpandValidation',
-    'vmNetworkMigration'
+    'vmNetworkMigration',
+    'kubeovnVpcSubnet'
   ]
 };
 

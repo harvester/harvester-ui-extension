@@ -104,3 +104,30 @@ export const HARVESTER_DESCRIPTION = {
   ...DESCRIPTION,
   width: 150,
 };
+
+// The CIDR_BLOCK column in VPC list page
+export const CIDR_BLOCK = {
+  name:     'cidrBlock',
+  labelKey: 'harvester.subnet.cidrBlock.label',
+  sort:     'cidrBlock',
+  value:    'spec.cidrBlock',
+  align:    'left',
+};
+
+// The Protocol column in VPC list page
+export const PROTOCOL = {
+  name:     'protocol',
+  labelKey: 'harvester.subnet.protocol.label',
+  sort:     'protocol',
+  value:    'spec.protocol',
+  align:    'left',
+};
+
+// The Provider column in VPC list page
+export const PROVIDER = {
+  name:     'provider',
+  labelKey: 'harvester.subnet.provider.label',
+  sort:     'provider',
+  value:    'spec.provider',
+  align:    'left',
+};
