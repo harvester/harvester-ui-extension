@@ -1087,6 +1087,20 @@ harvester:
       tip: 'Specify an IP range in the IPv4 CIDR format. <code>Number of IPs Required = Number of Nodes * 2 + Number of Disks * 2 + Number of Images to Download/Upload </code>. For more information about storage network settings, see the <a href="{url}" target="_blank">documentation</a>.'
     vmForceDeletionPolicy:
       period: Period
+    vmMigrationNetwork:
+      parseError: "Failed to parse existing configuration."
+      fetchError: "Failed to load required network resources: {error}. Please refresh the page or try again later."
+      clusterNetwork: Cluster Network
+      vlan: VLAN ID
+      range:
+        placeholder: e.g. 172.16.0.0/24
+        label: IP Range
+        invalid: '"Range" is invalid.'
+      exclude:
+        label: Excluded IPs
+        placeholder: e.g. 172.16.0.1/32
+        invalid: '"Exclude list" is invalid.'
+        addButton: Add Exclude IP
     ratio : Ratio
     autoRotateRKE2Certs:
       expiringInHours: Expiring in
@@ -1634,6 +1648,7 @@ advancedSettings:
     'harv-longhorn-v2-data-engine-enabled': 'Enable the Longhorn V2 data engine. Default is false. <ul><li>Changing this setting will restart RKE2 on all nodes. This will not affect running VM workloads.</li><li>If you see "not enough hugepages-2Mi capacity" errors when enabling this setting, wait a minute for the error to clear. If the error remains, reboot the affected node.</li></ul>'
     'harv-additional-guest-memory-overhead-ratio': 'The ratio for kubevirt to adjust the VM overhead memory. The value could be zero, empty value or floating number between 1.0 and 10.0, default to 1.5.'
     'harv-upgrade-config': 'Configure image preloading and VM restore options for upgrades. See related fields in <a href="{url}" target="_blank" rel="noopener">settings/upgrade-config</a>'
+    'harv-vm-migration-network': 'Segregated network for VM migration traffic.'
 
 typeLabel:
   kubevirt.io.virtualmachine: |-

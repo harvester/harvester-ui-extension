@@ -36,6 +36,7 @@ export const HCI_SETTING = {
   LONGHORN_V2_DATA_ENGINE_ENABLED:        'longhorn-v2-data-engine-enabled',
   ADDITIONAL_GUEST_MEMORY_OVERHEAD_RATIO: 'additional-guest-memory-overhead-ratio',
   UPGRADE_CONFIG:                         'upgrade-config',
+  VM_MIGRATION_NETWORK:                   'vm-migration-network',
 };
 
 export const HCI_ALLOWED_SETTINGS = {
@@ -106,6 +107,9 @@ export const HCI_ALLOWED_SETTINGS = {
     from:         'import',
     featureFlag: 'upgradeConfigSetting',
     docPath:      'UPGRADE_CONFIG_URL'
+  },
+  [HCI_SETTING.VM_MIGRATION_NETWORK]:  {
+    kind: 'json', from: 'import', canReset: true, featureFlag: 'vmNetworkMigration',
   },
 };
 

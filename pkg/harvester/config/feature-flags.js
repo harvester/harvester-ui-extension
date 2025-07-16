@@ -41,7 +41,8 @@ const FEATURE_FLAGS = {
   'v1.6.0': [
     'vmMachineTypes',
     'customSupportBundle',
-    'csiOnlineExpandValidation'
+    'csiOnlineExpandValidation',
+    'vmNetworkMigration'
   ]
 };
 
