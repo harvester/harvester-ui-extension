@@ -177,7 +177,7 @@ export default {
     </template>
     <template #col:name="{ row }">
       <td>
-        <span style="display: inline-flex; align-items: center;">
+        <span>
           <router-link
             v-if="row?.detailLocation"
             :to="row.detailLocation"
@@ -185,7 +185,7 @@ export default {
             {{ row.nameDisplay }}
             <i
               v-if="row.isEncrypted"
-              class="icon icon-lock ml-2"
+              class="icon icon-lock"
             />
           </router-link>
           <span v-else>
