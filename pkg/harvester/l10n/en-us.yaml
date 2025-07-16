@@ -396,6 +396,8 @@ harvester:
       ruleFileTip: 'The file you have chosen ends in an extension that we do not support. We only accept image files that end in .img, .iso, .qcow, .qcow2, .raw.'
     hash:
       sha512: 'Invalid SHA512 checksum.'
+    subnet:
+      excludeIps: 'Exclude IPs cannot be empty. Please remove or fill in the exclude IPs.'
 
   dashboard:
     label: Dashboard
@@ -1015,6 +1017,59 @@ harvester:
         progress: Restore in progress
         complete: Restore completed
 
+  subnet: 
+    cidrBlock:
+      tooltip: The subnet range in CIDR notation. Note that the CIDR blocks of different Subnets' within the same VPC cannot overlap.
+      label: CIDR Block
+      placeholder: e.g. 172.20.0.0/16
+    protocol:
+      label: Protocol
+    provider:
+      tooltip: Network provider for this Subnet. Must be one of the Virtual Machine Networks in OverlayNetwork type.
+      label: Provider
+    vpc:
+      label: Virtual Private Cloud
+    gateway:
+      label: Gateway IP
+      placeholder: e.g. 172.20.0.1
+    private:
+      label: Private Subnet
+      tooltip: Enable network isolation for this Subnet. When enabled, VMs can only communicate within this subnet, even if other subnets exist under the same VPC.
+    allowSubnet:
+      label: Allow Subnets
+      tooltip: You can specify certain subnets which can communicate with this subnet.
+      addSubnet: Add Allow Subnet
+      placeholder: e.g. 172.16.0.0/16
+    excludeIPs:
+      tooltip: The IP address list to reserve from automatic assignment. The gateway IP address is always excluded and will be automatically added to the list.
+
+  vpc:
+    noAddonEnabled:
+      prefix: The kubeovn-operator add-on is not enabled, click
+      middle: here
+      suffix: to enable the add-on to successfully create VPC and subnet.
+    label: Virtual Private Cloud
+    noChild: There is no subnet defined in this Virtual Private Cloud.
+    createSubnet: Create Subnet
+    staticRoutes:
+      label: Static Routes
+      cidr:
+        label: CIDR
+        placeholder: e.g. 172.16.0.0/16
+      nextHopIP:
+        tooltip: The localConnectIP on the other end of the peering VPC.
+        label: Next Hop IP
+        placeholder: e.g. 169.254.0.2
+    vpcPeerings:
+      label: VPC Peerings
+      localConnectIP:
+        tooltip:  The designated IP address in CIDR notation of the VPC peering endpoint. Note that both IP addresses (for the VPC and the other VPC) should belong to the same subnet range and should not conflict with the cidrBlock in any existing subnets.
+        label: Local Connect IP
+        placeholder: e.g. 169.254.0.1/16
+      remoteVpc:
+        label: Remote VPC
+    
+   
   network:
     label: Virtual Machine Networks
     tabs:
@@ -1079,8 +1134,8 @@ harvester:
       clusterNetwork: Cluster Network
       vlan: VLAN ID
       exclude:
-        label: Exclude
-        placeholder: e.g. 172.16.0.1/32
+        label: Exclude IPs
+        placeholder: e.g. 172.16.0.1
         invalid: '"Exclude list" is invalid.'
         addIp: Add Exclude IP
       warning: 'WARNING: <br/> Any change to storage-network requires shutting down all virtual machines before applying this setting. <br/> Users have to ensure the cluster network is configured and VLAN Configuration will cover all nodes and ensure the network connectivity is working and expected in all nodes.'
@@ -1705,6 +1760,11 @@ typeLabel:
     {count, plural,
       one { Virtual Machine Backup }
       other { Virtual Machine Backups }
+    }
+  kubeovn.io.vpc: |-
+    {count, plural,
+      one { Virtual Private Cloud }
+      other { Virtual Private Clouds }
     }
   harvesterhci.io.cloudtemplate: |-
     {count, plural,

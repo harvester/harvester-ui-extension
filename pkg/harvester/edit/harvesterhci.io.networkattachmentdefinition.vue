@@ -6,14 +6,13 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import { RadioGroup } from '@components/Form/Radio';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
-
 import { HCI as HCI_LABELS_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { allHash } from '@shell/utils/promise';
 import { HCI } from '../types';
 import { NETWORK_TYPE } from '../config/types';
 
-const { L2VLAN, UNTAGGED } = NETWORK_TYPE;
+const { L2VLAN, UNTAGGED, OVERLAY } = NETWORK_TYPE;
 
 const AUTO = 'auto';
 const MANUAL = 'manual';
@@ -44,12 +43,9 @@ export default {
 
   data() {
     const config = JSON.parse(this.value.spec.config);
+
     const annotations = this.value?.metadata?.annotations || {};
     const layer3Network = JSON.parse(annotations[HCI_LABELS_ANNOTATIONS.NETWORK_ROUTE] || '{}');
-
-    if ((config.bridge || '').endsWith('-br')) {
-      config.bridge = config.bridge.slice(0, -3);
-    }
 
     const type = this.value.vlanType || L2VLAN ;
 
@@ -78,6 +74,30 @@ export default {
   },
 
   computed: {
+    clusterBridge: {
+      get() {
+        if (!this.config.bridge) {
+          return '';
+        }
+
+        // remove -br suffix if exists
+        return this.config?.bridge?.endsWith('-br') ? this.config.bridge.slice(0, -3) : '';
+      },
+
+      set(neu) {
+        if (neu === '') {
+          this.config.bridge = '';
+
+          return;
+        }
+
+        if (!neu.endsWith('-br')) {
+          this.config.bridge = `${ neu }-br`;
+        } else {
+          this.config.bridge = neu;
+        }
+      }
+    },
     modeOptions() {
       return [{
         label: this.t('harvester.network.layer3Network.mode.auto'),
@@ -86,6 +106,14 @@ export default {
         label: this.t('harvester.network.layer3Network.mode.manual'),
         value: MANUAL,
       }];
+    },
+
+    kubeovnVpcSubnetSupport() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('kubeovnVpcSubnet');
+    },
+
+    longhornV2LVMSupport() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('longhornV2LVMSupport');
     },
 
     clusterNetworkOptions() {
@@ -103,8 +131,30 @@ export default {
       });
     },
 
-    networkType() {
-      return [L2VLAN, UNTAGGED];
+    networkTypes() {
+      const types = [L2VLAN, UNTAGGED];
+
+      if (this.kubeovnVpcSubnetSupport) {
+        types.push(OVERLAY);
+      }
+
+      return types;
+    },
+
+    isL2VlanNetwork() {
+      if (this.isView) {
+        return this.value.vlanType === L2VLAN;
+      }
+
+      return this.type === L2VLAN;
+    },
+
+    isOverlayNetwork() {
+      if (this.isView) {
+        return this.value.vlanType === OVERLAY;
+      }
+
+      return this.type === OVERLAY;
     },
 
     isUntaggedNetwork() {
@@ -116,35 +166,53 @@ export default {
     }
   },
 
+  watch: {
+    type(newType) {
+      if (newType === OVERLAY) {
+        this.config.type = 'kube-ovn';
+        this.config.provider = `${ this.value.metadata.name }.${ this.value.metadata.namespace }.ovn`;
+        this.config.server_socket = '/run/openvswitch/kube-ovn-daemon.sock';
+      } else {
+        this.config.type = 'bridge';
+        this.config.promiscMode = true;
+        this.config.ipam = {};
+        this.config.bridge = '';
+        delete this.config.provider;
+        delete this.config.server_socket;
+      }
+    }
+  },
+
   methods: {
     async saveNetwork(buttonCb) {
       const errors = [];
 
-      if (!this.config.vlan && !this.isUntaggedNetwork) {
-        errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('tableHeaders.networkVlan') }));
-      }
-
-      if (!this.config.bridge) {
-        errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('harvester.network.clusterNetwork.label') }));
-      }
-
-      if (this.layer3Network.mode === MANUAL) {
-        if (!this.layer3Network.gateway) {
-          errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('harvester.network.layer3Network.gateway.label') }));
+      if (this.isL2VlanNetwork || this.isUntaggedNetwork) {
+        if (!this.config.vlan && !this.isUntaggedNetwork) {
+          errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('tableHeaders.networkVlan') }));
         }
-        if (!this.layer3Network.cidr) {
-          errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('harvester.network.layer3Network.cidr.label') }));
+
+        if (!this.config.bridge) {
+          errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('harvester.network.clusterNetwork.label') }));
         }
+
+        if (this.layer3Network.mode === MANUAL) {
+          if (!this.layer3Network.gateway) {
+            errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('harvester.network.layer3Network.gateway.label') }));
+          }
+          if (!this.layer3Network.cidr) {
+            errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('harvester.network.layer3Network.cidr.label') }));
+          }
+        }
+
+        if (errors.length > 0) {
+          buttonCb(false);
+          this.errors = errors;
+
+          return false;
+        }
+        this.value.setAnnotation(HCI_LABELS_ANNOTATIONS.NETWORK_ROUTE, JSON.stringify(this.layer3Network));
       }
-
-      if (errors.length > 0) {
-        buttonCb(false);
-        this.errors = errors;
-
-        return false;
-      }
-
-      this.value.setAnnotation(HCI_LABELS_ANNOTATIONS.NETWORK_ROUTE, JSON.stringify(this.layer3Network));
 
       await this.save(buttonCb);
     },
@@ -169,14 +237,19 @@ export default {
     updateBeforeSave() {
       this.config.name = this.value.metadata.name;
 
+      if (this.isOverlayNetwork) {
+        this.config.provider = `${ this.value.metadata.name }.${ this.value.metadata.namespace }.ovn`;
+        delete this.config.bridge;
+        delete this.config.promiscMode;
+        delete this.config.vlan;
+        delete this.config.ipam;
+      }
+
       if (this.isUntaggedNetwork) {
         delete this.config.vlan;
       }
 
-      this.value.spec.config = JSON.stringify({
-        ...this.config,
-        bridge: `${ this.config.bridge }-br`,
-      });
+      this.value.spec.config = JSON.stringify({ ...this.config });
     },
   }
 };
@@ -212,14 +285,15 @@ export default {
         <LabeledSelect
           v-model:value="type"
           class="mb-20"
-          :options="networkType"
+          :options="networkTypes"
           :mode="mode"
+          :disabled="isEdit"
           :label="t('harvester.fields.type')"
           required
         />
 
         <LabeledInput
-          v-if="!isUntaggedNetwork"
+          v-if="isL2VlanNetwork"
           v-model:value.number="config.vlan"
           class="mb-20"
           required
@@ -229,25 +303,20 @@ export default {
           :mode="mode"
           @update:value="input"
         />
-
-        <div class="row">
-          <div
-            class="col span-12"
-          >
-            <LabeledSelect
-              v-model:value="config.bridge"
-              class="mb-20"
-              :label="t('harvester.network.clusterNetwork.label')"
-              required
-              :options="clusterNetworkOptions"
-              :mode="mode"
-              :placeholder="t('harvester.network.clusterNetwork.selectPlaceholder')"
-            />
-          </div>
-        </div>
+        <LabeledSelect
+          v-if="!isOverlayNetwork"
+          v-model:value="clusterBridge"
+          class="mb-20"
+          :label="t('harvester.network.clusterNetwork.label')"
+          required
+          :disabled="isEdit"
+          :options="clusterNetworkOptions"
+          :mode="mode"
+          :placeholder="t('harvester.network.clusterNetwork.selectPlaceholder')"
+        />
       </Tab>
       <Tab
-        v-if="!isUntaggedNetwork"
+        v-if="isL2VlanNetwork"
         name="layer3Network"
         :label="t('harvester.network.tabs.layer3Network')"
         :weight="98"
