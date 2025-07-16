@@ -97,12 +97,6 @@ export default {
             >
               {{ row.nameDisplay }}
               <i
-                v-if="isInternalStorageClass(row)"
-                v-clean-tooltip="t('harvester.storage.internal.cannotDeleteTooltip')"
-                class="icon icon-info text-info"
-                style="margin-left: 0.4em;"
-              />
-              <i
                 v-if="row.isEncrypted"
                 class="icon icon-lock ml-2"
               />
@@ -114,12 +108,6 @@ export default {
             </router-link>
             <span v-else>
               {{ row.nameDisplay }}
-              <i
-                v-if="isInternalStorageClass(row)"
-                v-clean-tooltip="t('harvester.storage.internal.cannotDeleteTooltip')"
-                class="icon icon-info text-info"
-                style="margin-left: 0.4em;"
-              />
             </span>
           </span>
         </td>

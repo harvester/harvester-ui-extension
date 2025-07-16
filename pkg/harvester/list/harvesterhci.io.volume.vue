@@ -184,11 +184,6 @@ export default {
           >
             {{ row.nameDisplay }}
             <i
-              v-if="isInternalStorageClass(row.spec?.storageClassName)"
-              v-clean-tooltip="t('harvester.storage.internal.cannotDeleteTooltip')"
-              class="icon icon-info ml-2"
-            />
-            <i
               v-if="row.isEncrypted"
               class="icon icon-lock ml-2"
             />
