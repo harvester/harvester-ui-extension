@@ -83,6 +83,34 @@ export default {
       :rows="rows"
       :schema="schema"
       :headers="headers"
-    />
+    >
+      <template #cell:name="{ row }">
+        <td>
+          <div>
+            <router-link
+              v-if="row?.detailLocation"
+              :to="row.detailLocation"
+            >
+              {{ row.nameDisplay }}
+              <i
+                v-if="row.isInternalStorageClass && typeof row.isInternalStorageClass === 'function' ? row.isInternalStorageClass() : false"
+                v-clean-tooltip="t('harvester.storage.internal.cannotDeleteOrDefaultTooltip')"
+                class="icon icon-info text-info"
+                style="margin-left: 0.4em;"
+              />
+            </router-link>
+            <span v-else>
+              {{ row.nameDisplay }}
+              <i
+                v-if="row.isInternalStorageClass && typeof row.isInternalStorageClass === 'function' ? row.isInternalStorageClass() : false"
+                v-clean-tooltip="t('harvester.storage.internal.cannotDeleteOrDefaultTooltip')"
+                class="icon icon-info text-info"
+                style="margin-left: 0.4em;"
+              />
+            </span>
+          </div>
+        </td>
+      </template>
+    </ResourceTable>
   </div>
 </template>

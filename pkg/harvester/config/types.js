@@ -18,3 +18,8 @@ export const NETWORK_PROTOCOL = {
   IPv4: 'IPv4',
   IPv6: 'IPv6',
 };
+
+export const INTERNAL_STORAGE_CLASS = {
+  VMSTATE_PERSISTENCE: 'vmstate-persistence',
+  LONGHORN_STATIC:     'longhorn-static',
+};

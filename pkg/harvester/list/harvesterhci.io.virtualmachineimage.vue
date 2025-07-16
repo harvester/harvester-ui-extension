@@ -3,6 +3,8 @@ import ResourceTable from '@shell/components/ResourceTable';
 import { Banner } from '@components/Banner';
 import { defaultTableSortGenerationFn } from '@shell/components/ResourceTable.vue';
 import FilterLabel from '../components/FilterLabel';
+import { HCI as HCI_ANNOTATIONS } from '../config/labels-annotations';
+import { isInternalStorageClass } from '../utils/storage-class';
 
 export default {
   name: 'ListHarvesterImage',
@@ -52,6 +54,13 @@ export default {
       });
 
       return base;
+    },
+
+    isInternalStorageClass(row) {
+      const name = row?.spec?.targetStorageClassName ||
+                   row?.metadata?.annotations?.[HCI_ANNOTATIONS.STORAGE_CLASS];
+
+      return isInternalStorageClass(name);
     },
   }
 };

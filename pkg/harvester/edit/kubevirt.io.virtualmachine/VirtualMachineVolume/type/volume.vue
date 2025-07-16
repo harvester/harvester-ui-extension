@@ -13,6 +13,7 @@ import { ucFirst } from '@shell/utils/string';
 import { LVM_DRIVER } from '../../../../models/harvester/storage.k8s.io.storageclass';
 import { DATA_ENGINE_V2 } from '../../../../models/harvester/persistentvolumeclaim';
 import { GIBIBYTE } from '../../../../utils/unit';
+import { isInternalStorageClass } from '../../../../utils/storage-class';
 import { VOLUME_MODE } from '@pkg/harvester/config/types';
 
 export default {
@@ -118,11 +119,18 @@ export default {
 
     storageClassOptions() {
       return this.storageClasses.filter((s) => !s.parameters?.backingImage).map((s) => {
-        const label = s.isDefault ? `${ s.name } (${ this.t('generic.default') })` : s.name;
+        let label = s.isDefault ? `${ s.name } (${ this.t('generic.default') })` : s.name;
+        let disabled = false;
+
+        if (isInternalStorageClass(s.name)) {
+          label += ` (${ this.t('harvester.storage.internal.label') })`;
+          disabled = true;
+        }
 
         return {
           label,
           value: s.name,
+          disabled
         };
       }) || [];
     },
