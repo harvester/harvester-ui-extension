@@ -11,18 +11,19 @@ defaults:
     working-directory: ./
 
 jobs:
-  lint:
+  check-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Run tests
-        uses: ./.github/actions/lint
+      - name: Check package version
+        env:
+          TAG_VERSION: ${{ github.event.release.tag_name }}
+        run: ./scripts/check-version.sh $TAG_VERSION
 
   build-and-push-extension-catalog:
-    needs: lint
+    needs: check-version
     uses: ./.github/workflows/build-extension-catalog.yml
     permissions:
       actions: write
