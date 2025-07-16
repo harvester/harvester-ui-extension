@@ -237,6 +237,9 @@ export default {
         }
         const versions = await this.$store.dispatch('harvester/findAll', { type: HCI.VM_VERSION });
         const curVersion = versions.find( (V) => V.id === id);
+
+        if (!curVersion?.spec?.vm) return;
+
         const cloneVersionVM = clone(curVersion.spec.vm);
 
         delete cloneVersionVM.spec?.template?.spec?.accessCredentials;
@@ -244,7 +247,6 @@ export default {
         delete cloneVersionVM.spec?.template?.metadata?.annotations?.[HCI_ANNOTATIONS.DYNAMIC_SSHKEYS_USERS];
 
         const claimTemplate = parseVolumeClaimTemplates(cloneVersionVM);
-
         const deleteDataSource = claimTemplate.map((volume) => {
           if (volume?.spec?.dataSource) {
             delete volume.spec.dataSource;
@@ -255,10 +257,16 @@ export default {
 
         cloneVersionVM.metadata.annotations[HCI_ANNOTATIONS.VOLUME_CLAIM_TEMPLATE] = JSON.stringify(deleteDataSource);
 
-        // Update labels, instance labels and annotations
-        this.value.metadata.labels = cloneVersionVM.metadata.labels;
-        this.value.spec.template.metadata.labels = cloneVersionVM.spec.template.metadata.labels;
-        this.value.metadata.annotations = cloneVersionVM.metadata.annotations;
+        // Update instance labels, labels and annotations
+        this.value.spec.template.metadata.labels = cloneVersionVM.spec.template.metadata.labels || {};
+        this.value.metadata.labels = {
+          ...(curVersion.metadata?.labels || {}),
+          ...(cloneVersionVM.metadata?.labels || {})
+        };
+        this.value.metadata.annotations = {
+          ...(curVersion.metadata?.annotations || {}),
+          ...(cloneVersionVM.metadata?.annotations || {})
+        };
 
         this.getInitConfig({
           value: cloneVersionVM, existUserData: true, fromTemplate: true
