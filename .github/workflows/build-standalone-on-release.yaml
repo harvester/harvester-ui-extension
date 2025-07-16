@@ -5,14 +5,20 @@ on:
       - v[1-9].*
 
 jobs:
-  build-validation:
-    name: Build Test
-    uses: ./.github/workflows/run-lint.yaml
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Check package version
+        env:
+          TAG_VERSION: ${{github.ref_name}}
+        run: ./scripts/check-version.sh $TAG_VERSION
+
   build:
     name: Build and Upload Package
     uses: ./.github/workflows/build-and-publish-standalone.yaml
-    needs:
-      - build-validation
+    needs: check-version
     permissions:
       contents: read
       packages: write
