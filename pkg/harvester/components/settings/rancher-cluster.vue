@@ -2,10 +2,10 @@
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { RadioGroup } from '@components/Form/Radio';
 import { TextAreaAutoGrow } from '@components/Form/TextArea';
-import { Banner } from '@components/Banner';
 import { SECRET } from '@shell/config/types';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import FileSelector, { createOnSelected } from '@shell/components/form/FileSelector';
+import { deleteSecretWithCSRF } from '@/pkg/harvester/utils/promise.js';
 
 export default {
   name: 'HarvesterRancherCluster',
@@ -13,7 +13,6 @@ export default {
   components: {
     RadioGroup,
     TextAreaAutoGrow,
-    Banner,
     FileSelector
   },
 
@@ -150,15 +149,26 @@ export default {
       }
     },
 
+    async deleteRancherKubeConfigSecret() {
+      await deleteSecretWithCSRF('/v1/harvester/secrets/harvester-system/rancher-cluster-config');
+      this.clearKubeConfigState();
+    },
+
     async willSave() {
       // Only send secret API if enabled
       if (this.parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted) {
         await this.createOrUpdateRancherKubeConfigSecret();
+      } else {
+        await this.deleteRancherKubeConfigSecret();
       }
-      // If disabled, do nothing for secret
       this.update();
 
       return Promise.resolve();
+    },
+
+    clearKubeConfigState() {
+      this.parseDefaultValue.kubeConfig = '';
+      this.existingSecret = null;
     },
 
     useDefault() {
@@ -172,9 +182,7 @@ export default {
         defaultVal = false;
       }
       this.parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted = defaultVal;
-      if (!defaultVal) {
-        this.parseDefaultValue.kubeConfig = '';
-      }
+      this.clearKubeConfigState();
       this.update();
     }
   },
@@ -203,10 +211,6 @@ export default {
 
 <template>
   <div>
-    <Banner color="info">
-      {{ t('harvester.setting.rancherCluster.description') }}
-    </Banner>
-
     <div class="row mt-20">
       <div class="col span-12">
         <FileSelector

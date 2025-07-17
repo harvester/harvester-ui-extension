@@ -16,3 +16,24 @@ export function allSettled(hash) {
     return out;
   });
 }
+
+export function getCookie(name) {
+  const value = `; ${ document.cookie }`;
+  const parts = value.split(`; ${ name }=`);
+
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+export async function deleteSecretWithCSRF(url) {
+  const csrfToken = getCookie('CSRF');
+
+  return fetch(url, {
+    method:  'DELETE',
+    headers: {
+      Accept:         'application/json',
+      'Content-Type': 'application/json',
+      'x-api-csrf':   csrfToken
+    },
+    credentials: 'include'
+  });
+}
