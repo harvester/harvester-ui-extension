@@ -56,7 +56,12 @@ export default {
     isVirtualType: {
       type:    Boolean,
       default: true
-    }
+    },
+
+    isResizeDisabled: {
+      type:    Boolean,
+      default: false
+    },
   },
 
   data() {
@@ -133,10 +138,6 @@ export default {
           disabled
         };
       }) || [];
-    },
-
-    isLonghornV2() {
-      return this.value.pvc?.isLonghornV2 || this.value.pvc?.storageClass?.isLonghornV2;
     },
 
     isLonghornStorageClass() {
@@ -310,7 +311,7 @@ export default {
             :mode="mode"
             :required="validateRequired"
             :label="t('harvester.fields.size')"
-            :disabled="isLonghornV2"
+            :disabled="isResizeDisabled"
             :suffix="GIBIBYTE"
             @update:value="update"
           />

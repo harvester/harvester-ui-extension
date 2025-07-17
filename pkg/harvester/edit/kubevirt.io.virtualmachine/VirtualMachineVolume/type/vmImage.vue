@@ -64,7 +64,12 @@ export default {
     isVirtualType: {
       type:    Boolean,
       default: true
-    }
+    },
+
+    isResizeDisabled: {
+      type:    Boolean,
+      default: false
+    },
   },
 
   data() {
@@ -133,10 +138,6 @@ export default {
 
     thirdPartyStorageEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('thirdPartyStorage');
-    },
-
-    isLonghornV2() {
-      return this.value.pvc?.isLonghornV2 || this.value.pvc?.storageClass?.isLonghornV2;
     },
 
     selectedImage() {
@@ -350,7 +351,7 @@ export default {
             :label="t('harvester.fields.size')"
             :mode="mode"
             :required="validateRequired"
-            :disable="isLonghornV2"
+            :disabled="isResizeDisabled"
             :suffix="GIBIBYTE"
             @update:value="update"
           />

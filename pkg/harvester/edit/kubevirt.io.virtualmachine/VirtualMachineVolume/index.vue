@@ -17,6 +17,7 @@ import { SOURCE_TYPE } from '../../../config/harvester-map';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../../config/harvester';
 import { HCI } from '../../../types';
 import { VOLUME_MODE } from '@pkg/harvester/config/types';
+import { OFF } from '../../../models/kubevirt.io.virtualmachine';
 
 export default {
   emits: ['update:value'],
@@ -266,7 +267,17 @@ export default {
 
     isLonghornV2(volume) {
       return volume?.pvc?.isLonghornV2 || volume?.pvc?.storageClass?.isLonghornV2;
-    }
+    },
+
+    isResizeDisabled(volume) {
+      if (this.isCreate) return false;
+      if (volume.newCreateId) return false;
+
+      const isStopped = this.vm.stateDisplay === OFF;
+      const isLonghornV2 = this.isLonghornV2(volume);
+
+      return !isStopped || isLonghornV2;
+    },
   },
 };
 </script>
@@ -347,6 +358,7 @@ export default {
               :is-edit="isEdit"
               :is-view="isView"
               :is-virtual-type="isVirtualType"
+              :is-resize-disabled="isResizeDisabled(rows[i])"
               :mode="mode"
               :idx="i"
               :validate-required="validateRequired"
