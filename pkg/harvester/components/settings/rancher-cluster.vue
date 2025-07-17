@@ -5,7 +5,6 @@ import { TextAreaAutoGrow } from '@components/Form/TextArea';
 import { SECRET } from '@shell/config/types';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import FileSelector, { createOnSelected } from '@shell/components/form/FileSelector';
-import { deleteSecretWithCSRF } from '@/pkg/harvester/utils/promise.js';
 
 export default {
   name: 'HarvesterRancherCluster',
@@ -79,12 +78,11 @@ export default {
     onKeySelected: createOnSelected('parseDefaultValue.kubeConfig'),
 
     update() {
-      // Only save the removeUpstreamClusterWhenNamespaceIsDeleted setting
-      // kubeConfig is handled separately via secret creation
-      const settingValue = { removeUpstreamClusterWhenNamespaceIsDeleted: this.parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted };
-      const value = JSON.stringify(settingValue);
-
-      this.value['value'] = value;
+      if (this.parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted) {
+        this.value['value'] = JSON.stringify({ removeUpstreamClusterWhenNamespaceIsDeleted: true });
+      } else {
+        this.value['value'] = this.value.default || '{}';
+      }
     },
 
     async checkExistingSecret() {
@@ -118,7 +116,6 @@ export default {
       try {
         const inStore = this.$store.getters['currentProduct'].inStore;
         let secret;
-        const isUpdate = !!this.existingSecret;
 
         if (this.existingSecret) {
           secret = this.existingSecret;
@@ -137,7 +134,6 @@ export default {
         }
         await secret.save();
         await this.checkExistingSecret();
-        this.$store.dispatch('growl/success', { message: isUpdate ? this.t('harvester.setting.rancherCluster.secretUpdated') : this.t('harvester.setting.rancherCluster.secretCreated') }, { root: true });
         this.isCreatingSecret = false;
 
         return Promise.resolve();
@@ -150,8 +146,9 @@ export default {
     },
 
     async deleteRancherKubeConfigSecret() {
-      await deleteSecretWithCSRF('/v1/harvester/secrets/harvester-system/rancher-cluster-config');
-      this.clearKubeConfigState();
+      if (this.existingSecret) {
+        this.existingSecret.remove();
+      }
     },
 
     async willSave() {
@@ -172,16 +169,10 @@ export default {
     },
 
     useDefault() {
-      let defaultVal = false;
-
-      try {
-        const parsed = JSON.parse(this.value.default || '{}');
-
-        defaultVal = parsed.removeUpstreamClusterWhenNamespaceIsDeleted || false;
-      } catch (e) {
-        defaultVal = false;
-      }
-      this.parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted = defaultVal;
+      this.parseDefaultValue = {
+        kubeConfig:                                  '',
+        removeUpstreamClusterWhenNamespaceIsDeleted: false
+      };
       this.clearKubeConfigState();
       this.update();
     }
@@ -190,11 +181,16 @@ export default {
   watch: {
     value: {
       handler(neu) {
-        const parsed = JSON.parse(neu.value || neu.default || '{}');
+        let parsed = {};
 
-        this['parseDefaultValue'] = {
-          kubeConfig:                                  this.parseDefaultValue?.kubeConfig || '',
-          removeUpstreamClusterWhenNamespaceIsDeleted: parsed.removeUpstreamClusterWhenNamespaceIsDeleted || false
+        try {
+          parsed = JSON.parse(neu.value || neu.default || '{}');
+        } catch (e) {
+          parsed = {};
+        }
+        this.parseDefaultValue = {
+          kubeConfig:                                  '',
+          removeUpstreamClusterWhenNamespaceIsDeleted: !!parsed.removeUpstreamClusterWhenNamespaceIsDeleted
         };
       },
       deep: true
@@ -211,21 +207,21 @@ export default {
 
 <template>
   <div>
-    <div class="row mt-20">
+    <div
+      v-if="parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted"
+      class="row mt-20"
+    >
       <div class="col span-12">
         <FileSelector
-          v-if="parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted"
           class="btn btn-sm bg-primary mb-10"
           :label="t('generic.readFromFile')"
           @selected="onKeySelected"
         />
-        <div v-if="parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted">
-          <TextAreaAutoGrow
-            v-model:value="parseDefaultValue.kubeConfig"
-            :min-height="254"
-            @update:value="update"
-          />
-        </div>
+        <TextAreaAutoGrow
+          v-model:value="parseDefaultValue.kubeConfig"
+          :min-height="254"
+          @update:value="update"
+        />
       </div>
     </div>
 
@@ -240,18 +236,6 @@ export default {
           :disabled="radioDisabled"
           @update:value="update"
         />
-      </div>
-    </div>
-
-    <div
-      v-if="errors.length"
-      class="error mt-10"
-    >
-      <div
-        v-for="error in errors"
-        :key="error"
-      >
-        {{ error }}
       </div>
     </div>
   </div>
