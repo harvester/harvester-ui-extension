@@ -43,7 +43,8 @@ const FEATURE_FLAGS = {
     'customSupportBundle',
     'csiOnlineExpandValidation',
     'vmNetworkMigration',
-    'kubeovnVpcSubnet'
+    'kubeovnVpcSubnet',
+    'rancherClusterSetting'
   ]
 };
 
