@@ -27,18 +27,14 @@ export default {
       required: false,
       default:  () => {},
     },
-    mode: {
-      type:    String,
-      default: 'edit',
-    },
   },
 
   data() {
     let parseDefaultValue = {};
-    const radioDisabled = false;
 
     try {
-      const parsed = JSON.parse(this.value.value || this.value.default || '{}');
+      const data = this.value.value || this.value.default || '{}';
+      const parsed = JSON.parse(data);
 
       parseDefaultValue = {
         kubeConfig:                                  '',
@@ -54,20 +50,11 @@ export default {
     return {
       parseDefaultValue,
       errors:           [],
-      isCreatingSecret: false,
       existingSecret:   null,
-      radioDisabled
     };
   },
 
-  computed: {
-    hasKubeConfig() {
-      return !!this.parseDefaultValue.kubeConfig;
-    }
-  },
-
   async created() {
-    this.update();
     await this.checkExistingSecret();
     if (this.registerBeforeHook) {
       this.registerBeforeHook(this.willSave, 'willSave');
@@ -94,7 +81,9 @@ export default {
       this.existingSecret = secrets.find((secret) => secret.metadata.name === 'rancher-cluster-config' &&
         secret.metadata.namespace === 'harvester-system'
       );
-      if (this.existingSecret && this.existingSecret.data && this.existingSecret.data.kubeConfig) {
+
+      // If the secret exists and has data, populate the kubeConfig
+      if (this.existingSecret?.data?.kubeConfig) {
         const decodedContent = atob(this.existingSecret.data.kubeConfig);
 
         this.parseDefaultValue.kubeConfig = decodedContent;
@@ -106,21 +95,22 @@ export default {
 
     async createOrUpdateRancherKubeConfigSecret() {
       this.errors = [];
-      this.isCreatingSecret = true;
+      // Check if kubeConfig is provided
       if (!this.parseDefaultValue.kubeConfig) {
         this.errors.push(this.t('validation.required', { key: this.t('harvester.setting.rancherCluster.kubeConfig') }, true));
-        this.isCreatingSecret = false;
 
         return Promise.reject(this.errors);
       }
+
       try {
-        const inStore = this.$store.getters['currentProduct'].inStore;
         let secret;
 
         if (this.existingSecret) {
           secret = this.existingSecret;
           secret.setData('kubeConfig', this.parseDefaultValue.kubeConfig);
         } else {
+          const inStore = this.$store.getters['currentProduct'].inStore;
+
           secret = await this.$store.dispatch(`${ inStore }/create`, {
             apiVersion: 'v1',
             kind:       'Secret',
@@ -133,13 +123,10 @@ export default {
           });
         }
         await secret.save();
-        await this.checkExistingSecret();
-        this.isCreatingSecret = false;
 
         return Promise.resolve();
       } catch (err) {
         this.errors = exceptionToErrorsArray(err);
-        this.isCreatingSecret = false;
 
         return Promise.reject(this.errors);
       }
@@ -152,20 +139,14 @@ export default {
     },
 
     async willSave() {
-      // Only send secret API if enabled
+      // Only create or update secret if enabled
       if (this.parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted) {
         await this.createOrUpdateRancherKubeConfigSecret();
       } else {
         await this.deleteRancherKubeConfigSecret();
       }
-      this.update();
 
       return Promise.resolve();
-    },
-
-    clearKubeConfigState() {
-      this.parseDefaultValue.kubeConfig = '';
-      this.existingSecret = null;
     },
 
     useDefault() {
@@ -173,30 +154,12 @@ export default {
         kubeConfig:                                  '',
         removeUpstreamClusterWhenNamespaceIsDeleted: false
       };
-      this.clearKubeConfigState();
-      this.update();
     }
   },
 
   watch: {
-    value: {
-      handler(neu) {
-        let parsed = {};
-
-        try {
-          parsed = JSON.parse(neu.value || neu.default || '{}');
-        } catch (e) {
-          parsed = {};
-        }
-        this.parseDefaultValue = {
-          kubeConfig:                                  '',
-          removeUpstreamClusterWhenNamespaceIsDeleted: !!parsed.removeUpstreamClusterWhenNamespaceIsDeleted
-        };
-      },
-      deep: true
-    },
     'parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted'(val, oldVal) {
-      if (val && !oldVal && this.existingSecret && this.existingSecret.data && this.existingSecret.data.kubeConfig) {
+      if (val && !oldVal && this.existingSecret?.data?.kubeConfig) {
         // Populate kubeConfig with the existing secret value
         this.parseDefaultValue.kubeConfig = atob(this.existingSecret.data.kubeConfig);
       }
@@ -233,7 +196,6 @@ export default {
           name="removeUpstreamClusterWhenNamespaceIsDeleted"
           :options="[true, false]"
           :labels="[t('generic.enabled'), t('generic.disabled')]"
-          :disabled="radioDisabled"
           @update:value="update"
         />
       </div>
@@ -242,11 +204,6 @@ export default {
 </template>
 
 <style lang="scss" scoped>
-.error {
-  color: #d9534f;
-  margin-top: 5px;
-}
-
 :deep(textarea) {
   overflow-y: auto !important;
 }
