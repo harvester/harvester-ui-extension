@@ -1,3 +1,8 @@
+---
+template: |
+  ## Changes
+
+  $CHANGES
 changelog:
   exclude:
     labels:
@@ -59,4 +64,4 @@ changelog:
         - "chore"
     - title: 📝 Others
       labels:
-        - "*" 
+        - "*"
