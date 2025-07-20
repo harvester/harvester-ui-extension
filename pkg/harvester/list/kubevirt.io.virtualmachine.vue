@@ -22,8 +22,8 @@ export const VM_HEADERS = [
   {
     name:        'CPU',
     label:       'CPU',
-    sort:        ['spec.template.spec.domain.cpu.cores'],
-    value:       'spec.template.spec.domain.cpu.cores',
+    sort:        ['displayCPU'],
+    value:       'displayCPU',
     align:       'center',
     dashIfEmpty: true,
   },
@@ -139,6 +139,19 @@ export default {
       };
 
       const cols = clone(VM_HEADERS);
+
+      // if(this.vmCPUMemoryHotplugEnabled){
+      //   const cpuColumn = cols.find(col => col.name === 'CPU');
+      //   if(cpuColumn){
+      //     cpuColumn.value =  'spec.template.spec.domain.cpu.sockets';
+      //     cpuColumn.sort = ['spec.template.spec.domain.cpu.sockets'];
+      //   };
+      //   const memoryColumn = cols.find(col => col.name === 'Memory');
+      //   if(memoryColumn){
+      //     memoryColumn.value = 'spec.template.spec.domain.memory.guest';
+      //     memoryColumn.sort = ['spec.template.spec.domain.memory.guest'];
+      //   }
+      // }
 
       if (this.hasNode) {
         cols.splice(-1, 0, nodeCol);

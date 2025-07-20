@@ -70,5 +70,6 @@ export const HCI = {
   K8S_ARCH:                         'kubernetes.io/arch',
   IMAGE_DISPLAY_NAME:               'harvesterhci.io/imageDisplayName',
   CUSTOM_IP:                        'harvesterhci.io/custom-ip',
-  IMPORTED_IMAGE:                   'migration.harvesterhci.io/imported'
+  IMPORTED_IMAGE:                   'migration.harvesterhci.io/imported',
+  VM_CPU_MEMORY_HOTPLUG:            'harvesterhci.io/enableCPUAndMemoryHotplug',
 };

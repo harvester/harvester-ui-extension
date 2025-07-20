@@ -571,6 +571,8 @@ harvester:
   virtualMachine:
     label: Virtual Machines
     osType: OS Type
+    hotplug:
+      title: Enable CPU and memory hotplug
     instance:
       singleInstance:
       multipleInstance:
@@ -716,6 +718,9 @@ harvester:
       invalidUser: Invalid Username.
     input:
       name: Name
+      cpu: CPU
+      maxCpu: Maximum CPU
+      maxMemory: Maximum Memory
       memory: Memory
       image: Image
       sshKey: SSHKey

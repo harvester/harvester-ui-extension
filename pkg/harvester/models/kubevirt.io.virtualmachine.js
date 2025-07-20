@@ -13,6 +13,7 @@ import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
 import { BACKUP_TYPE } from '../config/types';
 import { HCI } from '../types';
 import HarvesterResource from './harvester';
+import { getVmCPUMemoryValues } from '../utils/cpuMemory';
 
 export const OFF = 'Off';
 
@@ -1082,6 +1083,7 @@ export default class VirtVm extends HarvesterResource {
   }
 
   get customValidationRules() {
+    console.log('customValidationRules this =', this);
     const rules = [
       {
         nullable:       false,
@@ -1091,19 +1093,19 @@ export default class VirtVm extends HarvesterResource {
         maxLength:      63,
         translationKey: 'harvester.fields.name'
       },
-      {
-        nullable:       false,
-        path:           'spec.template.spec.domain.cpu.cores',
-        min:            1,
-        required:       true,
-        translationKey: 'harvester.fields.cpu'
-      },
-      {
-        nullable:       false,
-        path:           'spec.template.spec.domain.resources.limits.memory',
-        required:       true,
-        translationKey: 'harvester.fields.memory'
-      },
+      // {
+      //   nullable:       false,
+      //   path:           'spec.template.spec.domain.cpu.cores',
+      //   min:            1,
+      //   required:       true,
+      //   translationKey: 'harvester.fields.cpu'
+      // },
+      // {
+      //   nullable:       false,
+      //   path:           'spec.template.spec.domain.resources.limits.memory',
+      //   required:       true,
+      //   translationKey: 'harvester.fields.memory'
+      // },
       {
         nullable:   false,
         path:       'spec.template.spec',
@@ -1126,13 +1128,16 @@ export default class VirtVm extends HarvesterResource {
     return !!hasMultus;
   }
 
+  get vmCPUMemoryHotplugEnabled() {
+    return this.metadata?.annotations[HCI_ANNOTATIONS.VM_CPU_MEMORY_HOTPLUG] === 'true' || false;
+  }
+
   get memorySort() {
-    const memory =
-      this?.spec?.template?.spec?.domain?.resources?.requests?.memory || 0;
+    const memory = getVmCPUMemoryValues(this).memory;
 
     const formatSize = parseSi(memory);
 
-    return parseInt(formatSize);
+    return parseInt(formatSize, 10);
   }
 
   get ingoreVMMessage() {
@@ -1161,11 +1166,12 @@ export default class VirtVm extends HarvesterResource {
     return this.ingoreVMMessage ? '' : super.stateDescription;
   }
 
+  get displayCPU() {
+    return getVmCPUMemoryValues(this).cpu;
+  }
+
   get displayMemory() {
-    return (
-      this.spec.template.spec.domain.resources?.limits?.memory ||
-      this.spec.template.spec.domain.resources?.requests?.memory
-    );
+    return getVmCPUMemoryValues(this).memory;
   }
 
   get isQemuInstalled() {

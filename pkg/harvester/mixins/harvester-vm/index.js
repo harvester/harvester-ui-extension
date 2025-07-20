@@ -5,8 +5,8 @@ import isEmpty from 'lodash/isEmpty';
 import difference from 'lodash/difference';
 
 import { sortBy } from '@shell/utils/sort';
-import { set } from '@shell/utils/object';
-
+import { get, set } from '@shell/utils/object';
+import { getVmCPUMemoryValues } from '../../utils/cpuMemory';
 import { allHash } from '@shell/utils/promise';
 import { randomStr } from '@shell/utils/string';
 import { base64Decode } from '@shell/utils/crypto';
@@ -164,6 +164,9 @@ export default {
       deleteAgent:                   true,
       memory:                        null,
       cpu:                           '',
+      maxMemory:                     null,
+      maxCpu:                        '',
+      cpuMemoryHotplugEnabled:       false,
       reservedMemory:                null,
       accessCredentials:             [],
       efiEnabled:                    false,
@@ -348,8 +351,14 @@ export default {
       const runStrategy = spec.runStrategy || 'RerunOnFailure';
       const machineType = spec.template.spec.domain?.machine?.type || this.machineTypes[0];
 
-      const cpu = spec.template.spec.domain?.cpu?.cores;
-      const memory = spec.template.spec.domain.resources.limits.memory;
+      const cpuMemoryHotplugEnabled = vm.metadata?.annotations?.[HCI_ANNOTATIONS.VM_CPU_MEMORY_HOTPLUG] === 'true' || false;
+
+      console.log('🚀 ~ getVmCPUMemoryValues ~ isHotPlugEnabled:', cpuMemoryHotplugEnabled);
+      console.log('getVmCPUMemoryValues(vm)=', getVmCPUMemoryValues(vm));
+      const {
+        cpu, memory, maxCpu, maxMemory
+      } = getVmCPUMemoryValues(vm);
+
       const reservedMemory = vm.metadata?.annotations?.[HCI_ANNOTATIONS.VM_RESERVED_MEMORY];
       const terminationGracePeriodSeconds = spec.template.spec?.terminationGracePeriodSeconds || this.defaultTerminationSetting;
 
@@ -409,6 +418,9 @@ export default {
 
       this['cpu'] = cpu;
       this['memory'] = memory;
+      this['maxCpu'] = maxCpu;
+      this['maxMemory'] = maxMemory;
+      this['cpuMemoryHotplugEnabled'] = cpuMemoryHotplugEnabled;
       this['reservedMemory'] = reservedMemory;
       this['machineType'] = machineType;
       this['terminationGracePeriodSeconds'] = terminationGracePeriodSeconds;
@@ -633,24 +645,56 @@ export default {
         this.spec.template.spec.domain.machine['type'] = this.machineType;
       }
 
-      this.spec.template.spec.domain.cpu.cores = this.cpu;
-      this.spec.template.spec.domain.resources.limits.cpu = this.cpu ? this.cpu.toString() : this.cpu;
-      this.spec.template.spec.domain.resources.limits.memory = this.memory;
+      this.setCPUAndMemory();
+      // update terminationGracePeriodSeconds
       this.spec.template.spec.terminationGracePeriodSeconds = this.terminationGracePeriodSeconds;
 
-      // parse reserved memory
       const vm = this.resourceType === HCI.VM ? this.value : this.value.spec.vm;
 
+      // parse reserved memory
       if (!this.reservedMemory) {
         delete vm.metadata.annotations[HCI_ANNOTATIONS.VM_RESERVED_MEMORY];
       } else {
         vm.metadata.annotations[HCI_ANNOTATIONS.VM_RESERVED_MEMORY] = this.reservedMemory;
       }
 
+      // add cpu memory hotplug annotation
+      if (this.cpuMemoryHotplugEnabled) {
+        vm.metadata.annotations[HCI_ANNOTATIONS.VM_CPU_MEMORY_HOTPLUG] = this.cpuMemoryHotplugEnabled.toString();
+      }
+
       if (this.maintenanceStrategy === 'Migrate') {
         delete vm.metadata.labels[HCI_ANNOTATIONS.VM_MAINTENANCE_MODE_STRATEGY];
       } else {
         vm.metadata.labels[HCI_ANNOTATIONS.VM_MAINTENANCE_MODE_STRATEGY] = this.maintenanceStrategy;
+      }
+    },
+
+    setCPUAndMemory() {
+      console.log('setCPUAndMemory cpuMemoryHotplugEnabled', this.cpuMemoryHotplugEnabled);
+      if (this.cpuMemoryHotplugEnabled) {
+        // set CPU
+        this.spec.template.spec.domain.cpu.sockets = this.cpu;
+        this.spec.template.spec.domain.cpu.cores = 1;
+
+        // set max CPU
+        set(this.spec.template.spec, 'domain.cpu.maxSockets', this.maxCpu);
+        set(this.spec.template.spec, 'domain.resources.limits.cpu', this.maxCpu?.toString());
+
+        // set memory
+        set(this.spec.template.spec, 'domain.memory.guest', this.memory);
+
+        // set max memory
+        set(this.spec.template.spec, 'domain.memory.maxGuest', this.maxMemory);
+        set(this.spec.template.spec, 'domain.resources.limits.memory', this.maxMemory);
+      } else {
+        this.spec.template.spec.domain.cpu.cores = this.cpu;
+        this.spec.template.spec.domain.resources.limits.cpu = this.cpu?.toString();
+        this.spec.template.spec.domain.resources.limits.memory = this.memory;
+        // clean
+        delete this.spec.template.spec.resources;
+        delete this.spec.template.spec.domain.memory;
+        delete this.spec.template.spec.domain.cpu.maxSockets;
       }
     },
 
@@ -952,9 +996,12 @@ export default {
       this['sshKey'] = neu;
     },
 
-    updateCpuMemory(cpu, memory) {
+    updateCpuMemory(cpu, memory, maxCpu = '', maxMemory = null, cpuMemoryHotplugEnabled = false) {
       this['cpu'] = cpu;
       this['memory'] = memory;
+      this['maxCpu'] = maxCpu;
+      this['maxMemory'] = maxMemory;
+      this['cpuMemoryHotplugEnabled'] = cpuMemoryHotplugEnabled;
     },
 
     parseDisk(R, index) {
@@ -1309,6 +1356,21 @@ export default {
       } catch (e) {
         return Promise.reject(e);
       }
+    },
+
+    getCPUMemoryValidation() {
+      const errors = [];
+      const { cpu, memory } = this;
+
+      if ((!cpu)) {
+        errors.push(this.t('validation.required', { key: this.t('harvester.virtualMachine.input.cpu') }, true));
+      }
+
+      if ((!memory)) {
+        errors.push(this.t('validation.required', { key: this.t('harvester.virtualMachine.input.memory') }, true));
+      }
+
+      return errors;
     },
 
     getAccessCredentialsValidation() {
