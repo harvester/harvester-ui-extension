@@ -3,11 +3,9 @@ import { exceptionToErrorsArray } from '@shell/utils/error';
 import { mapGetters } from 'vuex';
 import { getVmCPUMemoryValues } from '../utils/cpuMemory';
 import UnitInput from '@shell/components/form/UnitInput';
-import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { Card } from '@components/Card';
 import { Banner } from '@components/Banner';
 import AsyncButton from '@shell/components/AsyncButton';
-import { LabeledInput } from '@components/Form/LabeledInput';
 import { GIBIBYTE } from '../utils/unit';
 
 export default {
@@ -16,7 +14,7 @@ export default {
   emits: ['close'],
 
   components: {
-    AsyncButton, Card, LabeledInput, Banner, UnitInput
+    AsyncButton, Card, Banner, UnitInput
   },
 
   props: {
@@ -27,13 +25,12 @@ export default {
   },
 
   data() {
-   const { cpu, memory } = getVmCPUMemoryValues(this.resources[0] || {});
-    console.log("🚀 ~ data ~ memory:", memory)
-    console.log("🚀 ~ data ~ cpu:", cpu)
+    const { cpu, memory } = getVmCPUMemoryValues(this.resources[0] || {});
+
     return {
       cpu,
       memory,
-      errors:     [],
+      errors: [],
       GIBIBYTE
     };
   },
@@ -44,7 +41,15 @@ export default {
     actionResource() {
       return this.resources[0] || {};
     },
+    maxResourcesMessage() {
+      const { maxCpu, maxMemory } = getVmCPUMemoryValues(this.actionResource);
 
+      if (maxCpu && maxMemory) {
+        return this.t('harvester.modal.cpuMemoryHotplug.maxResourcesMessage', { maxCpu, maxMemory });
+      }
+
+      return '';
+    }
   },
 
   methods: {
@@ -58,6 +63,7 @@ export default {
       if (this.actionResource) {
         try {
           const res = await this.actionResource.doAction('cpuAndMemoryHotplug', { sockets: this.cpu, memory: this.memory });
+
           if (res._status === 200 || res._status === 204) {
             this.$store.dispatch('growl/success', {
               title:   this.t('generic.notification.title.succeed'),
@@ -99,6 +105,11 @@ export default {
     </template>
 
     <template #body>
+      <Banner
+        v-if="maxResourcesMessage"
+        :label="maxResourcesMessage"
+        color="info"
+      />
       <UnitInput
         v-model:value="cpu"
         :label="t('harvester.virtualMachine.input.cpu')"
@@ -108,8 +119,7 @@ export default {
         :mode="mode"
         class="mb-20"
       />
-
-       <UnitInput
+      <UnitInput
         v-model:value="memory"
         :label="t('harvester.virtualMachine.input.memory')"
         :mode="mode"

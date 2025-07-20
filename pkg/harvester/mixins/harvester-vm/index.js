@@ -5,7 +5,7 @@ import isEmpty from 'lodash/isEmpty';
 import difference from 'lodash/difference';
 
 import { sortBy } from '@shell/utils/sort';
-import { get, set } from '@shell/utils/object';
+import { set } from '@shell/utils/object';
 import { getVmCPUMemoryValues } from '../../utils/cpuMemory';
 import { allHash } from '@shell/utils/promise';
 import { randomStr } from '@shell/utils/string';
@@ -656,9 +656,11 @@ export default {
         vm.metadata.annotations[HCI_ANNOTATIONS.VM_RESERVED_MEMORY] = this.reservedMemory;
       }
 
-      // add cpu memory hotplug annotation
+      // add or remove cpu memory hotplug annotation
       if (this.cpuMemoryHotplugEnabled) {
         vm.metadata.annotations[HCI_ANNOTATIONS.VM_CPU_MEMORY_HOTPLUG] = this.cpuMemoryHotplugEnabled.toString();
+      } else {
+        delete vm.metadata.annotations[HCI_ANNOTATIONS.VM_CPU_MEMORY_HOTPLUG];
       }
 
       if (this.maintenanceStrategy === 'Migrate') {
@@ -669,7 +671,6 @@ export default {
     },
 
     setCPUAndMemory() {
-      console.log('setCPUAndMemory cpuMemoryHotplugEnabled', this.cpuMemoryHotplugEnabled);
       if (this.cpuMemoryHotplugEnabled) {
         // set CPU
         this.spec.template.spec.domain.cpu.sockets = this.cpu;
@@ -686,6 +687,7 @@ export default {
         set(this.spec.template.spec, 'domain.memory.maxGuest', this.maxMemory);
         set(this.spec.template.spec, 'domain.resources.limits.memory', this.maxMemory);
       } else {
+        this.spec.template.spec.domain.cpu.sockets = 1;
         this.spec.template.spec.domain.cpu.cores = this.cpu;
         this.spec.template.spec.domain.resources.limits.cpu = this.cpu?.toString();
         this.spec.template.spec.domain.resources.limits.memory = this.memory;

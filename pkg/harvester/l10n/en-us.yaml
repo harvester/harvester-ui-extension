@@ -160,6 +160,7 @@ harvester:
     cpuMemoryHotplug:
       success: 'CPU and Memory are updated to the virtual machine { vm }.'
       title: Edit CPU and Memory
+      maxResourcesMessage: 'You can increase the CPU to maximum { maxCpu } and memory to maximum { maxMemory }.'
     hotunplug:
       success: 'Volume { name } is detached successfully.'
     snapshot:
@@ -577,6 +578,8 @@ harvester:
     osType: OS Type
     hotplug:
       title: Enable CPU and memory hotplug
+      tooltip: The default maximum CPU and maximum memory are {hotPlugTimes} times based on CPU and memory.
+      restartVMMessage: Restart action is required for the virtual machine configuration change to take effect
     instance:
       singleInstance:
       multipleInstance:

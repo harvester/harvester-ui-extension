@@ -9,8 +9,9 @@ export function getVmCPUMemoryValues(vm) {
     };
   }
   const isHotPlugEnabled = vm?.metadata?.annotations[HCI_ANNOTATIONS.VM_CPU_MEMORY_HOTPLUG] === 'true' || false;
+
   console.log('🚀 ~ getVmCPUMemoryValues ~ isHotPlugEnabled:', isHotPlugEnabled);
-  
+
   if (isHotPlugEnabled) {
     return {
       cpu:       vm.spec.template.spec.domain.cpu.sockets,

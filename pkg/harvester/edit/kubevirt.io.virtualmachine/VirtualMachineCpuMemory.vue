@@ -3,7 +3,7 @@ import UnitInput from '@shell/components/form/UnitInput';
 import InputOrDisplay from '@shell/components/InputOrDisplay';
 import { GIBIBYTE } from '../../utils/unit';
 import { Checkbox } from '@components/Form/Checkbox';
-
+import { _VIEW } from '@shell/config/query-params';
 const HOT_PLUG_TIMES = 4;
 
 export default {
@@ -58,6 +58,9 @@ export default {
   },
 
   computed: {
+    isView() {
+      return this.mode === _VIEW;
+    },
     cpuDisplay() {
       return `${ this.localCpu } C`;
     },
@@ -72,6 +75,10 @@ export default {
 
     maxMemoryDisplay() {
       return `${ this.maxLocalMemory }`;
+    },
+
+    cpuMemoryHotplugTooltip() {
+      return this.t('harvester.virtualMachine.hotplug.tooltip', { hotPlugTimes: HOT_PLUG_TIMES });
     }
   },
 
@@ -107,37 +114,27 @@ export default {
         this.$emit('updateCpuMemory', this.localCpu, this.localMemory, '', null, neu);
       }
     },
-    change() {
-      // let memory = '';
-      // let maxMemory = '';
+    changeMemory() {
+      if (this.localEnableHotPlug) {
+        this.maxLocalMemory = this.localMemory ? `${ parseInt(this.localMemory, 10) * HOT_PLUG_TIMES }${ GIBIBYTE }` : null;
+      }
+      this.$emit('updateCpuMemory', this.localCpu, this.localMemory, this.maxLocalCpu, this.maxLocalMemory, this.localEnableHotPlug);
+    },
+    changeCPU() {
+      console.log('change this.localCpu=', this.localCpu);
+      if (this.localEnableHotPlug) {
+        this.maxLocalCpu = this.localCpu ? this.localCpu * HOT_PLUG_TIMES : null;
+      }
+      this.$emit('updateCpuMemory', this.localCpu, this.localMemory, this.maxLocalCpu, this.maxLocalMemory, this.localEnableHotPlug);
+    },
 
+    changeMaxCPUMemory() {
       console.log('change this.localCpu=', this.localCpu);
       console.log('change this.maxLocalCpu=', this.maxLocalCpu);
       console.log('change this.localMemory=', this.localMemory);
       console.log('change this.maxLocalMemory=', this.maxLocalMemory);
-      // if (String(this.localMemory).includes('Gi')) {
-      //   memory = this.localMemory;
-      // } else {
-      //   memory = `${ this.localMemory }${ GIBIBYTE }`;
-      // }
-
-      // if (String(this.maxLocalMemory).includes('Gi')) {
-      //   maxMemory = this.maxLocalMemory;
-      // } else {
-      //   maxMemory = `${ this.maxLocalMemory }${ GIBIBYTE }`;
-      // }
-
-      // if (memory.includes('null')) {
-      //   memory = null;
-      // }
-
-      // if (maxMemory.includes('null')) {
-      //   maxMemory = null;
-      // }
-
       this.$emit('updateCpuMemory', this.localCpu, this.localMemory, this.maxLocalCpu, this.maxLocalMemory, this.localEnableHotPlug);
     },
-
   }
 };
 </script>
@@ -161,7 +158,7 @@ export default {
             :disabled="disabled"
             :mode="mode"
             class="mb-20"
-            @update:value="change"
+            @update:value="changeCPU"
           />
         </InputOrDisplay>
       </div>
@@ -183,7 +180,7 @@ export default {
             required
             :suffix="GIBIBYTE"
             class="mb-20"
-            @update:value="change"
+            @update:value="changeMemory"
           />
         </InputOrDisplay>
       </div>
@@ -194,7 +191,14 @@ export default {
         class="check"
         type="checkbox"
         :label="t('harvester.virtualMachine.hotplug.title')"
+        :disabled="isView"
         @update:value="hotPlugChanged"
+      />
+      <i
+        v-clean-tooltip="{content: cpuMemoryHotplugTooltip, triggers: ['hover', 'touch', 'focus'] }"
+        v-stripped-aria-label="cpuMemoryHotplugTooltip"
+        class="icon icon-info"
+        tabindex="0"
       />
     </div>
     <div
@@ -216,7 +220,7 @@ export default {
             :disabled="disabled"
             :mode="mode"
             class="mt-20"
-            @update:value="change"
+            @update:value="changeMaxCPUMemory"
           />
         </InputOrDisplay>
       </div>
@@ -238,7 +242,7 @@ export default {
             :disabled="disabled"
             :suffix="GIBIBYTE"
             class="mt-20"
-            @update:value="change"
+            @update:value="changeMaxCPUMemory"
           />
         </InputOrDisplay>
       </div>
