@@ -1,16 +1,16 @@
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 
 export function getVmCPUMemoryValues(vm) {
+  console.log('🚀 ~ getVmCPUMemoryValues ~ vm:', vm);
   if (!vm) {
     return {
       cpu:    0,
       memory: null,
     };
   }
-  const isHotPlugEnabled = vm.metadata?.annotations[HCI_ANNOTATIONS.VM_CPU_MEMORY_HOTPLUG] === 'true' || false;
-
-  console.log('🚀 ~ getVmCPUMemoryValues ~ vm:', vm, '🚀 ~ getVmCPUMemoryValues ~ isHotPlugEnabled:', isHotPlugEnabled);
-
+  const isHotPlugEnabled = vm?.metadata?.annotations[HCI_ANNOTATIONS.VM_CPU_MEMORY_HOTPLUG] === 'true' || false;
+  console.log('🚀 ~ getVmCPUMemoryValues ~ isHotPlugEnabled:', isHotPlugEnabled);
+  
   if (isHotPlugEnabled) {
     return {
       cpu:       vm.spec.template.spec.domain.cpu.sockets,

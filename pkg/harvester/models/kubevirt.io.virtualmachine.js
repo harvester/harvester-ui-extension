@@ -171,6 +171,12 @@ export default class VirtVm extends HarvesterResource {
         label:   this.t('harvester.action.editVMQuota')
       },
       {
+        action:  'cpuMemoryHotplug',
+        enabled: !!this.actions?.cpuAndMemoryHotplug,
+        icon:    'icon icon-os-management',
+        label:   this.t('harvester.action.cpuAndMemoryHotplug')
+      },
+      {
         action:  'createSchedule',
         enabled: this.schedulingVMBackupFeatureEnabled,
         icon:    'icon icon-history',
@@ -474,6 +480,13 @@ export default class VirtVm extends HarvesterResource {
     this.$dispatch('promptModal', {
       resources,
       component: 'HarvesterEjectCDROMDialog'
+    });
+  }
+
+  cpuMemoryHotplug(resources = this) {
+    this.$dispatch('promptModal', {
+      resources,
+      component: 'HarvesterCPUMemoryHotPlugDialog'
     });
   }
 

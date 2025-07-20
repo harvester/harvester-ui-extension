@@ -157,6 +157,9 @@ harvester:
     hotplug:
       success: 'Volume { diskName } is mounted to the virtual machine { vm }.'
       title: Add Volume
+    cpuMemoryHotplug:
+      success: 'CPU and Memory are updated to the virtual machine { vm }.'
+      title: Edit CPU and Memory
     hotunplug:
       success: 'Volume { name } is detached successfully.'
     snapshot:
@@ -213,6 +216,7 @@ harvester:
     suspendSchedule: Suspend
     restoreExistingVM: Replace Existing
     migrate: Migrate
+    cpuAndMemoryHotplug: Edit CPU and Memory
     abortMigration: Abort Migration
     createTemplate: Generate Template
     enableMaintenance: Enable Maintenance Mode

@@ -353,8 +353,6 @@ export default {
 
       const cpuMemoryHotplugEnabled = vm.metadata?.annotations?.[HCI_ANNOTATIONS.VM_CPU_MEMORY_HOTPLUG] === 'true' || false;
 
-      console.log('🚀 ~ getVmCPUMemoryValues ~ isHotPlugEnabled:', cpuMemoryHotplugEnabled);
-      console.log('getVmCPUMemoryValues(vm)=', getVmCPUMemoryValues(vm));
       const {
         cpu, memory, maxCpu, maxMemory
       } = getVmCPUMemoryValues(vm);
