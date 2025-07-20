@@ -3,7 +3,6 @@ import jsyaml from 'js-yaml';
 import isEqual from 'lodash/isEqual';
 import isEmpty from 'lodash/isEmpty';
 import difference from 'lodash/difference';
-
 import { sortBy } from '@shell/utils/sort';
 import { set } from '@shell/utils/object';
 import { getVmCPUMemoryValues } from '../../utils/cpuMemory';
@@ -351,11 +350,10 @@ export default {
       const runStrategy = spec.runStrategy || 'RerunOnFailure';
       const machineType = spec.template.spec.domain?.machine?.type || this.machineTypes[0];
 
-      const cpuMemoryHotplugEnabled = vm.metadata?.annotations?.[HCI_ANNOTATIONS.VM_CPU_MEMORY_HOTPLUG] === 'true' || false;
-
       const {
-        cpu, memory, maxCpu, maxMemory
+        cpu, memory, maxCpu, maxMemory, isHotplugEnabled
       } = getVmCPUMemoryValues(vm);
+      const cpuMemoryHotplugEnabled = isHotplugEnabled;
 
       const reservedMemory = vm.metadata?.annotations?.[HCI_ANNOTATIONS.VM_RESERVED_MEMORY];
       const terminationGracePeriodSeconds = spec.template.spec?.terminationGracePeriodSeconds || this.defaultTerminationSetting;

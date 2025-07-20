@@ -4,6 +4,7 @@ import InputOrDisplay from '@shell/components/InputOrDisplay';
 import { GIBIBYTE } from '../../utils/unit';
 import { Checkbox } from '@components/Form/Checkbox';
 import { _VIEW } from '@shell/config/query-params';
+
 const HOT_PLUG_TIMES = 4;
 
 export default {
@@ -98,6 +99,9 @@ export default {
       if (neu && !neu.includes('null')) {
         this.maxLocalMemory = neu;
       }
+    },
+    enableHotPlug(neu) {
+      this.localEnableHotPlug = neu;
     }
   },
 
@@ -107,10 +111,8 @@ export default {
       if (neu) {
         this.maxLocalCpu = this.localCpu ? this.localCpu * HOT_PLUG_TIMES : null;
         this.maxLocalMemory = this.localMemory ? `${ parseInt(this.localMemory, 10) * HOT_PLUG_TIMES }${ GIBIBYTE }` : null;
-        console.log('hotPlugEnabled = ', neu, 'maxCpu = ', this.maxLocalCpu, 'maxMemory = ', this.maxLocalMemory);
         this.$emit('updateCpuMemory', this.localCpu, this.localMemory, this.maxLocalCpu, this.maxLocalMemory, neu);
       } else {
-        console.log('hotPlugEnabled = ', neu, "maxCpu = ''", 'maxMemory = ', null);
         this.$emit('updateCpuMemory', this.localCpu, this.localMemory, '', null, neu);
       }
     },
@@ -121,18 +123,12 @@ export default {
       this.$emit('updateCpuMemory', this.localCpu, this.localMemory, this.maxLocalCpu, this.maxLocalMemory, this.localEnableHotPlug);
     },
     changeCPU() {
-      console.log('change this.localCpu=', this.localCpu);
       if (this.localEnableHotPlug) {
         this.maxLocalCpu = this.localCpu ? this.localCpu * HOT_PLUG_TIMES : null;
       }
       this.$emit('updateCpuMemory', this.localCpu, this.localMemory, this.maxLocalCpu, this.maxLocalMemory, this.localEnableHotPlug);
     },
-
     changeMaxCPUMemory() {
-      console.log('change this.localCpu=', this.localCpu);
-      console.log('change this.maxLocalCpu=', this.maxLocalCpu);
-      console.log('change this.localMemory=', this.localMemory);
-      console.log('change this.maxLocalMemory=', this.maxLocalMemory);
       this.$emit('updateCpuMemory', this.localCpu, this.localMemory, this.maxLocalCpu, this.maxLocalMemory, this.localEnableHotPlug);
     },
   }

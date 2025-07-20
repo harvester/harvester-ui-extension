@@ -160,7 +160,7 @@ harvester:
     cpuMemoryHotplug:
       success: 'CPU and Memory are updated to the virtual machine { vm }.'
       title: Edit CPU and Memory
-      maxResourcesMessage: 'You can increase the CPU to maximum { maxCpu } and memory to maximum { maxMemory }.'
+      maxResourcesMessage: 'You can increase the CPU to maximum { maxCpu }C and memory to maximum { maxMemory }.'
     hotunplug:
       success: 'Volume { name } is detached successfully.'
     snapshot:

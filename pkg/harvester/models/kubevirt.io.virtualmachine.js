@@ -1096,7 +1096,6 @@ export default class VirtVm extends HarvesterResource {
   }
 
   get customValidationRules() {
-    console.log('customValidationRules this =', this);
     const rules = [
       {
         nullable:       false,

@@ -59,6 +59,15 @@ export default {
       this.$emit('close');
     },
 
+    change() {
+      if (parseInt(this.memory, 10) < 1 ) {
+        this.memory = '1Gi';
+      }
+      if (this.cpu < 1) {
+        this.cpu = 1;
+      }
+    },
+
     async save(buttonCb) {
       if (this.actionResource) {
         try {
@@ -113,11 +122,13 @@ export default {
       <UnitInput
         v-model:value="cpu"
         :label="t('harvester.virtualMachine.input.cpu')"
-        suffix="C"
         :delay="0"
         required
-        :mode="mode"
+        suffix="C"
         class="mb-20"
+        :mode="mode"
+        :min="1"
+        @update:value="change"
       />
       <UnitInput
         v-model:value="memory"
@@ -125,6 +136,7 @@ export default {
         :mode="mode"
         :input-exponent="3"
         :delay="0"
+        :min="1"
         :increment="1024"
         :output-modifier="true"
         :disabled="disabled"
