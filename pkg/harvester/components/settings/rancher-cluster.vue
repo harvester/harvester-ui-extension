@@ -1,18 +1,18 @@
 <script>
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { RadioGroup } from '@components/Form/Radio';
-import { TextAreaAutoGrow } from '@components/Form/TextArea';
 import { SECRET } from '@shell/config/types';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import FileSelector, { createOnSelected } from '@shell/components/form/FileSelector';
+import YamlEditor from '@shell/components/YamlEditor';
 
 export default {
   name: 'HarvesterRancherCluster',
 
   components: {
     RadioGroup,
-    TextAreaAutoGrow,
-    FileSelector
+    FileSelector,
+    YamlEditor
   },
 
   mixins: [CreateEditView],
@@ -163,6 +163,9 @@ export default {
         // Populate kubeConfig with the existing secret value
         this.parseDefaultValue.kubeConfig = atob(this.existingSecret.data.kubeConfig);
       }
+    },
+    'parseDefaultValue.kubeConfig'(val) {
+      this.$refs.yaml?.updateValue(val);
     }
   }
 };
@@ -180,9 +183,11 @@ export default {
           :label="t('generic.readFromFile')"
           @selected="onKeySelected"
         />
-        <TextAreaAutoGrow
+        <YamlEditor
+          ref="yaml"
           v-model:value="parseDefaultValue.kubeConfig"
-          :min-height="254"
+          class="yaml-editor"
+          :editor-mode="mode === 'view' ? 'VIEW_CODE' : 'EDIT_CODE'"
           @update:value="update"
         />
       </div>
