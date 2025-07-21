@@ -80,6 +80,10 @@ export default {
 
     cpuMemoryHotplugTooltip() {
       return this.t('harvester.virtualMachine.hotplug.tooltip', { hotPlugTimes: HOT_PLUG_TIMES });
+    },
+
+    isCPUMemoryHotPlugFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('cpuMemoryHotplug');
     }
   },
 
@@ -181,7 +185,10 @@ export default {
         </InputOrDisplay>
       </div>
     </div>
-    <div class="row">
+    <div
+      v-if="isCPUMemoryHotPlugFeatureEnabled"
+      class="row"
+    >
       <Checkbox
         v-model:value="localEnableHotPlug"
         class="check"
@@ -198,7 +205,7 @@ export default {
       />
     </div>
     <div
-      v-if="localEnableHotPlug"
+      v-if="localEnableHotPlug && isCPUMemoryHotPlugFeatureEnabled"
       class="row"
     >
       <div class="col span-6 mb-10">
