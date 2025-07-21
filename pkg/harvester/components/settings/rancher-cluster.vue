@@ -173,6 +173,18 @@ export default {
 
 <template>
   <div>
+    <div class="row mt-20">
+      <div class="col span-12">
+        <RadioGroup
+          v-model:value="parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted"
+          :label="t('harvester.setting.rancherCluster.removeUpstreamClusterWhenNamespaceIsDeleted')"
+          name="removeUpstreamClusterWhenNamespaceIsDeleted"
+          :options="[true, false]"
+          :labels="[t('generic.enabled'), t('generic.disabled')]"
+          @update:value="update"
+        />
+      </div>
+    </div>
     <div
       v-if="parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted"
       class="row mt-20"
@@ -188,19 +200,6 @@ export default {
           v-model:value="parseDefaultValue.kubeConfig"
           class="yaml-editor"
           :editor-mode="mode === 'view' ? 'VIEW_CODE' : 'EDIT_CODE'"
-          @update:value="update"
-        />
-      </div>
-    </div>
-
-    <div class="row mt-20">
-      <div class="col span-12">
-        <RadioGroup
-          v-model:value="parseDefaultValue.removeUpstreamClusterWhenNamespaceIsDeleted"
-          :label="t('harvester.setting.rancherCluster.removeUpstreamClusterWhenNamespaceIsDeleted')"
-          name="removeUpstreamClusterWhenNamespaceIsDeleted"
-          :options="[true, false]"
-          :labels="[t('generic.enabled'), t('generic.disabled')]"
           @update:value="update"
         />
       </div>
