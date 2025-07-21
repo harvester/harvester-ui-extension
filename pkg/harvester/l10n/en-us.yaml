@@ -1724,6 +1724,7 @@ advancedSettings:
     'harv-upgrade-config': 'Configure image preloading and VM restore options for upgrades. See related fields in <a href="{url}" target="_blank" rel="noopener">settings/upgrade-config</a>'
     'harv-vm-migration-network': 'Segregated network for VM migration traffic.'
     'harv-rancher-cluster': 'Configure Rancher cluster integration settings for guest cluster management.'
+    'harv-max-hotplug-ratio': 'The ratio for kubevirt to limit the maximum CPU and memory that can be hotplugged to a VM. The value could be an integer between 1 and 20, default to 4.'
 
 typeLabel:
   kubevirt.io.virtualmachine: |-

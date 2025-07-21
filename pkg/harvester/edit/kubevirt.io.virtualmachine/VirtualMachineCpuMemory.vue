@@ -4,8 +4,11 @@ import InputOrDisplay from '@shell/components/InputOrDisplay';
 import { GIBIBYTE } from '../../utils/unit';
 import { Checkbox } from '@components/Form/Checkbox';
 import { _VIEW } from '@shell/config/query-params';
+import { HCI } from '../../types';
+import { allHash } from '@shell/utils/promise';
+import { HCI_SETTING } from '../../config/settings';
 
-const HOT_PLUG_TIMES = 4;
+const DEFAULT_HOT_PLUG_TIMES = 4;
 
 export default {
   name: 'HarvesterEditCpuMemory',
@@ -47,6 +50,14 @@ export default {
     }
   },
 
+  async fetch() {
+    const inStore = this.$store.getters['currentProduct'].inStore;
+
+    const res = await allHash({ settings: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.SETTING }) });
+
+    this.settings = res.settings || [];
+  },
+
   data() {
     return {
       GIBIBYTE,
@@ -54,7 +65,8 @@ export default {
       localMemory:        this.memory,
       maxLocalCpu:        this.maxCpu,
       maxLocalMemory:     this.maxMemory,
-      localEnableHotPlug: this.enableHotPlug
+      localEnableHotPlug: this.enableHotPlug,
+      settings:           []
     };
   },
 
@@ -79,11 +91,18 @@ export default {
     },
 
     cpuMemoryHotplugTooltip() {
-      return this.t('harvester.virtualMachine.hotplug.tooltip', { hotPlugTimes: HOT_PLUG_TIMES });
+      return this.t('harvester.virtualMachine.hotplug.tooltip', { hotPlugTimes: this.maxHotplugRatio });
     },
 
     isCPUMemoryHotPlugFeatureEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('cpuMemoryHotplug');
+    },
+
+    maxHotplugRatio() {
+      const maxHotPlugRatioSetting = this.settings.find((s) => s.id === HCI_SETTING.MAX_HOTPLUG_RATIO);
+      const maxPlugRatio = maxHotPlugRatioSetting?.value ? parseInt(maxHotPlugRatioSetting.value, 10) : DEFAULT_HOT_PLUG_TIMES;
+
+      return maxPlugRatio;
     }
   },
 
@@ -106,15 +125,16 @@ export default {
     },
     enableHotPlug(neu) {
       this.localEnableHotPlug = neu;
-    }
+    },
+
   },
 
   methods: {
     hotPlugChanged(neu) {
       // If hot plug is enabled, we need to update the maxCpu and maxMemory values
       if (neu) {
-        this.maxLocalCpu = this.localCpu ? this.localCpu * HOT_PLUG_TIMES : null;
-        this.maxLocalMemory = this.localMemory ? `${ parseInt(this.localMemory, 10) * HOT_PLUG_TIMES }${ GIBIBYTE }` : null;
+        this.maxLocalCpu = this.localCpu ? this.localCpu * this.maxHotplugRatio : null;
+        this.maxLocalMemory = this.localMemory ? `${ parseInt(this.localMemory, 10) * this.maxHotplugRatio }${ GIBIBYTE }` : null;
         this.$emit('updateCpuMemory', this.localCpu, this.localMemory, this.maxLocalCpu, this.maxLocalMemory, neu);
       } else {
         this.$emit('updateCpuMemory', this.localCpu, this.localMemory, '', null, neu);
@@ -122,13 +142,13 @@ export default {
     },
     changeMemory() {
       if (this.localEnableHotPlug) {
-        this.maxLocalMemory = this.localMemory ? `${ parseInt(this.localMemory, 10) * HOT_PLUG_TIMES }${ GIBIBYTE }` : null;
+        this.maxLocalMemory = this.localMemory ? `${ parseInt(this.localMemory, 10) * this.maxHotplugRatio }${ GIBIBYTE }` : null;
       }
       this.$emit('updateCpuMemory', this.localCpu, this.localMemory, this.maxLocalCpu, this.maxLocalMemory, this.localEnableHotPlug);
     },
     changeCPU() {
       if (this.localEnableHotPlug) {
-        this.maxLocalCpu = this.localCpu ? this.localCpu * HOT_PLUG_TIMES : null;
+        this.maxLocalCpu = this.localCpu ? this.localCpu * this.maxHotplugRatio : null;
       }
       this.$emit('updateCpuMemory', this.localCpu, this.localMemory, this.maxLocalCpu, this.maxLocalMemory, this.localEnableHotPlug);
     },

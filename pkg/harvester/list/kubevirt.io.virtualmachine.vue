@@ -271,4 +271,4 @@ export default {
     white-space: nowrap;
   }
 }
-</style>import { formatEncryptionSecretNames } from '@shell/utils/formatter';
+</style>

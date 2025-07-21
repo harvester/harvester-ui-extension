@@ -1105,19 +1105,6 @@ export default class VirtVm extends HarvesterResource {
         maxLength:      63,
         translationKey: 'harvester.fields.name'
       },
-      // {
-      //   nullable:       false,
-      //   path:           'spec.template.spec.domain.cpu.cores',
-      //   min:            1,
-      //   required:       true,
-      //   translationKey: 'harvester.fields.cpu'
-      // },
-      // {
-      //   nullable:       false,
-      //   path:           'spec.template.spec.domain.resources.limits.memory',
-      //   required:       true,
-      //   translationKey: 'harvester.fields.memory'
-      // },
       {
         nullable:   false,
         path:       'spec.template.spec',
@@ -1138,10 +1125,6 @@ export default class VirtVm extends HarvesterResource {
     const hasMultus = networks.find((N) => N.multus);
 
     return !!hasMultus;
-  }
-
-  get vmCPUMemoryHotplugEnabled() {
-    return this.metadata?.annotations[HCI_ANNOTATIONS.VM_CPU_MEMORY_HOTPLUG] === 'true' || false;
   }
 
   get memorySort() {
@@ -1178,7 +1161,7 @@ export default class VirtVm extends HarvesterResource {
     const conditions = get(this, 'status.conditions');
     const restartRequired = findBy(conditions, 'type', 'RestartRequired');
 
-    if (restartRequired) {
+    if (restartRequired && restartRequired.status === 'True') {
       return this.t('harvester.virtualMachine.hotplug.restartVMMessage');
     }
 

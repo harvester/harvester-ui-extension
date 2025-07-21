@@ -676,6 +676,8 @@ export default {
 
         // set max CPU
         set(this.spec.template.spec, 'domain.cpu.maxSockets', this.maxCpu);
+        // domain.resources.limits.cpu and memory are defined by k8s which requires string values
+        // see https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/
         set(this.spec.template.spec, 'domain.resources.limits.cpu', this.maxCpu?.toString());
 
         // set memory
