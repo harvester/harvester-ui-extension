@@ -447,6 +447,7 @@ harvester:
       storage: Storage
       labels: Labels
       ksmtuned: Ksmtuned
+      hugepages: Hugepages
       seeder: Out-of-band Access
     detail:
       kvm:
@@ -519,6 +520,20 @@ harvester:
         fullScans: Full Scans
         stableNodeChains: Stable Node Chains
         stableNodeDups: Stable Node Dups
+    hugepages:
+      meminfo: Meminfo
+      transparent:
+        title: Transparent Hugepages <a href="{url}" target="_blank"><i class="icon icon-info" /></a>
+        enabled: Enabled
+        shmemEnabled: Shared Memory Enabled
+        defrag: Defragmentation
+      status:
+        anon: Anonymous Hugepages (bytes)
+        size: Default Hugepage Size (bytes)
+        total: Total Hugepages
+        free: Free Hugepages
+        rsvd: Reserved Hugepages
+        surp: Surplus Hugepages
     disk:
       add: Add Disk
       path:

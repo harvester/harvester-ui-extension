@@ -37,6 +37,7 @@ export const HCI = {
   STORAGE:             'harvesterhci.io.storage',
   RESOURCE_QUOTA:      'harvesterhci.io.resourcequota',
   KSTUNED:             'node.harvesterhci.io.ksmtuned',
+  HUGEPAGES:           'node.harvesterhci.io.hugepage',
   PCI_DEVICE:          'devices.harvesterhci.io.pcidevice',
   PCI_CLAIM:           'devices.harvesterhci.io.pcideviceclaim',
   SR_IOV:              'devices.harvesterhci.io.sriovnetworkdevice',
