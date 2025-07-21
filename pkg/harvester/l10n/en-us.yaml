@@ -1127,19 +1127,8 @@ harvester:
       privateKey: Private Key
       ca: CA
     rancherCluster:
-      description: Configure Rancher cluster integration for guest cluster management. This setting allows you to specify a Rancher KubeConfig and configure automatic cleanup behavior.
       kubeConfig: Rancher KubeConfig
-      kubeConfigPlaceholder: Paste your Rancher KubeConfig content here...
       removeUpstreamClusterWhenNamespaceIsDeleted: Remove Upstream Cluster When Namespace Is Deleted
-      createSecret: Create Rancher KubeConfig Secret
-      updateSecret: Update Rancher KubeConfig Secret
-      creatingSecret: Creating Secret...
-      updatingSecret: Updating Secret...
-      secretExists: A Rancher KubeConfig secret already exists and will be updated
-      secretCreated: Rancher KubeConfig secret created successfully
-      secretUpdated: Rancher KubeConfig secret updated successfully
-      secretCreationFailed: Failed to create Rancher KubeConfig secret
-      invalidKubeConfig: Invalid KubeConfig format. Please ensure it's a valid JSON kubeConfig file with apiVersion and kind fields.
     storageNetwork:
       range:
         placeholder: e.g. 172.16.0.0/24
