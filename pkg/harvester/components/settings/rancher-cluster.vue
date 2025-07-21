@@ -208,7 +208,15 @@ export default {
 </template>
 
 <style lang="scss" scoped>
-:deep(textarea) {
-  overflow-y: auto !important;
+$yaml-height: 540px;
+
+:deep() .yaml-editor{
+  flex: 1;
+  min-height: $yaml-height;
+  & .code-mirror .CodeMirror {
+    position: initial;
+    height: auto;
+    min-height: $yaml-height;
+  }
 }
 </style>
