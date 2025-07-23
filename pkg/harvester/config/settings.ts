@@ -38,6 +38,7 @@ export const HCI_SETTING = {
   UPGRADE_CONFIG:                         'upgrade-config',
   VM_MIGRATION_NETWORK:                   'vm-migration-network',
   RANCHER_CLUSTER:                        'rancher-cluster',
+  MAX_HOTPLUG_RATIO:                      'max-hotplug-ratio'
 };
 
 export const HCI_ALLOWED_SETTINGS = {
@@ -112,6 +113,7 @@ export const HCI_ALLOWED_SETTINGS = {
   [HCI_SETTING.RANCHER_CLUSTER]:                        {
     kind: 'custom', from: 'import', canReset: true, featureFlag: 'rancherClusterSetting'
   },
+  [HCI_SETTING.MAX_HOTPLUG_RATIO]: { kind: 'number', featureFlag: 'cpuMemoryHotplug' },
 };
 
 export const HCI_SINGLE_CLUSTER_ALLOWED_SETTING = {

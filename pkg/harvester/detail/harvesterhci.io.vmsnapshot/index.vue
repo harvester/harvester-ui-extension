@@ -172,6 +172,9 @@ export default {
           :cpu="cpu"
           :mode="mode"
           :memory="memory"
+          :max-cpu="maxCpu"
+          :max-memory="maxMemory"
+          :enable-hot-plug="cpuMemoryHotplugEnabled"
         />
 
         <div class="row mb-10">
