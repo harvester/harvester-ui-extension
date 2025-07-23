@@ -5,6 +5,7 @@ import CreateEditView from '@shell/mixins/create-edit-view';
 import HarvesterIpAddress from '../../../formatters/HarvesterIpAddress';
 import VMConsoleBar from '../../../components/VMConsoleBar';
 import { HCI } from '../../../types';
+import { getVmCPUMemoryValues } from '../../../utils/cpuMemory';
 
 const UNDEFINED = 'n/a';
 
@@ -91,9 +92,9 @@ export default {
     },
 
     flavor() {
-      const domain = this.value?.spec?.template?.spec?.domain;
+      const { cpu, memory } = getVmCPUMemoryValues(this.value);
 
-      return `${ domain.cpu?.cores } vCPU , ${ domain.resources?.limits?.memory } ${ this.t('harvester.virtualMachine.input.memory') }`;
+      return `${ cpu } vCPU , ${ memory } ${ this.t('harvester.virtualMachine.input.memory') }`;
     },
 
     kernelRelease() {

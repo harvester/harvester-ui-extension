@@ -259,6 +259,9 @@ export default {
         <CpuMemory
           :cpu="cpu"
           :memory="memory"
+          :max-cpu="maxCpu"
+          :max-memory="maxMemory"
+          :enable-hot-plug="cpuMemoryHotplugEnabled"
           :disabled="isConfig"
           @updateCpuMemory="updateCpuMemory"
         />
