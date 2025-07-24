@@ -1,20 +1,21 @@
 <script>
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import { mapGetters } from 'vuex';
-
+import { runStrategies as runStrategyOptions } from '../config/harvester-map';
 import { Card } from '@components/Card';
 import { Banner } from '@components/Banner';
 import { Checkbox } from '@components/Form/Checkbox';
 import AsyncButton from '@shell/components/AsyncButton';
 import { LabeledInput } from '@components/Form/LabeledInput';
+import LabeledSelect from '@shell/components/form/LabeledSelect';
 
 export default {
-  name: 'CloneVMModal',
+  name: 'CloneVMModal123',
 
   emits: ['close'],
 
   components: {
-    AsyncButton, Banner, Checkbox, Card, LabeledInput
+    AsyncButton, Banner, Checkbox, Card, LabeledInput, LabeledSelect
   },
 
   props: {
@@ -26,9 +27,11 @@ export default {
 
   data() {
     return {
-      name:      '',
-      cloneData: true,
-      errors:    []
+      name:        '',
+      cloneData:   true,
+      errors:      [],
+      runStrategy: runStrategyOptions[1],
+      runStrategyOptions
     };
   },
 
@@ -37,6 +40,9 @@ export default {
 
     actionResource() {
       return this.resources[0];
+    },
+    vmCloneRunStrategyEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('vmCloneRunStrategy');
     },
   },
 
@@ -58,7 +64,8 @@ export default {
 
       // deep clone
       try {
-        const res = await this.actionResource.doAction('clone', { targetVm: this.name }, {}, false);
+        const payload = this.vmCloneRunStrategyEnabled ? { targetVm: this.name, runStrategy: this.runStrategy } : { targetVm: this.name };
+        const res = await this.actionResource.doAction('clone', payload, {}, false);
 
         if (res._status === 200 || res._status === 204) {
           this.$store.dispatch('growl/success', {
@@ -105,6 +112,13 @@ export default {
         class="mb-20"
         :label="t('harvester.modal.cloneVM.name')"
         required
+      />
+      <LabeledSelect
+        v-if="vmCloneRunStrategyEnabled"
+        v-model:value="runStrategy"
+        label-key="harvester.virtualMachine.runStrategy"
+        :options="runStrategyOptions"
+        :mode="mode"
       />
       <Banner
         v-for="(err, i) in errors"
