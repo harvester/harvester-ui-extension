@@ -45,7 +45,8 @@ const FEATURE_FLAGS = {
     'vmNetworkMigration',
     'kubeovnVpcSubnet',
     'rancherClusterSetting',
-    'cpuMemoryHotplug'
+    'cpuMemoryHotplug',
+    'cdiSettings'
   ]
 };
 

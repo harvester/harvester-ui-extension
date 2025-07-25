@@ -1,4 +1,5 @@
 <script>
+import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import CruResource from '@shell/components/CruResource';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
@@ -6,11 +7,9 @@ import ArrayList from '@shell/components/form/ArrayList';
 import Tab from '@shell/components/Tabbed/Tab';
 import Tabbed from '@shell/components/Tabbed';
 import { RadioGroup } from '@components/Form/Radio';
-
-import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
+import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import Loading from '@shell/components/Loading';
-
 import { _CREATE, _VIEW } from '@shell/config/query-params';
 import { mapFeature, UNSUPPORTED_STORAGE_DRIVERS } from '@shell/store/features';
 import {
@@ -22,6 +21,7 @@ import { CSI_DRIVER } from '../../types';
 import Tags from '../../components/DiskTags';
 import { DATA_ENGINE_V1, DATA_ENGINE_V2 } from '../../models/harvester/persistentvolumeclaim';
 import { LVM_DRIVER } from '../../models/harvester/storage.k8s.io.storageclass';
+import CDISettings from './CDISettings';
 
 export const LVM_TOPOLOGY_LABEL = 'topology.lvm.csi/node';
 
@@ -45,6 +45,7 @@ export default {
     Tabbed,
     Loading,
     Tags,
+    CDISettings,
   },
 
   mixins: [CreateEditView],
@@ -117,6 +118,7 @@ export default {
         key:    '',
         values: [],
       },
+      cdiSettings: {},
     };
   },
 
@@ -124,10 +126,10 @@ export default {
     const inStore = this.$store.getters['currentProduct'].inStore;
 
     const hash = {
-      namespaces:           this.$store.dispatch(`${ inStore }/findAll`, { type: NAMESPACE }),
-      storages:             this.$store.dispatch(`${ inStore }/findAll`, { type: STORAGE_CLASS }),
-      longhornNodes:        this.$store.dispatch(`${ inStore }/findAll`, { type: LONGHORN.NODES }),
-      csiDrivers:           this.$store.dispatch(`${ inStore }/findAll`, { type: CSI_DRIVER })
+      namespaces:    this.$store.dispatch(`${ inStore }/findAll`, { type: NAMESPACE }),
+      storages:      this.$store.dispatch(`${ inStore }/findAll`, { type: STORAGE_CLASS }),
+      longhornNodes: this.$store.dispatch(`${ inStore }/findAll`, { type: LONGHORN.NODES }),
+      csiDrivers:    this.$store.dispatch(`${ inStore }/findAll`, { type: CSI_DRIVER }),
     };
 
     if (this.value.longhornV2LVMSupport) {
@@ -197,6 +199,14 @@ export default {
 
       return v2DataEngine.value === 'true' ? DATA_ENGINE_V2 : DATA_ENGINE_V1;
     },
+
+    isCDISettingsFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('cdiSettings');
+    },
+
+    shouldShowCDISettingsTab() {
+      return this.isCDISettingsFeatureEnabled && this.provisioner !== `${ LONGHORN_DRIVER }_${ DATA_ENGINE_V1 }`;
+    },
   },
 
   watch: {
@@ -249,6 +259,10 @@ export default {
       });
 
       this.formatAllowedTopoloties();
+
+      if (this.shouldShowCDISettingsTab) {
+        this.formatCDISettings();
+      }
     },
 
     formatAllowedTopoloties() {
@@ -270,6 +284,34 @@ export default {
       if (matchLabelExpressions.length > 0) {
         this.value.allowedTopologies = [{ matchLabelExpressions: [...matchLabelExpressions, ...lvmMatchExpression] }];
       }
+    },
+    formatCDISettings() {
+      const annotations = this.value.metadata.annotations || {};
+      const volumeModeAccessModes = {};
+
+      this.cdiSettings.volumeModeAccessModes.forEach((setting) => {
+        if (setting.volumeMode && Array.isArray(setting.accessModes) && setting.accessModes.length > 0) {
+          volumeModeAccessModes[setting.volumeMode] = setting.accessModes;
+        }
+      });
+
+      if (Object.keys(volumeModeAccessModes).length > 0) {
+        annotations[HCI_ANNOTATIONS.VOLUME_MODE_ACCESS_MODES] = JSON.stringify(volumeModeAccessModes);
+      }
+
+      if (this.cdiSettings.volumeSnapshotClass) {
+        annotations[HCI_ANNOTATIONS.VOLUME_SNAPSHOT_CLASS] = this.cdiSettings.volumeSnapshotClass;
+      }
+
+      if (this.cdiSettings.cloneStrategy) {
+        annotations[HCI_ANNOTATIONS.CLONE_STRATEGY] = this.cdiSettings.cloneStrategy;
+      }
+
+      if (this.cdiSettings.filesystemOverhead) {
+        annotations[HCI_ANNOTATIONS.FILESYSTEM_OVERHEAD] = this.cdiSettings.filesystemOverhead;
+      }
+
+      this.value.metadata.annotations = annotations;
     }
   }
 };
@@ -403,6 +445,19 @@ export default {
             </div>
           </template>
         </ArrayList>
+      </Tab>
+      <Tab
+        v-if="shouldShowCDISettingsTab"
+        name="cdiSettings"
+        :label="t('harvester.storage.cdiSettings.label')"
+        :weight="-2"
+      >
+        <CDISettings
+          v-model:cdi-settings="cdiSettings"
+          :value="value"
+          :mode="mode"
+          :provisioner="value.provisioner"
+        />
       </Tab>
     </Tabbed>
   </CruResource>
