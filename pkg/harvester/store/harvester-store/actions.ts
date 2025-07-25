@@ -33,11 +33,17 @@ export default {
       throw new ClusterNotFoundError(id);
     }
 
-    // Update the Steve client URLs
+    // Update the Steve client URLs for Harvester store
     commit('applyConfig', { baseUrl: virtualBase });
+
+    // Also set the main cluster store's baseUrl so that components like Alertmanager can work
+    const clusterBase = `/k8s/clusters/${ escape(id) }/v1`;
+    commit('cluster/applyConfig', { baseUrl: clusterBase }, { root: true });
 
     await Promise.all([
       dispatch('loadSchemas', true),
+      // Also load schemas for the main cluster store
+      dispatch('cluster/loadSchemas', true, { root: true }),
     ]);
 
     dispatch('subscribe');
