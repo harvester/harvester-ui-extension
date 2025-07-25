@@ -27,6 +27,7 @@ import Instance from './VirtualMachineInstance';
 import Disk from './HarvesterHostDisk';
 import VlanStatus from './VlanStatus';
 import HarvesterKsmtuned from './HarvesterKsmtuned.vue';
+import HarvesterHugepages from './HarvesterHugepages.vue';
 import HarvesterSeeder from './HarvesterSeeder';
 
 const LONGHORN_SYSTEM = 'longhorn-system';
@@ -46,6 +47,7 @@ export default {
     VlanStatus,
     LabelValue,
     HarvesterKsmtuned,
+    HarvesterHugepages,
     Loading,
     SortableTable,
     HarvesterSeeder,
@@ -207,6 +209,12 @@ export default {
       const inStore = this.$store.getters['currentProduct'].inStore;
 
       return !!this.$store.getters[`${ inStore }/schemaFor`](HCI.KSTUNED);
+    },
+
+    hasHugepagesSchema() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+
+      return !!this.$store.getters[`${ inStore }/schemaFor`](HCI.HUGEPAGES);
     },
 
     hasBlockDevicesSchema() {
@@ -466,6 +474,16 @@ export default {
           :mode="mode"
           :node="value"
         />
+      </Tab>
+
+      <Tab
+        v-if="hasHugepagesSchema"
+        name="hugepages"
+        :weight="0"
+        :show-header="false"
+        :label="t('harvester.host.tabs.hugepages')"
+      >
+        <HarvesterHugepages :node="value" />
       </Tab>
 
       <Tab

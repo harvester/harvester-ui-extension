@@ -7,4 +7,5 @@ export const DOC = {
   UPGRADE_CONFIG_URL:        `/advanced/index#upgrade-config`,
   STORAGE_NETWORK_EXAMPLE:   `/advanced/storagenetwork#configuration-example`,
   SUPPORT_BUNDLE_NAMESPACES: `/advanced/index/#support-bundle-namespaces`,
+  TRANSPARENT_HUGEPAGES:     `https://docs.kernel.org/admin-guide/mm/transhuge.html`,
 };
