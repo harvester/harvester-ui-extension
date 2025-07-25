@@ -46,7 +46,8 @@ const FEATURE_FLAGS = {
     'kubeovnVpcSubnet',
     'rancherClusterSetting',
     'cpuMemoryHotplug',
-    'cdiSettings'
+    'cdiSettings',
+    'vmCloneRunStrategy',
   ]
 };
 
