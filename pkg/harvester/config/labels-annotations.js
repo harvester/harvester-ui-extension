@@ -72,4 +72,8 @@ export const HCI = {
   CUSTOM_IP:                        'harvesterhci.io/custom-ip',
   IMPORTED_IMAGE:                   'migration.harvesterhci.io/imported',
   VM_CPU_MEMORY_HOTPLUG:            'harvesterhci.io/enableCPUAndMemoryHotplug',
+  FILESYSTEM_OVERHEAD:              'cdi.harvesterhci.io/filesystemOverhead',
+  CLONE_STRATEGY:                   'cdi.harvesterhci.io/storageProfileCloneStrategy',
+  VOLUME_MODE_ACCESS_MODES:         'cdi.harvesterhci.io/storageProfileVolumeModeAccessModes',
+  VOLUME_SNAPSHOT_CLASS:            'cdi.harvesterhci.io/storageProfileVolumeSnapshotClass',
 };
