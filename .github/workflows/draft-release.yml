@@ -1,0 +1,41 @@
+name: Create Draft Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 1.6.1)'
+        required: true
+        type: string
+
+jobs:
+  create-draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: yarn add -D conventional-changelog-cli
+      
+      - name: Generate changelog
+        run: npx conventional-changelog -p angular -i CHANGELOG.md -s -r 0
+      
+      - name: Add original authors
+        run: node scripts/add-original-authors.js
+      
+      - name: Create draft release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          release_name: v${{ github.event.inputs.version }}
+          body_path: CHANGELOG.md
+          draft: true 
