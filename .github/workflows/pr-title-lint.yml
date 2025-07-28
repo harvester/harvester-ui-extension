@@ -1,0 +1,26 @@
+name: PR Title Lint
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  pr-title-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Lint PR title
+        uses: wagoid/commitlint-github-action@v5
+        with:
+          githubToken: ${{ secrets.GITHUB_TOKEN }} 
