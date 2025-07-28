@@ -98,8 +98,12 @@ export default {
           return true;
         }
 
-        const description = this.t(setting.description, this.getDocLinkParams(setting) || {}, true)?.toLowerCase() || '';
+        let description = this.t(setting.description, this.getDocLinkParams(setting) || {}, true)?.toLowerCase() || '';
 
+        // remove <a> tags from description
+        if (description.includes('<a')) {
+          description = description.replace(/<a[^>]*>(.*?)<\/a>/g, '$1');
+        }
         // filter by description
         if (description.includes(searchQuery)) {
           return true;
