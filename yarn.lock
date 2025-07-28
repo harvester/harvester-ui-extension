@@ -3133,15 +3133,15 @@
   resolved "https://registry.yarnpkg.com/@popperjs/core/-/core-2.11.8.tgz#6b79032e760a0899cd4204710beede972a3a185f"
   integrity sha512-P1st0aksCrn9sGZhp8GMYwBnQsbvAWsZAX44oXNNvLHGqAOcoVxmjZiohstwQ7SqKnbR47akdNi+uleWD8+g6A==
 
-"@rancher/icons@2.0.29":
-  version "2.0.29"
-  resolved "https://registry.yarnpkg.com/@rancher/icons/-/icons-2.0.29.tgz#6546d69768c706bebd66bfa73b36aef3d105987a"
-  integrity sha512-qBBqfazS9y5VjV7fJDPNXmxd9AP/2uiE05mKFWP41kpbO+tEb62RnUBXCm14XLeScDZQcOuiAKVHMmvCFzF0BA==
+"@rancher/icons@2.0.37":
+  version "2.0.37"
+  resolved "https://registry.yarnpkg.com/@rancher/icons/-/icons-2.0.37.tgz#61dd947009a4a3d27b2e4dca630da05583925744"
+  integrity sha512-T2FqiZraz9yte9tNMCGqIDQVPwXKTAPUTE8eAaQjhOJEbwfk/ttXDIKGYZ9mHApJX6s8JYVXAbRPcgXgc4zKpA==
 
-"@rancher/shell@3.0.5-rc.6":
-  version "3.0.5-rc.6"
-  resolved "https://registry.yarnpkg.com/@rancher/shell/-/shell-3.0.5-rc.6.tgz#8d842cf1b0f7e3e52af53538953cf9dc5bfd0639"
-  integrity sha512-B9+2WE1a06wRvCN7xvxp/HBdjrib04szIbc1pNBeMdDNCqQmZMvt2dftjYb44Tvg+4Ji8G+tcK8Q3Rry6NDJsw==
+"@rancher/shell@3.0.5-rc.7":
+  version "3.0.5-rc.7"
+  resolved "https://registry.yarnpkg.com/@rancher/shell/-/shell-3.0.5-rc.7.tgz#a3c3f555c9459b312546fb577e9916cd48126fb2"
+  integrity sha512-YxiRteWwTnuCGEh2AqIyH6Vx/PJXSwugi7dpf2U+XnQLqQHYM8pFo38jG8Tmj95KqZsRMLXdesRow/Icq96D5w==
   dependencies:
     "@aws-sdk/client-ec2" "3.658.1"
     "@aws-sdk/client-eks" "3.1.0"
@@ -3153,7 +3153,7 @@
     "@babel/preset-typescript" "7.16.7"
     "@novnc/novnc" "1.2.0"
     "@popperjs/core" "2.11.8"
-    "@rancher/icons" "2.0.29"
+    "@rancher/icons" "2.0.37"
     "@types/is-url" "1.2.30"
     "@types/node" "20.10.8"
     "@types/semver" "^7.5.8"
