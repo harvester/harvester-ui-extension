@@ -99,16 +99,15 @@ async function getPRAuthors(prNumber) {
 function extractPRNumbers(changelogContent) {
   const prNumbers = new Set();
 
-  // Match patterns like [#123] in the changelog, but only the main PR references
+  // Match patterns like [#123] or (#123) in the changelog, but only the main PR references
   // Handle different formats:
-  // - (#PR_NUMBER) (COMMIT_HASH)
-  // - (#PR_NUMBER) (COMMIT_HASH), closes
-  // - (#PR_NUMBER) (COMMIT_HASH), closes #OTHER_PR
-  // - ([#PR_NUMBER](link)) (COMMIT_HASH), closes
+  // - (#PR_NUMBER) (COMMIT_HASH) - old format
+  // - (#PR_NUMBER) (COMMIT_HASH), closes - old format
+  // - (#PR_NUMBER) (COMMIT_HASH), closes #OTHER_PR - old format
+  // - ([#PR_NUMBER](link)) (COMMIT_HASH), closes - new format
   // We want to match the main PR reference, not the "closes #PR" part
-  // Look for the first [#PR_NUMBER] that's not in the "closes" part
-  // This is a simpler approach - just find the first PR number
-  const prRegex = /\[#(\d+)\]/g;
+  // Look for the first PR number that's not in the "closes" part
+  const prRegex = /#(\d+)/g;
   let match;
 
   while ((match = prRegex.exec(changelogContent)) !== null) {
@@ -136,11 +135,19 @@ async function addOriginalAuthors(changelogContent) {
     console.log(`Processing PR #${ prNumber }...`);
     const originalAuthors = await getPRAuthors(prNumber);
 
-    // Handle the full pattern including any trailing text like ", closes"
-    // Format: ([#PR_NUMBER](link)) (COMMIT_HASH), closes
-    const pattern = new RegExp(`\\(\\[#${ prNumber }\\]\\([^)]+\\)\\)`, 'g');
+    // Handle both old format (#PR_NUMBER) and new format ([#PR_NUMBER](link))
+    // Old format: (#PR_NUMBER) (COMMIT_HASH), closes
+    // New format: ([#PR_NUMBER](link)) (COMMIT_HASH), closes
+    // Try new format first
+    let pattern = new RegExp(`\\(\\[#${ prNumber }\\]\\([^)]+\\)\\)`, 'g');
 
-    updatedContent = updatedContent.replace(pattern, `([#${ prNumber }](https://github.com/NickChungSUSE/harvester-ui-extension/pull/${ prNumber })) - Authors: ${ originalAuthors } (merged by mergify[bot])`);
+    if (updatedContent.match(pattern)) {
+      updatedContent = updatedContent.replace(pattern, `([#${ prNumber }](https://github.com/NickChungSUSE/harvester-ui-extension/pull/${ prNumber })) - Authors: ${ originalAuthors } (merged by mergify[bot])`);
+    } else {
+      // Try old format
+      pattern = new RegExp(`\\(#${ prNumber }\\)`, 'g');
+      updatedContent = updatedContent.replace(pattern, `([#${ prNumber }](https://github.com/NickChungSUSE/harvester-ui-extension/pull/${ prNumber })) - Authors: ${ originalAuthors } (merged by mergify[bot])`);
+    }
   }
 
   return updatedContent;
