@@ -53,8 +53,6 @@ export default {
     },
 
     namespaceOptions() {
-      if (this.availableNamespaces.length === 0) return [];
-
       const allSelected =
         this.namespaces.length === this.filteredNamespaces.length &&
         this.filteredNamespaces.every((ns) => this.namespaces.includes(ns));

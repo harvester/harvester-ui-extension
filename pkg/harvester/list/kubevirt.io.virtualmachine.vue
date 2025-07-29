@@ -22,8 +22,8 @@ export const VM_HEADERS = [
   {
     name:        'CPU',
     label:       'CPU',
-    sort:        ['spec.template.spec.domain.cpu.cores'],
-    value:       'spec.template.spec.domain.cpu.cores',
+    sort:        ['displayCPU'],
+    value:       'displayCPU',
     align:       'center',
     dashIfEmpty: true,
   },

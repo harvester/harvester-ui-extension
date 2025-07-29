@@ -157,6 +157,10 @@ harvester:
     hotplug:
       success: 'Volume { diskName } is mounted to the virtual machine { vm }.'
       title: Add Volume
+    cpuMemoryHotplug:
+      success: 'CPU and Memory are updated to the virtual machine { vm }.'
+      title: Edit CPU and Memory
+      maxResourcesMessage: 'You can increase the CPU to maximum { maxCpu }C and memory to maximum { maxMemory }.'
     hotunplug:
       success: 'Volume { name } is detached successfully.'
     snapshot:
@@ -213,6 +217,7 @@ harvester:
     suspendSchedule: Suspend
     restoreExistingVM: Replace Existing
     migrate: Migrate
+    cpuAndMemoryHotplug: Edit CPU and Memory
     abortMigration: Abort Migration
     createTemplate: Generate Template
     enableMaintenance: Enable Maintenance Mode
@@ -571,6 +576,10 @@ harvester:
   virtualMachine:
     label: Virtual Machines
     osType: OS Type
+    hotplug:
+      title: Enable CPU and memory hotplug
+      tooltip: The default maximum CPU and maximum memory are {hotPlugTimes} times based on CPU and memory.
+      restartVMMessage: Restart action is required for the virtual machine configuration change to take effect
     instance:
       singleInstance:
       multipleInstance:
@@ -716,6 +725,9 @@ harvester:
       invalidUser: Invalid Username.
     input:
       name: Name
+      cpu: CPU
+      maxCpu: Maximum CPU
+      maxMemory: Maximum Memory
       memory: Memory
       image: Image
       sshKey: SSHKey
@@ -1017,7 +1029,7 @@ harvester:
         progress: Restore in progress
         complete: Restore completed
 
-  subnet: 
+  subnet:
     cidrBlock:
       tooltip: The subnet range in CIDR notation. Note that the CIDR blocks of different Subnets' within the same VPC cannot overlap.
       label: CIDR Block
@@ -1068,8 +1080,6 @@ harvester:
         placeholder: e.g. 169.254.0.1/16
       remoteVpc:
         label: Remote VPC
-    
-   
   network:
     label: Virtual Machine Networks
     tabs:
@@ -1376,6 +1386,28 @@ harvester:
       label: Internal Storage Class
       cannotDeleteTooltip: Internal storage class volumes cannot be deleted
       cannotDeleteOrDefaultTooltip: Internal storage classes cannot be deleted or set as default
+    cdiSettings:
+      label: CDI Settings
+      volumeModeAccessModes:
+        label: Volume Mode / Access Modes
+        tooltip: Specifies the default volume mode and access modes.
+        add: Add
+        volumeMode: Volume Mode
+        accessModes:
+          label: Access Modes
+      volumeSnapshotClass:
+        label: Volume Snapshot Class
+        tooltip: Sets the Volume Snapshot Class name to be used when taking snapshots of PVCs under this StorageClass.
+      cloneStrategy:
+        label: Clone Strategy
+        tooltip: Defines the clone strategy to use for volumes created with this StorageClass.
+        copy: Copy
+        snapshot: Snapshot
+        csiClone: CSI Clone
+      fileSystemOverhead:
+        label: File System Overhead
+        tooltip: Specifies the percentage of filesystem overhead to consider when calculating PVC size.
+        placeholder: e.g. 0.05 (up to 3 decimal places, between 0 and 1)
 
   vlanConfig:
     title: Network Configuration
@@ -1712,6 +1744,7 @@ advancedSettings:
     'harv-upgrade-config': 'Configure image preloading and VM restore options for upgrades. See related fields in <a href="{url}" target="_blank" rel="noopener">settings/upgrade-config</a>'
     'harv-vm-migration-network': 'Segregated network for VM migration traffic.'
     'harv-rancher-cluster': 'Configure Rancher cluster integration settings for guest cluster management.'
+    'harv-max-hotplug-ratio': 'The ratio for kubevirt to limit the maximum CPU and memory that can be hotplugged to a VM. The value could be an integer between 1 and 20, default to 4.'
 
 typeLabel:
   kubevirt.io.virtualmachine: |-

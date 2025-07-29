@@ -44,7 +44,10 @@ const FEATURE_FLAGS = {
     'csiOnlineExpandValidation',
     'vmNetworkMigration',
     'kubeovnVpcSubnet',
-    'rancherClusterSetting'
+    'rancherClusterSetting',
+    'cpuMemoryHotplug',
+    'cdiSettings',
+    'vmCloneRunStrategy',
   ]
 };
 

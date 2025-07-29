@@ -1,13 +1,13 @@
 {
   "name": "harvester-ui-extension",
-  "version": "1.6.0-rc2",
+  "version": "1.6.0-rc3",
   "private": false,
   "engines": {
     "node": ">=20.0.0"
   },
   "dependencies": {
     "@babel/plugin-transform-class-static-block": "7.26.0",
-    "@rancher/shell": "3.0.5-rc.6",
+    "@rancher/shell": "3.0.5-rc.7",
     "cache-loader": "^4.1.0",
     "color": "4.2.3",
     "ip": "2.0.1",

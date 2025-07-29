@@ -466,7 +466,9 @@ export default {
         }
       }
 
-      const errors = this.getAccessCredentialsValidation();
+      const cpuMemoryErrors = this.getCPUMemoryValidation();
+      const accessCredentialsErrors = this.getAccessCredentialsValidation();
+      const errors = [...cpuMemoryErrors, ...accessCredentialsErrors];
 
       if (errors.length > 0) {
         return Promise.reject(errors);
@@ -604,8 +606,11 @@ export default {
       >
         <CpuMemory
           :cpu="cpu"
+          :max-cpu="maxCpu"
           :memory="memory"
+          :max-memory="maxMemory"
           :mode="mode"
+          :enable-hot-plug="cpuMemoryHotplugEnabled"
           @updateCpuMemory="updateCpuMemory"
         />
 

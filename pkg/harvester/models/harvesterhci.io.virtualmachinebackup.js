@@ -25,6 +25,10 @@ export default class HciVmBackup extends HarvesterResource {
     return detailLocation;
   }
 
+  get disableResourceDetailDrawerConfigTab() {
+    return true;
+  }
+
   get doneOverride() {
     const route = this.currentRoute();
     const detailLocation = clone(this._detailLocation);
