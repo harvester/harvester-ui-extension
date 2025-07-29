@@ -47,20 +47,26 @@ export default {
         STATE,
         NAME,
         {
-          name:     'vmCPU',
-          labelKey: 'tableHeaders.cpu',
-          search:   false,
-          sort:     ['spec.template.spec.domain.cpu.cores'],
-          value:    'spec.template.spec.domain.cpu.cores',
-          width:    120
+          name:        'CPU',
+          label:       'CPU',
+          sort:        ['displayCPU'],
+          value:       'displayCPU',
+          align:       'center',
+          dashIfEmpty: true,
         },
         {
-          name:     'vmRAM',
-          labelKey: 'glance.memory',
-          search:   false,
-          sort:     ['memorySort'],
-          value:    'spec.template.spec.domain.resources.limits.memory',
-          width:    120
+          name:          'Memory',
+          value:         'displayMemory',
+          sort:          ['memorySort'],
+          align:         'center',
+          labelKey:      'tableHeaders.memory',
+          formatter:     'Si',
+          formatterOpts: {
+            opts: {
+              increment: 1024, addSuffix: true, maxExponent: 3, minExponent: 3, suffix: 'i',
+            },
+            needParseSi: true
+          },
         },
         {
           name:      'ip',
