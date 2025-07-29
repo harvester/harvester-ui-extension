@@ -134,12 +134,6 @@ async function addOriginalAuthors(changelogContent) {
     // eslint-disable-next-line no-console
     console.log(`Processing PR #${ prNumber }...`);
     const originalAuthors = await getPRAuthors(prNumber);
-
-    // Handle both old format (#PR_NUMBER) and new format ([#PR_NUMBER](link))
-    // Old format: (#PR_NUMBER) (COMMIT_HASH), closes
-    // New format: ([#PR_NUMBER](link)) (COMMIT_HASH), closes
-
-    // Try new format first
     let pattern = new RegExp(`\\(\\[#${ prNumber }\\]\\([^)]+\\)\\)`, 'g');
 
     // If API failed, don't change the line at all
