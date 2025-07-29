@@ -69,22 +69,24 @@ async function getPRAuthor(prNumber) {
 function extractPRNumbers(changelogContent) {
   const prNumbers = new Set();
 
-  // Match patterns like (#123) in the changelog
+  // Match patterns like [#123] in the changelog, but only the main PR references
   // Handle different formats:
   // - (#PR_NUMBER) (COMMIT_HASH)
   // - (#PR_NUMBER) (COMMIT_HASH), closes
   // - (#PR_NUMBER) (COMMIT_HASH), closes #OTHER_PR
-  const prRegex = /\(#(\d+)\)\s*\([a-f0-9]+\)/g;
+  // - ([#PR_NUMBER](link)) (COMMIT_HASH), closes
+  // We want to match the main PR reference, not the "closes #PR" part
+  // Look for the first [#PR_NUMBER] that's not in the "closes" part
+  // This is a simpler approach - just find the first PR number
+  const prRegex = /\[#(\d+)\]/g;
   let match;
 
   while ((match = prRegex.exec(changelogContent)) !== null) {
-    prNumbers.add(parseInt(match[1]));
+    // Only add the first PR number (main PR), ignore "closes" references
+    if (prNumbers.size === 0) {
+      prNumbers.add(parseInt(match[1]));
+    }
   }
-
-  // eslint-disable-next-line no-console
-  console.log('Changelog content:', changelogContent);
-  // eslint-disable-next-line no-console
-  console.log('All matches found:', changelogContent.match(/\(#\d+\)/g));
 
   return prNumbers;
 }
@@ -105,9 +107,10 @@ async function addOriginalAuthors(changelogContent) {
     const originalAuthor = await getPRAuthor(prNumber);
 
     // Handle the full pattern including any trailing text like ", closes"
-    const pattern = new RegExp(`\\(#${ prNumber }\\)\\s*\\(([a-f0-9]+)\\)([^\\n]*)`, 'g');
+    // Format: ([#PR_NUMBER](link)) (COMMIT_HASH), closes
+    const pattern = new RegExp(`\\(\\[#${ prNumber }\\]\\([^)]+\\)\\)`, 'g');
 
-    updatedContent = updatedContent.replace(pattern, `(#${ prNumber }) - Author: ${ originalAuthor } (merged by mergify[bot]) ($1)$2`);
+    updatedContent = updatedContent.replace(pattern, `([#${ prNumber }](https://github.com/NickChungSUSE/harvester-ui-extension/pull/${ prNumber })) - Author: ${ originalAuthor } (merged by mergify[bot])`);
   }
 
   return updatedContent;
