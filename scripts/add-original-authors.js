@@ -44,8 +44,8 @@ function githubRequest(endpoint) {
   });
 }
 
-// Get PR author from GitHub API
-async function getPRAuthor(prNumber) {
+// Get PR authors from GitHub API
+async function getPRAuthors(prNumber) {
   try {
     const pr = await githubRequest(`/pulls/${ prNumber }`);
 
@@ -56,7 +56,37 @@ async function getPRAuthor(prNumber) {
       return 'PR not found';
     }
 
-    return pr.user.login;
+    // Get all commits in the PR to find all contributors
+    const commits = await githubRequest(`/pulls/${ prNumber }/commits`);
+
+    if (!Array.isArray(commits)) {
+      // eslint-disable-next-line no-console
+      console.warn(`Failed to fetch commits for PR #${ prNumber }`);
+
+      return pr.user.login; // Fallback to PR creator
+    }
+
+    // Collect all unique authors from commits
+    const authors = new Set();
+
+    authors.add(pr.user.login); // Add PR creator
+
+    for (const commit of commits) {
+      if (commit.author && commit.author.login) {
+        authors.add(commit.author.login);
+      }
+      if (commit.committer && commit.committer.login) {
+        authors.add(commit.committer.login);
+      }
+    }
+
+    // Convert to array and sort
+    const authorList = Array.from(authors).sort();
+
+    // eslint-disable-next-line no-console
+    console.log(`Found ${ authorList.length } authors for PR #${ prNumber }: ${ authorList.join(', ') }`);
+
+    return authorList.join(', ');
   } catch (error) {
     // eslint-disable-next-line no-console
     console.warn(`Failed to fetch PR ${ prNumber }: ${ error.message }`);
@@ -104,13 +134,13 @@ async function addOriginalAuthors(changelogContent) {
   for (const prNumber of prNumbers) {
     // eslint-disable-next-line no-console
     console.log(`Processing PR #${ prNumber }...`);
-    const originalAuthor = await getPRAuthor(prNumber);
+    const originalAuthors = await getPRAuthors(prNumber);
 
     // Handle the full pattern including any trailing text like ", closes"
     // Format: ([#PR_NUMBER](link)) (COMMIT_HASH), closes
     const pattern = new RegExp(`\\(\\[#${ prNumber }\\]\\([^)]+\\)\\)`, 'g');
 
-    updatedContent = updatedContent.replace(pattern, `([#${ prNumber }](https://github.com/NickChungSUSE/harvester-ui-extension/pull/${ prNumber })) - Author: ${ originalAuthor } (merged by mergify[bot])`);
+    updatedContent = updatedContent.replace(pattern, `([#${ prNumber }](https://github.com/NickChungSUSE/harvester-ui-extension/pull/${ prNumber })) - Authors: ${ originalAuthors } (merged by mergify[bot])`);
   }
 
   return updatedContent;
