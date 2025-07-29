@@ -111,10 +111,10 @@ function extractPRNumbers(changelogContent) {
   let match;
 
   while ((match = prRegex.exec(changelogContent)) !== null) {
-    // Only add the first PR number (main PR), ignore "closes" references
-    if (prNumbers.size === 0) {
-      prNumbers.add(parseInt(match[1]));
-    }
+    // Add all PR numbers found in the changelog
+    const prNumber = parseInt(match[1]);
+
+    prNumbers.add(prNumber);
   }
 
   return prNumbers;
@@ -145,8 +145,8 @@ async function addOriginalAuthors(changelogContent) {
     if (updatedContent.match(pattern)) {
       updatedContent = updatedContent.replace(pattern, `([#${ prNumber }](https://github.com/NickChungSUSE/harvester-ui-extension/pull/${ prNumber })) - Authors: ${ originalAuthors } (merged by mergify[bot])`);
     } else {
-      // Try old format
-      pattern = new RegExp(`\\(#${ prNumber }\\)`, 'g');
+      // Try old format - also remove any trailing ", closes" text
+      pattern = new RegExp(`\\(#${ prNumber }\\)([^\\n]*)`, 'g');
       updatedContent = updatedContent.replace(pattern, `([#${ prNumber }](https://github.com/NickChungSUSE/harvester-ui-extension/pull/${ prNumber })) - Authors: ${ originalAuthors } (merged by mergify[bot])`);
     }
   }
