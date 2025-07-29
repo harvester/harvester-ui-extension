@@ -32,8 +32,6 @@ const PAUSED_VM_MODAL_MESSAGE =
 
 const POD_STATUS_NOT_SCHEDULABLE = 'POD_NOT_SCHEDULABLE';
 const POD_STATUS_CONTAINER_FAILING = 'POD_CONTAINER_FAILING';
-// eslint-disable-next-line no-unused-vars
-const POD_STATUS_NOT_READY = 'POD_NOT_READY';
 
 const POD_STATUS_FAILED = 'POD_FAILED';
 const POD_STATUS_CRASHLOOP_BACKOFF = 'POD_CRASHLOOP_BACKOFF';
@@ -742,6 +740,7 @@ export default class VirtVm extends HarvesterResource {
     if (this &&
       !this.isVMExpectedRunning &&
       this.isVMCreated &&
+      this.vmi?.status?.phase !== undefined &&
       this.vmi?.status?.phase !== VMIPhase.Succeeded &&
       this.vmi?.status?.phase !== VMIPhase.Pending
     ) {
