@@ -27,6 +27,9 @@ jobs:
       - name: Generate changelog
         run: npx conventional-changelog -p angular -i CHANGELOG.md -s -r 0
       
+      - name: Debug changelog content
+        run: cat CHANGELOG.md
+      
       - name: Add original authors
         run: node scripts/add-original-authors.js
         env:

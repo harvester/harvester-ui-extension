@@ -81,6 +81,11 @@ function extractPRNumbers(changelogContent) {
     prNumbers.add(parseInt(match[1]));
   }
 
+  // eslint-disable-next-line no-console
+  console.log('Changelog content:', changelogContent);
+  // eslint-disable-next-line no-console
+  console.log('All matches found:', changelogContent.match(/\(#\d+\)/g));
+
   return prNumbers;
 }
 
