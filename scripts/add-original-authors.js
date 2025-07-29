@@ -142,15 +142,22 @@ async function addOriginalAuthors(changelogContent) {
     // Try new format first
     let pattern = new RegExp(`\\(\\[#${ prNumber }\\]\\([^)]+\\)\\)`, 'g');
 
-    // Only add @ if we have real usernames (not error messages)
-    const authorPrefix = originalAuthors.includes('not found') || originalAuthors.includes('API error') ? '' : '@';
+    // If API failed, don't change the line at all
+    if (originalAuthors.includes('not found') || originalAuthors.includes('API error')) {
+      // eslint-disable-next-line no-console
+      console.log(`Skipping PR #${ prNumber } due to API error, preserving existing content`);
+      continue;
+    }
+
+    // Add @ to each individual author
+    const authorsWithAt = originalAuthors.split(', ').map((author) => `@${ author.trim() }`).join(', ');
 
     if (updatedContent.match(pattern)) {
-      updatedContent = updatedContent.replace(pattern, `([#${ prNumber }](https://github.com/NickChungSUSE/harvester-ui-extension/pull/${ prNumber })) - Authors: ${ authorPrefix }${ originalAuthors } (merged by mergify[bot])`);
+      updatedContent = updatedContent.replace(pattern, `([#${ prNumber }](https://github.com/NickChungSUSE/harvester-ui-extension/pull/${ prNumber })) - Authors: ${ authorsWithAt }`);
     } else {
       // Try old format - replace the entire line content after the PR number
       pattern = new RegExp(`\\(#${ prNumber }\\)[^\\n]*`, 'g');
-      updatedContent = updatedContent.replace(pattern, `([#${ prNumber }](https://github.com/NickChungSUSE/harvester-ui-extension/pull/${ prNumber })) - Authors: ${ authorPrefix }${ originalAuthors } (merged by mergify[bot])`);
+      updatedContent = updatedContent.replace(pattern, `([#${ prNumber }](https://github.com/NickChungSUSE/harvester-ui-extension/pull/${ prNumber })) - Authors: ${ authorsWithAt }`);
     }
   }
 
