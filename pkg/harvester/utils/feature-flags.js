@@ -8,7 +8,6 @@ export const docLink = (suffix, version) => {
 };
 
 export function getVersion(v) {
-  // e.g v1.4.0
   if (process.env.VUE_APP_SERVER_VERSION) {
     return process.env.VUE_APP_SERVER_VERSION;
   }
@@ -18,20 +17,38 @@ export function getVersion(v) {
     return `v${ semver.major(v) }.${ semver.minor(v) }.${ semver.patch(v) }`;
   } catch (error) {
     // fallback to the latest version
-    return latestVersion(Object.keys(RELEASE_FEATURES));
+    return latestVersion();
   }
 }
 
-function latestVersion(versions) {
+function latestVersion() {
+  return getLatestVersion(Object.keys(RELEASE_FEATURES));
+}
+
+function getLatestVersion(versions) {
+  if (!versions || !versions.length) {
+    // return the latest feature flag version in RELEASE_FEATURES
+    return Object.keys(RELEASE_FEATURES).sort((a, b) => semver.compare(a, b)).pop();
+  }
+
   return versions.sort((a, b) => semver.compare(a, b)).pop();
 }
 
-// v1.3.3 => latest v1.3.x, v1.4.2 => latest v1.4.x
-function latestMinorVersion(v) {
-  const minor = `v${ semver.major(v) }.${ semver.minor(v) }`;
-  const minorVersions = Object.keys(RELEASE_FEATURES).filter((version) => version.startsWith(minor));
+// We need to find the latest supported feature flags if new version feature flag not exist.
+// This happens in either one of scenarios below
+// when user import new version harvester (e.g. v1.3.3), but ui ext still in v1.3.2
+// when user import new version harvester (e.g. v1.6.0), but ui ext still in v1.5.1
+function latestSupportedVersion(v) {
+  let minorPrefix = `v${ semver.major(v) }.${ semver.minor(v) }`;
 
-  return latestVersion(minorVersions);
+  let minorVersions = Object.keys(RELEASE_FEATURES).filter((version) => version.startsWith(minorPrefix));
+
+  if (minorVersions.length === 0) {
+    minorPrefix = `v${ semver.major(v) }.${ semver.minor(v) - 1 }`;
+    minorVersions = Object.keys(RELEASE_FEATURES).filter((version) => version.startsWith(minorPrefix));
+  }
+
+  return getLatestVersion(minorVersions);
 }
 
 export const featureEnabled = (featureKey, serverVersion) => {
@@ -49,9 +66,16 @@ export const featureEnabled = (featureKey, serverVersion) => {
   let releasedFeatures = RELEASE_FEATURES[version];
 
   if (!releasedFeatures) {
-    const fallback = latestMinorVersion(version);
+    const fallback = latestSupportedVersion(version);
 
     releasedFeatures = RELEASE_FEATURES[fallback];
+  }
+
+  if (releasedFeatures === undefined || releasedFeatures === null) {
+    // eslint-disable-next-line no-console
+    console.error(`Feature flags for version ${ version } are not defined. Please upgrade harvester ui extension to the latest version and check the support matrix.`);
+
+    return false;
   }
 
   return releasedFeatures.includes(featureKey);
