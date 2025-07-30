@@ -113,7 +113,10 @@ export const HCI_ALLOWED_SETTINGS = {
   [HCI_SETTING.RANCHER_CLUSTER]:                        {
     kind: 'custom', from: 'import', canReset: true, featureFlag: 'rancherClusterSetting'
   },
-  [HCI_SETTING.MAX_HOTPLUG_RATIO]: { kind: 'number', featureFlag: 'cpuMemoryHotplug' },
+  [HCI_SETTING.MAX_HOTPLUG_RATIO]:    { kind: 'number', featureFlag: 'cpuMemoryHotplug' },
+  [HCI_SETTING.VM_MIGRATION_NETWORK]:  {
+    kind: 'json', from: 'import', canReset: true, featureFlag: 'vmNetworkMigration',
+  },
 };
 
 export const HCI_SINGLE_CLUSTER_ALLOWED_SETTING = {
