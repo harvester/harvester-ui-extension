@@ -297,18 +297,26 @@ export default {
 
       if (Object.keys(volumeModeAccessModes).length > 0) {
         annotations[HCI_ANNOTATIONS.VOLUME_MODE_ACCESS_MODES] = JSON.stringify(volumeModeAccessModes);
+      } else {
+        delete annotations[HCI_ANNOTATIONS.VOLUME_MODE_ACCESS_MODES];
       }
 
       if (this.cdiSettings.volumeSnapshotClass) {
         annotations[HCI_ANNOTATIONS.VOLUME_SNAPSHOT_CLASS] = this.cdiSettings.volumeSnapshotClass;
+      } else {
+        delete annotations[HCI_ANNOTATIONS.VOLUME_SNAPSHOT_CLASS];
       }
 
       if (this.cdiSettings.cloneStrategy) {
         annotations[HCI_ANNOTATIONS.CLONE_STRATEGY] = this.cdiSettings.cloneStrategy;
+      } else {
+        delete annotations[HCI_ANNOTATIONS.CLONE_STRATEGY];
       }
 
       if (this.cdiSettings.filesystemOverhead) {
         annotations[HCI_ANNOTATIONS.FILESYSTEM_OVERHEAD] = this.cdiSettings.filesystemOverhead;
+      } else {
+        delete annotations[HCI_ANNOTATIONS.FILESYSTEM_OVERHEAD];
       }
 
       this.value.metadata.annotations = annotations;
