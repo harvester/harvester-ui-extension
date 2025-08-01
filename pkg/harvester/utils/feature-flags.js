@@ -8,7 +8,6 @@ export const docLink = (suffix, version) => {
 };
 
 export function getVersion(v) {
-  // e.g v1.4.0
   if (process.env.VUE_APP_SERVER_VERSION) {
     return process.env.VUE_APP_SERVER_VERSION;
   }
@@ -18,20 +17,21 @@ export function getVersion(v) {
     return `v${ semver.major(v) }.${ semver.minor(v) }.${ semver.patch(v) }`;
   } catch (error) {
     // fallback to the latest version
-    return latestVersion(Object.keys(RELEASE_FEATURES));
+    return getLatestVersion();
   }
 }
 
-function latestVersion(versions) {
-  return versions.sort((a, b) => semver.compare(a, b)).pop();
+function getLatestVersion() {
+  const allVersions = Object.keys(RELEASE_FEATURES).filter(semver.valid).sort(semver.rcompare);
+
+  return allVersions[0] || '';
 }
 
-// v1.3.3 => latest v1.3.x, v1.4.2 => latest v1.4.x
-function latestMinorVersion(v) {
-  const minor = `v${ semver.major(v) }.${ semver.minor(v) }`;
-  const minorVersions = Object.keys(RELEASE_FEATURES).filter((version) => version.startsWith(minor));
+function getLatestCompatibleVersion(version) {
+  const allVersions = Object.keys(RELEASE_FEATURES).filter(semver.valid);
+  const compatible = allVersions.filter((v) => semver.lte(v, version)).sort(semver.rcompare);
 
-  return latestVersion(minorVersions);
+  return compatible[0] || getLatestVersion();
 }
 
 export const featureEnabled = (featureKey, serverVersion) => {
@@ -46,12 +46,16 @@ export const featureEnabled = (featureKey, serverVersion) => {
     return false;
   }
 
-  let releasedFeatures = RELEASE_FEATURES[version];
+  const compatibleVersion = getLatestCompatibleVersion(version);
+  const releasedFeatures = RELEASE_FEATURES?.[compatibleVersion];
 
-  if (!releasedFeatures) {
-    const fallback = latestMinorVersion(version);
+  if (!Array.isArray(releasedFeatures)) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `Feature flags for version ${ version } are not defined. Please upgrade Harvester UI extension and check the support matrix.`
+    );
 
-    releasedFeatures = RELEASE_FEATURES[fallback];
+    return false;
   }
 
   return releasedFeatures.includes(featureKey);
