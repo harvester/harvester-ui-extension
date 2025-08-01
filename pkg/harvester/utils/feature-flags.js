@@ -17,38 +17,21 @@ export function getVersion(v) {
     return `v${ semver.major(v) }.${ semver.minor(v) }.${ semver.patch(v) }`;
   } catch (error) {
     // fallback to the latest version
-    return latestVersion();
+    return getLatestVersion();
   }
 }
 
-function latestVersion() {
-  return getLatestVersion(Object.keys(RELEASE_FEATURES));
+function getLatestVersion() {
+  const allVersions = Object.keys(RELEASE_FEATURES).filter(semver.valid).sort(semver.rcompare);
+
+  return allVersions[0] || '';
 }
 
-function getLatestVersion(versions) {
-  if (!versions || !versions.length) {
-    // return the latest feature flag version in RELEASE_FEATURES
-    return Object.keys(RELEASE_FEATURES).sort((a, b) => semver.compare(a, b)).pop();
-  }
+function getLatestCompatibleVersion(version) {
+  const allVersions = Object.keys(RELEASE_FEATURES).filter(semver.valid);
+  const compatible = allVersions.filter((v) => semver.lte(v, version)).sort(semver.rcompare);
 
-  return versions.sort((a, b) => semver.compare(a, b)).pop();
-}
-
-// We need to find the latest supported feature flags if new version feature flag not exist.
-// This happens in either one of scenarios below
-// when user import new version harvester (e.g. v1.3.3), but ui ext still in v1.3.2
-// when user import new version harvester (e.g. v1.6.0), but ui ext still in v1.5.1
-function latestSupportedVersion(v) {
-  let minorPrefix = `v${ semver.major(v) }.${ semver.minor(v) }`;
-
-  let minorVersions = Object.keys(RELEASE_FEATURES).filter((version) => version.startsWith(minorPrefix));
-
-  if (minorVersions.length === 0) {
-    minorPrefix = `v${ semver.major(v) }.${ semver.minor(v) - 1 }`;
-    minorVersions = Object.keys(RELEASE_FEATURES).filter((version) => version.startsWith(minorPrefix));
-  }
-
-  return getLatestVersion(minorVersions);
+  return compatible[0] || getLatestVersion();
 }
 
 export const featureEnabled = (featureKey, serverVersion) => {
@@ -63,17 +46,14 @@ export const featureEnabled = (featureKey, serverVersion) => {
     return false;
   }
 
-  let releasedFeatures = RELEASE_FEATURES[version];
+  const compatibleVersion = getLatestCompatibleVersion(version);
+  const releasedFeatures = RELEASE_FEATURES?.[compatibleVersion];
 
-  if (!releasedFeatures) {
-    const fallback = latestSupportedVersion(version);
-
-    releasedFeatures = RELEASE_FEATURES[fallback];
-  }
-
-  if (releasedFeatures === undefined || releasedFeatures === null) {
+  if (!Array.isArray(releasedFeatures)) {
     // eslint-disable-next-line no-console
-    console.error(`Feature flags for version ${ version } are not defined. Please upgrade harvester ui extension to the latest version and check the support matrix.`);
+    console.error(
+      `Feature flags for version ${ version } are not defined. Please upgrade Harvester UI extension and check the support matrix.`
+    );
 
     return false;
   }
