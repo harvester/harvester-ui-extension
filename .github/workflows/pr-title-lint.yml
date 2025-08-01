@@ -1,0 +1,53 @@
+name: PR Title Lint
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  pr-title-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Lint PR title
+        run: |
+          echo "Checking PR title: ${{ github.event.pull_request.title }}"
+          
+          # Install commitlint CLI
+          yarn add -D @commitlint/cli @commitlint/config-conventional
+          
+          # Create a temporary commitlint config for PR title checking
+          cat > commitlint-pr.config.js << 'EOF'
+          module.exports = {
+            extends: ['@commitlint/config-conventional'],
+            rules: {
+              'type-enum': [
+                2,
+                'always',
+                [
+                  'feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 
+                  'build', 'ci', 'chore', 'revert', 'wip', 'deps', 'security'
+                ]
+              ],
+              'type-case': [2, 'always', 'lower-case'],
+              'type-empty': [2, 'never'],
+              'subject-case': [0, 'never'],
+              'subject-empty': [2, 'never'],
+              'subject-full-stop': [2, 'never', '.'],
+            }
+          };
+          EOF
+          
+          # Check PR title using commitlint
+          echo "${{ github.event.pull_request.title }}" | npx commitlint --config commitlint-pr.config.js 
