@@ -1164,6 +1164,13 @@ export default class VirtVm extends HarvesterResource {
       return this.t('harvester.virtualMachine.hotplug.restartVMMessage');
     }
 
+    const restoreConditions = this.restoreResource?.status?.conditions || [];
+    const restoreError = restoreConditions.find((s) => s.error === true && s.reason === 'Error' && s.type === 'Ready');
+
+    if (restoreError?.message) {
+      return restoreError.message;
+    }
+
     return this.ingoreVMMessage ? '' : super.stateDescription;
   }
 
