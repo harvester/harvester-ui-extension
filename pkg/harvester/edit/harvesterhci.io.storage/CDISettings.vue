@@ -44,6 +44,12 @@ export default {
     };
 
     await allHash(hash);
+
+    if (this.mode === _CREATE ) {
+      this.setDefaultVolumeSnapshotClass();
+    } else {
+      this.initCDISettingsFromAnnotations();
+    }
   },
 
   data() {
@@ -57,14 +63,6 @@ export default {
       defaultAddValue: { volumeMode: null, accessModes: [] },
       noneOption:      { label: 'None', value: '' },
     };
-  },
-
-  created() {
-    if (this.mode === _CREATE ) {
-      this.setDefaultVolumeSnapshotClass();
-    } else {
-      this.initCDISettingsFromAnnotations();
-    }
   },
 
   computed: {
@@ -148,7 +146,7 @@ export default {
     setDefaultVolumeSnapshotClass() {
       try {
         const setting = this.$store.getters[`${ this.inStore }/byId`](HCI.SETTING, HCI_SETTING.CSI_DRIVER_CONFIG);
-        const config = JSON.parse(setting?.value || '{}');
+        const config = JSON.parse(setting?.value || setting?.default || '{}');
         const defaultClass = config?.[this.provisioner]?.volumeSnapshotClassName || null;
 
         const allClasses = this.$store.getters[`${ this.inStore }/all`](VOLUME_SNAPSHOT_CLASS) || [];
