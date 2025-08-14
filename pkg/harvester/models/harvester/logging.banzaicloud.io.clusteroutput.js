@@ -21,6 +21,19 @@ export default class HciClusteroutput extends LogOutput {
     };
   }
 
+  get listLocation() {
+    const listLocation = clone(super.listLocation);
+
+    listLocation.name = this.harvesterResourcesInExplorer ? 'c-cluster-product-resource' : `${ HARVESTER_PRODUCT }-c-cluster-resource`;
+    listLocation.params.resource = HCI.CLUSTER_OUTPUT;
+
+    return listLocation;
+  }
+
+  get harvesterResourcesInExplorer() {
+    return this.$rootGetters['productId'] !== HARVESTER_PRODUCT;
+  }
+
   get detailLocation() {
     const detailLocation = clone(this._detailLocation);
 

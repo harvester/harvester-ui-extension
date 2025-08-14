@@ -183,6 +183,14 @@ export default class HciPv extends HarvesterResource {
     );
   }
 
+  get listLocation() {
+    const listLocation = clone(super.listLocation);
+
+    listLocation.params.resource = HCI.VOLUME;
+
+    return listLocation;
+  }
+
   get detailLocation() {
     const detailLocation = clone(this._detailLocation);
 

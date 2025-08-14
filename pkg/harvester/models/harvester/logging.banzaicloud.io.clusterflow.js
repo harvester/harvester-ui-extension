@@ -9,6 +9,19 @@ export default class HciClusterflow extends HarvesterFlow {
     return this.$rootGetters['harvester/all'](LOGGING.CLUSTER_OUTPUT) || [];
   }
 
+  get listLocation() {
+    const listLocation = clone(super.listLocation);
+
+    listLocation.name = this.harvesterResourcesInExplorer ? 'c-cluster-product-resource' : `${ HARVESTER_PRODUCT }-c-cluster-resource`;
+    listLocation.params.resource = HCI.CLUSTER_FLOW;
+
+    return listLocation;
+  }
+
+  get harvesterResourcesInExplorer() {
+    return this.$rootGetters['productId'] !== HARVESTER_PRODUCT;
+  }
+
   get _detailLocation() {
     const schema = this.$getters['schemaFor'](this.type);
 

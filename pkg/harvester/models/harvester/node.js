@@ -267,6 +267,14 @@ export default class HciNode extends HarvesterResource {
     return this.metadata?.state;
   }
 
+  get listLocation() {
+    const listLocation = clone(super.listLocation);
+
+    listLocation.params.resource = HCI.HOST;
+
+    return listLocation;
+  }
+
   get detailLocation() {
     const detailLocation = clone(this._detailLocation);
 
