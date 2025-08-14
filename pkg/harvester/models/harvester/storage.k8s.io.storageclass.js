@@ -94,13 +94,14 @@ export default class HciStorageClass extends StorageClass {
   get availableActions() {
     let out = super.availableActions || [];
 
-    out = out.map((action) => {
-      if ((action.action === 'setDefault' || action.action === 'setAsDefault' || action.action === 'promptRemove') && this.isInternalStorageClass()) {
-        return { ...action, enabled: false };
-      }
-
-      return action;
-    });
+    if (this.isInternalStorageClass()) {
+      out = out.filter((action) => {
+        return !['setDefault', 'setAsDefault', 'promptRemove'].includes(action.action);
+      });
+    }
+    if (out[0] && out[0].divider === true) {
+      out = out.slice(1);
+    }
 
     return out;
   }
