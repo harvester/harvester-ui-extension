@@ -240,7 +240,7 @@ export default {
 </script>
 
 <template>
-  <div class="mt-20">
+  <div>
     <LabeledSelect
       v-model:value="checkedSsh"
       :label="t('harvester.virtualMachine.input.sshKey')"
