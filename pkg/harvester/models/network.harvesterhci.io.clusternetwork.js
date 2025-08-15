@@ -4,14 +4,6 @@ import { HCI } from '../types';
 import HarvesterResource from './harvester';
 
 export default class HciClusterNetwork extends HarvesterResource {
-  get listLocation() {
-    const listLocation = clone(super.listLocation);
-
-    listLocation.params.resource = HCI.VOLUME;
-
-    return listLocation;
-  }
-
   get doneOverride() {
     const detailLocation = clone(this.listLocation);
 

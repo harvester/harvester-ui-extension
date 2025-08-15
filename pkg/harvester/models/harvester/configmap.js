@@ -5,14 +5,6 @@ import HarvesterResource from '../harvester';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../config/harvester';
 
 export default class HciConfigMap extends HarvesterResource {
-  get listLocation() {
-    const listLocation = clone(super.listLocation);
-
-    listLocation.params.resource = HCI.CLOUD_TEMPLATE;
-
-    return listLocation;
-  }
-
   get detailLocation() {
     const detailLocation = clone(this._detailLocation);
 

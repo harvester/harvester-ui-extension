@@ -3,14 +3,6 @@ import { HCI } from '../types';
 import HarvesterResource from './harvester';
 
 export default class HciSubnet extends HarvesterResource {
-  get listLocation() {
-    const listLocation = clone(super.listLocation);
-
-    listLocation.params.resource = HCI.VPC;
-
-    return listLocation;
-  }
-
   get groupByVpc() {
     return this.spec?.vpc || '';
   }

@@ -29,14 +29,6 @@ export default class HciVlanConfig extends HarvesterResource {
     return this.spec?.clusterNetwork;
   }
 
-  get listLocation() {
-    const listLocation = clone(super.listLocation);
-
-    listLocation.params.resource = HCI.CLUSTER_NETWORK;
-
-    return listLocation;
-  }
-
   get doneOverride() {
     const detailLocation = clone(this.listLocation);
 
