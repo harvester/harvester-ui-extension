@@ -691,10 +691,13 @@ export default {
         this.spec.template.spec.domain.cpu.cores = this.cpu;
         this.spec.template.spec.domain.resources.limits.cpu = this.cpu?.toString();
         this.spec.template.spec.domain.resources.limits.memory = this.memory;
-        // clean
-        delete this.spec.template.spec.resources;
-        delete this.spec.template.spec.domain.memory;
-        delete this.spec.template.spec.domain.cpu.maxSockets;
+        // clean below fields as we don't need them if not enable CPU and memory hotplug
+        if (this.spec?.template?.spec?.domain?.cpu?.maxSockets) {
+          delete this.spec.template.spec.domain.cpu.maxSockets;
+        }
+        if (this.spec?.template?.spec?.domain?.memory?.maxGuest) {
+          delete this.spec.template.spec.domain.memory.maxGuest;
+        }
       }
     },
 
