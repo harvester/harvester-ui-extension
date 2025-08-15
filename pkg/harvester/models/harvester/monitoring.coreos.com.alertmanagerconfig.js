@@ -19,6 +19,19 @@ export default class HciAlertmanagerConfig extends SteveModel {
     };
   }
 
+  get listLocation() {
+    const listLocation = clone(super.listLocation);
+
+    listLocation.name = this.harvesterResourcesInExplorer ? 'c-cluster-product-resource' : `${ HARVESTER_PRODUCT }-c-cluster-resource`;
+    listLocation.params.resource = HCI.ALERTMANAGERCONFIG;
+
+    return listLocation;
+  }
+
+  get harvesterResourcesInExplorer() {
+    return this.$rootGetters['productId'] !== HARVESTER_PRODUCT;
+  }
+
   get doneOverride() {
     const detailLocation = clone(this._detailLocation);
 

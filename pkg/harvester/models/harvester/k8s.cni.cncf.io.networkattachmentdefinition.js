@@ -12,7 +12,7 @@ export default class HarvesterNetworkAttachmentDef extends NetworkAttachmentDef 
       params: {
         product:  HARVESTER_PRODUCT,
         cluster:  this.$rootGetters['clusterId'],
-        resource: this.type,
+        resource: HCI.NETWORK_ATTACHMENT,
       },
     };
   }
