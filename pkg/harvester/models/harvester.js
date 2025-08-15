@@ -1,12 +1,12 @@
 import SteveModel from '@shell/plugins/steve/steve-class';
 import { VIEW_IN_API, DEV } from '@shell/store/prefs';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
-import { getHarvesterResource } from '../utils/crdMapping';
+import { HARVESTER_CRD_MAP } from '../config/harvester-map';
 
 export default class HarvesterResource extends SteveModel {
   get listLocation() {
     const name = this.harvesterResourcesInExplorer ? 'c-cluster-product-resource' : `${ HARVESTER_PRODUCT }-c-cluster-resource`;
-    const resource = getHarvesterResource(this.type);
+    const resource = HARVESTER_CRD_MAP[this.type] || this.type;
 
     return this.$rootGetters['type-map/optionsFor'](this.type).customRoute || {
       name,
