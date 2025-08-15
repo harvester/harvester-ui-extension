@@ -605,6 +605,7 @@ export default {
         :label="t('harvester.virtualMachine.detail.tabs.basics')"
       >
         <CpuMemory
+          class="mb-20"
           :cpu="cpu"
           :max-cpu="maxCpu"
           :memory="memory"
