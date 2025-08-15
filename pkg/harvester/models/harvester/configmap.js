@@ -1,3 +1,4 @@
+// This file is Cloud Configuration Templates page model
 import { clone } from '@shell/utils/object';
 import { HCI } from '../../types';
 import HarvesterResource from '../harvester';

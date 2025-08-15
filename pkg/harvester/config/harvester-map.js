@@ -1,3 +1,5 @@
+import { HCI } from '../types';
+
 // TODO: delete this not used variable
 export const MemoryUnit = [{
   label: 'Mi',
@@ -80,4 +82,15 @@ export const CSI_SECRETS = {
   CSI_NODE_PUBLISH_SECRET_NAMESPACE: 'csi.storage.k8s.io/node-publish-secret-namespace',
   CSI_NODE_STAGE_SECRET_NAME:        'csi.storage.k8s.io/node-stage-secret-name',
   CSI_NODE_STAGE_SECRET_NAMESPACE:   'csi.storage.k8s.io/node-stage-secret-namespace',
+};
+
+// Some harvester CRD type is not equal to model file name, define the mapping here
+export const HARVESTER_CRD_MAP = {
+  node:                                     HCI.HOST,
+  configmap:                                HCI.CLOUD_TEMPLATE,
+  persistentvolumeclaim:                    HCI.VOLUME,
+  'snapshot.storage.k8s.io.volumesnapshot': HCI.SNAPSHOT,
+  // specific groupable table detail page
+  'network.harvesterhci.io.vlanconfig':     HCI.CLUSTER_NETWORK,
+  'kubeovn.io.subnet':                      HCI.VPC
 };
