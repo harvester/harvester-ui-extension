@@ -1,0 +1,29 @@
+name: "[PR Management] Auto Assign Reviewer & Assignee"
+
+on:
+  pull_request_target:
+    types: [opened, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  auto-assign-reviewer:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: rancher/gh-issue-mgr/auto-assign-action@main
+        with:
+          configuration-path: .github/auto-assign-config.yaml
+  auto-assign-pr-label:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract PR label
+        id: extract_pr_label
+        run: |
+          PR_LABEL=$(node scripts/extract-pr-label.js "${{ github.event.pull_request.title }}")
+          echo "script_result=$PR_LABEL" >> $GITHUB_OUTPUT
+      - name: Set PR label
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} --repo ${{ github.repository }}  --add-label "${{ steps.extract_pr_label.outputs.script_result }}"
