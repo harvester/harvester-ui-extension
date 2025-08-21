@@ -13,6 +13,10 @@ const LABEL_MAP = {
   style:       'style',
   chore:       'chore',
   ci:          'ci',
+  perf:        'performance',
+  build:       'build',
+  deps:        'dependency',
+  security:    'security',
   other:       'other'
 };
 const prTitle = process.argv[2];
