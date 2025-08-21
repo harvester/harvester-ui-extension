@@ -5,7 +5,7 @@ if (process.argv.length < 3) {
 }
 
 const LABEL_MAP = {
-  bug:         'bugfix',
+  fix:         'bugfix',
   feat:        'feature',
   docs:        'documentation',
   enhancement: 'enhancement',
