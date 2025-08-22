@@ -3,22 +3,22 @@ changelog:
   categories:
     - title: Features
       labels:
-        - feature
+        - feat
     - title: Bug Fixes
       labels:
         - fix
     - title: Dependencies
       labels:
         - deps
-    - title: Enhancements
-      labels:
-        - enhancement
     - title: Performance
       labels:
         - perf
     - title: Documentation
       labels:
-        - documentation
+        - docs
+    - title: Style
+      labels:
+        - style
     - title: Build & Continuous Integration
       labels:
         - build
