@@ -23,6 +23,7 @@ jobs:
         uses: ./.github/actions/lint
 
       - name: Validate PR title lint
+        if: github.event_name == 'pull_request'
         shell: bash
         run: echo "${{ github.event.pull_request.title }}" | npx commitlint
 
