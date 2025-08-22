@@ -22,6 +22,14 @@ jobs:
       - name: Run tests
         uses: ./.github/actions/lint
 
+<<<<<<< HEAD
+=======
+      - name: Validate PR title lint
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: echo "${{ github.event.pull_request.title }}" | npx commitlint
+
+>>>>>>> 18a5608 (ci: only run PR lint in PR stage (#471))
       - name: Validate commit messages
         shell: bash
         run: |
