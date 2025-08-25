@@ -258,7 +258,7 @@ export default {
     },
 
     softReboot() {
-      this.vmResource.softrebootVM();
+      this.vmResource.doSoftReboot();
     },
 
     showKeysModal() {
@@ -370,5 +370,14 @@ export default {
 
   .combination-keys {
     background: rgb(40, 40, 40);
+  }
+</style>
+
+<style lang="scss">
+  .vm-console .v-popper__arrow-container {
+    display: none;
+  }
+  .vm-console .v-popper__popper{
+    margin-top: 8px;
   }
 </style>
