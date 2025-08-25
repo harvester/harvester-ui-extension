@@ -19,11 +19,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.base_ref }}
-      - name: Setup Nodejs with yarn caching
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: '.nvmrc'
-          cache: yarn
+      - name: Setup Nodejs and yarn install
+        uses: ./.github/actions/setup
       - name: Set PR label
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
