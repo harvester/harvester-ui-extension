@@ -28,6 +28,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_LABEL=$(node ./scripts/extract-pr-label.js "${{ github.event.pull_request.title }}")
+          PR_LABEL=$(node ./scripts/extract-release-label.mjs "${{ github.event.pull_request.title }}")
           echo "PR_LABEL = $PR_LABEL"
           gh pr edit ${{ github.event.pull_request.number }} --repo ${{ github.repository }}  --add-label "$PR_LABEL"
