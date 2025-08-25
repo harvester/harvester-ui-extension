@@ -327,6 +327,10 @@ export default class VirtVm extends HarvesterResource {
     });
   }
 
+  doSoftReboot() {
+    this.doActionGrowl('softreboot', {});
+  }
+
   softrebootVM(resources = this) {
     this.$dispatch('promptModal', {
       resources,
