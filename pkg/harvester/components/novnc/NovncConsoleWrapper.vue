@@ -258,7 +258,7 @@ export default {
     },
 
     softReboot() {
-      this.vmResource.softrebootVM();
+      this.vmResource.doSoftReboot();
     },
 
     showKeysModal() {
