@@ -2,7 +2,7 @@ name: "[PR Management] Add PR Label"
 
 on:
   pull_request_target:
-    types: [opened, reopened]
+    types: [opened, reopened, edited]
     branches:
       - main
       - 'release-harvester-v*'
