@@ -1,0 +1,40 @@
+# .github/release.yml
+changelog:
+  categories:
+    - title: Features
+      labels:
+        - feat
+    - title: Bug Fixes
+      labels:
+        - fix
+    - title: Dependencies
+      labels:
+        - deps
+    - title: Performance
+      labels:
+        - perf
+    - title: Documentation
+      labels:
+        - docs
+    - title: Style
+      labels:
+        - style
+    - title: Build & Continuous Integration
+      labels:
+        - build
+        - ci
+    - title: Security
+      labels:
+        - security
+    - title: Tests
+      labels:
+        - test
+    - title: Refactoring
+      labels:
+        - refactor
+    - title: Chores
+      labels:
+        - chore
+    - title: Others
+      labels:
+        - other

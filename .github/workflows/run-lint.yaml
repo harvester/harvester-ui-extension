@@ -7,6 +7,7 @@ on:
       - main
       - 'release-*'
   pull_request:
+    types: [opened, reopened, edited, synchronize]
     branches:
       - main
       - 'release-*'
@@ -21,6 +22,11 @@ jobs:
 
       - name: Run tests
         uses: ./.github/actions/lint
+
+      - name: Validate PR title lint
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: echo "${{ github.event.pull_request.title }}" | npx commitlint
 
       - name: Validate commit messages
         shell: bash
