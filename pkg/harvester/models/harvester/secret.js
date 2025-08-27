@@ -5,6 +5,12 @@ import Secret from '@shell/models/secret';
 import { NAMESPACE } from '@shell/config/types';
 
 export default class HciSecret extends Secret {
+  // prevent harvester secret detail page be overridden.
+  // See isFullPageOverride in https://github.com/rancher/dashboard/blob/master/shell/components/ResourceDetail/index.vue
+  get fullDetailPageOverride() {
+    return false;
+  }
+
   get listLocation() {
     const listLocation = clone(super.listLocation);
 
