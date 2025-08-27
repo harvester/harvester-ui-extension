@@ -48,7 +48,8 @@ const FEATURE_FLAGS = {
     'cpuMemoryHotplug',
     'cdiSettings',
     'vmCloneRunStrategy',
-  ]
+  ],
+  'v1.6.1': [],
 };
 
 const generateFeatureFlags = () => {
