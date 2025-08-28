@@ -257,6 +257,10 @@ export default {
       });
     },
 
+    reconnect() {
+      window.location.reload();
+    },
+
     softReboot() {
       this.vmResource.doSoftReboot();
     },
@@ -304,6 +308,13 @@ export default {
           @click="softReboot"
         >
           {{ t("harvester.action.softreboot") }}
+        </button>
+
+        <button
+          class="btn btn-sm bg-primary"
+          @click="reconnect"
+        >
+          {{ t("harvester.action.reconnect") }}
         </button>
 
         <v-dropdown
