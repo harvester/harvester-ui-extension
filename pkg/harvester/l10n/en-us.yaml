@@ -236,6 +236,7 @@ harvester:
     shutdown: Shut Down
     powerOn: Power On
     reboot: Reboot
+    reconnect: Reconnect
     forceStop: Force Stop
   formatters:
     hardwareResourceGauge:
