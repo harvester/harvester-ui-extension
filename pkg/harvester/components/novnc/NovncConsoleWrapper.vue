@@ -258,7 +258,7 @@ export default {
     },
 
     reconnect() {
-      window.location.reload();
+      this.$refs.novncConsole.connect();
     },
 
     softReboot() {
