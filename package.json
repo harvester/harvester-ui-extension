@@ -44,7 +44,7 @@
     "parse-tag-name": "./node_modules/@rancher/shell/scripts/extension/parse-tag-name"
   },
   "devDependencies": {
-    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-n": "^14.0.0",
     "eslint-plugin-promise": "^7.1.0"
   }
 }
