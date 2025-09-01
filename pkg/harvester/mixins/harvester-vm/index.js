@@ -767,6 +767,9 @@ export default {
         }
       }
 
+      const specDisks = this.spec?.template?.spec?.domain?.devices?.disks;
+      const mergedDisks = this.mergeDeviceList(specDisks, disks);
+
       let spec = {
         ...this.spec,
         runStrategy: this.runStrategy,
@@ -789,7 +792,7 @@ export default {
               ...this.spec.template?.spec?.domain,
               devices: {
                 ...this.spec.template?.spec?.domain?.devices,
-                disks,
+                disks: mergedDisks,
               },
             },
             volumes,
@@ -888,13 +891,16 @@ export default {
         interfaces.push(_interface);
       });
 
+      const specInterfaces = this.spec?.template?.spec?.domain?.devices?.interfaces;
+      const mergedInterfaces = this.mergeDeviceList(specInterfaces, interfaces);
+
       const spec = {
         ...this.spec.template.spec,
         domain: {
           ...this.spec.template.spec.domain,
           devices: {
             ...this.spec.template.spec.domain.devices,
-            interfaces,
+            interfaces: mergedInterfaces,
           },
         },
         networks
@@ -1541,6 +1547,23 @@ export default {
       }
 
       this.refreshYamlEditor();
+    },
+
+    mergeDeviceList(specDeviceList, deviceList) {
+      if (!specDeviceList || specDeviceList.length === 0) {
+        return deviceList;
+      }
+      const specDeviceMap = new Map(specDeviceList.map((device) => [device.name, device]));
+
+      return deviceList.map((device) => {
+        const specDevice = specDeviceMap.get(device.name);
+
+        if (specDevice) {
+          return { ...specDevice, ...device };
+        }
+
+        return device;
+      });
     },
 
     refreshYamlEditor() {
