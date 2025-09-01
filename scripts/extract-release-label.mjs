@@ -11,6 +11,14 @@ const prLabel = prTitle.split(':')[0].trim();
 
 const config = await load({ extends: ["./commitlint.config.js"] });
 const commitPrefix = config?.rules?.['type-enum']?.[2] || [];
-const label = commitPrefix.includes(prLabel) ? prLabel : 'other';
+
+let label = 'other';
+
+// Special handling for fix(deps):, chore(deps): labels
+if (prLabel.includes('deps')) {
+  label = 'deps';
+} else if (commitPrefix.includes(prLabel)){
+  label = prLabel;
+}
 
 console.log(label);
