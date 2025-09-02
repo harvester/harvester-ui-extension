@@ -14,6 +14,7 @@ import ArrayList from '@shell/components/form/ArrayList';
 import { allHash } from '@shell/utils/promise';
 import { HCI } from '../../types';
 import ResourceTabs from '@shell/components/form/ResourceTabs/index';
+import { Banner } from '@components/Banner';
 
 export default {
   name: 'EditSubnet',
@@ -21,6 +22,7 @@ export default {
   emits: ['update:value'],
 
   components: {
+    Banner,
     CruResource,
     LabeledInput,
     LabeledSelect,
@@ -272,16 +274,28 @@ export default {
               v-if="value.spec.enableDHCP && value.spec.protocol === 'IPv4'"
               v-model:value="value.spec.dhcpV4Options"
               class="mb-20 mt-20"
+              :placeholder="t('harvester.subnet.dhcp.placeholder')"
               :label="t('harvester.subnet.dhcp.v4Options')"
               :mode="mode"
             />
             <LabeledInput
               v-if="value.spec.enableDHCP && value.spec.protocol === 'IPv6'"
               v-model:value="value.spec.dhcpV6Options"
+              :placeholder="t('harvester.subnet.dhcp.placeholder')"
               class="mb-20 mt-20"
               :label="t('harvester.subnet.dhcp.v6Options')"
               :mode="mode"
             />
+            <Banner
+              v-if="value.spec.enableDHCP"
+              color="info"
+              class="dhcpOption-banner"
+            >
+              <t
+                k="harvester.subnet.dhcp.dhcpOptionBanner"
+                :raw="true"
+              />
+            </Banner>
           </div>
         </div>
         <div class="row mt-20">
@@ -360,3 +374,9 @@ export default {
     </ResourceTabs>
   </CruResource>
 </template>
+
+<style lang="scss" scoped>
+  .dhcpOption-banner {
+    width: max-content;
+  }
+</style>
