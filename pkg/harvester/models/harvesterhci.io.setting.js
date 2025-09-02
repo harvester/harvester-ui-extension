@@ -156,4 +156,8 @@ export default class HciSetting extends HarvesterResource {
 
     return out;
   }
+
+  get disableResourceDetailDrawer() {
+    return true;
+  }
 }
