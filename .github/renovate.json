@@ -6,14 +6,12 @@
     ":semanticCommitScopeDisabled"
   ],
   "baseBranches": [
-    "master",
     "main",
     "/^release-harvester-v\\d+\\.\\d+$/"
   ],
   "automergeMajor": false,
   "semanticCommits": "enabled",
-  "semanticCommitType": "chore",
-  "semanticCommitScope": "deps",
+  "semanticCommitType": "deps",
   "prHourlyLimit": 12,
   "timezone": "Asia/Taipei",
   "schedule": ["after 10am on sunday"],
