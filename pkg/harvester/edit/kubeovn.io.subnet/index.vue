@@ -14,6 +14,7 @@ import ArrayList from '@shell/components/form/ArrayList';
 import { allHash } from '@shell/utils/promise';
 import { HCI } from '../../types';
 import ResourceTabs from '@shell/components/form/ResourceTabs/index';
+import { Banner } from '@components/Banner';
 
 export default {
   name: 'EditSubnet',
@@ -21,6 +22,7 @@ export default {
   emits: ['update:value'],
 
   components: {
+    Banner,
     CruResource,
     LabeledInput,
     LabeledSelect,
@@ -38,7 +40,9 @@ export default {
 
   created() {
     const vpc = this.$route.query.vpc || '';
+    const enableDHCP = this.value?.spec?.enableDHCP || false;
 
+    set(this.value.spec, 'enableDHCP', enableDHCP);
     set(this.value, 'spec', this.value.spec || {
       cidrBlock:  '',
       protocol:   NETWORK_PROTOCOL.IPv4,
@@ -46,7 +50,8 @@ export default {
       vpc,
       gatewayIP:  '',
       excludeIps: [],
-      private:    false
+      private:    false,
+      enableDHCP
     });
   },
 
@@ -81,7 +86,6 @@ export default {
     protocolOptions() {
       return Object.values(NETWORK_PROTOCOL);
     },
-
     provider: {
       get() {
         const raw = this.value.spec.provider;
@@ -125,6 +129,16 @@ export default {
     }
   },
 
+  watch: {
+    'value.spec.enableDHCP': {
+      handler(newValue) {
+        if (newValue === false) {
+          this.value.spec.dhcpV4Options = '';
+          this.value.spec.dhcpV6Options = '';
+        }
+      },
+    }
+  },
   methods: {
     async saveSubnet(buttonCb) {
       const errors = [];
@@ -248,6 +262,45 @@ export default {
         <div class="row mt-20">
           <div class="col span-6">
             <RadioGroup
+              v-model:value="value.spec.enableDHCP"
+              name="enabled"
+              :options="[true, false]"
+              :label="t('harvester.subnet.dhcp.label')"
+              :labels="[t('generic.enabled'), t('generic.disabled')]"
+              :mode="mode"
+              :tooltip="t('harvester.subnet.dhcp.tooltip')"
+            />
+            <LabeledInput
+              v-if="value.spec.enableDHCP && value.spec.protocol === 'IPv4'"
+              v-model:value="value.spec.dhcpV4Options"
+              class="mb-20 mt-20"
+              :placeholder="t('harvester.subnet.dhcp.placeholder')"
+              :label="t('harvester.subnet.dhcp.v4Options')"
+              :mode="mode"
+            />
+            <LabeledInput
+              v-if="value.spec.enableDHCP && value.spec.protocol === 'IPv6'"
+              v-model:value="value.spec.dhcpV6Options"
+              :placeholder="t('harvester.subnet.dhcp.placeholder')"
+              class="mb-20 mt-20"
+              :label="t('harvester.subnet.dhcp.v6Options')"
+              :mode="mode"
+            />
+            <Banner
+              v-if="value.spec.enableDHCP"
+              color="info"
+              class="dhcpOption-banner"
+            >
+              <t
+                k="harvester.subnet.dhcp.dhcpOptionBanner"
+                :raw="true"
+              />
+            </Banner>
+          </div>
+        </div>
+        <div class="row mt-20">
+          <div class="col span-6">
+            <RadioGroup
               v-model:value="value.spec.private"
               name="enabled"
               :options="[true, false]"
@@ -321,3 +374,9 @@ export default {
     </ResourceTabs>
   </CruResource>
 </template>
+
+<style lang="scss" scoped>
+  .dhcpOption-banner {
+    width: max-content;
+  }
+</style>

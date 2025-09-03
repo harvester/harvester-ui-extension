@@ -1045,6 +1045,13 @@ harvester:
     gateway:
       label: Gateway IP
       placeholder: e.g. 172.20.0.1
+    dhcp:
+      label: Dynamic Host Configuration Protocol (DHCP)
+      v4Options: DHCPV4Options
+      v6Options: DHCPV6Options
+      placeholder: key1=value1, key2=value2
+      dhcpOptionBanner: DHCP options is a key/value string concatenate with comma. For more detail, please refer to <a href="https://kubeovn.github.io/docs/v1.13.x/en/kubevirt/dhcp/" target="_blank">KubOVN document</a>
+      tooltip: Enable DHCP server for this subnet. When enabled, VMs can automatically obtain IP addresses from this subnet.
     private:
       label: Private Subnet
       tooltip: Enable network isolation for this Subnet. When enabled, VMs can only communicate within this subnet, even if other subnets exist under the same VPC.
