@@ -47,10 +47,12 @@ const FEATURE_FLAGS = {
     'cpuMemoryHotplug',
     'cdiSettings',
     'vmCloneRunStrategy',
+    'l2VlanTrunkMode'
   ],
   'v1.6.1': [],
   'v1.7.0': [
-    'vmMachineTypeAuto'
+    'vmMachineTypeAuto',
+    'l2VlanTrunkMode'
   ]
 };
 

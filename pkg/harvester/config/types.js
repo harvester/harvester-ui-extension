@@ -23,3 +23,8 @@ export const INTERNAL_STORAGE_CLASS = {
   VMSTATE_PERSISTENCE: 'vmstate-persistence',
   LONGHORN_STATIC:     'longhorn-static',
 };
+
+export const L2VLAN_MODE = {
+  ACCESS: 'access',
+  TRUNK:  'trunk',
+};
