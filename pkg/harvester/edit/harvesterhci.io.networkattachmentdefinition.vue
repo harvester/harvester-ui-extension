@@ -10,9 +10,11 @@ import { HCI as HCI_LABELS_ANNOTATIONS } from '@pkg/harvester/config/labels-anno
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { allHash } from '@shell/utils/promise';
 import { HCI } from '../types';
-import { NETWORK_TYPE } from '../config/types';
+import { NETWORK_TYPE, L2VLAN_MODE } from '../config/types';
+import { removeObject } from '@shell/utils/array';
 
 const { L2VLAN, UNTAGGED, OVERLAY } = NETWORK_TYPE;
+const { ACCESS, TRUNK } = L2VLAN_MODE;
 
 const AUTO = 'auto';
 const MANUAL = 'manual';
@@ -52,6 +54,8 @@ export default {
     return {
       config,
       type,
+      l2VlanMode:    type === L2VLAN && this.value?.vlanTrunk ? TRUNK : ACCESS,
+      vlanTrunk:     [{ minID: '', maxID: '' }],
       layer3Network: {
         mode:         layer3Network.mode || AUTO,
         serverIPAddr: layer3Network.serverIPAddr || '',
@@ -108,6 +112,10 @@ export default {
       }];
     },
 
+    l2VlanTrunkModeFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('l2VlanTrunkMode');
+    },
+
     kubeovnVpcSubnetSupport() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('kubeovnVpcSubnet');
     },
@@ -131,6 +139,16 @@ export default {
       });
     },
 
+    l2VlanModeOptions() {
+      return [{
+        label: this.t('harvester.vlanStatus.vlanConfig.l2VlanMode.access'),
+        value: ACCESS,
+      }, {
+        label: this.t('harvester.vlanStatus.vlanConfig.l2VlanMode.trunk'),
+        value: TRUNK,
+      }];
+    },
+
     networkTypes() {
       const types = [L2VLAN, UNTAGGED];
 
@@ -147,6 +165,22 @@ export default {
       }
 
       return this.type === L2VLAN;
+    },
+
+    isL2VlanTrunkMode() {
+      if (this.isView) {
+        return this.value.vlanType === L2VLAN && this.l2VlanMode === TRUNK;
+      }
+
+      return this.type === L2VLAN && this.l2VlanMode === TRUNK;
+    },
+
+    isL2VlanAccessMode() {
+      if (this.isView) {
+        return this.value.vlanType === L2VLAN && this.l2VlanMode === ACCESS;
+      }
+
+      return this.type === L2VLAN && this.l2VlanMode === ACCESS;
     },
 
     isOverlayNetwork() {
@@ -168,11 +202,11 @@ export default {
 
   watch: {
     type(newType) {
-      if (newType === OVERLAY) {
+      if (newType === OVERLAY) { // overlay network configuration
         this.config.type = 'kube-ovn';
         this.config.provider = `${ this.value.metadata.name }.${ this.value.metadata.namespace }.ovn`;
         this.config.server_socket = '/run/openvswitch/kube-ovn-daemon.sock';
-      } else {
+      } else { // l2vlan or untagged network configuration
         this.config.type = 'bridge';
         this.config.promiscMode = true;
         this.config.ipam = {};
@@ -180,7 +214,20 @@ export default {
         delete this.config.provider;
         delete this.config.server_socket;
       }
-    }
+    },
+    l2VlanMode(newAccessMode) {
+      if (this.type !== L2VLAN) {
+        return;
+      }
+
+      if (newAccessMode === TRUNK) { // trunk mode
+        this.config.vlan = 0;
+        this.config.vlanTrunk = this.vlanTrunk;
+      } else { // access mode
+        delete this.config.vlanTrunk;
+        this.config.vlan = '';
+      }
+    },
   },
 
   methods: {
@@ -188,7 +235,15 @@ export default {
       const errors = [];
 
       if (this.isL2VlanNetwork || this.isUntaggedNetwork) {
-        if (!this.config.vlan && !this.isUntaggedNetwork) {
+        if (this.isL2VlanTrunkMode && this.vlanTrunk.some((trunk) => trunk.minID === '')) {
+          errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('harvester.vlanStatus.vlanConfig.vlanTrunk.minId') }));
+        }
+
+        if (this.isL2VlanTrunkMode && this.vlanTrunk.some((trunk) => trunk.maxID === '')) {
+          errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('harvester.vlanStatus.vlanConfig.vlanTrunk.maxId') }));
+        }
+
+        if (this.isL2VlanAccessMode && !this.config.vlan && !this.isUntaggedNetwork) {
           errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('tableHeaders.networkVlan') }));
         }
 
@@ -215,6 +270,23 @@ export default {
       }
 
       await this.save(buttonCb);
+    },
+
+    removeVlanTrunk(trunk) {
+      removeObject(this.vlanTrunk, trunk);
+    },
+
+    addVlanTrunk() {
+      if (!this.config.vlanTrunk) {
+        this.config.vlanTrunk = [];
+      }
+      this.vlanTrunk.push({ minID: this.minId, maxID: this.maxId });
+      this.config.vlanTrunk = this.vlanTrunk;
+    },
+
+    vlanTrunkChange() {
+      this.config.vlanTrunk = this.vlanTrunk;
+      // console.log("🚀 ~ vlanTrunkChange ~ this.config.vlanTrunk:", this.config.vlanTrunk)
     },
 
     input(neu) {
@@ -292,8 +364,73 @@ export default {
           required
         />
 
+        <LabeledSelect
+          v-if="isL2VlanNetwork && l2VlanTrunkModeFeatureEnabled"
+          v-model:value="l2VlanMode"
+          class="mb-20"
+          :options="l2VlanModeOptions"
+          :mode="mode"
+          :disabled="isEdit"
+          :label="t('harvester.vlanStatus.vlanConfig.l2VlanMode.label')"
+          required
+        />
+        <div v-if="isL2VlanTrunkMode && l2VlanTrunkModeFeatureEnabled">
+          <div
+            v-for="(trunk, i) in vlanTrunk"
+            :key="i"
+          >
+            <div class="row mt-10">
+              <div class="col trunk-span">
+                <LabeledInput
+                  v-model:value.number="trunk.minID"
+                  class="mb-20"
+                  required
+                  :min="1"
+                  :max="4094"
+                  type="number"
+                  :label="t('harvester.vlanStatus.vlanConfig.vlanTrunk.minId')"
+                  :mode="mode"
+                  @update:value="vlanTrunkChange"
+                />
+              </div>
+              <div class="col trunk-span">
+                <LabeledInput
+                  v-model:value.number="trunk.maxID"
+                  class="mb-20"
+                  :max="4094"
+                  :min="1"
+                  required
+                  type="number"
+                  :label="t('harvester.vlanStatus.vlanConfig.vlanTrunk.maxId')"
+                  :mode="mode"
+                  @update:value="vlanTrunkChange"
+                />
+              </div>
+              <div class="col remove-btn mb-20">
+                <button
+                  type="button"
+                  :disabled="isView"
+                  :aria-label="t('generic.ariaLabel.remove', {index: i+1})"
+                  role="button"
+                  class="btn role-link"
+                  @click="removeVlanTrunk(trunk)"
+                >
+                  {{ t('harvester.fields.remove') }}
+                </button>
+              </div>
+            </div>
+          </div>
+          <button
+            v-if="isL2VlanTrunkMode"
+            type="button"
+            class="btn btn-sm bg-primary mb-20"
+            @click="addVlanTrunk"
+          >
+            {{ t('harvester.vlanStatus.vlanConfig.vlanTrunk.add') }}
+          </button>
+        </div>
         <LabeledInput
-          v-if="isL2VlanNetwork"
+          v-if="isL2VlanAccessMode"
           v-model:value.number="config.vlan"
           class="mb-20"
           required
@@ -375,3 +512,12 @@ export default {
     </Tabbed>
   </CruResource>
 </template>
+
+<style lang="scss" scoped>
+ .remove-btn {
+  align-self: center;
+}
+.trunk-span{
+  flex: 5;
+}
+</style>
