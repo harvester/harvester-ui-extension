@@ -4,7 +4,7 @@ import Loading from '@shell/components/Loading';
 import MessageLink from '@shell/components/MessageLink';
 import Masthead from '@shell/components/ResourceList/Masthead';
 import ResourceTable from '@shell/components/ResourceTable';
-
+import { isBackupTargetSettingEmpty } from '../utils/setting';
 import { STATE, AGE, NAME, NAMESPACE } from '@shell/config/table-headers';
 import FilterVMSchedule from '../components/FilterVMSchedule';
 import { HCI } from '../types';
@@ -39,7 +39,7 @@ export default {
     this.settings = hash.settings;
     if (this.$store.getters[`${ inStore }/schemaFor`](HCI.SETTING)) {
       const backupTargetResource = hash.settings.find( (O) => O.id === 'backup-target');
-      const isEmpty = this.getBackupTargetValueIsEmpty(backupTargetResource);
+      const isEmpty = isBackupTargetSettingEmpty(backupTargetResource);
 
       if (backupTargetResource && !isEmpty) {
         this.testConnect();
@@ -76,20 +76,6 @@ export default {
           }, { root: true });
         }
       }
-    },
-
-    getBackupTargetValueIsEmpty(resource) {
-      let out = true;
-
-      if (resource?.value) {
-        try {
-          const valueJson = JSON.parse(resource?.value);
-
-          out = !valueJson.type;
-        } catch (e) {}
-      }
-
-      return out;
     },
 
     getRow(row) {
@@ -183,11 +169,9 @@ export default {
     backupTargetResource() {
       return this.settings.find((O) => O.id === 'backup-target');
     },
-
     isEmptyValue() {
-      return this.getBackupTargetValueIsEmpty(this.backupTargetResource);
+      return isBackupTargetSettingEmpty(this.backupTargetResource);
     },
-
     canUpdate() {
       return this?.backupTargetResource?.canUpdate;
     },

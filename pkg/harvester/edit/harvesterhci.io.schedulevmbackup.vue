@@ -15,6 +15,7 @@ import { HCI } from '../types';
 import { sortBy } from '@shell/utils/sort';
 import { BACKUP_TYPE } from '../config/types';
 import { _EDIT, _CREATE } from '@shell/config/query-params';
+import { isBackupTargetSettingEmpty } from '../utils/setting';
 
 export default {
   name:       'CreateVMSchedule',
@@ -93,7 +94,7 @@ export default {
       return this.settings.find( (O) => O.id === 'backup-target');
     },
     isEmptyValue() {
-      return this.getBackupTargetValueIsEmpty(this.backupTargetResource);
+      return isBackupTargetSettingEmpty(this.backupTargetResource);
     },
     canUpdate() {
       return this?.backupTargetResource?.canUpdate;
@@ -166,20 +167,6 @@ export default {
     onTypeChange(newType) {
       this.value.metadata.name = `svm${ newType }-${ this.value.spec.vmbackup.source.name }`;
     },
-    getBackupTargetValueIsEmpty(resource) {
-      let out = true;
-
-      if (resource?.value) {
-        try {
-          const valueJson = JSON.parse(resource?.value);
-
-          out = !valueJson.type;
-        } catch (e) {}
-      }
-
-      return out;
-    },
-
     validateFailure(count) {
       if (this.value.spec.retain && count > this.value.spec.retain) {
         this.value.spec['maxFailure'] = this.value.spec.retain;
