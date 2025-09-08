@@ -13,7 +13,9 @@ import { HCI } from '../types';
 import { NETWORK_TYPE, L2VLAN_MODE } from '../config/types';
 import { removeObject } from '@shell/utils/array';
 
-const { L2VLAN, UNTAGGED, OVERLAY } = NETWORK_TYPE;
+const {
+  L2VLAN, UNTAGGED, OVERLAY, L2TRUNK_VLAN
+} = NETWORK_TYPE;
 const { ACCESS, TRUNK } = L2VLAN_MODE;
 
 const AUTO = 'auto';
@@ -54,8 +56,8 @@ export default {
     return {
       config,
       type,
-      l2VlanMode:    type === L2VLAN && this.value?.vlanTrunk ? TRUNK : ACCESS,
-      vlanTrunk:     [{ minID: '', maxID: '' }],
+      l2VlanMode:    this.value.vlanType === L2TRUNK_VLAN ? TRUNK : ACCESS,
+      vlanTrunk:     this.parseVlanTrunk(config),
       layer3Network: {
         mode:         layer3Network.mode || AUTO,
         serverIPAddr: layer3Network.serverIPAddr || '',
@@ -169,10 +171,10 @@ export default {
 
     isL2VlanTrunkMode() {
       if (this.isView) {
-        return this.value.vlanType === L2VLAN && this.l2VlanMode === TRUNK;
+        return this.value.vlanType === L2TRUNK_VLAN;
       }
 
-      return this.type === L2VLAN && this.l2VlanMode === TRUNK;
+      return this.l2VlanMode === TRUNK;
     },
 
     isL2VlanAccessMode() {
@@ -272,6 +274,14 @@ export default {
       await this.save(buttonCb);
     },
 
+    parseVlanTrunk(config) {
+      if (config?.vlanTrunk && config?.vlanTrunk?.length > 0) {
+        return config.vlanTrunk;
+      }
+
+      return [{ minID: '', maxID: '' }];
+    },
+
     removeVlanTrunk(trunk) {
       removeObject(this.vlanTrunk, trunk);
     },
@@ -286,7 +296,6 @@ export default {
 
     vlanTrunkChange() {
       this.config.vlanTrunk = this.vlanTrunk;
-      // console.log("🚀 ~ vlanTrunkChange ~ this.config.vlanTrunk:", this.config.vlanTrunk)
     },
 
     input(neu) {
@@ -409,7 +418,7 @@ export default {
               <div class="col remove-btn mb-20">
                 <button
                   type="button"
-                  :disabled="isView"
+                  :disabled="isView || vlanTrunk.length <= 1"
                   :aria-label="t('generic.ariaLabel.remove', {index: i+1})"
                   role="button"
                   class="btn role-link"
@@ -424,6 +433,7 @@ export default {
             v-if="isL2VlanTrunkMode"
             type="button"
             class="btn btn-sm bg-primary mb-20"
+            :disabled="isView"
             @click="addVlanTrunk"
           >
             {{ t('harvester.vlanStatus.vlanConfig.vlanTrunk.add') }}
