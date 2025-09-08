@@ -1726,9 +1726,8 @@ advancedSettings:
     'harv-server-version': Harvester server version.
     'harv-upgrade-checker-enabled': Specifies whether to enable Harvester upgrade check or not. Default is True.
     'harv-upgrade-checker-url': Default Harvester upgrade check url. Only used when the <code>upgrade-checker-enabled</code> is equal to True.
-    'harv-ui-source': Configure how to load the UI source.
+    'harv-ui-source': Configure how to load the UI source. The `External` option is used to load the UI from a ui-index URL, while the `Bundled` option loads the UI from the local Harvester server.
     'harv-ui-index': 'HTML index location for the UI.'
-    'harv-ui-plugin-index': 'JS index location for the Harvester plugin UI.'
     'harv-cluster-registration-url': Registration URL for multi-cluster management.
     'harv-http-proxy': 'HTTP proxy for Harvester to access external services.'
     'harv-additional-ca': 'Custom CA root certificates for TLS validation.'
