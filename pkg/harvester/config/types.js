@@ -4,9 +4,10 @@ export const BACKUP_TYPE = {
 };
 
 export const NETWORK_TYPE = {
-  L2VLAN:   'L2VlanNetwork',
-  UNTAGGED: 'UntaggedNetwork',
-  OVERLAY:  'OverlayNetwork',
+  L2VLAN:       'L2VlanNetwork',
+  UNTAGGED:     'UntaggedNetwork',
+  OVERLAY:      'OverlayNetwork',
+  L2TRUNK_VLAN: 'L2VlanTrunkNetwork',
 };
 
 export const VOLUME_MODE = {
