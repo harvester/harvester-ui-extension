@@ -4,7 +4,6 @@ export const HCI_SETTING = {
   LOG_LEVEL:                              'log-level',
   SERVER_VERSION:                         'server-version',
   UI_INDEX:                               'ui-index',
-  UI_PLUGIN_INDEX:                        'ui-plugin-index',
   UPGRADE_CHECKER_ENABLED:                'upgrade-checker-enabled',
   UPGRADE_CHECKER_URL:                    'upgrade-checker-url',
   VLAN:                                   'vlan',
@@ -84,7 +83,6 @@ export const HCI_ALLOWED_SETTINGS = {
   [HCI_SETTING.SUPPORT_BUNDLE_NAMESPACES]: { from: 'import', canReset: true },
   [HCI_SETTING.AUTO_DISK_PROVISION_PATHS]: { canReset: true },
   [HCI_SETTING.RELEASE_DOWNLOAD_URL]:      { kind: 'url' },
-  [HCI_SETTING.UI_PLUGIN_INDEX]:           { kind: 'url' },
   [HCI_SETTING.CONTAINERD_REGISTRY]:       {
     kind: 'json', from: 'import', canReset: true
   },

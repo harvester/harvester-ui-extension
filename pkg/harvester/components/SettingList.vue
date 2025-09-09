@@ -11,7 +11,6 @@ const CATEGORY = {
   ui: [
     'branding',
     'ui-source',
-    'ui-plugin-index',
     'ui-index',
   ]
 };
