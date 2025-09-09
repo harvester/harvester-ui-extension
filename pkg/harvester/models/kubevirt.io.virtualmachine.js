@@ -14,6 +14,7 @@ import { BACKUP_TYPE } from '../config/types';
 import { HCI } from '../types';
 import HarvesterResource from './harvester';
 import { getVmCPUMemoryValues } from '../utils/cpuMemory';
+import { isBackupTargetSettingUnavailable } from '../utils/setting';
 
 export const OFF = 'Off';
 
@@ -152,7 +153,7 @@ export default class VirtVm extends HarvesterResource {
       },
       {
         action:  'backupVM',
-        enabled: !!this.actions?.backup,
+        enabled: !!this.actions?.backup && !this.isBackupTargetUnavailable,
         icon:    'icon icon-backup',
         label:   this.t('harvester.action.backup')
       },
@@ -1237,6 +1238,13 @@ export default class VirtVm extends HarvesterResource {
 
   get vmMachineTypesFeatureEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('vmMachineTypes');
+  }
+
+  get isBackupTargetUnavailable() {
+    const allSettings = this.$rootGetters['harvester/all'](HCI.SETTING) || [];
+    const backupTargetSetting = allSettings.find( (O) => O.id === 'backup-target');
+
+    return isBackupTargetSettingUnavailable(backupTargetSetting);
   }
 
   setInstanceLabels(val) {
