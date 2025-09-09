@@ -15,7 +15,7 @@ import { HCI } from '../types';
 import { sortBy } from '@shell/utils/sort';
 import { BACKUP_TYPE } from '../config/types';
 import { _EDIT, _CREATE } from '@shell/config/query-params';
-import { isBackupTargetSettingEmpty } from '../utils/setting';
+import { isBackupTargetSettingEmpty, isBackupTargetSettingUnavailable } from '../utils/setting';
 
 export default {
   name:       'CreateVMSchedule',
@@ -110,7 +110,7 @@ export default {
       !!this.value.spec.maxFailure;
     },
     isBackupTargetUnAvailable() {
-      return this.value.spec.vmbackup.type === BACKUP_TYPE.BACKUP && (this.errorMessage || this.isEmptyValue) && this.canUpdate;
+      return this.value.spec.vmbackup.type === BACKUP_TYPE.BACKUP && isBackupTargetSettingUnavailable(this.backupTargetResource);
     },
     vmOptions() {
       const nsVmList = this.$store.getters['harvester/all'](HCI.VM).filter((vm) => vm.metadata.namespace === this.value.metadata.namespace);
