@@ -704,7 +704,7 @@ export default {
     parseDiskRows(disk) {
       const disks = [];
       const volumes = [];
-      const diskNameLables = [];
+      const diskNameLabels = [];
       const volumeClaimTemplates = [];
 
       disk.forEach( (R, index) => {
@@ -726,7 +726,7 @@ export default {
 
         disks.push(_disk);
         volumes.push(_volume);
-        diskNameLables.push(dataVolumeName);
+        diskNameLabels.push(dataVolumeName);
 
         if (R.source !== SOURCE_TYPE.CONTAINER) {
           volumeClaimTemplates.push(_dataVolumeTemplate);
@@ -1043,7 +1043,9 @@ export default {
     },
 
     parseVolumeClaimTemplate(R, dataVolumeName) {
-      if (!String(R.size).includes('Gi') && R.size) {
+      const sizeString = String(R.size);
+
+      if (!(sizeString.includes('Gi') || sizeString.includes('Ti')) && R.size) {
         R.size = `${ R.size }${ GIBIBYTE }`;
       }
 
