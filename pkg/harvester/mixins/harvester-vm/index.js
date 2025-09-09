@@ -1045,7 +1045,7 @@ export default {
     parseVolumeClaimTemplate(R, dataVolumeName) {
       const sizeString = String(R.size);
 
-      if (!(sizeString.includes('Gi') || sizeString.includes('Ti') || sizeString.includes('Pi')) && R.size) {
+      if (!(sizeString.includes('Gi') || sizeString.includes('Ti')) && R.size) {
         R.size = `${ R.size }${ GIBIBYTE }`;
       }
 
