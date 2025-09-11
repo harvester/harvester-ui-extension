@@ -1088,6 +1088,7 @@ harvester:
         placeholder: e.g. 169.254.0.1/16
       remoteVpc:
         label: Remote VPC
+      infoBanner: The subnet range should be covered by VPC CIDR, otherwise the associated static route cannot reach that subnet. Read <a href="{url}" target="_blank">VPC Peering Configuration Examples</a> for more information.
   network:
     label: Virtual Machine Networks
     tabs:

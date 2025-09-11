@@ -4,13 +4,16 @@ import { _EDIT, _VIEW } from '@shell/config/query-params';
 import { removeAt } from '@shell/utils/array';
 import { HCI } from '../../types';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
+import { Banner } from '@components/Banner';
+import { DOC } from '../../config/doc-links';
+import { docLink } from '../../utils/feature-flags';
 
 export default {
   name: 'VpcPeerings',
 
   emits: ['update:value'],
 
-  components: { LabeledSelect },
+  components: { Banner, LabeledSelect },
 
   props: {
     value: {
@@ -59,6 +62,12 @@ export default {
       return !this.isView;
     },
 
+    vpcPeeringExamplesLink() {
+      const version = this.$store.getters['harvester-common/getServerVersion']();
+
+      return docLink(DOC.VPC_CONFIGURATION_EXAMPLES, version);
+    },
+
     remoteVpcOptions() {
       const allVpcs = this.$store.getters['harvester/all'](HCI.VPC) || [];
 
@@ -105,6 +114,13 @@ export default {
 
 <template>
   <div>
+    <Banner color="info">
+      <t
+        k="harvester.vpc.vpcPeerings.infoBanner"
+        :raw="true"
+        :url="vpcPeeringExamplesLink"
+      />
+    </Banner>
     <div
       v-if="rows.length"
       class="static-route-row"
