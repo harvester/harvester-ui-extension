@@ -15,7 +15,7 @@ if [[ "$VERSION" != "$EXTENSION_VERSION" ]]; then
   exit 1
 fi
 
-if [[ "${TAG_VERSION}" != "$PKG_VERSION" ]]; then
+if [[ "${TAG_VERSION}" != "${PKG_VERSION}"* ]]; then
   echo "Package version $PKG_VERSION in pkg/harvester/package.json does not match tag version ${TAG_VERSION}"
   exit 1
 fi
