@@ -170,11 +170,11 @@ export default {
     },
 
     isL2VlanTrunkMode() {
-      if (this.isView) {
+      if (this.isView || this.isEdit) {
         return this.value.vlanType === L2TRUNK_VLAN;
       }
 
-      return this.l2VlanMode === TRUNK;
+      return this.type === L2VLAN && this.l2VlanMode === TRUNK;
     },
 
     isL2VlanAccessMode() {
@@ -290,7 +290,7 @@ export default {
       if (!this.config.vlanTrunk) {
         this.config.vlanTrunk = [];
       }
-      this.vlanTrunk.push({ minID: this.minId, maxID: this.maxId });
+      this.vlanTrunk.push({ minID: '', maxID: '' });
       this.config.vlanTrunk = this.vlanTrunk;
     },
 
