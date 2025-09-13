@@ -2,11 +2,16 @@
 import debounce from 'lodash/debounce';
 import { _EDIT, _VIEW } from '@shell/config/query-params';
 import { removeAt } from '@shell/utils/array';
+import { Banner } from '@components/Banner';
+import { DOC } from '../../config/doc-links';
+import { docLink } from '../../utils/feature-flags';
 
 export default {
   name: 'StaticRoutes',
 
   emits: ['update:value'],
+
+  components: { Banner },
 
   props: {
     value: {
@@ -45,6 +50,12 @@ export default {
     nextHopIPTooltip() {
       return this.t('harvester.vpc.staticRoutes.nextHopIP.tooltip');
     },
+
+    vpcPeeringExamplesLink() {
+      const version = this.$store.getters['harvester-common/getServerVersion']();
+
+      return docLink(DOC.VPC_CONFIGURATION_EXAMPLES, version);
+    },
   },
 
   created() {
@@ -78,6 +89,13 @@ export default {
 
 <template>
   <div>
+    <Banner color="info">
+      <t
+        k="harvester.vpc.vpcPeerings.infoBanner"
+        :raw="true"
+        :url="vpcPeeringExamplesLink"
+      />
+    </Banner>
     <div
       v-if="rows.length"
       class="static-route-row"

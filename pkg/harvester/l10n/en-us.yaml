@@ -1088,6 +1088,7 @@ harvester:
         placeholder: e.g. 169.254.0.1/16
       remoteVpc:
         label: Remote VPC
+      infoBanner: The static route destination CIDR must cover all subnets CIDR from remote VPC Peer. Read <a href="{url}" target="_blank">VPC Peering Configuration Examples</a> for more information.
   network:
     label: Virtual Machine Networks
     tabs:
