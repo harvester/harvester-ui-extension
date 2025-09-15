@@ -527,7 +527,6 @@ export default {
               id:   this.longhornNode.id,
               opt:  { force: true },
             });
-
             await new Promise((resolve) => setTimeout(resolve, '5000'));
             await retrySave();
           } else {

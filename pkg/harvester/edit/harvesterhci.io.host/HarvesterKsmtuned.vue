@@ -7,6 +7,8 @@ import { Checkbox } from '@components/Form/Checkbox';
 import { HCI } from '../../types';
 import { DOC } from '../../config/doc-links';
 import { docLink } from '../../utils/feature-flags';
+import isEqual from 'lodash/isEqual';
+import { clone } from '@shell/utils/object';
 
 export const ksmtunedMode = [{
   value: 'standard',
@@ -64,11 +66,13 @@ export default {
 
     this.enableMergeAcrossNodes = !!this.ksmtuned.spec?.mergeAcrossNodes;
     this.spec = this.ksmtuned.spec;
+    this.originSpec = clone(this.ksmtuned.spec);
   },
 
   data() {
     return {
       ksmtuned:               {},
+      originSpec:             {},
       spec:                   {},
       thresCoef:              30,
       ksmtunedMode,
@@ -99,6 +103,11 @@ export default {
 
   methods: {
     async saveKsmtuned() {
+      // no ksmtuned spec change, skip save
+      if (isEqual(this.spec, this.originSpec)) {
+        return;
+      }
+
       this.spec.mergeAcrossNodes = this.enableMergeAcrossNodes ? 1 : 0;
       this.ksmtuned['spec'] = this.spec;
 
