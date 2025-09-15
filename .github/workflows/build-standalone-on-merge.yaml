@@ -6,11 +6,13 @@ on:
       - main
       - 'release-harvester-v*'
       - '*-dev'
+      - jira_10687
   pull_request:
     branches:
       - main
       - 'release-harvester-v*'
       - '*-dev'
+      - jira_10687
     types:
       - merged
 
