@@ -2,7 +2,7 @@ import SteveModel from '@shell/plugins/steve/steve-class';
 import { HCI } from '@shell/config/labels-annotations';
 import { NETWORK_TYPE } from '../config/types';
 
-const { UNTAGGED, OVERLAY } = NETWORK_TYPE;
+const { UNTAGGED, OVERLAY, L2TRUNK_VLAN } = NETWORK_TYPE;
 
 export default class NetworkAttachmentDef extends SteveModel {
   applyDefaults() {
@@ -45,7 +45,7 @@ export default class NetworkAttachmentDef extends SteveModel {
   }
 
   get vlanId() {
-    return this.vlanType === UNTAGGED || this.vlanType === OVERLAY ? 'N/A' : this.parseConfig.vlan;
+    return this.vlanType === UNTAGGED || this.vlanType === OVERLAY || this.vlanType === L2TRUNK_VLAN ? 'N/A' : this.parseConfig.vlan;
   }
 
   get customValidationRules() {
@@ -68,7 +68,7 @@ export default class NetworkAttachmentDef extends SteveModel {
     const route = annotations[HCI.NETWORK_ROUTE];
     let config = {};
 
-    if (this.vlanType === UNTAGGED || this.vlanType === OVERLAY) {
+    if (this.vlanType === UNTAGGED || this.vlanType === OVERLAY || this.vlanType === L2TRUNK_VLAN) {
       return 'N/A';
     }
 

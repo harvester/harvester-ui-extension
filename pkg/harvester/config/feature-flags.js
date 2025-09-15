@@ -50,7 +50,9 @@ const FEATURE_FLAGS = {
     'vmCloneRunStrategy',
   ],
   'v1.6.1': [],
-  'v1.7.0': []
+  'v1.7.0': [
+    'l2VlanTrunkMode',
+  ]
 };
 
 const generateFeatureFlags = () => {
