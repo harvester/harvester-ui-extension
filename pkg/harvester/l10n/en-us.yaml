@@ -404,7 +404,7 @@ harvester:
       sha512: 'Invalid SHA512 checksum.'
     subnet:
       excludeIps: 'Exclude IPs cannot be empty. Please remove or fill in the exclude IPs.'
-
+      aclEmptyError: The fields in subnet access control list rule can not be empty.
   dashboard:
     label: Dashboard
     header: "Harvester Cluster: {cluster}"
@@ -1062,7 +1062,24 @@ harvester:
       placeholder: e.g. 172.16.0.0/16
     excludeIPs:
       tooltip: The IP address list to reserve from automatic assignment. The gateway IP address is always excluded and will be automatically added to the list.
-
+    acl:
+      label: Access Control List
+      tooltip: The ACL to apply to this Subnet. Must be one of the ACLs in the same namespace.
+      action: 
+        label: Action
+        placeholder: Please select an action
+      direction: 
+        label: Direction
+        placeholder: Please select a direction
+      addRule: Add Rule
+      priority: 
+        label: Priority
+        placeholder: Please select a priority
+      match: 
+        label: Match
+        placeholder: e.g. ip4.dst == 10.10.0.2
+      banner: The supported filed in ACL match can refer to <a href="https://kubeovn.github.io/docs/v1.14.x/en/guide/subnet/#subnet-acl" target="_blank">KubeOvn Subnet ACL document</a>
+      
   vpc:
     noAddonEnabled:
       prefix: The kubeovn-operator add-on is not enabled, click
