@@ -15,6 +15,7 @@ import { allHash } from '@shell/utils/promise';
 import { HCI } from '../../types';
 import ResourceTabs from '@shell/components/form/ResourceTabs/index';
 import { Banner } from '@components/Banner';
+import AccessControlList from './AccessControlList';
 
 export default {
   name: 'EditSubnet',
@@ -32,6 +33,7 @@ export default {
     ArrayList,
     ResourceTabs,
     Loading,
+    AccessControlList
   },
 
   mixins: [CreateEditView],
@@ -51,7 +53,8 @@ export default {
       gatewayIP:  '',
       excludeIps: [],
       private:    false,
-      enableDHCP
+      enableDHCP,
+      acls:       []
     });
   },
 
@@ -143,6 +146,7 @@ export default {
     async saveSubnet(buttonCb) {
       const errors = [];
       const name = this.value?.metadata?.name;
+      const hasEmptyAcls = this.value?.spec?.acls?.some((acl) => !acl.match || !acl.action || acl.priority === undefined || acl.priority === null);
 
       try {
         if (!name) {
@@ -153,6 +157,8 @@ export default {
           errors.push(this.t('validation.required', { key: this.t('harvester.subnet.provider.label') }, true));
         } else if (this.value.spec.excludeIps.includes('')) {
           errors.push(this.t('harvester.validation.subnet.excludeIps'));
+        } else if (hasEmptyAcls) {
+          errors.push(this.t('harvester.validation.subnet.aclEmptyError'));
         }
 
         if (errors.length > 0) {
@@ -370,6 +376,17 @@ export default {
             </div>
           </template>
         </ArrayList>
+      </Tab>
+      <Tab
+        name="ACL"
+        :label="t('harvester.subnet.acl.label')"
+        :weight="-2"
+        class="bordered-table"
+      >
+        <AccessControlList
+          v-model:value="value.spec.acls"
+          :mode="mode"
+        />
       </Tab>
     </ResourceTabs>
   </CruResource>
