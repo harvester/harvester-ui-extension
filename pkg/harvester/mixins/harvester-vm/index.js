@@ -891,16 +891,13 @@ export default {
         interfaces.push(_interface);
       });
 
-      const specInterfaces = this.spec?.template?.spec?.domain?.devices?.interfaces;
-      const mergedInterfaces = this.mergeDeviceList(specInterfaces, interfaces);
-
       const spec = {
         ...this.spec.template.spec,
         domain: {
           ...this.spec.template.spec.domain,
           devices: {
             ...this.spec.template.spec.domain.devices,
-            interfaces: mergedInterfaces,
+            interfaces,
           },
         },
         networks
@@ -1098,6 +1095,10 @@ export default {
 
       if (R.macAddress) {
         _interface.macAddress = R.macAddress;
+      }
+
+      if (R.tag) {
+        _interface.tag = R.tag;
       }
 
       _interface.model = R.model;
