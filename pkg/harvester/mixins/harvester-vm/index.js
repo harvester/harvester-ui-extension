@@ -891,13 +891,16 @@ export default {
         interfaces.push(_interface);
       });
 
+      const specInterfaces = this.spec?.template?.spec?.domain?.devices?.interfaces;
+      const mergedInterfaces = this.mergeInterfaceList(specInterfaces, interfaces);
+
       const spec = {
         ...this.spec.template.spec,
         domain: {
           ...this.spec.template.spec.domain,
           devices: {
             ...this.spec.template.spec.domain.devices,
-            interfaces,
+            interfaces: mergedInterfaces,
           },
         },
         networks
@@ -1095,10 +1098,6 @@ export default {
 
       if (R.macAddress) {
         _interface.macAddress = R.macAddress;
-      }
-
-      if (R.tag) {
-        _interface.tag = R.tag;
       }
 
       _interface.model = R.model;
@@ -1550,6 +1549,31 @@ export default {
       }
 
       this.refreshYamlEditor();
+    },
+
+    mergeInterfaceList(specInterfaceList, interfaceList) {
+      if (!specInterfaceList || specInterfaceList.length === 0) {
+        return interfaceList;
+      }
+      const specInterfaceMap = new Map(specInterfaceList.map((iface) => [iface.name, iface]));
+
+      return interfaceList.map((iface) => {
+        const specInterface = specInterfaceMap.get(iface.name);
+
+        if (specInterface) {
+          const merged = { ...specInterface, ...iface };
+
+          if (iface['bridge']) {
+            delete merged['masquerade'];
+          } else {
+            delete merged['bridge'];
+          }
+
+          return merged;
+        }
+
+        return iface;
+      });
     },
 
     mergeDeviceList(specDeviceList, deviceList) {
