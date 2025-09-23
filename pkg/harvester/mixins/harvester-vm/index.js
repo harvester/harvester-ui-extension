@@ -1563,6 +1563,7 @@ export default {
         if (specInterface) {
           const merged = { ...specInterface, ...iface };
 
+          // currently we only have bridge and masquerade network type, they are mutually exclusive
           if (iface['bridge']) {
             delete merged['masquerade'];
           } else {
