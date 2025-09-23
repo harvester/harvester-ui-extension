@@ -892,7 +892,7 @@ export default {
       });
 
       const specInterfaces = this.spec?.template?.spec?.domain?.devices?.interfaces;
-      const mergedInterfaces = this.mergeDeviceList(specInterfaces, interfaces);
+      const mergedInterfaces = this.mergeInterfaceList(specInterfaces, interfaces);
 
       const spec = {
         ...this.spec.template.spec,
@@ -1549,6 +1549,32 @@ export default {
       }
 
       this.refreshYamlEditor();
+    },
+
+    mergeInterfaceList(specInterfaceList, interfaceList) {
+      if (!specInterfaceList || specInterfaceList.length === 0) {
+        return interfaceList;
+      }
+      const specInterfaceMap = new Map(specInterfaceList.map((iface) => [iface.name, iface]));
+
+      return interfaceList.map((iface) => {
+        const specInterface = specInterfaceMap.get(iface.name);
+
+        if (specInterface) {
+          const merged = { ...specInterface, ...iface };
+
+          // currently we only have bridge and masquerade network type, they are mutually exclusive
+          if (iface['bridge']) {
+            delete merged['masquerade'];
+          } else {
+            delete merged['bridge'];
+          }
+
+          return merged;
+        }
+
+        return iface;
+      });
     },
 
     mergeDeviceList(specDeviceList, deviceList) {
