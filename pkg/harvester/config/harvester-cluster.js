@@ -10,6 +10,7 @@ import {
   LOGGING,
   STORAGE_CLASS,
   SECRET,
+  NETWORK_POLICY
 } from '@shell/config/types';
 import { HCI, VOLUME_SNAPSHOT } from '../types';
 import {
@@ -425,6 +426,7 @@ export function init($plugin, store) {
       HCI.CLUSTER_NETWORK,
       HCI.NETWORK_ATTACHMENT,
       HCI.VPC,
+      NETWORK_POLICY,
       HCI.LB,
       HCI.IP_POOL,
     ],
@@ -564,6 +566,21 @@ export function init($plugin, store) {
     },
     exact:      false,
     ifHaveType: HCI.VPC,
+  });
+
+  configureType(NETWORK_POLICY, { hiddenNamespaceGroupButton: true, canYaml: false });
+
+  virtualType({
+    labelKey:   'harvester.networkPolicy.label',
+    name:       NETWORK_POLICY,
+    namespaced: true,
+    weight:     186,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: NETWORK_POLICY }
+    },
+    exact:      false,
+    ifHaveType: NETWORK_POLICY,
   });
 
   configureType(HCI.SNAPSHOT, {
