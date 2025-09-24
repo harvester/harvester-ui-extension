@@ -50,7 +50,12 @@ jobs:
 
           echo "FROM=$FROM"
           echo "TO=$TO"
-          npx commitlint --from "$FROM" --to "$TO" --verbose
+
+          if [ -n "$FROM" ] && [ -n "$TO" ]; then
+            npx commitlint --from "$FROM" --to "$TO" --verbose
+          else
+            npx commitlint -e --verbose
+          fi
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
