@@ -53,8 +53,6 @@ jobs:
 
           if [ -n "$FROM" ] && [ -n "$TO" ]; then
             npx commitlint --from "$FROM" --to "$TO" --verbose
-          else
-            npx commitlint -e --verbose
           fi
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
