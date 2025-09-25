@@ -74,7 +74,7 @@ export default {
   async fetch() {
     const inStore = this.$store.getters['currentProduct'].inStore;
     const _hash = {
-      vms:     this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VM }),
+      vms:     this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VM, opt: { force: true } }),
       pod:     this.$store.dispatch(`${ inStore }/findAll`, { type: POD }),
       pvcs:    this.$store.dispatch(`${ inStore }/findAll`, { type: PVC }),
       pvs:     this.$store.dispatch(`${ inStore }/findAll`, { type: PV }),
