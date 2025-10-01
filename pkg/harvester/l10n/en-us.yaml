@@ -1108,30 +1108,7 @@ harvester:
       infoBanner: The static route destination CIDR must cover all subnets CIDR from remote VPC Peer. Read <a href="{url}" target="_blank">VPC Peering Configuration Examples</a> for more information.
   networkPolicy:
     label: Network Policies
-    tabs:
-      basics: Basics
-      podSelector: Pod Selector
-      ingressRules: Ingress Rules
-      egressRules: Egress Rules
-    podSelector:
-      label: Pod Selector
-      tooltip: Select the pods to which this Network Policy applies. If no labels are specified, this Network Policy applies to all pods in the same namespace.
-      addLabel: Add Label
-    ingressRules:
-      label: Ingress Rules
-      tooltip: Ingress rules allow incoming traffic to the selected pods. If no ingress rules are specified, no incoming traffic is allowed to the selected pods.
-      action:
-        label: Action
-        placeholder: Please select an action
-      protocol:
-        label: Protocol
-        placeholder: Please select a protocol
-      port:
-        label: Port
-        placeholder: e.g. 80 or 80-90
-      source:
-        label: Source
-        placeholder: e.g. ip4.src ==
+    banner: The network policies must be used for VMs attached to overlay networks. Please read the <a href="{url}" target="_blank">harvester document</a> how the network policy works.
   network:
     label: Virtual Machine Networks
     tabs:
