@@ -687,14 +687,12 @@ export default {
         set(this.spec.template.spec, 'domain.memory.maxGuest', this.maxMemory);
         set(this.spec.template.spec, 'domain.resources.limits.memory', this.maxMemory);
       } else {
+        this.spec.template.spec.domain.cpu.maxSockets = 1;
         this.spec.template.spec.domain.cpu.sockets = 1;
         this.spec.template.spec.domain.cpu.cores = this.cpu;
         this.spec.template.spec.domain.resources.limits.cpu = this.cpu?.toString();
         this.spec.template.spec.domain.resources.limits.memory = this.memory;
         // clean below fields as we don't need them if not enable CPU and memory hotplug
-        if (this.spec?.template?.spec?.domain?.cpu?.maxSockets) {
-          delete this.spec.template.spec.domain.cpu.maxSockets;
-        }
         if (this.spec?.template?.spec?.domain?.memory?.maxGuest) {
           delete this.spec.template.spec.domain.memory.maxGuest;
         }
