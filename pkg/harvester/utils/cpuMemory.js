@@ -10,10 +10,12 @@ export function getVmCPUMemoryValues(vm) {
   }
 
   const isHotplugEnabled = isCPUMemoryHotPlugEnabled(vm);
+  const { sockets = 1, threads = 1, cores = 1 } = vm.spec.template.spec.domain.cpu || {};
+  const cpu = sockets * threads * cores;
 
   if (isHotplugEnabled) {
     return {
-      cpu:       vm.spec.template.spec.domain.cpu.sockets,
+      cpu,
       memory:    vm.spec.template.spec.domain?.memory?.guest || null,
       maxCpu:    vm.spec.template.spec.domain.cpu?.maxSockets || 0,
       maxMemory: vm.spec.template.spec.domain?.memory?.maxGuest || null,
@@ -21,7 +23,7 @@ export function getVmCPUMemoryValues(vm) {
     };
   } else {
     return {
-      cpu:    vm.spec.template.spec.domain.cpu.cores,
+      cpu,
       memory: vm.spec.template.spec.domain.resources?.limits?.memory || null,
       isHotplugEnabled
     };
@@ -29,8 +31,5 @@ export function getVmCPUMemoryValues(vm) {
 }
 
 export function isCPUMemoryHotPlugEnabled(vm) {
-  return vm?.metadata?.annotations[HCI_ANNOTATIONS.VM_CPU_MEMORY_HOTPLUG] === 'true' ||
-    !!vm?.spec?.template?.spec?.domain.cpu?.maxSockets ||
-    !!vm?.spec?.template?.spec?.domain?.memory?.maxGuest ||
-    false;
+  return vm?.metadata?.annotations[HCI_ANNOTATIONS.VM_CPU_MEMORY_HOTPLUG] === 'true' || !!vm?.spec?.template?.spec?.domain?.memory?.maxGuest || false;
 }
