@@ -8,4 +8,5 @@ export const DOC = {
   STORAGE_NETWORK_EXAMPLE:    `/advanced/storagenetwork#configuration-example`,
   SUPPORT_BUNDLE_NAMESPACES:  `/advanced/index/#support-bundle-namespaces`,
   VPC_CONFIGURATION_EXAMPLES: `/networking/kubeovn-vpc#vpc-peering-configuration-examples`,
+  NETWORK_POLICY:             `/networking/kubeovn-vm-isolation/#network-policies`,
 };

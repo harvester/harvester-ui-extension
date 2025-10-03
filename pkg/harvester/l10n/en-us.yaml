@@ -1106,6 +1106,9 @@ harvester:
       remoteVpc:
         label: Remote VPC
       infoBanner: The static route destination CIDR must cover all subnets CIDR from remote VPC Peer. Read <a href="{url}" target="_blank">VPC Peering Configuration Examples</a> for more information.
+  networkPolicy:
+    label: Network Policies
+    banner: The network policies must be used for VMs attached to overlay networks. Please read the <a href="{url}" target="_blank">harvester document</a> how the network policy works.
   network:
     label: Virtual Machine Networks
     tabs:
@@ -1831,6 +1834,11 @@ typeLabel:
     {count, plural,
       one { Virtual Private Cloud }
       other { Virtual Private Clouds }
+    }
+  networking.k8s.io.networkpolicy: |-
+    {count, plural,
+      one { Network Policy }
+      other { Network Policies }
     }
   harvesterhci.io.cloudtemplate: |-
     {count, plural,

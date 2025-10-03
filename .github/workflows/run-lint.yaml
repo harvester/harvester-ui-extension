@@ -50,6 +50,7 @@ jobs:
 
           echo "FROM=$FROM"
           echo "TO=$TO"
+
           npx commitlint --from "$FROM" --to "$TO" --verbose
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
