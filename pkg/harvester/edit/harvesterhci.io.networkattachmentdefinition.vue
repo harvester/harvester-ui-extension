@@ -295,6 +295,20 @@ export default {
     },
 
     vlanTrunkChange() {
+      this.vlanTrunk = this.vlanTrunk.map((trunk) => {
+        const newTrunk = { ...trunk };
+
+        if (newTrunk.minID < 1) {
+          newTrunk.minID = 1;
+        }
+
+        if (newTrunk.maxID > 4094) {
+          newTrunk.maxID = 4094;
+        }
+
+        return newTrunk;
+      });
+
       this.config.vlanTrunk = this.vlanTrunk;
     },
 
@@ -463,7 +477,7 @@ export default {
         />
       </Tab>
       <Tab
-        v-if="isL2VlanNetwork"
+        v-if="isL2VlanAccessMode"
         name="layer3Network"
         :label="t('harvester.network.tabs.layer3Network')"
         :weight="98"
