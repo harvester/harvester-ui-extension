@@ -19,6 +19,7 @@ jobs:
     name: Build Test
     uses: ./.github/workflows/run-lint.yaml
   build:
+    if: github.event.pull_request.merged == true || contains(github.event.pull_request.labels.*.name, 'build artifact')
     name: Build and Upload Package
     uses: ./.github/workflows/build-and-publish-standalone.yaml
     needs:
