@@ -12,7 +12,7 @@ on:
       - 'release-harvester-v*'
       - '*-dev'
     types:
-      - merged
+      - [merged, labeled]
 
 jobs:
   build-validation:
