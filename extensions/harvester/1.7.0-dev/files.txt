@@ -1,7 +1,5 @@
 plugin/harvester-1.7.0-dev.umd.min.131.js
 plugin/harvester-1.7.0-dev.umd.min.131.js.map
-plugin/harvester-1.7.0-dev.umd.min.134.js
-plugin/harvester-1.7.0-dev.umd.min.134.js.map
 plugin/harvester-1.7.0-dev.umd.min.207.js
 plugin/harvester-1.7.0-dev.umd.min.207.js.map
 plugin/harvester-1.7.0-dev.umd.min.238.js
@@ -26,6 +24,8 @@ plugin/harvester-1.7.0-dev.umd.min.683.js
 plugin/harvester-1.7.0-dev.umd.min.683.js.map
 plugin/harvester-1.7.0-dev.umd.min.819.js
 plugin/harvester-1.7.0-dev.umd.min.819.js.map
+plugin/harvester-1.7.0-dev.umd.min.886.js
+plugin/harvester-1.7.0-dev.umd.min.886.js.map
 plugin/harvester-1.7.0-dev.umd.min.909.js
 plugin/harvester-1.7.0-dev.umd.min.909.js.map
 plugin/harvester-1.7.0-dev.umd.min.csv.js
