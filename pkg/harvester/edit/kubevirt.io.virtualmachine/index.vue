@@ -873,7 +873,10 @@ export default {
               />
             </div>
 
-            <div class="col span-6">
+            <div
+              v-if="!value.vmMachineTypeAutoFeatureEnabled"
+              class="col span-6"
+            >
               <LabeledSelect
                 v-model:value="machineType"
                 label-key="harvester.virtualMachine.input.MachineType"

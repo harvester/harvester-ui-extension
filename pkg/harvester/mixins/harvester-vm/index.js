@@ -299,9 +299,11 @@ export default {
   async created() {
     await this.$store.dispatch(`${ this.inStore }/findAll`, { type: SECRET });
 
-    if (this.value.vmMachineTypesFeatureEnabled) {
+    if (!this.value.vmMachineTypeAutoFeatureEnabled) {
       try {
-        const url = this.$store.getters['harvester-common/getHarvesterClusterUrl']('v1/harvester/clusters/local?link=machineTypes');
+        const url = this.$store.getters['harvester-common/getHarvesterClusterUrl'](
+          'v1/harvester/clusters/local?link=machineTypes'
+        );
         const machineTypes = await this.$store.dispatch('harvester/request', { url });
 
         this.machineTypes = machineTypes;
