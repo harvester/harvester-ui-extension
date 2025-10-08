@@ -1236,8 +1236,8 @@ export default class VirtVm extends HarvesterResource {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('thirdPartyStorage');
   }
 
-  get vmMachineTypesFeatureEnabled() {
-    return this.$rootGetters['harvester-common/getFeatureEnabled']('vmMachineTypes');
+  get vmMachineTypeAutoFeatureEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('vmMachineTypeAuto');
   }
 
   get isBackupTargetUnavailable() {
