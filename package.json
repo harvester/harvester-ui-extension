@@ -1,6 +1,6 @@
 {
   "name": "harvester-ui-extension",
-  "version": "1.6.1-rc1",
+  "version": "1.6.1-rc2",
   "private": false,
   "engines": {
     "node": ">=20.0.0"
