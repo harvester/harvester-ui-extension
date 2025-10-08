@@ -1369,21 +1369,6 @@ export default {
       }
     },
 
-    getCPUMemoryValidation() {
-      const errors = [];
-      const { cpu, memory } = this;
-
-      if ((!cpu)) {
-        errors.push(this.t('validation.required', { key: this.t('harvester.virtualMachine.input.cpu') }, true));
-      }
-
-      if ((!memory)) {
-        errors.push(this.t('validation.required', { key: this.t('harvester.virtualMachine.input.memory') }, true));
-      }
-
-      return errors;
-    },
-
     getAccessCredentialsValidation() {
       const errors = [];
 
