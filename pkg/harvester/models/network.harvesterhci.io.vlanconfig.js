@@ -16,7 +16,10 @@ export default class HciVlanConfig extends HarvesterResource {
       uplink: {
         nics:           [],
         linkAttributes: {},
-        bondOptions:    { mode: 'active-backup' },
+        bondOptions:    {
+          mode:   'active-backup',
+          miimon: -1
+        },
       },
     };
 
