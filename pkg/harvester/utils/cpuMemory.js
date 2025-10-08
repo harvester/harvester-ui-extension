@@ -3,15 +3,15 @@ import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations
 export function getVmCPUMemoryValues(vm) {
   if (!vm) {
     return {
-      cpu:              0,
+      cpu:              null,
       memory:           null,
       isHotplugEnabled: false
     };
   }
 
   const isHotplugEnabled = isCPUMemoryHotPlugEnabled(vm);
-  const { sockets = 1, threads = 1, cores = 1 } = vm.spec.template.spec.domain.cpu || {};
-  const cpu = sockets * threads * cores;
+  const { sockets = 1, threads = 1, cores = null } = vm.spec.template.spec.domain.cpu || {};
+  const cpu = cores === null ? null : sockets * threads * cores;
 
   if (isHotplugEnabled) {
     return {
