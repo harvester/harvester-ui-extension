@@ -338,10 +338,31 @@ export default {
     saveVM(buttonCb) {
       clear(this.errors);
 
+      this.validateCPUMemory();
+
+      // block create VM flow if has validation errors
+      if (this.errors.length) {
+        buttonCb(false);
+
+        return;
+      }
+
       if (this.isSingle) {
         this.saveSingle(buttonCb);
       } else {
         this.saveMultiple(buttonCb);
+      }
+    },
+
+    validateCPUMemory() {
+      const { cpu, memory } = this;
+
+      if ((!cpu)) {
+        this.errors.push(this.t('validation.required', { key: this.t('harvester.virtualMachine.input.cpu') }, true));
+      }
+
+      if ((!memory)) {
+        this.errors.push(this.t('validation.required', { key: this.t('harvester.virtualMachine.input.memory') }, true));
       }
     },
 
@@ -466,9 +487,7 @@ export default {
         }
       }
 
-      const cpuMemoryErrors = this.getCPUMemoryValidation();
-      const accessCredentialsErrors = this.getAccessCredentialsValidation();
-      const errors = [...cpuMemoryErrors, ...accessCredentialsErrors];
+      const errors = this.getAccessCredentialsValidation();
 
       if (errors.length > 0) {
         return Promise.reject(errors);
