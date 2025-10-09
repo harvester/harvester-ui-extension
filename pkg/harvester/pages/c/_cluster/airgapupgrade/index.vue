@@ -191,9 +191,11 @@ export default {
           annotations:  {}
         },
         spec: {
-          sourceType:  UPLOAD,
-          displayName: '',
-          checksum:    this.imageValue?.spec?.checksum || '',
+          sourceType:             UPLOAD,
+          displayName:            '',
+          backend:                'cdi',
+          targetStorageClassName: 'longhorn-static',
+          checksum:               this.imageValue?.spec?.checksum || '',
         },
       });
     },
