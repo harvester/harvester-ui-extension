@@ -215,19 +215,18 @@ export default {
         if (this.imageSource === IMAGE_METHOD.NEW) {
           this.imageValue.metadata.annotations[HCI_ANNOTATIONS.OS_UPGRADE_IMAGE] = 'True';
 
-          if (this.sourceType === UPLOAD && this.uploadImageId !== '') {
+          if (this.sourceType === UPLOAD && this.uploadImageId !== '') { // upload new image
             this.value.spec.image = this.uploadImageId;
-          } else if (this.sourceType === DOWNLOAD) {
+          } else if (this.sourceType === DOWNLOAD) { // give URL to download new image
             this.imageValue.spec.sourceType = DOWNLOAD;
-
             if (!this.imageValue.spec.url) {
               this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.imageUrl'));
               buttonCb(false);
 
               return;
             }
-
             res = await this.imageValue.save();
+
             this.value.spec.image = res.id;
           }
         } else if (this.imageSource === IMAGE_METHOD.EXIST) {
@@ -247,7 +246,6 @@ export default {
         if (this.skipSingleReplicaDetachedVolFeatureEnabled) {
           this.value.metadata.annotations = { [HCI_ANNOTATIONS.SKIP_SINGLE_REPLICA_DETACHED_VOL]: JSON.stringify(this.skipSingleReplicaDetachedVol) };
         }
-
         await this.value.save();
         this.done();
         buttonCb(true);
@@ -334,6 +332,22 @@ export default {
   },
 
   watch: {
+    async sourceType(neu) {
+      if (neu === DOWNLOAD && this.imageValue && this.uploadController) {
+        if (this.uploadController) {
+          this.uploadController.abort();
+        }
+
+        try {
+          await this.imageValue.remove();
+          await this.initImageValue();
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('Error occurred while removing imageValue:', error);
+        }
+      }
+    },
+
     imageSource(neu) {
       if (neu !== IMAGE_METHOD.DELETE) {
         this.deleteImageId = '';
