@@ -391,4 +391,7 @@ export default {
   .vm-console .v-popper__popper{
     margin-top: 8px;
   }
+  .vm-console .v-popper__popper{
+    overflow-y: visible;
+  }
 </style>
