@@ -53,8 +53,10 @@ export default {
 
     filteredNamespaces() {
       const namespaces = this.allNamespaces || [];
+      const selectedNamespaces = this.rows.map((row) => row?.namespace);
+      const filteredNamespaces = this.isStandaloneHarvester ? namespaces.filter((n) => !selectedNamespaces.includes(n.id) || n.id === this.row.namespace) : namespaces;
 
-      return namespaces.filter((namespace) => {
+      return filteredNamespaces.filter((namespace) => {
         if (this.row.project === '*') {
           return true;
         } else if (this.row.project) {
