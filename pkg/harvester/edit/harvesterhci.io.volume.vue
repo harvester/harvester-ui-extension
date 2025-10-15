@@ -7,13 +7,14 @@ import ResourceTabs from '@shell/components/form/ResourceTabs';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
+import Conditions from '@shell/components/form/Conditions';
 import { Banner } from '@components/Banner';
 import { allHash } from '@shell/utils/promise';
 import { get } from '@shell/utils/object';
 import { STORAGE_CLASS, LONGHORN, PV } from '@shell/config/types';
 import { sortBy } from '@shell/utils/sort';
 import { saferDump } from '@shell/utils/create-yaml';
-import { _CREATE, _EDIT } from '@shell/config/query-params';
+import { _CREATE, _EDIT, _VIEW } from '@shell/config/query-params';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { STATE, NAME, AGE, NAMESPACE } from '@shell/config/table-headers';
@@ -40,6 +41,7 @@ export default {
     LabeledSelect,
     LabeledInput,
     NameNsDescription,
+    Conditions
   },
 
   mixins: [CreateEditView],
@@ -105,6 +107,10 @@ export default {
 
     isEdit() {
       return this.mode === _EDIT;
+    },
+
+    isView() {
+      return this.mode === _VIEW;
     },
 
     isVMImage() {
@@ -592,6 +598,15 @@ export default {
           :disabled="true"
           :label="t('nameNsDescription.name.label')"
         />
+      </Tab>
+      <Tab
+        v-if="!isCreate"
+        name="conditions"
+        :label="t('harvester.volume.tabs.conditions')"
+        class="bordered-table"
+        :mode="mode"
+      >
+        <Conditions :value="value" />
       </Tab>
     </ResourceTabs>
   </CruResource>

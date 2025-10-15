@@ -837,6 +837,7 @@ harvester:
       snapshots: Snapshots
       datasource: Data Source
       details: Details
+      conditions: Conditions
     size: Size
     volumeMode: Volume Mode
     source: Source
@@ -1065,21 +1066,21 @@ harvester:
     acl:
       label: Access Control List
       tooltip: The ACL to apply to this Subnet. Must be one of the ACLs in the same namespace.
-      action: 
+      action:
         label: Action
         placeholder: Please select an action
-      direction: 
+      direction:
         label: Direction
         placeholder: Please select a direction
       addRule: Add Rule
-      priority: 
+      priority:
         label: Priority
         placeholder: Please select a priority
-      match: 
+      match:
         label: Match
         placeholder: e.g. ip4.dst == 10.10.0.2
       banner: The supported field in ACL match can refer to <a href="https://kubeovn.github.io/docs/v1.14.x/en/guide/subnet/#subnet-acl" target="_blank">KubeOvn Subnet ACL document</a>
-      
+
   vpc:
     noAddonEnabled:
       prefix: The kubeovn-operator add-on is not enabled, click
