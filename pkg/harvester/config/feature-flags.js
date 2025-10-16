@@ -50,7 +50,8 @@ const FEATURE_FLAGS = {
   ],
   'v1.6.1': [],
   'v1.7.0': [
-    'vmMachineTypeAuto'
+    'vmMachineTypeAuto',
+    'lhV2VolExpansion'
   ]
 };
 

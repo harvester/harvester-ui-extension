@@ -136,6 +136,10 @@ export default {
     pvcs() {
       return this.$store.getters['harvester/all'](PVC) || [];
     },
+
+    isLHV2VolExpansionFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('lhV2VolExpansion');
+    },
   },
 
   watch: {
@@ -270,8 +274,8 @@ export default {
     },
 
     isResizeDisabled(volume) {
-      if (this.isCreate) return false;
-      if (volume.newCreateId) return false;
+      if (this.isLHV2VolExpansionFeatureEnabled) return false;
+      if (this.isCreate || volume.newCreateId) return false;
 
       const isStopped = this.vm.stateDisplay === OFF;
       const isLonghornV2 = this.isLonghornV2(volume);
@@ -406,7 +410,7 @@ export default {
               :label="ucFirst(value.volumeBackups.error.message)"
             />
             <Banner
-              v-if="isLonghornV2(volume) && !isView"
+              v-if="!isLHV2VolExpansionFeatureEnabled && isLonghornV2(volume) && !isView"
               color="warning"
               :label="t('harvester.volume.longhorn.disableResize')"
             />

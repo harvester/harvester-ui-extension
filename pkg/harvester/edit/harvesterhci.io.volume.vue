@@ -267,7 +267,19 @@ export default {
 
     rebuildStatus() {
       return this.value.longhornEngine?.status?.rebuildStatus;
-    }
+    },
+
+    isLHV2VolExpansionFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('lhV2VolExpansion');
+    },
+
+    isResizeDisabled() {
+      return (
+        !this.isLHV2VolExpansionFeatureEnabled &&
+      this.value?.isLonghornV2 &&
+      this.isEdit
+      );
+    },
   },
 
   watch: {
@@ -463,7 +475,7 @@ export default {
           :output-modifier="true"
           :increment="1024"
           :mode="mode"
-          :disabled="value?.isLonghornV2 && isEdit"
+          :disabled="isResizeDisabled"
           required
           class="mb-20"
           :suffix="GIBIBYTE"
@@ -471,7 +483,7 @@ export default {
         />
 
         <Banner
-          v-if="value?.isLonghornV2 && isEdit"
+          v-if="isResizeDisabled"
           color="warning"
         >
           <span>{{ t('harvester.volume.longhorn.disableResize') }}</span>
