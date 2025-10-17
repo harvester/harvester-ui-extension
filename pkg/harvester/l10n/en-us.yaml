@@ -1482,6 +1482,14 @@ harvester:
   vlanStatus:
     vlanConfig:
       label: Network Configuration
+      l2VlanMode:
+        access: Access
+        trunk: Trunk
+        label: Mode
+      vlanTrunk:
+        minId: Minimum VLAN ID
+        maxId: Maximum VLAN ID
+        add: Add VLAN Trunk
 
   clusterNetwork:
     title: Cluster Network Configuration
