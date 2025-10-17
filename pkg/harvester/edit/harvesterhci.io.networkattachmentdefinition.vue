@@ -171,10 +171,10 @@ export default {
 
     isL2VlanTrunkMode() {
       if (this.isView) {
-        return this.value.vlanType === L2TRUNK_VLAN;
+        return this.value.vlanType === L2VLAN && this.l2VlanMode === TRUNK;
       }
 
-      return this.l2VlanMode === TRUNK;
+      return this.type === L2VLAN && this.l2VlanMode === TRUNK;
     },
 
     isL2VlanAccessMode() {
@@ -394,6 +394,7 @@ export default {
                   v-model:value.number="trunk.minID"
                   class="mb-20"
                   required
+                  placeholder="e.g. 1-4094"
                   :min="1"
                   :max="4094"
                   type="number"
@@ -408,6 +409,7 @@ export default {
                   class="mb-20"
                   :max="4094"
                   :min="1"
+                  placeholder="e.g. 1-4094"
                   required
                   type="number"
                   :label="t('harvester.vlanStatus.vlanConfig.vlanTrunk.maxId')"
@@ -463,7 +465,7 @@ export default {
         />
       </Tab>
       <Tab
-        v-if="isL2VlanNetwork"
+        v-if="isL2VlanAccessMode"
         name="layer3Network"
         :label="t('harvester.network.tabs.layer3Network')"
         :weight="98"
