@@ -8,7 +8,7 @@ import LabelValue from '@shell/components/LabelValue';
 import { BadgeState } from '@components/BadgeState';
 import { Banner } from '@components/Banner';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
-import { RadioGroup, RadioButton } from '@components/Form/Radio';
+import { RadioGroup } from '@components/Form/Radio';
 import HarvesterDisk from '../../mixins/harvester-disk';
 import Tags from '../../components/DiskTags';
 import { HCI } from '../../types';
@@ -30,7 +30,6 @@ export default {
     BadgeState,
     Banner,
     RadioGroup,
-    RadioButton,
     ModalWithCard,
     Tags,
   },
@@ -184,12 +183,11 @@ export default {
     },
 
     forceFormattedDisabled() {
-      const lastFormattedAt = this.blockDevice?.status?.deviceStatus?.fileSystem?.LastFormattedAt;
       const fileSystem = this.blockDevice?.status?.deviceStatus?.fileSystem.type;
 
       const systems = ['ext4', 'XFS'];
 
-      if (lastFormattedAt || this.blockDevice?.childParts?.length > 0) {
+      if (this.blockDevice?.childParts?.length > 0) {
         return true;
       } else if (systems.includes(fileSystem)) {
         return false;
@@ -446,7 +444,7 @@ export default {
         />
       </div>
       <div
-        v-if="(value.isNew && isLonghornV1 && !isFormatted) || isCorrupted"
+        v-if="(value.isNew && isLonghornV1) || isCorrupted"
         class="col span-6"
       >
         <RadioGroup
@@ -459,15 +457,6 @@ export default {
           :disabled="forceFormattedDisabled"
           tooltip-key="harvester.host.disk.forceFormatted.toolTip"
         >
-          <template #1="{option, listeners}">
-            <RadioButton
-              :label="option.label"
-              :val="option.value"
-              :value="value.forceFormatted"
-              :disabled="forceFormattedDisabled && !value.forceFormatted"
-              v-on="listeners"
-            />
-          </template>
         </RadioGroup>
       </div>
       <div
