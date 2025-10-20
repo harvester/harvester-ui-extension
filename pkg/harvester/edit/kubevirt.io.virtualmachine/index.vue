@@ -2,7 +2,7 @@
 import { isEqual } from 'lodash';
 import { mapGetters } from 'vuex';
 import Tabbed from '@shell/components/Tabbed';
-import { clone, set } from '@shell/utils/object';
+import { clone } from '@shell/utils/object';
 import Tab from '@shell/components/Tabbed/Tab';
 import { Checkbox } from '@components/Form/Checkbox';
 import CruResource from '@shell/components/CruResource';
@@ -434,38 +434,50 @@ export default {
       }
     },
 
+    _compareDisksIgnoreResizing(disksA, disksB) {
+      if (disksA.length !== disksB.length) return false;
+
+      const sortedA = [...disksA].sort((a, b) => a.metadata.name.localeCompare(b.metadata.name));
+      const sortedB = [...disksB].sort((a, b) => a.metadata.name.localeCompare(b.metadata.name));
+
+      for (let i = 0; i < sortedA.length; i++) {
+        const cloneA = clone(sortedA[i]);
+        const cloneB = clone(sortedB[i]);
+
+        // remove the storage field before comparison
+        delete cloneA?.spec?.resources?.requests?.storage;
+        delete cloneB?.spec?.resources?.requests?.storage;
+
+        if (!isEqual(cloneA, cloneB)) return false;
+      }
+
+      return true;
+    },
+
+    _shouldPromptForRestart(oldVM, newVM) {
+      const oldVMClone = JSON.parse(JSON.stringify(oldVM));
+      const newVMClone = JSON.parse(JSON.stringify(newVM));
+
+      // check if the VM spec has changed
+      const oldSpec = oldVMClone.spec;
+      const newSpec = newVMClone.spec;
+      const specChanged = !isEqual(oldSpec, newSpec);
+
+      // check if the disk defined in annotations has changed, ignoring storage size
+      const oldDisks = parseVolumeClaimTemplates(oldVM);
+      const newDisks = parseVolumeClaimTemplates(newVM);
+      const diskChanged = !this._compareDisksIgnoreResizing(oldDisks, newDisks);
+
+      return specChanged || diskChanged;
+    },
+
     restartVM() {
-      if (this.mode !== 'edit') {
-        return;
-      }
-      if (!this.value.isRunning) {
-        return;
-      }
-      const cloneDeepNewVM = clone(this.value);
+      if (this.mode !== 'edit' || !this.value.isRunning) return;
 
-      // new VM
-      delete cloneDeepNewVM?.metadata;
-      delete cloneDeepNewVM?.__clone;
+      const needsRestart = this._shouldPromptForRestart(this.cloneVM, this.value);
 
-      // old VM
-      delete this.cloneVM?.metadata;
-      delete this.cloneVM?.__clone;
-
-      // add empty hostDevices to old VM as CRD does not have it.
-      const devicesObj = this.cloneVM?.spec?.template?.spec?.domain?.devices;
-
-      if (devicesObj && devicesObj.hostDevices === undefined) {
-        set(devicesObj, 'hostDevices', []);
-      }
-
-      const oldVM = JSON.parse(JSON.stringify(this.cloneVM));
-      const newVM = JSON.parse(JSON.stringify(cloneDeepNewVM));
-
-      // we won't show restart dialog in yaml page as we don't have a way to detect change in yaml editor.
-      // only check VM is changed in form page.
-      if (isEqual(oldVM, newVM)) {
-        return;
-      }
+      // if no restart is needed (either no changes or only size changed)
+      if (!needsRestart) return;
 
       return new Promise((resolve) => {
         this.isOpen = true;
