@@ -434,7 +434,7 @@ export default {
       }
     },
 
-    _compareDisksIgnoreResizing(disksA, disksB) {
+    _compareDisksIgnoreStorage(disksA = [], disksB = []) {
       if (disksA.length !== disksB.length) return false;
 
       const sortedA = [...disksA].sort((a, b) => a.metadata.name.localeCompare(b.metadata.name));
@@ -454,19 +454,13 @@ export default {
       return true;
     },
 
-    _shouldPromptForRestart(oldVM, newVM) {
-      const oldVMClone = JSON.parse(JSON.stringify(oldVM));
-      const newVMClone = JSON.parse(JSON.stringify(newVM));
-
-      // check if the VM spec has changed
-      const oldSpec = oldVMClone.spec;
-      const newSpec = newVMClone.spec;
-      const specChanged = !isEqual(oldSpec, newSpec);
+    _shouldPromptRestart(oldVM, newVM) {
+      const specChanged = !isEqual(oldVM?.spec, newVM?.spec);
 
       // check if the disk defined in annotations has changed, ignoring storage size
       const oldDisks = parseVolumeClaimTemplates(oldVM);
       const newDisks = parseVolumeClaimTemplates(newVM);
-      const diskChanged = !this._compareDisksIgnoreResizing(oldDisks, newDisks);
+      const diskChanged = !this._compareDisksIgnoreStorage(oldDisks, newDisks);
 
       return specChanged || diskChanged;
     },
@@ -474,7 +468,7 @@ export default {
     restartVM() {
       if (this.mode !== 'edit' || !this.value.isRunning) return;
 
-      const needsRestart = this._shouldPromptForRestart(this.cloneVM, this.value);
+      const needsRestart = this._shouldPromptRestart(this.cloneVM, this.value);
 
       // if no restart is needed (either no changes or only size changed)
       if (!needsRestart) return;
