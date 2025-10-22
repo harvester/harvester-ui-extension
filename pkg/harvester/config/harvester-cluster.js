@@ -457,6 +457,7 @@ export function init($plugin, store) {
       HCI.PCI_DEVICE,
       HCI.SR_IOVGPU_DEVICE,
       HCI.VGPU_DEVICE,
+      HCI.MIG_CONFIGURATION,
       HCI.USB_DEVICE,
       HCI.ADD_ONS,
       HCI.SECRET,
@@ -847,6 +848,26 @@ export function init($plugin, store) {
         tooltipKey: 'resourceTable.groupBy.node'
       }
     ]
+  });
+
+  virtualType({
+    labelKey:   'harvester.migconfiguration.label',
+    group:      'advanced',
+    weight:     12,
+    name:       HCI.MIG_CONFIGURATION,
+    namespaced: false,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.MIG_CONFIGURATION }
+    },
+    exact:      false,
+    ifHaveType: HCI.MIG_CONFIGURATION,
+  });
+
+  configureType(HCI.MIG_CONFIGURATION, {
+    isCreatable:                false,
+    hiddenNamespaceGroupButton: true,
+    canYaml:                    false,
   });
 
   virtualType({
