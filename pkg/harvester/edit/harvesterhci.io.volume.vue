@@ -7,6 +7,7 @@ import ResourceTabs from '@shell/components/form/ResourceTabs';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
+import Conditions from '@shell/components/form/Conditions';
 import { Banner } from '@components/Banner';
 import { allHash } from '@shell/utils/promise';
 import { get } from '@shell/utils/object';
@@ -40,6 +41,7 @@ export default {
     LabeledSelect,
     LabeledInput,
     NameNsDescription,
+    Conditions
   },
 
   mixins: [CreateEditView],
@@ -592,6 +594,15 @@ export default {
           :disabled="true"
           :label="t('nameNsDescription.name.label')"
         />
+      </Tab>
+      <Tab
+        v-if="!isCreate"
+        name="conditions"
+        :label="t('harvester.volume.tabs.conditions')"
+        class="bordered-table"
+        :mode="mode"
+      >
+        <Conditions :value="value" />
       </Tab>
     </ResourceTabs>
   </CruResource>
