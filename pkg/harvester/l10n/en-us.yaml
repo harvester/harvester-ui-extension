@@ -272,6 +272,7 @@ harvester:
     cronExpression: Cron Expression
     retain: Retain
     scheduleType: Type
+    profileCount: Profile Count
     maxFailure: Max Failure
     sourceVm: Source Virtual Machine
     vmSchedule: Virtual Machine Schedule
@@ -1664,6 +1665,12 @@ harvester:
       middle: here
       suffix: to enable it to manage your SR-IOV GPU devices.
 
+  migconfiguration:
+    label: vGPU MIG Configurations
+    infoBanner: To configure the MIG configuration, please disable it first and re-enable after editing the configuration.
+    profileSpec: Profile Specs
+    requested: Requested
+
   vgpu:
     label: vGPU Devices
     noPermission: Please contact system administrator to add Harvester add-ons first.
@@ -1935,6 +1942,12 @@ typeLabel:
     {count, plural,
       one { vGPU Device }
       other { vGPU Devices }
+    }
+
+  devices.harvesterhci.io.migconfiguration: |-
+    {count, plural,
+      one { vGPU MIG Configuration }
+      other { vGPU  MIG Configurations }
     }
 
   harvesterhci.io.secret: |-

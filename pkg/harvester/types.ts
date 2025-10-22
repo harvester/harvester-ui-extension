@@ -44,6 +44,7 @@ export const HCI = {
   SR_IOVGPU_DEVICE:    'devices.harvesterhci.io.sriovgpudevice',
   USB_DEVICE:          'devices.harvesterhci.io.usbdevice',
   USB_CLAIM:           'devices.harvesterhci.io.usbdeviceclaim',
+  MIG_CONFIGURATION:   'devices.harvesterhci.io.migconfiguration',
   VLAN_CONFIG:         'network.harvesterhci.io.vlanconfig',
   VLAN_STATUS:         'network.harvesterhci.io.vlanstatus',
   ADD_ONS:             'harvesterhci.io.addon',
@@ -53,7 +54,7 @@ export const HCI = {
   LB:                  'loadbalancer.harvesterhci.io.loadbalancer',
   IP_POOL:             'loadbalancer.harvesterhci.io.ippool',
   HARVESTER_CONFIG:    'rke-machine-config.cattle.io.harvesterconfig',
-  LVM_VOLUME_GROUP:    'harvesterhci.io.lvmvolumegroup'
+  LVM_VOLUME_GROUP:    'harvesterhci.io.lvmvolumegroup',
 };
 
 export const VOLUME_SNAPSHOT = 'snapshot.storage.k8s.io.volumesnapshot';
