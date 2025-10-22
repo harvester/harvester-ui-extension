@@ -14,7 +14,7 @@ import { get } from '@shell/utils/object';
 import { STORAGE_CLASS, LONGHORN, PV } from '@shell/config/types';
 import { sortBy } from '@shell/utils/sort';
 import { saferDump } from '@shell/utils/create-yaml';
-import { _CREATE, _EDIT, _VIEW } from '@shell/config/query-params';
+import { _CREATE, _EDIT } from '@shell/config/query-params';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { STATE, NAME, AGE, NAMESPACE } from '@shell/config/table-headers';
@@ -107,10 +107,6 @@ export default {
 
     isEdit() {
       return this.mode === _EDIT;
-    },
-
-    isView() {
-      return this.mode === _VIEW;
     },
 
     isVMImage() {
