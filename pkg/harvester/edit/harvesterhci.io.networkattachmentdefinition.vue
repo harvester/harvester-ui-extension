@@ -174,7 +174,7 @@ export default {
         return this.value.vlanType === L2TRUNK_VLAN && this.l2VlanMode === TRUNK;
       }
 
-      return this.type === L2TRUNK_VLAN && this.l2VlanMode === TRUNK;
+      return this.type === L2TRUNK_VLAN || (this.l2VlanMode === TRUNK && this.type === L2VLAN);
     },
 
     isL2VlanAccessMode() {
