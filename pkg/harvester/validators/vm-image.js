@@ -13,11 +13,13 @@ function getFilenameFromUrl(url) {
     const urlObj = new URL(url);
     // Get pathname and extract the last segment
     const pathname = urlObj.pathname;
+
     return pathname.split('/').pop() || '';
   } catch (e) {
     // If URL parsing fails, treat as a relative path
     // Remove query params and fragments manually
     const cleanUrl = url.split('?')[0].split('#')[0];
+
     return cleanUrl.split('/').pop() || '';
   }
 }
@@ -40,10 +42,12 @@ export function imageUrl(url, getters, errors, validatorArgs, type) {
 
   // Extract filename, handling query parameters and fragments
   const filename = getFilenameFromUrl(url);
-  
+
   if (!filename) {
     const tipString = type === 'file' ? 'harvester.validation.image.ruleFileTip' : 'harvester.validation.image.ruleTip';
+
     errors.push(t(tipString));
+
     return errors;
   }
 
@@ -52,6 +56,7 @@ export function imageUrl(url, getters, errors, validatorArgs, type) {
 
   if (!VM_IMAGE_FILE_FORMAT.includes(fileSuffix)) {
     const tipString = type === 'file' ? 'harvester.validation.image.ruleFileTip' : 'harvester.validation.image.ruleTip';
+
     errors.push(t(tipString));
   }
 
