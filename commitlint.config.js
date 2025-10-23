@@ -22,6 +22,10 @@ module.exports = {
         'security', // Security fixes
       ]
     ],
+    // Allows the scope to be empty. [0] means the rule is disabled.
+    'scope-empty':            [0, 'always'],
+    // Allows any string for the scope.
+    'scope-case':             [2, 'always', 'kebab-case'],
     'type-case':              [2, 'always', 'lower-case'],
     'type-empty':             [2, 'never'],
     'subject-case':           [0, 'never'],
