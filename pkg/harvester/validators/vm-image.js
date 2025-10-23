@@ -14,7 +14,7 @@ function getFilenameFromUrl(url) {
     // Get pathname and extract the last segment
     const pathname = urlObj.pathname;
 
-    return pathname.split('/').pop() || '';
+    return pathname.split('/').filter(Boolean).pop() || '';
   } catch (e) {
     // If URL parsing fails, treat as a relative path
     // Remove query params and fragments manually
@@ -34,6 +34,8 @@ function getFilenameFromUrl(url) {
  * @returns {array} - Array of validation errors
  */
 export function imageUrl(url, getters, errors, validatorArgs, type) {
+  const tipString =
+    type === 'file' ? 'harvester.validation.image.ruleFileTip' : 'harvester.validation.image.ruleTip';
   const t = getters['i18n/t'];
 
   if (!url || url === '') {
@@ -44,8 +46,6 @@ export function imageUrl(url, getters, errors, validatorArgs, type) {
   const filename = getFilenameFromUrl(url);
 
   if (!filename) {
-    const tipString = type === 'file' ? 'harvester.validation.image.ruleFileTip' : 'harvester.validation.image.ruleTip';
-
     errors.push(t(tipString));
 
     return errors;
@@ -55,19 +55,25 @@ export function imageUrl(url, getters, errors, validatorArgs, type) {
   const fileSuffix = filename.split('.').pop().toLowerCase();
 
   if (!VM_IMAGE_FILE_FORMAT.includes(fileSuffix)) {
-    const tipString = type === 'file' ? 'harvester.validation.image.ruleFileTip' : 'harvester.validation.image.ruleTip';
-
     errors.push(t(tipString));
   }
 
   return errors;
 }
 
-export function fileRequired(annotations = {}, getters, errors, validatorArgs, type) {
+export function fileRequired(
+  annotations = {},
+  getters,
+  errors,
+  validatorArgs,
+  type
+) {
   const t = getters['i18n/t'];
 
   if (!annotations[HCI.IMAGE_NAME]) {
-    errors.push(t('validation.required', { key: t('harvester.image.fileName') }));
+    errors.push(
+      t('validation.required', { key: t('harvester.image.fileName') })
+    );
   }
 
   return errors;
