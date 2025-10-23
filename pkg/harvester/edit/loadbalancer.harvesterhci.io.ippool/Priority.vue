@@ -39,6 +39,10 @@ export default {
       return this.mode === _VIEW;
     },
 
+    disableAdd() {
+      return this.isStandaloneHarvester && !!this.rows.find((row) => row.namespace === '*');
+    },
+
     showAdd() {
       return !this.isView;
     },
@@ -141,6 +145,7 @@ export default {
     >
       <button
         type="button"
+        :disabled="disableAdd"
         class="btn role-tertiary add"
         @click="add()"
       >
