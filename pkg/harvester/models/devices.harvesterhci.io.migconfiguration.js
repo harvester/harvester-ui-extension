@@ -14,8 +14,8 @@ export default class MIGCONFIGURATION extends SteveModel {
       if (action.action === 'goToEditYaml') {
         return { ...action, enabled: true };
       } else if (action.action === 'goToEdit') {
-        // need to wait for status to be disabled, then allow user to editConfig
-        return { ...action, enabled: !this.spec.enabled && this.configStatus === 'disabled' };
+        // need to wait for status to be disabled or empty value, then allow user to editConfig
+        return { ...action, enabled: !this.spec.enabled && ['disabled', ''].includes(this.configStatus) };
       } else {
         return action;
       }
@@ -48,6 +48,8 @@ export default class MIGCONFIGURATION extends SteveModel {
   }
 
   get configStatus() {
+    // console.log("🚀 ~ MIGCONFIGURATION ~ configStatus ~ this.status.status:", this.status.status)
+    // console.log('this.status.status.length', this.status.status?.length);
     return this.status.status;
   }
 
