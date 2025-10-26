@@ -2,14 +2,12 @@
 import LabelValue from '@shell/components/LabelValue';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import ResourceTabs from '@shell/components/form/ResourceTabs';
-import DetailText from '@shell/components/DetailText';
 import Tab from '@shell/components/Tabbed/Tab';
 
 export default {
 
   components: {
     ResourceTabs,
-    DetailText,
     Tab,
     LabelValue
   },
@@ -26,15 +24,12 @@ export default {
   },
 
   data() {
-    console.log('this.value.status', this.value.status);
     const { profileStatus } = this.value.status;
-    console.log("🚀 ~ profileStatus:", profileStatus)
-    return {
-      profileStatus : profileStatus || []
-    };
+
+    return { profileStatus: profileStatus || [] };
   },
 
-  methods:{
+  methods: {
     vGPUIDList(profile) {
       return profile.vGPUID?.join(', ') || '';
     }
@@ -66,7 +61,7 @@ export default {
               class="mb-20"
             />
           </div>
-           <div class="col span-3">
+          <div class="col span-3">
             <LabelValue
               :name="t('harvester.migconfiguration.available')"
               :value="profile.available"
