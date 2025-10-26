@@ -48,8 +48,6 @@ export default class MIGCONFIGURATION extends SteveModel {
   }
 
   get configStatus() {
-    // console.log("🚀 ~ MIGCONFIGURATION ~ configStatus ~ this.status.status:", this.status.status)
-    // console.log('this.status.status.length', this.status.status?.length);
     return this.status.status;
   }
 
@@ -97,8 +95,4 @@ export default class MIGCONFIGURATION extends SteveModel {
       }, { root: true });
     }
   }
-  // cleanForSave(data, _forNew) {
-  //   console.log("🚀 ~ MIGCONFIGURATION ~ cleanForSave ~ data:", data)
-  //   return data;
-  // }
 }
