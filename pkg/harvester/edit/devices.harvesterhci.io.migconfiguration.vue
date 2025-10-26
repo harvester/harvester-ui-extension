@@ -67,10 +67,11 @@ export default {
       if (neu === null || neu === '') return;
       const newValue = Number(neu);
 
+      const maxValue = Math.max(this.available(profile), profile.requested)
       if (newValue < 0) {
         profile.requested = 0;
-      } else if (newValue > this.available(profile)) {
-        profile.requested = this.available(profile);
+      } else if (newValue > maxValue) {
+        profile.requested = maxValue;
       } else {
         profile.requested = newValue;
       }
