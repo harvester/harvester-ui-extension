@@ -1674,6 +1674,10 @@ harvester:
     available: Available
     total: Total
     vGPUID: vGPU ID
+    goSriovGPU: 
+      prefix: Please enable the supported GPU devices in
+      middle: SR-IOV GPU Devices
+      suffix: page to manage the vGPU MIG configurations.
 
   vgpu:
     label: vGPU Devices

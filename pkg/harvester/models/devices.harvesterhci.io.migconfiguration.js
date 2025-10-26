@@ -1,9 +1,6 @@
 import SteveModel from '@shell/plugins/steve/steve-class';
 import { escapeHtml } from '@shell/utils/string';
 import { colorForState } from '@shell/plugins/dashboard-store/resource-class';
-// import { NODE } from '@shell/config/types';
-// import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
-// import { HCI } from '../types';
 
 /**
  * Class representing vGPU MIGConfiguration resource.
@@ -17,7 +14,8 @@ export default class MIGCONFIGURATION extends SteveModel {
       if (action.action === 'goToEditYaml') {
         return { ...action, enabled: true };
       } else if (action.action === 'goToEdit') {
-        return { ...action, enabled: !this.spec.enabled };
+        // need to wait for status to be disabled, then allow user to editConfig
+        return { ...action, enabled: !this.spec.enabled && this.configStatus === 'disabled' };
       } else {
         return action;
       }
@@ -47,6 +45,10 @@ export default class MIGCONFIGURATION extends SteveModel {
 
   get canDelete() {
     return false;
+  }
+
+  get configStatus() {
+    return this.status.status;
   }
 
   get actualState() {

@@ -10,8 +10,6 @@ import CreateEditView from '@shell/mixins/create-edit-view';
 export default {
   name: 'HarvesterEditMIGConfiguration',
 
-  // emits: ['update:value'],
-
   components: {
     Tab,
     Tabbed,
@@ -66,12 +64,12 @@ export default {
     updateRequested(neu, profile) {
       if (neu === null || neu === '') return;
       const newValue = Number(neu);
+      const availableCount = this.available(profile);
 
-      const maxValue = Math.max(this.available(profile), profile.requested)
       if (newValue < 0) {
         profile.requested = 0;
-      } else if (newValue > maxValue) {
-        profile.requested = maxValue;
+      } else if ( newValue > availableCount ) {
+        profile.requested = availableCount;
       } else {
         profile.requested = newValue;
       }
@@ -117,7 +115,6 @@ export default {
           <LabeledInput
             v-model:value="profile.requested"
             :min="0"
-            :max="available(profile)"
             type="number"
             class="mb-20"
             :label="`${t('harvester.migconfiguration.requested')} (available : ${available(profile)})`"
