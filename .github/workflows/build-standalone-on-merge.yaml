@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - 'release-harvester-v*'
-      - '*-dev'
+      - 'issue_9017_demo'
   pull_request:
     branches:
       - main
