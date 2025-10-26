@@ -1,5 +1,5 @@
 <script>
-import { STATE, SIMPLE_NAME } from '@shell/config/table-headers';
+import { STATE,  NAME} from '@shell/config/table-headers';
 import { allHash } from '@shell/utils/promise';
 import Banner from '@components/Banner/Banner.vue';
 import Loading from '@shell/components/Loading';
@@ -55,7 +55,7 @@ export default {
     headers() {
       const cols = [
         STATE,
-        SIMPLE_NAME,
+        NAME,
         {
           name:  'address',
           label: 'Address',

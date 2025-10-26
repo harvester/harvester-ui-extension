@@ -1684,7 +1684,11 @@ harvester:
     label: vGPU MIG Configurations
     infoBanner: To configure the MIG configuration, please disable it first and re-enable after editing the configuration.
     profileSpec: Profile Specs
+    profileStatus: Profile Status
     requested: Requested
+    available: Available
+    total: Total
+    vGPUID: vGPU ID
 
   vgpu:
     label: vGPU Devices
