@@ -42,6 +42,11 @@ export default {
     }
   },
 
+  computed: {
+    isView() {
+      return this.mode === 'view';
+    },
+  },
   methods: {
     updateBeforeSave() {
       // MIGConfiguration CRD don't have any namespace field,
@@ -52,7 +57,7 @@ export default {
     },
 
     labelTitle(profile) {
-      return `${ profile.name }`;
+      return `${ profile.name } (available : ${ this.available(profile) })`;
     },
 
     available(profile) {
@@ -115,9 +120,10 @@ export default {
           <LabeledInput
             v-model:value="profile.requested"
             :min="0"
+            :disabled="isView"
             type="number"
             class="mb-20"
-            :label="`${t('harvester.migconfiguration.requested')} (available : ${available(profile)})`"
+            :label="`${t('harvester.migconfiguration.requested')}`"
             @update:value="updateRequested($event, profile)"
           />
         </div>
