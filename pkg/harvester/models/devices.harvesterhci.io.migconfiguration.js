@@ -11,8 +11,10 @@ export default class MIGCONFIGURATION extends SteveModel {
     let out = super._availableActions;
 
     out = out.map((action) => {
-      if (action.action === 'goToEditYaml') {
-        return { ...action, enabled: true };
+      if(action.action === "showConfiguration"){
+        return { ...action, enabled: !this.spec.enabled };
+      }else if (action.action === 'goToEditYaml') {
+        return { ...action, enabled: !this.spec.enabled };
       } else if (action.action === 'goToEdit') {
         // need to wait for status to be disabled or empty value, then allow user to editConfig
         return { ...action, enabled: !this.spec.enabled && ['disabled', ''].includes(this.configStatus) };
