@@ -11,9 +11,9 @@ export default class MIGCONFIGURATION extends SteveModel {
     let out = super._availableActions;
 
     out = out.map((action) => {
-      if(action.action === "showConfiguration"){
+      if (action.action === 'showConfiguration') {
         return { ...action, enabled: !this.spec.enabled };
-      }else if (action.action === 'goToEditYaml') {
+      } else if (action.action === 'goToEditYaml') {
         return { ...action, enabled: !this.spec.enabled };
       } else if (action.action === 'goToEdit') {
         // need to wait for status to be disabled or empty value, then allow user to editConfig
@@ -43,6 +43,10 @@ export default class MIGCONFIGURATION extends SteveModel {
 
   get canYaml() {
     return false;
+  }
+
+  get disableResourceDetailDrawer() {
+    return true;
   }
 
   get canDelete() {
