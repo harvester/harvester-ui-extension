@@ -1670,6 +1670,12 @@ harvester:
     infoBanner: To configure the MIG configuration, please disable it first and re-enable after editing the configuration.
     profileSpec: Profile Specs
     profileStatus: Profile Status
+    tableHeaders:
+      profileName: Profile Name
+      total: Total
+      vGPUID: vGPU ID
+      available: Available
+      requested: Requested
     requested: Requested
     available: Available
     total: Total
