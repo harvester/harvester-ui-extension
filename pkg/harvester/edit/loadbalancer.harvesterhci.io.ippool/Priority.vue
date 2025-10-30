@@ -40,7 +40,7 @@ export default {
     },
 
     disableAdd() {
-      return this.isStandaloneHarvester && !!this.rows.find((row) => row.namespace === '*');
+      return this.isStandaloneHarvester && this.rows.some((row) => row.namespace === '*');
     },
 
     showAdd() {
