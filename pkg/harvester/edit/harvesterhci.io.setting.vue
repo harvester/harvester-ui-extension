@@ -296,4 +296,9 @@ export default {
 :deep() .edit-help code {
   padding: 1px 5px;
 }
+
+::v-deep(.banner__content.closable) {
+  white-space: normal;
+  word-break: break-word;
+}
 </style>

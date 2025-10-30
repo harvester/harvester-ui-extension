@@ -1268,6 +1268,21 @@ harvester:
     ntpServers:
       isNotIPV4: The address you entered is not IPv4 or host. Please enter a valid IPv4 address or a host address.
       isDuplicate: There are duplicate NTP server configurations.
+    kubevirtMigration:
+      parseError: "Failed to parse configuration: {error}"
+      parallelMigrationsPerCluster: "Parallel Migrations Per Cluster"
+      parallelOutboundMigrationsPerNode: "Parallel Outbound Migrations Per Node"
+      bandwidthPerMigration: "Bandwidth Per Migration"
+      bandwidthPerMigrationTooltip: '0 is KubeVirt default, representing unlimited bandwidth'
+      completionTimeoutPerGiB: "Completion Timeout Per GiB"
+      progressTimeout: "Progress Timeout"
+      allowAutoConverge: "Allow Auto Converge"
+      allowPostCopy: "Allow Post Copy"
+      unsafeMigrationOverride: "Unsafe Migration Override"
+      allowWorkloadDisruption: "Allow Workload Disruption"
+      disableTLS: "Disable TLS"
+      matchSELinuxLevelOnMigration: "Match SELinux Level On Migration"
+
   cloudTemplate:
     label: Cloud Configuration Templates
     templateType: Template Type
@@ -1782,6 +1797,7 @@ advancedSettings:
     'harv-vm-migration-network': 'Segregated network for VM migration traffic.'
     'harv-rancher-cluster': 'Configure Rancher cluster integration settings for guest cluster management.'
     'harv-max-hotplug-ratio': 'The ratio for kubevirt to limit the maximum CPU and memory that can be hotplugged to a VM. The value could be an integer between 1 and 20, default to 4.'
+    'harv-kubevirt-migration': 'Configure cluster-wide KubeVirt live migration parameters.'
 
 typeLabel:
   kubevirt.io.virtualmachine: |-
