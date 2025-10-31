@@ -52,7 +52,8 @@ const FEATURE_FLAGS = {
   'v1.7.0': [
     'vmMachineTypeAuto',
     'lhV2VolExpansion',
-    'l2VlanTrunkMode'
+    'l2VlanTrunkMode',
+    'kubevirtMigration'
   ]
 };
 
