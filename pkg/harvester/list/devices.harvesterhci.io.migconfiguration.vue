@@ -94,11 +94,11 @@ export default {
           sort:  ['spec.gpuAddress']
         },
         {
-          name:     'Profile Count',
-          label:    'Profile Count',
-          labelKey: 'harvester.tableHeaders.profileCount',
-          value:    'spec.profileSpec.length',
-          sort:     ['spec.profileSpec.length'],
+          name:     'Configured Profile',
+          label:    'Configured Count',
+          labelKey: 'harvester.tableHeaders.configuredProfile',
+          value:    'configuredProfile',
+          sort:     ['configuredProfile'],
           align:    'center'
         },
         {
