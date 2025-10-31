@@ -154,9 +154,15 @@ harvester:
       nodeTimeout:
         label: Node Collection Timeout
         tooltip: Minutes allowed for collecting logs/configurations on nodes.<br/>See docs support-bundle-node-collection-timeout for detail.
-    hotplug:
+    hotplugVolume:
       success: 'Volume { diskName } is mounted to the virtual machine { vm }.'
       title: Add Volume
+    hotplugNIC:
+      success: 'Network interface {interfaceName} has been successfully added to virtual machine {vm}.'
+      title: Add Network Interface
+      vmNetwork: Virtual Machine Network
+      macAddress: MAC Address
+      macAddressTooltip: If left blank, the MAC address will be automatically generated.
     cpuMemoryHotplug:
       success: 'CPU and Memory are updated to the virtual machine { vm }.'
       title: Edit CPU and Memory
@@ -227,6 +233,7 @@ harvester:
     cordon: Cordon
     uncordon: Uncordon
     addHotplugVolume: Add Volume
+    addHotplugNIC: Hotplug Network Interface
     exportImage: Export Image
     viewlogs: View Logs
     cancelExpand: Cancel Expand

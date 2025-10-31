@@ -212,6 +212,12 @@ export default class VirtVm extends HarvesterResource {
         label:   this.t('harvester.action.addHotplugVolume')
       },
       {
+        action:  'addHotplugNIC',
+        enabled: !!this.actions?.addNic,
+        icon:    'icon icon-plus',
+        label:   this.t('harvester.action.addHotplugNIC')
+      },
+      {
         action:  'createTemplate',
         enabled: !!this.actions?.createTemplate,
         icon:    'icon icon-copy',
@@ -508,6 +514,13 @@ export default class VirtVm extends HarvesterResource {
     this.$dispatch('promptModal', {
       resources,
       component: 'HarvesterAddHotplugVolumeModal'
+    });
+  }
+
+  addHotplugNIC(resources = this) {
+    this.$dispatch('promptModal', {
+      resources,
+      component: 'HarvesterAddHotplugNICModal'
     });
   }
 
