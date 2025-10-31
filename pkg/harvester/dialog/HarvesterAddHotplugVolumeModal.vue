@@ -11,7 +11,7 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 
 export default {
-  name: 'HotplugModal',
+  name: 'HotplugVolumeModal',
 
   emits: ['close'],
 

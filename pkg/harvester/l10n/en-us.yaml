@@ -226,7 +226,7 @@ harvester:
     disableCPUManager: Disable CPU Manager
     cordon: Cordon
     uncordon: Uncordon
-    addHotplug: Add Volume
+    addHotplugVolume: Add Volume
     exportImage: Export Image
     viewlogs: View Logs
     cancelExpand: Cancel Expand
