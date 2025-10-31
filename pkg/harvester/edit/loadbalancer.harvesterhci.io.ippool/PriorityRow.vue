@@ -66,17 +66,26 @@ export default {
     },
 
     namespaceOptions() {
-      const out = (this.filteredNamespaces || []).map((namespace) => {
-        return {
-          label: namespace.metadata.name,
-          value: namespace.id,
-        };
-      });
+      const namespaces = this.filteredNamespaces;
+      const selected = this.rows.map((r) => r?.namespace);
+
+      if (this.isStandaloneHarvester) {
+        return [
+          { label: this.t('generic.all'), value: '*' },
+          ...namespaces.map((ns) => ({
+            label:    ns.metadata.name,
+            value:    ns.id,
+            disabled: selected.includes(ns.id) && ns.id !== this.row.namespace
+          }))
+        ];
+      }
 
       return [{
         label: this.t('generic.all'),
         value: '*',
-      }, ...out];
+      },
+      ...namespaces.map((ns) => ({ label: ns.metadata.name, value: ns.id }))
+      ];
     },
 
     guestClusterOptions() {
