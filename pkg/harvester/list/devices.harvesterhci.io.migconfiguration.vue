@@ -96,9 +96,9 @@ export default {
         {
           name:     'Configured Profile',
           label:    'Configured Count',
-          labelKey: 'harvester.tableHeaders.configuredProfile',
-          value:    'configuredProfile',
-          sort:     ['configuredProfile'],
+          labelKey: 'harvester.tableHeaders.configuredProfiles',
+          value:    'configuredProfiles',
+          sort:     ['configuredProfiles'],
           align:    'center'
         },
         {

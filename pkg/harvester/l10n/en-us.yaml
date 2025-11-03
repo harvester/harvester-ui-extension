@@ -272,7 +272,7 @@ harvester:
     cronExpression: Cron Expression
     retain: Retain
     scheduleType: Type
-    configuredProfile: Configured Count
+    configuredProfiles: Configured Profiles
     maxFailure: Max Failure
     sourceVm: Source Virtual Machine
     vmSchedule: Virtual Machine Schedule
