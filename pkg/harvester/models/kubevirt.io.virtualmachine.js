@@ -401,8 +401,20 @@ export default class VirtVm extends HarvesterResource {
 
     this.$dispatch('promptModal', {
       resources,
-      diskName,
-      component: 'HarvesterUnplugVolume'
+      name:      diskName,
+      type:      'volume',
+      component:  'HarvesterHotUnplug',
+    });
+  }
+
+  unplugNIC(networkName) {
+    const resources = this;
+
+    this.$dispatch('promptModal', {
+      resources,
+      name:      networkName,
+      type:      'network',
+      component: 'HarvesterHotUnplug',
     });
   }
 

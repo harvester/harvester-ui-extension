@@ -14,6 +14,13 @@ export default {
   components: { InfoBox, Base },
 
   props: {
+    vm: {
+      type:    Object,
+      default: () => {
+        return {};
+      }
+    },
+
     mode: {
       type:    String,
       default: 'create'
@@ -32,10 +39,35 @@ export default {
     }
   },
 
+  async fetch() {
+    this.canCheckHotunplug = !!this.vm?.actions?.findHotunpluggableNics;
+
+    if (!this.canCheckHotunplug) {
+      this.hotunpluggableNics = new Set();
+      this.rows = this.mergeHotplugData(clone(this.value));
+
+      return;
+    }
+
+    try {
+      const resp = await this.vm.doAction('findHotunpluggableNics');
+
+      this.hotunpluggableNics = new Set(resp?.interfaces || []);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('Failed to fetch hot-unpluggable NICs:', e);
+      this.hotunpluggableNics = new Set();
+    }
+
+    this.rows = this.mergeHotplugData(clone(this.value));
+  },
+
   data() {
     return {
-      rows:    this.addKeyId(clone(this.value)),
-      nameIdx: 1
+      nameIdx:            1,
+      rows:               this.addKeyId(clone(this.value)),
+      hotunpluggableNics: new Set(),
+      canCheckHotunplug:  false,
     };
   },
 
@@ -68,11 +100,21 @@ export default {
 
   watch: {
     value(neu) {
-      this.rows = neu;
+      this.rows = this.mergeHotplugData(clone(neu));
     },
   },
 
   methods: {
+    mergeHotplugData(baseNics) {
+      const hotunpluggableSet = this.hotunpluggableNics;
+
+      return (baseNics || []).map((row) => ({
+        ...row,
+        isHotunpluggable: hotunpluggableSet.has(row.name),
+        rowKeyId:         row.rowKeyId || randomStr(10)
+      }));
+    },
+
     add(type) {
       const name = this.generateName();
 
@@ -118,7 +160,11 @@ export default {
 
     update() {
       this.$emit('update:value', this.rows);
-    }
+    },
+
+    unplugNIC(network) {
+      this.vm.unplugNIC(network.name);
+    },
   }
 };
 </script>
@@ -129,17 +175,28 @@ export default {
       v-for="(row, i) in rows"
       :key="i"
     >
-      <button
-        v-if="!isView"
-        type="button"
-        class="role-link remove-vol"
-        @click="remove(row)"
-      >
-        <i class="icon icon-x" />
-      </button>
-
-      <h3> {{ t('harvester.virtualMachine.network.title') }} </h3>
-
+      <div class="box-title mb-10">
+        <h3>
+          {{ t('harvester.virtualMachine.network.title') }}
+        </h3>
+        <button
+          v-if="!isView"
+          type="button"
+          class="role-link btn btn-sm remove"
+          @click="remove(row)"
+        >
+          <i class="icon icon-x" />
+        </button>
+        <button
+          v-if="vm.hotplugNicFeatureEnabled && isView"
+          type="button"
+          class="role-link btn btn-sm remove"
+          :disabled="!canCheckHotunplug || !row.isHotunpluggable"
+          @click="unplugNIC(row)"
+        >
+          {{ t('harvester.virtualMachine.hotUnplug.detachNIC.actionLabel') }}
+        </button>
+      </div>
       <Base
         v-model:value="rows[i]"
         :rows="rows"
@@ -162,16 +219,13 @@ export default {
 </template>
 
 <style lang='scss' scoped>
-.infoBox{
-  position: relative;
-}
+.box-title{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 
-.remove-vol {
-  position: absolute;
-  top: 10px;
-  right: 16px;
-  padding:0px;
-  max-height: 28px;
-  min-height: 28px;
+  h3 {
+    margin-bottom: 0;
+  }
 }
 </style>

@@ -265,6 +265,7 @@ export default {
         <Network
           v-model:value="networkRows"
           mode="view"
+          :vm="value"
         />
       </Tab>
 

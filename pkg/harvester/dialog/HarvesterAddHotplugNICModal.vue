@@ -57,7 +57,7 @@ export default {
     },
 
     isFormValid() {
-      return this.interfaceName.trim() !== '' && this.networkName.trim() !== '';
+      return this.interfaceName !== '' && this.networkName !== '';
     },
 
     vmNetworksOption() {
