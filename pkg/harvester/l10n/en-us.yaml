@@ -157,7 +157,7 @@ harvester:
     hotplugVolume:
       success: 'Volume { diskName } is mounted to the virtual machine { vm }.'
       title: Add Volume
-    hotplugNIC:
+    hotplugNic:
       success: 'Network interface {interfaceName} has been successfully added to virtual machine {vm}.'
       title: Add Network Interface
       vmNetwork: Virtual Machine Network
@@ -231,7 +231,7 @@ harvester:
     cordon: Cordon
     uncordon: Uncordon
     addHotplugVolume: Add Volume
-    addHotplugNIC: Hotplug Network Interface
+    addHotplugNic: Hotplug Network Interface
     exportImage: Export Image
     viewlogs: View Logs
     cancelExpand: Cancel Expand
@@ -594,9 +594,9 @@ harvester:
         actionLabel: Detach Volume
         success: 'Volume { name } is detached successfully.'
       detachNIC:
-        title: 'Are you sure that you want to detach NIC {name}?'
-        actionLabel: Detach NIC
-        success: 'Network { name } is detached successfully.'
+        title: 'Are you sure that you want to detach network interface {name}?'
+        actionLabel: Detach Network Interface
+        success: 'Network interface { name } is detached successfully.'
     instance:
       singleInstance:
       multipleInstance:

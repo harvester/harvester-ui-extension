@@ -212,10 +212,10 @@ export default class VirtVm extends HarvesterResource {
         label:   this.t('harvester.action.addHotplugVolume')
       },
       {
-        action:  'addHotplugNIC',
-        enabled: !!this.actions?.addNic,
+        action:  'addHotplugNic',
+        enabled: this.hotplugNicFeatureEnabled && !!this.actions?.addNic,
         icon:    'icon icon-plus',
-        label:   this.t('harvester.action.addHotplugNIC')
+        label:   this.t('harvester.action.addHotplugNic')
       },
       {
         action:  'createTemplate',
@@ -529,10 +529,10 @@ export default class VirtVm extends HarvesterResource {
     });
   }
 
-  addHotplugNIC(resources = this) {
+  addHotplugNic(resources = this) {
     this.$dispatch('promptModal', {
       resources,
-      component: 'HarvesterAddHotplugNICModal'
+      component: 'HarvesterAddHotplugNic'
     });
   }
 
@@ -1263,6 +1263,10 @@ export default class VirtVm extends HarvesterResource {
 
   get vmMachineTypeAutoFeatureEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('vmMachineTypeAuto');
+  }
+
+  get hotplugNicFeatureEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('hotplugNic');
   }
 
   get isBackupTargetUnavailable() {

@@ -11,7 +11,7 @@ import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations
 import { NETWORK_TYPE } from '../config/types';
 
 export default {
-  name: 'HotplugNICModal',
+  name: 'AddHotplugNic',
 
   emits: ['close'],
 
@@ -106,7 +106,7 @@ export default {
         if ([200, 204].includes(res?._status)) {
           this.$store.dispatch('growl/success', {
             title:   this.t('generic.notification.title.succeed'),
-            message: this.t('harvester.modal.hotplugNIC.success', {
+            message: this.t('harvester.modal.hotplugNic.success', {
               interfaceName: this.interfaceName,
               vm:            this.actionResource.nameDisplay
             })
@@ -135,7 +135,7 @@ export default {
   >
     <template #title>
       <h4
-        v-clean-html="t('harvester.modal.hotplugNIC.title')"
+        v-clean-html="t('harvester.modal.hotplugNic.title')"
         class="text-default-text"
       />
     </template>
@@ -149,15 +149,15 @@ export default {
       <LabeledSelect
         v-model:value="networkName"
         class="mt-20"
-        :label="t('harvester.modal.hotplugNIC.vmNetwork')"
+        :label="t('harvester.modal.hotplugNic.vmNetwork')"
         :options="vmNetworksOption"
         required
       />
       <LabeledInput
         v-model:value="macAddress"
         class="mt-20"
-        label-key="harvester.modal.hotplugNIC.macAddress"
-        :tooltip="t('harvester.modal.hotplugNIC.macAddressTooltip', _, true)"
+        label-key="harvester.modal.hotplugNic.macAddress"
+        :tooltip="t('harvester.modal.hotplugNic.macAddressTooltip', _, true)"
       />
       <Banner
         v-for="(err, i) in errors"
