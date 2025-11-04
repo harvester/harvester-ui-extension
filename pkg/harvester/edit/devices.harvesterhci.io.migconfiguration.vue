@@ -104,7 +104,7 @@ export default {
       :side-tabs="true"
     >
       <Tab
-        name="Profile Spec"
+        name="profileSpec"
         :label="t('harvester.migconfiguration.profileSpec')"
         :weight="1"
         class="bordered-table"

@@ -76,22 +76,15 @@ export default class MIGCONFIGURATION extends SteveModel {
   }
 
   get configuredProfiles() {
-    if (!this.spec?.profileSpec || this.spec.profileSpec.filter((p) => p.requested > 0).length === 0) {
+    const configuredProfiles = this.spec?.profileSpec?.filter((p) => p.requested > 0) || [];
+
+    if (configuredProfiles.length === 0) {
       return '';
     }
-    const configuredProfiles = this.spec?.profileSpec.filter((p) => p.requested > 0);
 
-    return configuredProfiles.reduce((acc, profile) => {
-      const display = `${ profile.name } * ${ profile.requested }`;
-
-      if (acc !== '') {
-        acc = `${ acc }, ${ display }`;
-      } else {
-        acc = display;
-      }
-
-      return acc;
-    }, '');
+    return configuredProfiles
+      .map((profile) => `${ profile.name } * ${ profile.requested }`)
+      .join(', ');
   }
 
   async enableConfig() {
