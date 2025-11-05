@@ -68,10 +68,15 @@ export default {
 
           return [NETWORK_TYPE.L2VLAN, NETWORK_TYPE.UNTAGGED, NETWORK_TYPE.L2TRUNK_VLAN].includes(type);
         })
-        .map((network) => ({
-          label: network.metadata?.name || '',
-          value: network.id || '',
-        }));
+        .map((network) => {
+          const label = network.isNotReady ? `${ network.id } (${ this.t('generic.notReady') })` : network.id;
+
+          return ({
+            label,
+            value:    network.id || '',
+            disabled: network.isNotReady,
+          });
+        });
     }
   },
 
