@@ -41,8 +41,14 @@ jobs:
             FROM="$GITHUB_BASE_SHA"
             TO="$GITHUB_HEAD_SHA"
           elif [ -n "$GITHUB_BEFORE" ] && [ -n "$GITHUB_AFTER" ]; then
-            FROM="$GITHUB_BEFORE"
-            TO="$GITHUB_AFTER"
+            if [ "$GITHUB_BEFORE" = "0000000000000000000000000000000000000000" ]; then
+              # first push to HEAD
+              FROM=""
+              TO="$GITHUB_AFTER"
+            else
+              FROM="$GITHUB_BEFORE"
+              TO="$GITHUB_AFTER"
+            fi
           else
             echo "No valid commit range found, skipping commitlint."
             exit 0
@@ -51,7 +57,14 @@ jobs:
           echo "FROM=$FROM"
           echo "TO=$TO"
 
-          npx commitlint --from "$FROM" --to "$TO" --verbose
+          if [ -z "$FROM" ]; then
+            echo "Linting last commit  $TO"
+            npx commitlint --last --verbose
+
+          else
+            echo "Linting commits from $FROM to $TO"
+            npx commitlint --from "$FROM" --to "$TO" --verbose
+          fi
         env:
           GITHUB_EVENT_NAME: ${{ github.event_name }}
           GITHUB_BASE_SHA: ${{ github.event.pull_request.base.sha }}
