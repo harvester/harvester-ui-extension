@@ -66,7 +66,13 @@ export default {
           const labels = network.metadata?.labels || {};
           const type = labels[HCI_ANNOTATIONS.NETWORK_TYPE];
 
-          return [NETWORK_TYPE.L2VLAN, NETWORK_TYPE.UNTAGGED, NETWORK_TYPE.L2TRUNK_VLAN].includes(type);
+          const isValidType = [
+            NETWORK_TYPE.L2VLAN,
+            NETWORK_TYPE.UNTAGGED,
+            NETWORK_TYPE.L2TRUNK_VLAN,
+          ].includes(type);
+
+          return isValidType && !network.isSystem;
         })
         .map((network) => {
           const label = network.isNotReady ? `${ network.id } (${ this.t('generic.notReady') })` : network.id;
