@@ -32,7 +32,7 @@ export default {
     resources: {
       type:     Array,
       required: true
-    }
+    },
   },
 
   data() {
@@ -145,6 +145,7 @@ export default {
       try {
         for (const resource of this.resources) {
           await resource.remove();
+          if (this.modalData.extraActionAfterRemove) await this.modalData.extraActionAfterRemove();
         }
         buttonDone(true);
         this.close();
