@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "@babel/plugin-transform-class-static-block": "7.28.3",
-    "@rancher/shell": "3.0.5-rc.8",
+    "@rancher/shell": "3.0.8-rc.8",
     "cache-loader": "^4.1.0",
     "color": "4.2.3",
     "ip": "2.0.1",
