@@ -12,6 +12,7 @@ import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../../../config/harvester'
 import ImagePercentageBar from '@shell/components/formatter/ImagePercentageBar';
 import { Banner } from '@components/Banner';
 import isEmpty from 'lodash/isEmpty';
+import { STORAGE_CLASS } from '@shell/config/types';
 
 const IMAGE_METHOD = {
   NEW:    'new',
@@ -32,6 +33,7 @@ export default {
 
   async fetch() {
     await this.$store.dispatch('harvester/findAll', { type: HCI.IMAGE });
+    await this.$store.dispatch('harvester/findAll', { type: STORAGE_CLASS });
 
     const value = await this.$store.dispatch('harvester/create', {
       type:     HCI.UPGRADE,
@@ -63,6 +65,7 @@ export default {
       sourceType:                   UPLOAD,
       uploadController:             null,
       uploadResult:                 null,
+      storageClassValue:            null,
       imageValue:                   null,
       enableLogging:                true,
       IMAGE_METHOD,
@@ -79,7 +82,6 @@ export default {
     skipSingleReplicaDetachedVolFeatureEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('skipSingleReplicaDetachedVol');
     },
-
     allOSImages() {
       return this.$store.getters['harvester/all'](HCI.IMAGE).filter((I) => I.isOSImage) || [];
     },
@@ -116,7 +118,7 @@ export default {
     },
 
     fileName() {
-      return this.file?.name || '';
+      return this.preprocessImageName(this.file?.name || '');
     },
 
     canEnableLogging() {
@@ -181,6 +183,38 @@ export default {
       });
     },
 
+    async createImageStorageClass(imageName = '') {
+      // delete related SC if existed
+      await this.deleteImageStorageClass(imageName);
+
+      const storageClassPayload = {
+        apiVersion:           'storage.k8s.io/v1',
+        type:                 STORAGE_CLASS,
+        metadata:             { name: imageName },
+        volumeBindingMode:    'Immediate',
+        reclaimPolicy:        'Delete',
+        allowVolumeExpansion: true, // must be boolean type
+        provisioner:          'driver.longhorn.io',
+      };
+
+      this.storageClassValue = await this.$store.dispatch('harvester/create', storageClassPayload);
+
+      if (this.storageClassValue && this.storageClassValue.save) {
+        await this.storageClassValue.save();
+      }
+    },
+
+    async deleteImageStorageClass(imageName = '') {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const storageClasses = this.$store.getters[`${ inStore }/all`](STORAGE_CLASS);
+
+      const targetSC = storageClasses.find((sc) => sc.id === imageName);
+
+      if (targetSC && targetSC.remove) {
+        await targetSC.remove();
+      }
+    },
+
     async initImageValue() {
       this.imageValue = await this.$store.dispatch('harvester/create', {
         type:     HCI.IMAGE,
@@ -191,6 +225,7 @@ export default {
           annotations:  {}
         },
         spec: {
+          backend:     'cdi',
           sourceType:  UPLOAD,
           displayName: '',
           checksum:    this.imageValue?.spec?.checksum || '',
@@ -203,8 +238,9 @@ export default {
 
       this.file = {};
       this.errors = [];
+      const imageDisplayName = this.imageValue?.spec?.displayName || '';
 
-      if (!this.imageValue.spec.displayName && this.createNewImage) {
+      if (!imageDisplayName && this.createNewImage) {
         this.errors.push(this.$store.getters['i18n/t']('validation.required', { key: this.t('generic.name') }));
         buttonCb(false);
 
@@ -212,13 +248,17 @@ export default {
       }
 
       try {
+        // Save the image first if creating a new one
         if (this.imageSource === IMAGE_METHOD.NEW) {
           this.imageValue.metadata.annotations[HCI_ANNOTATIONS.OS_UPGRADE_IMAGE] = 'True';
 
           if (this.sourceType === UPLOAD && this.uploadImageId !== '') { // upload new image
             this.value.spec.image = this.uploadImageId;
           } else if (this.sourceType === DOWNLOAD) { // give URL to download new image
+            // create related image storage class first
+            await this.createImageStorageClass(imageDisplayName);
             this.imageValue.spec.sourceType = DOWNLOAD;
+            // check if URL is provided
             if (!this.imageValue.spec.url) {
               this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.imageUrl'));
               buttonCb(false);
@@ -229,7 +269,7 @@ export default {
 
             this.value.spec.image = res.id;
           }
-        } else if (this.imageSource === IMAGE_METHOD.EXIST) {
+        } else if (this.imageSource === IMAGE_METHOD.EXIST) { // select existing image
           if (!this.imageId) {
             this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.chooseFile'));
             buttonCb(false);
@@ -239,7 +279,7 @@ export default {
 
           this.value.spec.image = this.imageId;
         }
-
+        // enable logging or skip single replica detection if checked
         if (this.canEnableLogging) {
           this.value.spec.logEnabled = this.enableLogging;
         }
@@ -256,7 +296,7 @@ export default {
     },
 
     async uploadFile(file) {
-      const fileName = file.name;
+      const fileName = this.preprocessImageName(file.name);
 
       if (!fileName) {
         this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.unknownImageName'));
@@ -280,6 +320,9 @@ export default {
       this.imageValue.spec.url = '';
 
       try {
+        // before uploading image, we need to create related image storage class first
+        await this.createImageStorageClass(fileName);
+
         const res = await this.imageValue.save();
 
         this.uploadImageId = res.id;
@@ -301,15 +344,28 @@ export default {
       }
     },
 
+    // replace _ to - to meet storage class name requirement
+    preprocessImageName(name) {
+      if (!name) {
+        return '';
+      }
+
+      return name.toLowerCase().replace(/[_]/g, '-');
+    },
+
     handleImageDelete(imageId) {
       const image = this.allOSImages.find((I) => I.id === imageId);
+      const imageDisplayName = image?.spec?.displayName || '';
 
-      if (image) {
+      if (image && imageDisplayName) {
         this.$store.dispatch('harvester/promptModal', {
-          resources:        [image],
-          component:        'ConfirmRelatedToRemoveDialog',
-          needConfirmation: false,
-          warningMessage:   this.$store.getters['i18n/t']('harvester.modal.osImage.message', { name: image.displayName })
+          resources:              [image],
+          component:              'ConfirmRelatedToRemoveDialog',
+          needConfirmation:       false,
+          warningMessage:         this.$store.getters['i18n/t']('harvester.modal.osImage.message', { name: imageDisplayName }),
+          extraActionAfterRemove: async() => {
+            await this.deleteImageStorageClass(imageDisplayName);
+          }
         });
         this.deleteImageId = '';
       }
@@ -419,13 +475,13 @@ export default {
         v-if="showUploadSuccessBanner"
         color="success"
         class="mt-0 mb-30"
-        :label="t('harvester.setting.upgrade.uploadSuccess', { name: file.name })"
+        :label="t('harvester.setting.upgrade.uploadSuccess', { name: fileName })"
       />
       <Banner
         v-if="showUploadingWarningBanner"
         color="warning"
         class="mt-0 mb-30"
-        :label="t('harvester.image.warning.osUpgrade.uploading', { name: file.name })"
+        :label="t('harvester.image.warning.osUpgrade.uploading', { name: fileName })"
       />
 
       <div
