@@ -11,7 +11,7 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 
 export default {
-  name: 'HotplugModal',
+  name: 'HotplugVolumeModal',
 
   emits: ['close'],
 
@@ -90,7 +90,7 @@ export default {
           if (res._status === 200 || res._status === 204) {
             this.$store.dispatch('growl/success', {
               title:   this.t('generic.notification.title.succeed'),
-              message: this.t('harvester.modal.hotplug.success', { diskName: this.diskName, vm: this.actionResource.nameDisplay })
+              message: this.t('harvester.modal.hotplugVolume.success', { diskName: this.diskName, vm: this.actionResource.nameDisplay })
             }, { root: true });
 
             this.close();
@@ -122,7 +122,7 @@ export default {
   >
     <template #title>
       <h4
-        v-clean-html="t('harvester.modal.hotplug.title')"
+        v-clean-html="t('harvester.modal.hotplugVolume.title')"
         class="text-default-text"
       />
     </template>

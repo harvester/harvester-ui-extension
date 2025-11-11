@@ -53,7 +53,8 @@ const FEATURE_FLAGS = {
     'vmMachineTypeAuto',
     'lhV2VolExpansion',
     'l2VlanTrunkMode',
-    'kubevirtMigration'
+    'kubevirtMigration',
+    'hotplugNic'
   ]
 };
 

@@ -29,6 +29,16 @@ export default class NetworkAttachmentDef extends SteveModel {
     }
   }
 
+  get isSystem() {
+    const systemNamespaces = this.$rootGetters['systemNamespaces'];
+
+    if (systemNamespaces.includes(this.metadata?.namespace)) {
+      return true;
+    }
+
+    return false;
+  }
+
   get isIpamStatic() {
     return this.parseConfig.ipam?.type === 'static';
   }
