@@ -213,6 +213,7 @@ export default {
         const diskRows = this.getDiskRows(neu);
 
         this['diskRows'] = diskRows;
+        this['networkRows'] = this.getNetworkRows(neu, { fromTemplate: false, init: false });
       },
       deep: true
     }
@@ -265,6 +266,7 @@ export default {
         <Network
           v-model:value="networkRows"
           mode="view"
+          :vm="value"
         />
       </Tab>
 

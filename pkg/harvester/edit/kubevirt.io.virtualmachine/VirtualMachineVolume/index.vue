@@ -303,55 +303,57 @@ export default {
         v-for="(volume, i) in rows"
         :key="volume.id"
       >
-        <InfoBox class="box">
-          <button
-            v-if="!isView"
-            type="button"
-            class="role-link btn btn-sm remove"
-            @click="removeVolume(volume)"
-          >
-            <i class="icon icon-x" />
-          </button>
-          <button
-            v-if="volume.hotpluggable && isView"
-            type="button"
-            class="role-link btn remove"
-            @click="unplugVolume(volume)"
-          >
-            {{ t('harvester.virtualMachine.unplug.detachVolume') }}
-          </button>
-          <h3>
-            <span
-              v-if="volume.to && isVirtualType"
-              class="title"
-            >
-              <router-link :to="volume.to">
-                {{ t('harvester.virtualMachine.volume.edit') }} {{ headerFor(volume.source) }}
-              </router-link>
-
-              <BadgeStateFormatter
-                v-if="volume.pvc"
-                class="ml-10 state"
-                :arbitrary="true"
-                :row="volume.pvc"
-                :value="volume.pvc.state"
-              />
-              <a
-                v-if="dev && !!volume.pvc && !!volume.pvc.resourceExternalLink"
-                v-clean-tooltip="t(volume.pvc.resourceExternalLink.tipsKey || 'generic.resourceExternalLinkTips')"
-                class="ml-5 resource-external"
-                rel="nofollow noopener noreferrer"
-                target="_blank"
-                :href="volume.pvc.resourceExternalLink.url"
+        <InfoBox>
+          <div class="box-title mb-10">
+            <h3>
+              <span
+                v-if="volume.to && isVirtualType"
+                class="title"
               >
-                <i class="icon icon-external-link" />
-              </a>
-            </span>
+                <router-link :to="volume.to">
+                  {{ t('harvester.virtualMachine.volume.edit') }} {{ headerFor(volume.source) }}
+                </router-link>
 
-            <span v-else>
-              {{ headerFor(volume.source, !!volume?.volumeBackups) }}
-            </span>
-          </h3>
+                <BadgeStateFormatter
+                  v-if="volume.pvc"
+                  class="ml-10 state"
+                  :arbitrary="true"
+                  :row="volume.pvc"
+                  :value="volume.pvc.state"
+                />
+                <a
+                  v-if="dev && !!volume.pvc && !!volume.pvc.resourceExternalLink"
+                  v-clean-tooltip="t(volume.pvc.resourceExternalLink.tipsKey || 'generic.resourceExternalLinkTips')"
+                  class="ml-5 resource-external"
+                  rel="nofollow noopener noreferrer"
+                  target="_blank"
+                  :href="volume.pvc.resourceExternalLink.url"
+                >
+                  <i class="icon icon-external-link" />
+                </a>
+              </span>
+
+              <span v-else>
+                {{ headerFor(volume.source, !!volume?.volumeBackups) }}
+              </span>
+            </h3>
+            <button
+              v-if="!isView"
+              type="button"
+              class="role-link btn btn-sm remove"
+              @click="removeVolume(volume)"
+            >
+              <i class="icon icon-x" />
+            </button>
+            <button
+              v-if="volume.hotpluggable && isView"
+              type="button"
+              class="role-link btn btn-sm remove"
+              @click="unplugVolume(volume)"
+            >
+              {{ t('harvester.virtualMachine.hotUnplug.detachVolume.actionLabel') }}
+            </button>
+          </div>
           <div>
             <component
               :is="componentFor(volume.source)"
@@ -495,25 +497,24 @@ export default {
 </template>
 
 <style lang='scss' scoped>
-  .box {
-    position: relative;
+  .box-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    h3 {
+      margin-bottom: 0;
+    }
   }
 
   .title {
     display: flex;
+    align-items: center;
 
     .state {
       font-size: 16px;
     }
   }
-
-  .remove {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    padding: 0px;
-  }
-
   .bootOrder {
     display: flex;
     align-items: center;

@@ -154,15 +154,19 @@ harvester:
       nodeTimeout:
         label: Node Collection Timeout
         tooltip: Minutes allowed for collecting logs/configurations on nodes.<br/>See docs support-bundle-node-collection-timeout for detail.
-    hotplug:
+    hotplugVolume:
       success: 'Volume { diskName } is mounted to the virtual machine { vm }.'
       title: Add Volume
+    hotplugNic:
+      success: 'The settings have been saved, but the network interface {interfaceName} will be attached only after the virtual machine is migrated.'
+      title: Add Network Interface
+      vmNetwork: Virtual Machine Network
+      macAddress: MAC Address
+      macAddressTooltip: If left blank, the MAC address will be automatically generated.
     cpuMemoryHotplug:
       success: 'CPU and Memory are updated to the virtual machine { vm }.'
       title: Edit CPU and Memory
       maxResourcesMessage: 'You can increase the CPU to maximum { maxCpu }C and memory to maximum { maxMemory }.'
-    hotunplug:
-      success: 'Volume { name } is detached successfully.'
     snapshot:
       title: Take Snapshot
       name: Name
@@ -226,7 +230,8 @@ harvester:
     disableCPUManager: Disable CPU Manager
     cordon: Cordon
     uncordon: Uncordon
-    addHotplug: Add Volume
+    addHotplugVolume: Add Volume
+    addHotplugNic: Hotplug Network Interface
     exportImage: Export Image
     viewlogs: View Logs
     cancelExpand: Cancel Expand
@@ -582,6 +587,16 @@ harvester:
       title: Enable CPU and memory hotplug
       tooltip: The default maximum CPU and maximum memory are {hotPlugTimes} times based on CPU and memory.
       restartVMMessage: Restart action is required for the virtual machine configuration change to take effect
+    hotUnplug:
+      actionLabel: Detach
+      detachVolume:
+        title: 'Are you sure that you want to detach volume {name}?'
+        actionLabel: Detach Volume
+        success: 'Volume { name } is detached successfully.'
+      detachNIC:
+        title: 'Are you sure that you want to detach network interface {name}?'
+        actionLabel: Detach Network Interface
+        success: 'The settings have been saved, but the network interface {name} will be detached only after the virtual machine is migrated.'
     instance:
       singleInstance:
       multipleInstance:
@@ -613,11 +628,6 @@ harvester:
       title: 'Select the volume you want to delete:'
       deleteAll: Delete All
       tips: "Warn: The snapshots of the virtual machine will be deleted with virtual machine and the snapshots of volume will be deleted with volume."
-    unplug:
-      title: 'Are you sure that you want to detach volume {name} ?'
-      actionLabel: Detach
-      detachVolume:
-        Detach Volume
     restartTip: |-
       {restart, select,
         true {Restart}
@@ -1695,7 +1705,7 @@ harvester:
     available: Available
     total: Total
     vGPUID: vGPU ID
-    goSriovGPU: 
+    goSriovGPU:
       prefix: Please enable the supported GPU devices in
       middle: SR-IOV GPU Devices
       suffix: page to manage the vGPU MIG configurations.

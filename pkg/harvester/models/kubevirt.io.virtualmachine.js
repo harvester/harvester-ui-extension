@@ -200,10 +200,16 @@ export default class VirtVm extends HarvesterResource {
         label:   this.t('harvester.action.abortMigration')
       },
       {
-        action:  'addHotplug',
+        action:  'addHotplugVolume',
         enabled: !!this.actions?.addVolume,
         icon:    'icon icon-plus',
-        label:   this.t('harvester.action.addHotplug')
+        label:   this.t('harvester.action.addHotplugVolume')
+      },
+      {
+        action:  'addHotplugNic',
+        enabled: this.hotplugNicFeatureEnabled && !!this.actions?.addNic,
+        icon:    'icon icon-plus',
+        label:   this.t('harvester.action.addHotplugNic')
       },
       {
         action:  'createTemplate',
@@ -389,8 +395,20 @@ export default class VirtVm extends HarvesterResource {
 
     this.$dispatch('promptModal', {
       resources,
-      diskName,
-      component: 'HarvesterUnplugVolume'
+      name:      diskName,
+      type:      'volume',
+      component:  'HarvesterHotUnplug',
+    });
+  }
+
+  unplugNIC(networkName) {
+    const resources = this;
+
+    this.$dispatch('promptModal', {
+      resources,
+      name:      networkName,
+      type:      'network',
+      component: 'HarvesterHotUnplug',
     });
   }
 
@@ -498,10 +516,17 @@ export default class VirtVm extends HarvesterResource {
     });
   }
 
-  addHotplug(resources = this) {
+  addHotplugVolume(resources = this) {
     this.$dispatch('promptModal', {
       resources,
-      component: 'HarvesterAddHotplugModal'
+      component: 'HarvesterAddHotplugVolumeModal'
+    });
+  }
+
+  addHotplugNic(resources = this) {
+    this.$dispatch('promptModal', {
+      resources,
+      component: 'HarvesterAddHotplugNic'
     });
   }
 
@@ -1232,6 +1257,10 @@ export default class VirtVm extends HarvesterResource {
 
   get vmMachineTypeAutoFeatureEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('vmMachineTypeAuto');
+  }
+
+  get hotplugNicFeatureEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('hotplugNic');
   }
 
   get isBackupTargetUnavailable() {
