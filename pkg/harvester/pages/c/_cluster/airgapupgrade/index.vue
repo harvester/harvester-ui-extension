@@ -255,9 +255,6 @@ export default {
           if (this.sourceType === UPLOAD && this.uploadImageId !== '') { // upload new image
             this.value.spec.image = this.uploadImageId;
           } else if (this.sourceType === DOWNLOAD) { // give URL to download new image
-            // create related image storage class first
-            await this.createImageStorageClass(imageDisplayName);
-            this.imageValue.spec.sourceType = DOWNLOAD;
             // check if URL is provided
             if (!this.imageValue.spec.url) {
               this.errors.push(this.$store.getters['i18n/t']('harvester.setting.upgrade.imageUrl'));
@@ -265,6 +262,12 @@ export default {
 
               return;
             }
+
+            // create related image storage class first
+            await this.createImageStorageClass(imageDisplayName);
+            this.imageValue.spec.sourceType = DOWNLOAD;
+            this.imageValue.spec.targetStorageClassName = imageDisplayName;
+
             res = await this.imageValue.save();
 
             this.value.spec.image = res.id;
@@ -292,6 +295,8 @@ export default {
       } catch (e) {
         this.errors = [e?.message] || exceptionToErrorsArray(e);
         buttonCb(false);
+        // if anything failed, delete the created image storage class
+        await this.deleteImageStorageClass(imageDisplayName);
       }
     },
 
@@ -322,6 +327,7 @@ export default {
       try {
         // before uploading image, we need to create related image storage class first
         await this.createImageStorageClass(fileName);
+        this.imageValue.spec.targetStorageClassName = fileName;
 
         const res = await this.imageValue.save();
 
@@ -339,6 +345,8 @@ export default {
         } else {
           this.errors = exceptionToErrorsArray(e);
         }
+        // if upload failed, delete the created image storage class
+        await this.deleteImageStorageClass(fileName);
         this.file = {};
         this.uploadImageId = '';
       }
