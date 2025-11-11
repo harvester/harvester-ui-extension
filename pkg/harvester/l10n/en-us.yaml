@@ -158,7 +158,7 @@ harvester:
       success: 'Volume { diskName } is mounted to the virtual machine { vm }.'
       title: Add Volume
     hotplugNic:
-      success: 'Network interface {interfaceName} has been successfully added to virtual machine {vm}.'
+      success: 'The settings have been saved, but the network interface {interfaceName} will be attached only after the virtual machine is migrated.'
       title: Add Network Interface
       vmNetwork: Virtual Machine Network
       macAddress: MAC Address
@@ -596,7 +596,7 @@ harvester:
       detachNIC:
         title: 'Are you sure that you want to detach network interface {name}?'
         actionLabel: Detach Network Interface
-        success: 'Network interface { name } is detached successfully.'
+        success: 'The settings have been saved, but the network interface {name} will be detached only after the virtual machine is migrated.'
     instance:
       singleInstance:
       multipleInstance:
@@ -1705,7 +1705,7 @@ harvester:
     available: Available
     total: Total
     vGPUID: vGPU ID
-    goSriovGPU: 
+    goSriovGPU:
       prefix: Please enable the supported GPU devices in
       middle: SR-IOV GPU Devices
       suffix: page to manage the vGPU MIG configurations.
