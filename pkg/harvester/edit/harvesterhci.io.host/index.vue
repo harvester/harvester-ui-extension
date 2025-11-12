@@ -28,6 +28,7 @@ import { HCI } from '../../types';
 import HarvesterDisk from './HarvesterDisk';
 import HarvesterSeeder from './HarvesterSeeder';
 import HarvesterKsmtuned from './HarvesterKsmtuned';
+import HarvesterHugepages from './HarvesterHugepages';
 import Tags from '../../components/DiskTags';
 import { LVM_DRIVER } from '../../models/harvester/storage.k8s.io.storageclass';
 import isEqual from 'lodash/isEqual';
@@ -50,6 +51,7 @@ export default {
     ArrayListGrouped,
     HarvesterDisk,
     HarvesterKsmtuned,
+    HarvesterHugepages,
     ButtonDropdown,
     KeyValue,
     Banner,
@@ -223,6 +225,12 @@ export default {
       const inStore = this.$store.getters['currentProduct'].inStore;
 
       return !!this.$store.getters[`${ inStore }/schemaFor`](HCI.KSTUNED);
+    },
+
+    hasHugepagesSchema() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+
+      return !!this.$store.getters[`${ inStore }/schemaFor`](HCI.HUGEPAGES);
     },
 
     hasBlockDevicesSchema() {
@@ -646,6 +654,17 @@ export default {
               <span v-else />
             </template>
           </ArrayListGrouped>
+        </Tab>
+        <Tab
+          v-if="hasHugepagesSchema"
+          name="Hugepages"
+          :weight="70"
+          :label="t('harvester.host.tabs.hugepages')"
+        >
+          <HarvesterHugepages
+            :node="value"
+            :register-before-hook="registerBeforeHook"
+          />
         </Tab>
         <Tab
           v-if="hasKsmtunedSchema"
