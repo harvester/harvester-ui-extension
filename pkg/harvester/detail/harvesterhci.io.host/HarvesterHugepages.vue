@@ -27,7 +27,7 @@ export default {
 
     this.hugepages = hash.find((node) => {
       return node.id === this.node.id;
-    });
+    }) || {};
   },
 
   data() {
