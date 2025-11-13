@@ -43,7 +43,7 @@ export default {
     ...mapState('action-menu', ['modalData']),
 
     title() {
-      return this.modalData.title || 'dialog.promptRemove.title';
+      return this.modalData?.title || 'dialog.promptRemove.title';
     },
 
     formattedType() {
@@ -51,7 +51,7 @@ export default {
     },
 
     warningMessage() {
-      if (this.modalData.warningMessage) return this.modalData.warningMessage;
+      if (this.modalData?.warningMessage) return this.modalData.warningMessage;
 
       const isPlural = this.type.endsWith('s');
       const thisOrThese = isPlural ? 'these' : 'this';
@@ -145,7 +145,7 @@ export default {
       try {
         for (const resource of this.resources) {
           await resource.remove();
-          if (this.modalData.extraActionAfterRemove) await this.modalData.extraActionAfterRemove();
+          if (this.modalData?.extraActionAfterRemove) await this.modalData.extraActionAfterRemove();
         }
         buttonDone(true);
         this.close();
