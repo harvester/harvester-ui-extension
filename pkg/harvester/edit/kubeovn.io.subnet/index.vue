@@ -371,7 +371,7 @@ export default {
             <div class="key">
               <input
                 v-model="scope.row.value"
-                :placeholder="t('harvester.setting.storageNetwork.exclude.placeholder')"
+                :placeholder="t('harvester.subnet.excludeIPs.placeholder')"
               />
             </div>
           </template>
