@@ -1089,6 +1089,8 @@ harvester:
       placeholder: e.g. 172.16.0.0/16
     excludeIPs:
       tooltip: The IP address list to reserve from automatic assignment. The gateway IP address is always excluded and will be automatically added to the list.
+      placeholder: single IP or 192.168.0.100..192.168.0.200
+
     acl:
       label: Access Control List
       tooltip: The ACL to apply to this Subnet. Must be one of the ACLs in the same namespace.
@@ -1204,7 +1206,7 @@ harvester:
       vlan: VLAN ID
       exclude:
         label: Exclude IPs
-        placeholder: e.g. 172.16.0.1
+        placeholder: CIDR format, e.g. 172.16.0.10/32
         invalid: '"Exclude list" is invalid.'
         addIp: Add Exclude IP
       warning: 'WARNING: <br/> Any change to storage-network requires shutting down all virtual machines before applying this setting. <br/> Users have to ensure the cluster network is configured and VLAN Configuration will cover all nodes and ensure the network connectivity is working and expected in all nodes.'
