@@ -18,16 +18,20 @@ export default {
 
     await this.$store.dispatch('harvester/findAll', { type: NAMESPACE });
 
-    try {
-      const url = this.$store.getters['harvester-common/getHarvesterClusterUrl']('v1/harvester/namespaces?link=supportbundle');
-      const response = await this.$store.dispatch('harvester/request', { url });
+    if (this.customSupportBundleFeatureEnabled) {
+      try {
+        const url = this.$store.getters['harvester-common/getHarvesterClusterUrl']('v1/harvester/namespaces?link=supportbundle');
+        const response = await this.$store.dispatch('harvester/request', { url });
 
-      this.defaultNamespaces = response.data || [];
-    } catch (error) {
+        this.defaultNamespaces = response.data || [];
+      } catch (error) {
+        this.defaultNamespaces = [];
+      }
+    } else {
       this.defaultNamespaces = [];
-    } finally {
-      this.loading = false;
     }
+
+    this.loading = false;
   },
 
   data() {
@@ -42,24 +46,38 @@ export default {
   },
 
   computed: {
+    customSupportBundleFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('customSupportBundle');
+    },
+
     allNamespaces() {
       return this.$store.getters['harvester/all'](NAMESPACE).map((ns) => ns.id);
     },
 
     filteredNamespaces() {
+      if (!this.customSupportBundleFeatureEnabled) {
+        return this.allNamespaces;
+      }
+
       const defaultIds = this.defaultNamespaces.map((ns) => ns.id);
 
       return this.allNamespaces.filter((ns) => !defaultIds.includes(ns));
     },
 
     namespaceOptions() {
+      const mappedNamespaces = this.filteredNamespaces.map((ns) => ({ label: ns, value: ns }));
+
+      if (!this.customSupportBundleFeatureEnabled) {
+        return mappedNamespaces;
+      }
+
       const allSelected =
         this.namespaces.length === this.filteredNamespaces.length &&
         this.filteredNamespaces.every((ns) => this.namespaces.includes(ns));
 
       const controlOption = allSelected ? { label: this.t('harvester.modal.bundle.namespaces.unselectAll'), value: UNSELECT_ALL } : { label: this.t('harvester.modal.bundle.namespaces.selectAll'), value: SELECT_ALL };
 
-      return [controlOption, ...this.filteredNamespaces];
+      return [controlOption, ...mappedNamespaces];
     }
   },
 
