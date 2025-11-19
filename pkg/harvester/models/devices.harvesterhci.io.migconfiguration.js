@@ -1,12 +1,12 @@
-import SteveModel from '@shell/plugins/steve/steve-class';
 import { escapeHtml } from '@shell/utils/string';
 import { colorForState } from '@shell/plugins/dashboard-store/resource-class';
+import HarvesterResource from './harvester';
 
 /**
  * Class representing vGPU MIGConfiguration resource.
- * @extends SteveModal
+ * @extends HarvesterResource
  */
-export default class MIGCONFIGURATION extends SteveModel {
+export default class MIGCONFIGURATION extends HarvesterResource {
   get _availableActions() {
     let out = super._availableActions;
 
