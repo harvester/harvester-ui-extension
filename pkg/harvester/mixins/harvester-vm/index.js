@@ -273,7 +273,7 @@ export default {
 
     needNewSecret() {
       // When creating a template it is always necessary to create a new secret.
-      return this.isCreate ? true : this.showYaml ? false : this.resourceType === HCI.VM_VERSION;
+      return this.showYaml ? false : this.resourceType === HCI.VM_VERSION || this.isCreate;
     },
 
     defaultTerminationSetting() {
@@ -1638,7 +1638,7 @@ export default {
 
     secretRef: {
       handler(secret) {
-        if (secret && this.resourceType !== HCI.BACKUP) {
+        if (secret && this.resourceType !== HCI.BACKUP && this.resourceType !== HCI.VM) {
           this.secretName = secret?.metadata.name;
         }
       },
