@@ -62,7 +62,7 @@ export default {
               return false;
             }
 
-            return !pvc.attachVM;
+            return true;
           })
           .map((pvc) => {
             return {
