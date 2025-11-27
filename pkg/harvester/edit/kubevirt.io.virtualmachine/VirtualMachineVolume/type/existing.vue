@@ -99,7 +99,6 @@ export default {
         this.allPVCs
           .filter( (pvc) => {
             let isAvailable = true;
-            let isBeingUsed = false;
 
             this.rows.forEach( (O) => {
               if (O.volumeName === pvc.metadata.name) {
@@ -111,17 +110,16 @@ export default {
               return false;
             }
 
+            // already used as image volume
+            if (this.idx > 0 && pvc.metadata?.annotations?.[HCI_ANNOTATIONS.IMAGE_ID]) {
+              return false;
+            }
+
             if (pvc.isGoldenImageVolume) {
               return false;
             }
 
-            if (pvc.attachVM && isAvailable && pvc.attachVM?.id === this.vm?.id && this.isEdit) {
-              isBeingUsed = false;
-            } else if (pvc.attachVM) {
-              isBeingUsed = true;
-            }
-
-            return isAvailable && !isBeingUsed && pvc.isAvailable;
+            return isAvailable && pvc.isAvailable;
           })
           .map((pvc) => {
             return {
