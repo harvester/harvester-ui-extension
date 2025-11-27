@@ -273,7 +273,7 @@ export default {
 
     needNewSecret() {
       // When creating a template it is always necessary to create a new secret.
-      return this.isCreate ? true : this.showYaml ? false : this.resourceType === HCI.VM_VERSION;
+      return this.showYaml ? false : this.resourceType === HCI.VM_VERSION || this.isCreate;
     },
 
     defaultTerminationSetting() {
@@ -708,17 +708,7 @@ export default {
       const volumeClaimTemplates = [];
 
       disk.forEach( (R, index) => {
-        const prefixName = this.value.metadata?.name || '';
-
-        let dataVolumeName = '';
-
-        if (R.source === SOURCE_TYPE.ATTACH_VOLUME) {
-          dataVolumeName = R.volumeName;
-        } else if (this.isClone || !this.hasCreateVolumes.includes(R.realName)) {
-          dataVolumeName = `${ prefixName }-${ R.name }-${ randomStr(5).toLowerCase() }`;
-        } else {
-          dataVolumeName = R.realName;
-        }
+        const dataVolumeName = this.parseDataVolumeName(R);
 
         const _disk = this.parseDisk(R, index);
         const _volume = this.parseVolume(R, dataVolumeName);
@@ -1011,6 +1001,25 @@ export default {
       this['maxCpu'] = maxCpu;
       this['maxMemory'] = maxMemory;
       this['cpuMemoryHotplugEnabled'] = cpuMemoryHotplugEnabled;
+    },
+
+    parseDataVolumeName(R) {
+      const prefixName = this.value.metadata?.name || '';
+      let dataVolumeName = '';
+
+      if (!R.dataVolumeName) {
+        if (R.source === SOURCE_TYPE.ATTACH_VOLUME) {
+          dataVolumeName = R.volumeName;
+        } else if (this.isClone || !this.hasCreateVolumes.includes(R.realName)) {
+          dataVolumeName = `${ prefixName }-${ R.name }-${ randomStr(5).toLowerCase() }`;
+        } else {
+          dataVolumeName = R.realName;
+        }
+
+        R.dataVolumeName = dataVolumeName;
+      }
+
+      return R.dataVolumeName;
     },
 
     parseDisk(R, index) {
@@ -1638,7 +1647,7 @@ export default {
 
     secretRef: {
       handler(secret) {
-        if (secret && this.resourceType !== HCI.BACKUP) {
+        if (secret && this.resourceType !== HCI.BACKUP && this.resourceType !== HCI.VM) {
           this.secretName = secret?.metadata.name;
         }
       },

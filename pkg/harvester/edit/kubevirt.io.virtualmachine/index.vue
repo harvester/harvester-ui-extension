@@ -490,6 +490,7 @@ export default {
       if (this.isSingle) {
         if (!this.value.spec.template.spec.hostname) {
           this.value.spec.template.spec['hostname'] = this.value.metadata.name;
+          this.spec.template.spec['hostname'] = this.value.metadata.name;
         }
       }
 
