@@ -75,7 +75,7 @@ export default {
       <div class="row">
         <div class="col span-6 mb-20">
           <LabelValue
-            :name="t('harvester.schedule.cron')"
+            :name="t('harvester.schedule.cron.label')"
             :value="cronExpression"
           />
         </div>
