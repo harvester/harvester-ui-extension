@@ -1,4 +1,5 @@
 <script>
+import { mapGetters } from 'vuex';
 import { RadioGroup } from '@components/Form/Radio';
 import { Banner } from '@components/Banner';
 import { LabeledInput } from '@components/Form/LabeledInput';
@@ -16,6 +17,7 @@ import { sortBy } from '@shell/utils/sort';
 import { BACKUP_TYPE } from '../config/types';
 import { _EDIT, _CREATE } from '@shell/config/query-params';
 import { isBackupTargetSettingEmpty, isBackupTargetSettingUnavailable } from '../utils/setting';
+import CronExpressionEditorModal from '@shell/components/Cron/CronExpressionEditorModal.vue';
 
 export default {
   name:       'CreateVMSchedule',
@@ -28,6 +30,7 @@ export default {
     LabeledSelect,
     MessageLink,
     Banner,
+    CronExpressionEditorModal
   },
 
   mixins: [CreateEditView],
@@ -86,10 +89,12 @@ export default {
       }
     }
 
-    return { settings: [] };
+    return { settings: [], showModel: false };
   },
 
   computed: {
+    ...mapGetters({ t: 'i18n/t' }),
+
     backupTargetResource() {
       return this.settings.find( (O) => O.id === 'backup-target');
     },
@@ -171,6 +176,9 @@ export default {
       if (this.value.spec.retain && count > this.value.spec.retain) {
         this.value.spec['maxFailure'] = this.value.spec.retain;
       }
+    },
+    openModal() {
+      this.showModel = true;
     },
   },
 };
@@ -256,16 +264,28 @@ export default {
         :weight="99"
         class="bordered-table"
       >
-        <LabeledInput
-          v-model:value="value.spec.cron"
-          class="mb-30"
-          type="cron"
-          required
-          :mode="mode"
-          :label="t('harvester.schedule.cron')"
-          placeholder="0 * * * *"
-          :disabled="isBackupTargetUnAvailable || isView"
-        />
+        <div class="cronEditor">
+          <LabeledInput
+            v-model:value="value.spec.cron"
+            class="mb-30"
+            type="cron"
+            required
+            :mode="mode"
+            :label="t('harvester.schedule.cron.label')"
+            placeholder="0 * * * *"
+            :disabled="isBackupTargetUnAvailable || isView"
+          />
+          <button
+            class="editCronBtn btn role-primary"
+            @click="openModal"
+          >
+            {{ t('harvester.schedule.cron.editButton') }}
+          </button>
+          <CronExpressionEditorModal
+            v-model:show="showModel"
+            v-model:cron-expression="value.spec.cron"
+          />
+        </div>
         <LabeledInput
           v-model:value.number="value.spec.retain"
           class="mb-30"
@@ -292,3 +312,16 @@ export default {
     </Tabbed>
   </CruResource>
 </template>
+
+<style lang="scss" scoped>
+.cronEditor {
+  align-items: center;
+  display: flex;
+}
+
+.editCronBtn {
+  margin-bottom: 30px;
+  margin-left: 10px;
+  height: 60px;
+}
+</style>
