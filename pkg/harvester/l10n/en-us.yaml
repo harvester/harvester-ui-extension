@@ -983,7 +983,9 @@ harvester:
     createTitle: Create Schedule
     createButtonText: Create Schedule
     scheduleType: Virtual Machine Schedule Type
-    cron: Cron Schedule
+    cron: 
+      label: Cron Schedule
+      editButton: Edit
     detail:
       namespace: Namespace
       sourceVM: Source Virtual Machine
