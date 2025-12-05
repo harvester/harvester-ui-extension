@@ -185,3 +185,30 @@ export const VM_IMPORT_SOURCE_V_STATUS = {
   sort:     'status.status',
   align:    'left',
 };
+
+// Region column in migration.harvesterhci.io.openstacksource list page
+export const VM_IMPORT_SOURCE_O_REGION = {
+  name:     'region',
+  labelKey: 'harvester.tableHeaders.vmImportSourceORegion',
+  value:    'spec.region',
+  sort:     'spec.region',
+  align:    'left',
+};
+
+// Endpoint column in migration.harvesterhci.io.openstacksource list page
+export const VM_IMPORT_SOURCE_O_ENDPOINT = {
+  name:     'endpoint',
+  labelKey: 'harvester.tableHeaders.vmImportSourceOEndpoint',
+  value:    'spec.endpoint',
+  sort:     'spec.endpoint',
+  align:    'left',
+};
+
+// Cluster Status column in migration.harvesterhci.io.openstacksource list page
+export const VM_IMPORT_SOURCE_O_STATUS = {
+  name:     'clusterStatus',
+  labelKey: 'harvester.tableHeaders.vmImportSourceOClusterStatus',
+  value:    'status.status',
+  sort:     'status.status',
+  align:    'left',
+};
