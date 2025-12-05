@@ -42,6 +42,9 @@ import {
   VM_IMPORT_SOURCE_V_DC,
   VM_IMPORT_SOURCE_V_ENDPOINT,
   VM_IMPORT_SOURCE_V_STATUS,
+  VM_IMPORT_SOURCE_O_REGION,
+  VM_IMPORT_SOURCE_O_ENDPOINT,
+  VM_IMPORT_SOURCE_O_STATUS,
 } from './table-headers';
 import { ADD_ONS } from './harvester-map';
 import { registerAddonSideNav } from '../utils/dynamic-nav';
@@ -269,6 +272,14 @@ export function init($plugin, store) {
   });
 
   // Source: OpenStack
+  headers(HCI.VMIMPORT_SOURCE_O, [
+    STATE,
+    NAME_COL,
+    VM_IMPORT_SOURCE_O_ENDPOINT,
+    VM_IMPORT_SOURCE_O_REGION,
+    VM_IMPORT_SOURCE_O_STATUS,
+    AGE
+  ]);
   configureType([HCI.VMIMPORT_SOURCE_O], {
     resource:       HCI.VMIMPORT_SOURCE_O,
     resourceDetail: HCI.VMIMPORT_SOURCE_O,
