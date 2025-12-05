@@ -38,6 +38,7 @@ import {
   HARVESTER_DESCRIPTION
 } from './table-headers';
 import { ADD_ONS } from './harvester-map';
+import { registerAddonSideNav } from '../utils/dynamic-nav';
 
 const TEMPLATE = HCI.VM_VERSION;
 const MONITORING_GROUP = 'Monitoring & Logging::Monitoring';
@@ -199,111 +200,83 @@ export function init($plugin, store) {
   // ===========================================================================
   // VM Import Controller UI Flow
   // ===========================================================================
-
-  // Define the group (hidden by default via false)
+  // Define group (Hidden by default)
   weightGroup('vmimport', 0, false);
 
-  const commonConfig = {
-    isCreatable:    true,
-    isEditable:     true,
-    isRemovable:    true,
-    showAge:        true,
-    showState:      true,
-    canYaml:        true,
-    namespaced:     true,
-    group:          'vmimport',
-  };
-
-  // Configure types behavior immediately so routing works even if menu is hidden
-  [HCI.VMIMPORT, HCI.VMIMPORT_SOURCE_V, HCI.VMIMPORT_SOURCE_O].forEach((type) => {
-    configureType([type], {
-      ...commonConfig,
-      location: {
-        name:   `${ PRODUCT_NAME }-c-cluster-resource`,
-        params: { resource: type }
-      },
-      resource: type,
-    });
+  // VirtualMachineImport
+  configureType([HCI.VMIMPORT], {
+    resource:       HCI.VMIMPORT,
+    resourceDetail: HCI.VMIMPORT,
+    resourceEdit:   HCI.VMIMPORT,
+    location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT }
+    }
+  });
+  virtualType({
+    name:       HCI.VMIMPORT,
+    labelKey:   'harvester.addons.vmImport.labels.vmimport',
+    group:      'vmimport',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT }
+    }
   });
 
-  // Apply localization keys
-  configureType([HCI.VMIMPORT], { labelKey: 'harvester.addons.vmImport.labels.vmimport' });
-  configureType([HCI.VMIMPORT_SOURCE_V], { labelKey: 'harvester.addons.vmImport.labels.vmimportSourceVMWare' });
-  configureType([HCI.VMIMPORT_SOURCE_O], { labelKey: 'harvester.addons.vmImport.labels.vmimportSourceOpenStack' });
+  // Source: VMware
+  configureType([HCI.VMIMPORT_SOURCE_V], {
+    resource:       HCI.VMIMPORT_SOURCE_V,
+    resourceDetail: HCI.VMIMPORT_SOURCE_V,
+    resourceEdit:   HCI.VMIMPORT_SOURCE_V,
+    location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_V }
+    }
+  });
+  virtualType({
+    name:       HCI.VMIMPORT_SOURCE_V,
+    labelKey:   'harvester.addons.vmImport.labels.vmimportSourceVMWare',
+    group:      'vmimport',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_V }
+    }
+  });
 
-  // Logic to unhide/hide vm import related entries in side navi
-  if (typeof window !== 'undefined') {
-    /**
-     * Forces the SideNav to re-render by toggling a user preference.
-     * Required because SideNav does not reactively watch the basicType list.
-     */
-    const kickSideNav = () => {
-      const TRIGGER = 'ui.refresh.trigger';
+  // Source: OpenStack
+  configureType([HCI.VMIMPORT_SOURCE_O], {
+    resource:       HCI.VMIMPORT_SOURCE_O,
+    resourceDetail: HCI.VMIMPORT_SOURCE_O,
+    resourceEdit:   HCI.VMIMPORT_SOURCE_O,
+    location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_O }
+    }
+  });
+  virtualType({
+    name:       HCI.VMIMPORT_SOURCE_O,
+    labelKey:   'harvester.addons.vmImport.labels.vmimportSourceOpenStack',
+    group:      'vmimport',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_O }
+    }
+  });
 
-      // We dispatch directly to bypass DSL limitations
-      store.dispatch('type-map/addFavorite', TRIGGER);
-      setTimeout(() => store.dispatch('type-map/removeFavorite', TRIGGER), 500);
-    };
-
-    /**
-     * Modifies the 'basicType' allowlist in the store.
-     */
-    const setMenuVisibility = (visible) => {
-      const types = [HCI.VMIMPORT_SOURCE_V, HCI.VMIMPORT_SOURCE_O, HCI.VMIMPORT];
-
-      if (visible) {
-        // Add to allowlist
-        store.commit('type-map/basicType', {
-          product: PRODUCT_NAME,
-          group:   'vmimport',
-          types
-        });
-      } else {
-        // Remove from allowlist
-        // We directly modify the state map to ensure the key is deleted
-        const basicTypes = store.state['type-map'].basicTypes[PRODUCT_NAME];
-
-        if (basicTypes) {
-          types.forEach((t) => delete basicTypes[t]);
-        }
-      }
-      kickSideNav();
-    };
-
-    // Delay initialization to ensure Harvester core is loaded
-    setTimeout(() => {
-      let attempts = 0;
-      const MAX_ATTEMPTS = 60; // Timeout after 60 seconds
-
-      const waitForStore = setInterval(() => {
-        attempts++;
-
-        // 1. Wait for Addon Schema to be available
-        if (store.getters[`${ PRODUCT_NAME }/schemaFor`](HCI.ADD_ONS)) {
-          clearInterval(waitForStore);
-
-          // 2. Setup Persistent Watcher
-          // This hooks into Vue's reactivity system and costs 0 resources when idle.
-          store.watch(
-            (state, getters) => {
-              const addons = getters[`${ PRODUCT_NAME }/all`](HCI.ADD_ONS);
-              const addon = addons.find((a) => a.metadata.name === ADD_ONS.VM_IMPORT_CONTROLLER);
-
-              return addon?.spec?.enabled === true;
-            },
-            (isEnabled) => {
-              setMenuVisibility(isEnabled);
-            },
-            { immediate: true, deep: true } // Run immediately to handle page load state
-          );
-        } else if (attempts >= MAX_ATTEMPTS) {
-          // Stop trying if something is wrong with the store
-          clearInterval(waitForStore);
-        }
-      }, 1000);
-    }, 2000);
-  }
-
+  // Enable SideNav based on Addon Status
+  registerAddonSideNav(store, PRODUCT_NAME, {
+    addonName:    ADD_ONS.VM_IMPORT_CONTROLLER,
+    resourceType: HCI.ADD_ONS,
+    navGroup:     'vmimport',
+    types:        [
+      HCI.VMIMPORT_SOURCE_V,
+      HCI.VMIMPORT_SOURCE_O,
+      HCI.VMIMPORT
+    ]
+  });
   // ===========================================================================
 
   basicType([HCI.VOLUME]);
