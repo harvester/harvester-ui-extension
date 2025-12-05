@@ -195,14 +195,14 @@ export function init($plugin, store) {
     exact: false
   });
 
-  // ===========================================================================
-  // 1. DEFINE THE GROUP
-  // ===========================================================================
+  // 1. Define the Group
+  // We set the 3rd argument to false so the group header is hidden by default
   weightGroup('vmimport', 0, false);
 
-  // ===========================================================================
-  // 2. CONFIGURE THE TYPES (Static Definition)
-  // ===========================================================================
+  // 2. Configure Types (Static Definition)
+  // We define the behavior and labels immediately so they are ready when needed.
+  // We do NOT add them to 'basicType' here, so they remain hidden by default.
+
   const commonConfig = {
     isCreatable:    true,
     isEditable:     true,
@@ -214,90 +214,84 @@ export function init($plugin, store) {
     group:          'vmimport',
   };
 
-  configureType([HCI.VMIMPORT], {
-    ...commonConfig,
-    location: {
-      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
-      params: { resource: HCI.VMIMPORT }
-    },
-    resource:       HCI.VMIMPORT,
-    resourceDetail: HCI.VMIMPORT,
-    resourceEdit:   HCI.VMIMPORT,
-    labelKey:       'harvester.addons.vmImport.labels.vmimport',
+  [HCI.VMIMPORT, HCI.VMIMPORT_SOURCE_V, HCI.VMIMPORT_SOURCE_O].forEach((type) => {
+    configureType([type], {
+      ...commonConfig,
+      location: { name: `${ PRODUCT_NAME }-c-cluster-resource`, params: { resource: type } },
+      resource: type,
+    });
   });
 
-  configureType([HCI.VMIMPORT_SOURCE_V], {
-    ...commonConfig,
-    location: {
-      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
-      params: { resource: HCI.VMIMPORT_SOURCE_V }
-    },
-    resource:       HCI.VMIMPORT_SOURCE_V,
-    resourceDetail: HCI.VMIMPORT_SOURCE_V,
-    resourceEdit:   HCI.VMIMPORT_SOURCE_V,
-    labelKey:       'harvester.addons.vmImport.labels.vmimportSourceVMWare',
-  });
+  // Apply specific labels
+  configureType([HCI.VMIMPORT], { labelKey: 'harvester.addons.vmImport.labels.vmimport' });
+  configureType([HCI.VMIMPORT_SOURCE_V], { labelKey: 'harvester.addons.vmImport.labels.vmimportSourceVMWare' });
+  configureType([HCI.VMIMPORT_SOURCE_O], { labelKey: 'harvester.addons.vmImport.labels.vmimportSourceOpenStack' });
 
-  configureType([HCI.VMIMPORT_SOURCE_O], {
-    ...commonConfig,
-    location: {
-      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
-      params: { resource: HCI.VMIMPORT_SOURCE_O }
-    },
-    resource:       HCI.VMIMPORT_SOURCE_O,
-    resourceDetail: HCI.VMIMPORT_SOURCE_O,
-    resourceEdit:   HCI.VMIMPORT_SOURCE_O,
-    labelKey:       'harvester.addons.vmImport.labels.vmimportSourceOpenStack',
-  });
-
-  // ===========================================================================
-  // 3. STORE WATCHER & INJECTION
-  // ===========================================================================
+  // 3. REACTIVE VISIBILITY CONTROLLER
+  // This watches the addon status and toggles the menu entries accordingly.
   if (typeof window !== 'undefined') {
-    // We use a detached timeout to ensure the UI is interactive before we start polling
-    setTimeout(() => {
-      const POLL_INTERVAL = 3000;
-      let attempts = 0;
+    // Constants for the check
+    const ADDON_TYPE = 'harvesterhci.io.addon';
+    const ADDON_NAME = 'vm-import-controller';
 
-      const pollId = setInterval(() => {
-        attempts++;
-        try {
-          // A. Safety Check: Does the harvester store exist?
-          if (!store.getters['harvester/schemaFor']) {
-            return;
-          }
+    /**
+     * Forces the Harvester SideNav to re-render.
+     * The SideNav component watches the 'favoriteTypes' preference.
+     * By toggling a dummy favorite, we force it to refresh the menu tree.
+     */
+    const kickSideNav = () => {
+      const TRIGGER = 'ui.refresh.trigger';
 
-          // B. Check for the Schema in the HARVESTER store
-          const schema = store.getters['harvester/schemaFor'](HCI.VMIMPORT);
+      store.dispatch('type-map/addFavorite', TRIGGER);
+      setTimeout(() => store.dispatch('type-map/removeFavorite', TRIGGER), 500);
+    };
 
-          if (schema) {
-            // C. Inject into the Whitelist (This updates the internal store state)
-            basicType([
-              HCI.VMIMPORT_SOURCE_V,
-              HCI.VMIMPORT_SOURCE_O,
-              HCI.VMIMPORT
-            ], 'vmimport');
+    /**
+     * Adds or Removes the types from the 'basicType' whitelist.
+     * In Harvester (Basic Mode), items only appear if they are in this list.
+     */
+    const setMenuVisibility = (visible) => {
+      const types = [HCI.VMIMPORT_SOURCE_V, HCI.VMIMPORT_SOURCE_O, HCI.VMIMPORT];
 
-            // D. "Kick" the SideNav to force a refresh
-            // FIX: We dispatch directly against the store since DSL doesn't expose this.
-            const TRIGGER_ID = 'ui.refresh.trigger';
+      if (visible) {
+        store.commit('type-map/basicType', {
+          product: PRODUCT_NAME,
+          group:   'vmimport',
+          types
+        });
+      } else {
+        // To hide, we must physically remove the keys from the store state
+        const basicTypes = store.state['type-map'].basicTypes[PRODUCT_NAME];
 
-            store.dispatch('type-map/addFavorite', TRIGGER_ID);
-
-            setTimeout(() => {
-              store.dispatch('type-map/removeFavorite', TRIGGER_ID);
-            }, 1000);
-
-            // E. Success! Stop polling.
-            clearInterval(pollId);
-          }
-
-          // Stop after 2 minutes to save resources
-          if (attempts > 40) clearInterval(pollId);
-        } catch (e) {
-          clearInterval(pollId); // Stop if we crash to prevent log spam
+        if (basicTypes) {
+          types.forEach((t) => delete basicTypes[t]);
         }
-      }, POLL_INTERVAL);
+      }
+      kickSideNav();
+    };
+
+    // Delay initialization to ensure the Harvester store module is registered
+    setTimeout(() => {
+      const waitForStore = setInterval(() => {
+        // Wait until the 'addon' schema is loaded into the store
+        if (store.getters['harvester/schemaFor'](ADDON_TYPE)) {
+          clearInterval(waitForStore);
+
+          // Watch the specific Addon resource for changes
+          store.watch(
+            (state, getters) => {
+              const addons = getters['harvester/all'](ADDON_TYPE);
+              const addon = addons.find((a) => a.metadata.name === ADDON_NAME);
+
+              return addon?.spec?.enabled === true;
+            },
+            (isEnabled) => {
+              setMenuVisibility(isEnabled);
+            },
+            { immediate: true }
+          );
+        }
+      }, 1000);
     }, 2000);
   }
 
