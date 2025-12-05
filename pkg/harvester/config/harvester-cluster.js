@@ -35,7 +35,10 @@ import {
   SNAPSHOT_TARGET_VOLUME,
   IMAGE_VIRTUAL_SIZE,
   IMAGE_STORAGE_CLASS,
-  HARVESTER_DESCRIPTION
+  HARVESTER_DESCRIPTION,
+  VM_IMPORT_SOURCE_VM,
+  VM_IMPORT_SOURCE_CLUSTER,
+  VM_IMPORT_STATUS,
 } from './table-headers';
 import { ADD_ONS } from './harvester-map';
 import { registerAddonSideNav } from '../utils/dynamic-nav';
@@ -204,6 +207,15 @@ export function init($plugin, store) {
   weightGroup('vmimport', 0, false);
 
   // VirtualMachineImport
+  headers(HCI.VMIMPORT, [
+    STATE,
+    NAME_COL,
+    NAMESPACE_COL,
+    VM_IMPORT_SOURCE_VM,
+    VM_IMPORT_SOURCE_CLUSTER,
+    VM_IMPORT_STATUS,
+    AGE
+  ]);
   configureType([HCI.VMIMPORT], {
     resource:       HCI.VMIMPORT,
     resourceDetail: HCI.VMIMPORT,
