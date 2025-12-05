@@ -20,6 +20,7 @@ nav:
     Monitoring: Monitoring
     Logging: Logging
     'Monitoring and Logging': Monitoring and Logging
+    vmimport: VM Import
 
 resourceTable:
   groupBy:
@@ -1570,6 +1571,10 @@ harvester:
       titles:
         basic: Basic
         pvc: Volume
+      labels:
+        vmimport: Virtual Machine Import
+        vmimportSourceVMWare: Source VMWare
+        vmimportSourceOpenStack: Source OpenStack
     rancherVcluster:
       accessRancher: Access the Rancher Dashboard
       hostname: Hostname

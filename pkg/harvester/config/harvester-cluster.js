@@ -195,6 +195,112 @@ export function init($plugin, store) {
     exact: false
   });
 
+  // ===========================================================================
+  // 1. DEFINE THE GROUP
+  // ===========================================================================
+  weightGroup('vmimport', 0, false);
+
+  // ===========================================================================
+  // 2. CONFIGURE THE TYPES (Static Definition)
+  // ===========================================================================
+  const commonConfig = {
+    isCreatable:    true,
+    isEditable:     true,
+    isRemovable:    true,
+    showAge:        true,
+    showState:      true,
+    canYaml:        true,
+    namespaced:     true,
+    group:          'vmimport',
+  };
+
+  configureType([HCI.VMIMPORT], {
+    ...commonConfig,
+    location: {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT }
+    },
+    resource:       HCI.VMIMPORT,
+    resourceDetail: HCI.VMIMPORT,
+    resourceEdit:   HCI.VMIMPORT,
+    labelKey:       'harvester.addons.vmImport.labels.vmimport',
+  });
+
+  configureType([HCI.VMIMPORT_SOURCE_V], {
+    ...commonConfig,
+    location: {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_V }
+    },
+    resource:       HCI.VMIMPORT_SOURCE_V,
+    resourceDetail: HCI.VMIMPORT_SOURCE_V,
+    resourceEdit:   HCI.VMIMPORT_SOURCE_V,
+    labelKey:       'harvester.addons.vmImport.labels.vmimportSourceVMWare',
+  });
+
+  configureType([HCI.VMIMPORT_SOURCE_O], {
+    ...commonConfig,
+    location: {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_O }
+    },
+    resource:       HCI.VMIMPORT_SOURCE_O,
+    resourceDetail: HCI.VMIMPORT_SOURCE_O,
+    resourceEdit:   HCI.VMIMPORT_SOURCE_O,
+    labelKey:       'harvester.addons.vmImport.labels.vmimportSourceOpenStack',
+  });
+
+  // ===========================================================================
+  // 3. STORE WATCHER & INJECTION
+  // ===========================================================================
+  if (typeof window !== 'undefined') {
+    // We use a detached timeout to ensure the UI is interactive before we start polling
+    setTimeout(() => {
+      const POLL_INTERVAL = 3000;
+      let attempts = 0;
+
+      const pollId = setInterval(() => {
+        attempts++;
+        try {
+          // A. Safety Check: Does the harvester store exist?
+          if (!store.getters['harvester/schemaFor']) {
+            return;
+          }
+
+          // B. Check for the Schema in the HARVESTER store
+          const schema = store.getters['harvester/schemaFor'](HCI.VMIMPORT);
+
+          if (schema) {
+            // C. Inject into the Whitelist (This updates the internal store state)
+            basicType([
+              HCI.VMIMPORT_SOURCE_V,
+              HCI.VMIMPORT_SOURCE_O,
+              HCI.VMIMPORT
+            ], 'vmimport');
+
+            // D. "Kick" the SideNav to force a refresh
+            // FIX: We dispatch directly against the store since DSL doesn't expose this.
+            const TRIGGER_ID = 'ui.refresh.trigger';
+
+            store.dispatch('type-map/addFavorite', TRIGGER_ID);
+
+            setTimeout(() => {
+              store.dispatch('type-map/removeFavorite', TRIGGER_ID);
+            }, 1000);
+
+            // E. Success! Stop polling.
+            clearInterval(pollId);
+          }
+
+          // Stop after 2 minutes to save resources
+          if (attempts > 40) clearInterval(pollId);
+        } catch (e) {
+          clearInterval(pollId); // Stop if we crash to prevent log spam
+        }
+      }, POLL_INTERVAL);
+    }, 2000);
+  }
+
   basicType([HCI.VOLUME]);
   configureType(HCI.VOLUME, {
     location: {
