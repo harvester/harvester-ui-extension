@@ -158,3 +158,30 @@ export const VM_IMPORT_STATUS = {
   sort:     'status.status',
   align:    'left',
 };
+
+// Datacenter column in migration.harvesterhci.io.vmwaresource list page
+export const VM_IMPORT_SOURCE_V_DC = {
+  name:     'datacenter',
+  labelKey: 'harvester.tableHeaders.vmImportSourceVDatacenter',
+  value:    'spec.dc',
+  sort:     'spec.dc',
+  align:    'left',
+};
+
+// Endpoint column in migration.harvesterhci.io.vmwaresource list page
+export const VM_IMPORT_SOURCE_V_ENDPOINT = {
+  name:     'endpoint',
+  labelKey: 'harvester.tableHeaders.vmImportSourceVEndpoint',
+  value:    'spec.endpoint',
+  sort:     'spec.endpoint',
+  align:    'left',
+};
+
+// Cluster Status column in migration.harvesterhci.io.vmwaresource list page
+export const VM_IMPORT_SOURCE_V_STATUS = {
+  name:     'clusterStatus',
+  labelKey: 'harvester.tableHeaders.vmImportSourceVClusterStatus',
+  value:    'status.status',
+  sort:     'status.status',
+  align:    'left',
+};

@@ -39,6 +39,9 @@ import {
   VM_IMPORT_SOURCE_VM,
   VM_IMPORT_SOURCE_CLUSTER,
   VM_IMPORT_STATUS,
+  VM_IMPORT_SOURCE_V_DC,
+  VM_IMPORT_SOURCE_V_ENDPOINT,
+  VM_IMPORT_SOURCE_V_STATUS,
 } from './table-headers';
 import { ADD_ONS } from './harvester-map';
 import { registerAddonSideNav } from '../utils/dynamic-nav';
@@ -237,6 +240,14 @@ export function init($plugin, store) {
   });
 
   // Source: VMware
+  headers(HCI.VMIMPORT_SOURCE_V, [
+    STATE,
+    NAME_COL,
+    VM_IMPORT_SOURCE_V_ENDPOINT,
+    VM_IMPORT_SOURCE_V_DC,
+    VM_IMPORT_SOURCE_V_STATUS,
+    AGE
+  ]);
   configureType([HCI.VMIMPORT_SOURCE_V], {
     resource:       HCI.VMIMPORT_SOURCE_V,
     resourceDetail: HCI.VMIMPORT_SOURCE_V,
