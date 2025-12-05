@@ -1,12 +1,13 @@
 /**
- * Dynamically toggles SideNav entries based on the enabled status of a specific Addon.
+ * specific Addon is enabled.
+ *
  * @param {Object} store - The Vuex store instance.
  * @param {String} productName - The product name (e.g. 'harvester').
  * @param {Object} config - Configuration object.
- * @param {String} config.addonName - The metadata.name of the addon to watch (e.g. 'vm-import-controller').
- * @param {String} config.resourceType - The schema ID for addons (usually HCI.ADD_ONS).
- * @param {String} config.navGroup - The group name in the side nav to attach these types to.
- * @param {Array<String>} config.types - Array of Schema IDs (strings) to show/hide.
+ * @param {String} config.addonName - The name of the addon to watch.
+ * @param {String} config.resourceType - The schema ID for addons.
+ * @param {String} config.navGroup - The group name in the side nav.
+ * @param {Array<String>} config.types - Array of Resource IDs to show/hide.
  */
 export function registerAddonSideNav(store, productName, {
   addonName, resourceType, navGroup, types
@@ -15,27 +16,31 @@ export function registerAddonSideNav(store, productName, {
     return;
   }
 
-  // Forces the SideNav to re-render
-  // The SideNav component watches 'favoriteTypes'. Toggling a dummy favorite forces a re-render.
+  // This forces the SideNav to refresh.
+  // The menu component watches 'favoriteTypes', so we toggle a fake favorite.
   const kickSideNav = () => {
     const TRIGGER = 'ui.refresh.trigger';
 
     store.dispatch('type-map/addFavorite', TRIGGER);
-    setTimeout(() => store.dispatch('type-map/removeFavorite', TRIGGER), 500);
+
+    // Wait 600ms to be sure the UI notices the change.
+    setTimeout(() => {
+      store.dispatch('type-map/removeFavorite', TRIGGER);
+    }, 600);
   };
 
-  // Modifies the 'basicType' allowlist
+  // Shows or hides the items in the menu.
   const setMenuVisibility = (visible) => {
     if (visible) {
-      // Add to allowlist
+      // Add items to the list.
       store.commit('type-map/basicType', {
         product: productName,
         group:   navGroup,
         types
       });
     } else {
-      // Remove from allowlist
-      // Directly access state to delete the keys, DSL doesn't support removal
+      // Remove items from the list.
+      // We must delete the keys manually because the helper function cannot remove them.
       const basicTypes = store.state['type-map'].basicTypes[productName];
 
       if (basicTypes) {
@@ -45,35 +50,39 @@ export function registerAddonSideNav(store, productName, {
     kickSideNav();
   };
 
-  // Initialization Loop
-  // Delay slightly to ensure the core store is ready
+  // Start the check after the app has had time to load.
   setTimeout(() => {
     let attempts = 0;
-    const MAX_ATTEMPTS = 60; // Safety valve: Stop after 60 seconds
+    const MAX_ATTEMPTS = 60;
 
     const waitForStore = setInterval(() => {
       attempts++;
 
-      // Wait for the Addon Schema to be loaded
-      if (store.getters[`${ productName }/schemaFor`](resourceType)) {
+      // Check if the Schema definition is ready.
+      const hasSchema = store.getters[`${ productName }/schemaFor`](resourceType);
+
+      // Check if the Data list is actually loaded from the API.
+      // This prevents us from seeing an empty list while data is fetching.
+      const hasData = store.getters[`${ productName }/haveAll`](resourceType);
+
+      if (hasSchema && hasData) {
         clearInterval(waitForStore);
 
-        // Setup Reactive Watcher
-        // Hooks into Vue reactivity. Zero CPU usage when idle.
+        // Watch for changes to the Addon status.
         store.watch(
           (state, getters) => {
             const addons = getters[`${ productName }/all`](resourceType);
             const addon = addons.find((a) => a.metadata.name === addonName);
 
-            // Return true ONLY if explicitly enabled
             return addon?.spec?.enabled === true;
           },
           (isEnabled) => {
             setMenuVisibility(isEnabled);
           },
-          { immediate: true, deep: true } // Run immediately to handle initial page load
+          { immediate: true, deep: true }
         );
       } else if (attempts >= MAX_ATTEMPTS) {
+        // Stop checking if the store never loads.
         clearInterval(waitForStore);
       }
     }, 1000);
