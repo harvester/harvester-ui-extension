@@ -299,6 +299,9 @@ harvester:
     vmImportSourceVm: Source VM
     vmImportSourceCluster: Source Cluster
     vmImportStatus: Import Status
+    vmImportSourceVDatacenter: Datacenter
+    vmImportSourceVEndpoint: Endpoint
+    vmImportSourceVClusterStatus: Cluster Status
   tab:
     volume: Volumes
     network: Networks
