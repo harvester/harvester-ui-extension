@@ -296,6 +296,9 @@ harvester:
     totalSnapshotQuota: Total Snapshot Quota
     storageClass: Storage Class
     restore: Restore
+    vmImportSourceVm: Source VM
+    vmImportSourceCluster: Source Cluster
+    vmImportStatus: Import Status
   tab:
     volume: Volumes
     network: Networks
