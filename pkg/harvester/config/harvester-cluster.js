@@ -222,21 +222,11 @@ export function init($plugin, store) {
     VM_IMPORT_STATUS,
     AGE
   ]);
-  configureType([HCI.VMIMPORT], {
+  configureType(HCI.VMIMPORT, {
     resource:       HCI.VMIMPORT,
     resourceDetail: HCI.VMIMPORT,
     resourceEdit:   HCI.VMIMPORT,
     location:       {
-      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
-      params: { resource: HCI.VMIMPORT }
-    }
-  });
-  virtualType({
-    name:       HCI.VMIMPORT,
-    labelKey:   'harvester.addons.vmImport.labels.vmimport',
-    group:      'vmimport',
-    namespaced: true,
-    route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.VMIMPORT }
     }
@@ -251,21 +241,11 @@ export function init($plugin, store) {
     VM_IMPORT_SOURCE_V_STATUS,
     AGE
   ]);
-  configureType([HCI.VMIMPORT_SOURCE_V], {
+  configureType(HCI.VMIMPORT_SOURCE_V, {
     resource:       HCI.VMIMPORT_SOURCE_V,
     resourceDetail: HCI.VMIMPORT_SOURCE_V,
     resourceEdit:   HCI.VMIMPORT_SOURCE_V,
     location:       {
-      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
-      params: { resource: HCI.VMIMPORT_SOURCE_V }
-    }
-  });
-  virtualType({
-    name:       HCI.VMIMPORT_SOURCE_V,
-    labelKey:   'harvester.addons.vmImport.labels.vmimportSourceVMWare',
-    group:      'vmimport',
-    namespaced: true,
-    route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.VMIMPORT_SOURCE_V }
     }
@@ -280,21 +260,11 @@ export function init($plugin, store) {
     VM_IMPORT_SOURCE_O_STATUS,
     AGE
   ]);
-  configureType([HCI.VMIMPORT_SOURCE_O], {
+  configureType(HCI.VMIMPORT_SOURCE_O, {
     resource:       HCI.VMIMPORT_SOURCE_O,
     resourceDetail: HCI.VMIMPORT_SOURCE_O,
     resourceEdit:   HCI.VMIMPORT_SOURCE_O,
     location:       {
-      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
-      params: { resource: HCI.VMIMPORT_SOURCE_O }
-    }
-  });
-  virtualType({
-    name:       HCI.VMIMPORT_SOURCE_O,
-    labelKey:   'harvester.addons.vmImport.labels.vmimportSourceOpenStack',
-    group:      'vmimport',
-    namespaced: true,
-    route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.VMIMPORT_SOURCE_O }
     }
