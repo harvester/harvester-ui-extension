@@ -305,6 +305,8 @@ harvester:
     vmImportSourceORegion: Region
     vmImportSourceOEndpoint: Endpoint
     vmImportSourceOClusterStatus: Cluster Status
+    vmImportSourceOVAUrl: URL
+    vmImportSourceOVAStatus: Status
   tab:
     volume: Volumes
     network: Networks
@@ -1584,6 +1586,7 @@ harvester:
         vmimport: Virtual Machine Import
         vmimportSourceVMWare: Source VMWare
         vmimportSourceOpenStack: Source OpenStack
+        vmimportSourceOVA: Source OVA
     rancherVcluster:
       accessRancher: Access the Rancher Dashboard
       hostname: Hostname

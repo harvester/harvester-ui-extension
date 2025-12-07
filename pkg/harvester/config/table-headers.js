@@ -212,3 +212,21 @@ export const VM_IMPORT_SOURCE_O_STATUS = {
   sort:     'status.status',
   align:    'left',
 };
+
+// URL column in migration.harvesterhci.io.ovasource list page
+export const VM_IMPORT_SOURCE_OVA_URL = {
+  name:     'url',
+  labelKey: 'harvester.tableHeaders.vmImportSourceOVAUrl',
+  value:    'spec.url',
+  sort:     'spec.url',
+  align:    'left',
+};
+
+// Status column in migration.harvesterhci.io.ovasource list page
+export const VM_IMPORT_SOURCE_OVA_STATUS = {
+  name:     'status',
+  labelKey: 'harvester.tableHeaders.vmImportSourceOVAStatus',
+  value:    'status.status',
+  sort:     'status.status',
+  align:    'left',
+};
