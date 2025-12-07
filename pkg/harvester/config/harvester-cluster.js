@@ -45,6 +45,8 @@ import {
   VM_IMPORT_SOURCE_O_REGION,
   VM_IMPORT_SOURCE_O_ENDPOINT,
   VM_IMPORT_SOURCE_O_STATUS,
+  VM_IMPORT_SOURCE_OVA_URL,
+  VM_IMPORT_SOURCE_OVA_STATUS,
 } from './table-headers';
 import { ADD_ONS } from './harvester-map';
 import { registerAddonSideNav } from '../utils/dynamic-nav';
@@ -300,6 +302,34 @@ export function init($plugin, store) {
     }
   });
 
+  // Source: OVA
+  headers(HCI.VMIMPORT_SOURCE_OVA, [
+    STATE,
+    NAME_COL,
+    VM_IMPORT_SOURCE_OVA_URL,
+    VM_IMPORT_SOURCE_OVA_STATUS,
+    AGE
+  ]);
+  configureType(HCI.VMIMPORT_SOURCE_OVA, {
+    resource:       HCI.VMIMPORT_SOURCE_OVA,
+    resourceDetail: HCI.VMIMPORT_SOURCE_OVA,
+    resourceEdit:   HCI.VMIMPORT_SOURCE_OVA,
+    location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_OVA }
+    }
+  });
+  virtualType({ // needed to avoid 404 on refresh when combined with registerAddonSideNav()
+    name:       HCI.VMIMPORT_SOURCE_OVA,
+    labelKey:   'harvester.addons.vmImport.labels.vmimportSourceOVA',
+    group:      'vmimport',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_OVA }
+    }
+  });
+
   // Enable SideNav based on Addon Status
   registerAddonSideNav(store, PRODUCT_NAME, {
     addonName:    ADD_ONS.VM_IMPORT_CONTROLLER,
@@ -308,6 +338,7 @@ export function init($plugin, store) {
     types:        [
       HCI.VMIMPORT_SOURCE_V,
       HCI.VMIMPORT_SOURCE_O,
+      HCI.VMIMPORT_SOURCE_OVA,
       HCI.VMIMPORT
     ]
   });
