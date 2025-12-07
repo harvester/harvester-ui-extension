@@ -179,8 +179,8 @@ export default {
       :side-tabs="true"
     >
       <Tab
-        name="connection"
-        label="Connection"
+        name="basic"
+        label="Basics"
         :weight="3"
       >
         <div class="row mb-20">
