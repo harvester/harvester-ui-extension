@@ -164,7 +164,7 @@ export default {
             <LabeledInput
               v-model:value="value.spec.endpoint"
               label="vCenter Endpoint"
-              placeholder="e.g. https://vcenter.corp.local/sdk"
+              placeholder="e.g. https://vscim/sdk"
               :mode="mode"
               required
             />
@@ -173,7 +173,7 @@ export default {
             <LabeledInput
               v-model:value="value.spec.dc"
               label="Datacenter"
-              placeholder="e.g. Datacenter-01"
+              placeholder="e.g. DC0"
               tooltip="The exact name of the Datacenter object in vCenter"
               :mode="mode"
               required
