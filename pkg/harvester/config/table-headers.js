@@ -154,8 +154,8 @@ export const VM_IMPORT_SOURCE_CLUSTER = {
 export const VM_IMPORT_STATUS = {
   name:     'importStatus',
   labelKey: 'harvester.tableHeaders.vmImportStatus',
-  value:    'status.status',
-  sort:     'status.status',
+  value:    'status.importStatus',
+  sort:     'status.importStatus',
   align:    'left',
 };
 
