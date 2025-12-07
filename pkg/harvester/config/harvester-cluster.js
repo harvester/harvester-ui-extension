@@ -231,6 +231,16 @@ export function init($plugin, store) {
       params: { resource: HCI.VMIMPORT }
     }
   });
+  virtualType({ // needed to avoid 404 on refresh when combined with registerAddonSideNav()
+    name:       HCI.VMIMPORT,
+    labelKey:   'harvester.addons.vmImport.labels.vmimport',
+    group:      'vmimport',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT }
+    }
+  });
 
   // Source: VMware
   headers(HCI.VMIMPORT_SOURCE_V, [
@@ -250,6 +260,16 @@ export function init($plugin, store) {
       params: { resource: HCI.VMIMPORT_SOURCE_V }
     }
   });
+  virtualType({ // needed to avoid 404 on refresh when combined with registerAddonSideNav()
+    name:       HCI.VMIMPORT_SOURCE_V,
+    labelKey:   'harvester.addons.vmImport.labels.vmimportSourceVMWare',
+    group:      'vmimport',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_V }
+    }
+  });
 
   // Source: OpenStack
   headers(HCI.VMIMPORT_SOURCE_O, [
@@ -265,6 +285,16 @@ export function init($plugin, store) {
     resourceDetail: HCI.VMIMPORT_SOURCE_O,
     resourceEdit:   HCI.VMIMPORT_SOURCE_O,
     location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_O }
+    }
+  });
+  virtualType({ // needed to avoid 404 on refresh when combined with registerAddonSideNav()
+    name:       HCI.VMIMPORT_SOURCE_O,
+    labelKey:   'harvester.addons.vmImport.labels.vmimportSourceOpenStack',
+    group:      'vmimport',
+    namespaced: true,
+    route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.VMIMPORT_SOURCE_O }
     }

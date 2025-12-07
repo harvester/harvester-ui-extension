@@ -1,5 +1,5 @@
 /**
- * specific Addon is enabled.
+ * Dynamically toggles SideNav entries based on the enabled status of a specific Addon.
  *
  * @param {Object} store - The Vuex store instance.
  * @param {String} productName - The product name (e.g. 'harvester').
@@ -16,31 +16,31 @@ export function registerAddonSideNav(store, productName, {
     return;
   }
 
-  // This forces the SideNav to refresh.
-  // The menu component watches 'favoriteTypes', so we toggle a fake favorite.
+  // Forces the SideNav component to re-render by toggling a dummy user preference.
+  // Necessary because the menu component does not automatically detect
+  // changes to the allowed types list.
   const kickSideNav = () => {
     const TRIGGER = 'ui.refresh.trigger';
 
     store.dispatch('type-map/addFavorite', TRIGGER);
 
-    // Wait 600ms to be sure the UI notices the change.
+    // SideNav component seem to ignore rapid state changes.
+    // Wait 600ms to ensure the toggle event triggers a re-render.
     setTimeout(() => {
       store.dispatch('type-map/removeFavorite', TRIGGER);
     }, 600);
   };
 
-  // Shows or hides the items in the menu.
+  // Adds or removes the resource IDs from the product visibility whitelist.
   const setMenuVisibility = (visible) => {
     if (visible) {
-      // Add items to the list.
       store.commit('type-map/basicType', {
         product: productName,
         group:   navGroup,
         types
       });
     } else {
-      // Remove items from the list.
-      // We must delete the keys manually because the helper function cannot remove them.
+      // Manually delete the keys from the state object to hide them.
       const basicTypes = store.state['type-map'].basicTypes[productName];
 
       if (basicTypes) {
@@ -50,25 +50,27 @@ export function registerAddonSideNav(store, productName, {
     kickSideNav();
   };
 
-  // Start the check after the app has had time to load.
-  setTimeout(() => {
-    let attempts = 0;
-    const MAX_ATTEMPTS = 60;
+  // Start polling to check if the store is ready.
+  let attempts = 0;
+  const MAX_ATTEMPTS = 60;
 
-    const waitForStore = setInterval(() => {
-      attempts++;
+  const waitForStore = setInterval(() => {
+    attempts++;
 
-      // Check if the Schema definition is ready.
-      const hasSchema = store.getters[`${ productName }/schemaFor`](resourceType);
+    try {
+      // Check if the Schema definitions are loaded.
+      const hasSchema = store.getters[`${ productName }/schemaFor`] &&
+                        store.getters[`${ productName }/schemaFor`](resourceType);
 
-      // Check if the Data list is actually loaded from the API.
-      // This prevents us from seeing an empty list while data is fetching.
-      const hasData = store.getters[`${ productName }/haveAll`](resourceType);
+      // Check if the resource list data is fully loaded to prevent race conditions.
+      const hasData = store.getters[`${ productName }/haveAll`] &&
+                      store.getters[`${ productName }/haveAll`](resourceType);
 
       if (hasSchema && hasData) {
+        // Store is ready. Stop polling.
         clearInterval(waitForStore);
 
-        // Watch for changes to the Addon status.
+        // Watch the specific addon resource for changes to its enabled status.
         store.watch(
           (state, getters) => {
             const addons = getters[`${ productName }/all`](resourceType);
@@ -81,10 +83,17 @@ export function registerAddonSideNav(store, productName, {
           },
           { immediate: true, deep: true }
         );
+      } else if (hasSchema && !hasData) {
+        // If the schema is ready but the data is missing, request the list from the API.
+        // Ensures the script does not wait indefinitely if the UI has not loaded the addons yet.
+        store.dispatch(`${ productName }/findAll`, { type: resourceType });
       } else if (attempts >= MAX_ATTEMPTS) {
-        // Stop checking if the store never loads.
+        // Stop checking if the store does not load within the timeout limit.
         clearInterval(waitForStore);
       }
-    }, 1000);
-  }, 2000);
+    } catch (e) {
+      // Ignore errors if the store module is not yet registered and wait for the next attempt.
+      if (attempts >= MAX_ATTEMPTS) clearInterval(waitForStore);
+    }
+  }, 1000);
 }

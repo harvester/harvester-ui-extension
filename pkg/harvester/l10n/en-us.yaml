@@ -1580,6 +1580,10 @@ harvester:
       titles:
         basic: Basic
         pvc: Volume
+      labels:
+        vmimport: Virtual Machine Import
+        vmimportSourceVMWare: Source VMWare
+        vmimportSourceOpenStack: Source OpenStack
     rancherVcluster:
       accessRancher: Access the Rancher Dashboard
       hostname: Hostname
@@ -2041,19 +2045,4 @@ typeLabel:
     {count, plural,
       one { IP Pool }
       other { IP Pools }
-    }
-  migration.harvesterhci.io.virtualmachineimport: |-
-    {count, plural,
-      one { VM Import }
-      other { VM Imports }
-    }
-  migration.harvesterhci.io.vmwaresource: |-
-    {count, plural,
-      one { VMware Source }
-      other { VMware Sources }
-    }
-  migration.harvesterhci.io.openstacksource: |-
-    {count, plural,
-      one { OpenStack Source }
-      other { OpenStack Sources }
     }
