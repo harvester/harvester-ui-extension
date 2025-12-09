@@ -96,7 +96,6 @@ export default {
       templateVersionId: '',
       namePrefix:        '',
       isSingle:          true,
-      useTemplate:       false,
       isOpen:            false,
       hostname,
       isRestartImmediately,
