@@ -1561,6 +1561,7 @@ harvester:
       'harvester-seeder': harvester-seeder is an add-on that uses IPMI and Redfish to discover hardware information and perform out-of-band operations.
       'harvester-system/harvester-seeder': harvester-seeder is an add-on that uses IPMI and Redfish to discover hardware information and perform out-of-band operations.
       'harvester-csi-driver-lvm': harvester-csi-driver-lvm is an add-on allowing users to create PVC through the LVM with local devices.
+      'descheduler': 'The virtual machine auto balance optimizes workload scheduling by evicting pods that are not optimally placed according to administrator-defined policies.'
     vmImport:
       titles:
         basic: Basic
