@@ -113,7 +113,8 @@ export default class HciAddonConfig extends HarvesterResource {
 
   get displayName() {
     const isExperimental = this.metadata?.labels?.[HCI_ANNOTATIONS.ADDON_EXPERIMENTAL] === 'true';
-    const name= this.metadata?.labels?.[HCI_ANNOTATIONS.ADDON_DISPLAYNAME] || this.metadata.name;
+    const name = this.metadata?.labels?.[HCI_ANNOTATIONS.ADDON_DISPLAYNAME] || this.metadata.name;
+
     return isExperimental ? `${ name } (${ this.t('generic.experimental') })` : name;
   }
 
