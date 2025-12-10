@@ -142,6 +142,7 @@ export default {
       showYaml:                      false,
       spec:                          null,
       osType:                        'linux',
+      useTemplate:                   false,
       sshKey:                        [],
       maintenanceStrategies,
       maintenanceStrategy:           'Migrate',
@@ -273,7 +274,7 @@ export default {
 
     needNewSecret() {
       // When creating a template it is always necessary to create a new secret.
-      return this.showYaml ? false : this.resourceType === HCI.VM_VERSION || this.isCreate;
+      return this.isCreate || this.showYaml ? false : this.resourceType === HCI.VM_VERSION;
     },
 
     defaultTerminationSetting() {
@@ -1647,7 +1648,8 @@ export default {
 
     secretRef: {
       handler(secret) {
-        if (secret && this.resourceType !== HCI.BACKUP && this.resourceType !== HCI.VM) {
+        // we should not inherit the secret if it's from VM template.
+        if (secret && this.resourceType !== HCI.BACKUP && !this.useTemplate) {
           this.secretName = secret?.metadata.name;
         }
       },
