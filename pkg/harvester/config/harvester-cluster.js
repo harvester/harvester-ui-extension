@@ -35,8 +35,21 @@ import {
   SNAPSHOT_TARGET_VOLUME,
   IMAGE_VIRTUAL_SIZE,
   IMAGE_STORAGE_CLASS,
-  HARVESTER_DESCRIPTION
+  HARVESTER_DESCRIPTION,
+  VM_IMPORT_SOURCE_VM,
+  VM_IMPORT_SOURCE_CLUSTER,
+  VM_IMPORT_STATUS,
+  VM_IMPORT_SOURCE_V_DC,
+  VM_IMPORT_SOURCE_V_ENDPOINT,
+  VM_IMPORT_SOURCE_V_STATUS,
+  VM_IMPORT_SOURCE_O_REGION,
+  VM_IMPORT_SOURCE_O_ENDPOINT,
+  VM_IMPORT_SOURCE_O_STATUS,
+  VM_IMPORT_SOURCE_OVA_URL,
+  VM_IMPORT_SOURCE_OVA_STATUS,
 } from './table-headers';
+import { ADD_ONS } from './harvester-map';
+import { registerAddonSideNav } from '../utils/dynamic-nav';
 
 const TEMPLATE = HCI.VM_VERSION;
 const MONITORING_GROUP = 'Monitoring & Logging::Monitoring';
@@ -194,6 +207,142 @@ export function init($plugin, store) {
     },
     exact: false
   });
+
+  // ===========================================================================
+  // VM Import Controller UI Flow
+  // ===========================================================================
+  // Define group (Hidden by default)
+  weightGroup('vmimport', 0, false);
+
+  // VirtualMachineImport
+  headers(HCI.VMIMPORT, [
+    STATE,
+    NAME_COL,
+    NAMESPACE_COL,
+    VM_IMPORT_SOURCE_VM,
+    VM_IMPORT_SOURCE_CLUSTER,
+    VM_IMPORT_STATUS,
+    AGE
+  ]);
+  configureType(HCI.VMIMPORT, {
+    resource:       HCI.VMIMPORT,
+    resourceDetail: HCI.VMIMPORT,
+    resourceEdit:   HCI.VMIMPORT,
+    location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT }
+    }
+  });
+  virtualType({ // needed to avoid 404 on refresh when combined with registerAddonSideNav()
+    name:       HCI.VMIMPORT,
+    labelKey:   'harvester.addons.vmImport.labels.vmimport',
+    group:      'vmimport',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT }
+    }
+  });
+
+  // Source: VMware
+  headers(HCI.VMIMPORT_SOURCE_V, [
+    STATE,
+    NAME_COL,
+    VM_IMPORT_SOURCE_V_ENDPOINT,
+    VM_IMPORT_SOURCE_V_DC,
+    VM_IMPORT_SOURCE_V_STATUS,
+    AGE
+  ]);
+  configureType(HCI.VMIMPORT_SOURCE_V, {
+    resource:       HCI.VMIMPORT_SOURCE_V,
+    resourceDetail: HCI.VMIMPORT_SOURCE_V,
+    resourceEdit:   HCI.VMIMPORT_SOURCE_V,
+    location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_V }
+    }
+  });
+  virtualType({ // needed to avoid 404 on refresh when combined with registerAddonSideNav()
+    name:       HCI.VMIMPORT_SOURCE_V,
+    labelKey:   'harvester.addons.vmImport.labels.vmimportSourceVMWare',
+    group:      'vmimport',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_V }
+    }
+  });
+
+  // Source: OpenStack
+  headers(HCI.VMIMPORT_SOURCE_O, [
+    STATE,
+    NAME_COL,
+    VM_IMPORT_SOURCE_O_ENDPOINT,
+    VM_IMPORT_SOURCE_O_REGION,
+    VM_IMPORT_SOURCE_O_STATUS,
+    AGE
+  ]);
+  configureType(HCI.VMIMPORT_SOURCE_O, {
+    resource:       HCI.VMIMPORT_SOURCE_O,
+    resourceDetail: HCI.VMIMPORT_SOURCE_O,
+    resourceEdit:   HCI.VMIMPORT_SOURCE_O,
+    location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_O }
+    }
+  });
+  virtualType({ // needed to avoid 404 on refresh when combined with registerAddonSideNav()
+    name:       HCI.VMIMPORT_SOURCE_O,
+    labelKey:   'harvester.addons.vmImport.labels.vmimportSourceOpenStack',
+    group:      'vmimport',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_O }
+    }
+  });
+
+  // Source: OVA
+  headers(HCI.VMIMPORT_SOURCE_OVA, [
+    STATE,
+    NAME_COL,
+    VM_IMPORT_SOURCE_OVA_URL,
+    VM_IMPORT_SOURCE_OVA_STATUS,
+    AGE
+  ]);
+  configureType(HCI.VMIMPORT_SOURCE_OVA, {
+    resource:       HCI.VMIMPORT_SOURCE_OVA,
+    resourceDetail: HCI.VMIMPORT_SOURCE_OVA,
+    resourceEdit:   HCI.VMIMPORT_SOURCE_OVA,
+    location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_OVA }
+    }
+  });
+  virtualType({ // needed to avoid 404 on refresh when combined with registerAddonSideNav()
+    name:       HCI.VMIMPORT_SOURCE_OVA,
+    labelKey:   'harvester.addons.vmImport.labels.vmimportSourceOVA',
+    group:      'vmimport',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_OVA }
+    }
+  });
+
+  // Enable SideNav based on Addon Status
+  registerAddonSideNav(store, PRODUCT_NAME, {
+    addonName:    ADD_ONS.VM_IMPORT_CONTROLLER,
+    resourceType: HCI.ADD_ONS,
+    navGroup:     'vmimport',
+    types:        [
+      HCI.VMIMPORT_SOURCE_V,
+      HCI.VMIMPORT_SOURCE_O,
+      HCI.VMIMPORT_SOURCE_OVA,
+      HCI.VMIMPORT
+    ]
+  });
+  // ===========================================================================
 
   basicType([HCI.VOLUME]);
   configureType(HCI.VOLUME, {
