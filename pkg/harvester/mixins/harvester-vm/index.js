@@ -709,7 +709,8 @@ export default {
       const volumeClaimTemplates = [];
 
       disk.forEach( (R, index) => {
-        const dataVolumeName = this.parseDataVolumeName(R);
+        const prefixName = this.value.metadata?.name || '';
+        const dataVolumeName = this.parseDataVolumeName(R, prefixName);
 
         const _disk = this.parseDisk(R, index);
         const _volume = this.parseVolume(R, dataVolumeName);
@@ -1004,23 +1005,18 @@ export default {
       this['cpuMemoryHotplugEnabled'] = cpuMemoryHotplugEnabled;
     },
 
-    parseDataVolumeName(R) {
-      const prefixName = this.value.metadata?.name || '';
+    parseDataVolumeName(R, prefixName) {
       let dataVolumeName = '';
 
-      if (!R.dataVolumeName) {
-        if (R.source === SOURCE_TYPE.ATTACH_VOLUME) {
-          dataVolumeName = R.volumeName;
-        } else if (this.isClone || !this.hasCreateVolumes.includes(R.realName)) {
-          dataVolumeName = `${ prefixName }-${ R.name }-${ randomStr(5).toLowerCase() }`;
-        } else {
-          dataVolumeName = R.realName;
-        }
-
-        R.dataVolumeName = dataVolumeName;
+      if (R.source === SOURCE_TYPE.ATTACH_VOLUME) {
+        dataVolumeName = R.volumeName;
+      } else if (this.isClone || !this.hasCreateVolumes.includes(R.realName)) {
+        dataVolumeName = `${ prefixName }-${ R.name }-${ randomStr(5).toLowerCase() }`;
+      } else {
+        dataVolumeName = R.realName;
       }
 
-      return R.dataVolumeName;
+      return dataVolumeName;
     },
 
     parseDisk(R, index) {
