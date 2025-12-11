@@ -1,7 +1,7 @@
 {
   "name": "harvester",
   "description": "Rancher UI Extension for Harvester",
-  "version": "1.7.0-rc5",
+  "version": "1.7.0-rc6",
   "private": false,
   "rancher": {
     "annotations": {
