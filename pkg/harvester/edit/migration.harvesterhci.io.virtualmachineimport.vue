@@ -235,11 +235,15 @@ export default {
       const selectedOption = this.sourceOptions.find((o) => o.value === key);
 
       if (selectedOption) {
+        const {
+          kind, apiVersion, name, namespace
+        } = selectedOption.raw;
+
         this.value.spec.sourceCluster = {
-          kind:       selectedOption.raw.kind,
-          apiVersion: selectedOption.raw.apiVersion,
-          name:       selectedOption.raw.name,
-          namespace:  selectedOption.raw.namespace,
+          kind,
+          apiVersion,
+          name,
+          namespace
         };
       } else {
         this.value.spec.sourceCluster = {};
