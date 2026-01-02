@@ -45,13 +45,15 @@ export default {
   },
 
   async fetch() {
+    const inStore = this.$store.getters['currentProduct'].inStore;
+
     // Fetch all dependencies in parallel to speed up the page load
     const hash = {
-      storageClasses:   this.$store.dispatch('harvester/findAll', { type: STORAGE_CLASS }),
-      networks:         this.$store.dispatch('harvester/findAll', { type: NETWORK_ATTACHMENT }),
-      vmwareSources:    this.$store.dispatch('harvester/findAll', { type: VMWARE_SOURCE_TYPE }),
-      openstackSources: this.$store.dispatch('harvester/findAll', { type: OPENSTACK_SOURCE_TYPE }),
-      ovaSources:       this.$store.dispatch('harvester/findAll', { type: OVA_SOURCE_TYPE }).catch(() => []),
+      storageClasses:   this.$store.dispatch(`${ inStore }/findAll`, { type: STORAGE_CLASS }),
+      networks:         this.$store.dispatch(`${ inStore }/findAll`, { type: NETWORK_ATTACHMENT }),
+      vmwareSources:    this.$store.dispatch(`${ inStore }/findAll`, { type: VMWARE_SOURCE_TYPE }),
+      openstackSources: this.$store.dispatch(`${ inStore }/findAll`, { type: OPENSTACK_SOURCE_TYPE }),
+      ovaSources:       this.$store.dispatch(`${ inStore }/findAll`, { type: OVA_SOURCE_TYPE }).catch(() => []),
     };
 
     const res = await allHash(hash);
