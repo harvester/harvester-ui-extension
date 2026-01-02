@@ -259,7 +259,13 @@ export default {
     },
 
     removeNetworkMapping(index) {
-      this.value.spec.networkMapping.splice(index, 1);
+      if (!this.value?.spec?.networkMapping) {
+        return;
+      }
+
+      if (index >= 0 && index < this.value.spec.networkMapping.length) {
+        this.value.spec.networkMapping.splice(index, 1);
+      }
     },
 
     // Validates that the input follows Kubernetes Naming Rules (RFC 1123).
