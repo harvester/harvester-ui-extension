@@ -42,8 +42,10 @@ export default {
   },
 
   async fetch() {
+    const inStore = this.$store.getters['currentProduct'].inStore;
+
     // Load all existing secrets to populate the "Use Existing Secret" dropdown.
-    this.allSecrets = await this.$store.dispatch('harvester/findAll', { type: SECRET });
+    this.allSecrets = await this.$store.dispatch(`${ inStore }/findAll`, { type: SECRET });
   },
 
   data() {
@@ -107,13 +109,15 @@ export default {
 
   methods: {
     async saveSource(buttonCb) {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+
       try {
         if (this.authMode === 'new') {
           const secretName = `${ this.value.metadata.name }-creds-${ randomStr(4).toLowerCase() }`;
           const namespace = this.value.metadata.namespace || 'default';
 
           // Create the model with the correct Schema ID (SECRET)
-          const newSecret = await this.$store.dispatch('harvester/create', {
+          const newSecret = await this.$store.dispatch(`${ inStore }/create`, {
             type:     SECRET,
             metadata: {
               name: secretName,
