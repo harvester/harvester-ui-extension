@@ -7,8 +7,9 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
 import { Checkbox } from '@components/Form/Checkbox';
 import CreateEditView from '@shell/mixins/create-edit-view';
-import { STORAGE_CLASS } from '@shell/config/types';
+import { STORAGE_CLASS, NETWORK_ATTACHMENT } from '@shell/config/types';
 import { allHash } from '@shell/utils/promise';
+import { MANAGEMENT_NETWORK } from '../mixins/harvester-vm';
 
 // API Types and Constants
 const MIGRATION_GROUP = 'migration.harvesterhci.io';
@@ -20,7 +21,6 @@ const OVA_KIND = 'OvaSource';
 const VMWARE_SOURCE_TYPE = `${ MIGRATION_GROUP }.${ VMWARE_KIND.toLowerCase() }`;
 const OPENSTACK_SOURCE_TYPE = `${ MIGRATION_GROUP }.${ OPENSTACK_KIND.toLowerCase() }`;
 const OVA_SOURCE_TYPE = `${ MIGRATION_GROUP }.${ OVA_KIND.toLowerCase() }`;
-const CLUSTER_NETWORK = 'network.harvesterhci.io.clusternetwork';
 
 export default {
   name: 'EditVirtualMachineImport',
@@ -52,7 +52,7 @@ export default {
     // Fetch all dependencies in parallel to speed up the page load
     const hash = {
       storageClasses:   this.$store.dispatch('harvester/findAll', { type: STORAGE_CLASS }),
-      networks:         this.$store.dispatch('harvester/findAll', { type: CLUSTER_NETWORK }),
+      networks:         this.$store.dispatch('harvester/findAll', { type: NETWORK_ATTACHMENT }),
       vmwareSources:    this.$store.dispatch('harvester/findAll', { type: VMWARE_SOURCE_TYPE }),
       openstackSources: this.$store.dispatch('harvester/findAll', { type: OPENSTACK_SOURCE_TYPE }),
       ovaSources:       this.$store.dispatch('harvester/findAll', { type: OVA_SOURCE_TYPE }).catch(() => []),
@@ -125,6 +125,12 @@ export default {
         { label: 'rtl8139', value: 'rtl8139' },
       ]
     };
+  },
+
+  created() {
+    if (this.registerBeforeHook) {
+      this.registerBeforeHook(this.updateBeforeSave);
+    }
   },
 
   computed: {
@@ -203,10 +209,17 @@ export default {
     },
 
     networkOptions() {
-      return this.allNetworks.map((n) => ({
+      const mgmtOption = {
+        label: 'Management Network',
+        value: MANAGEMENT_NETWORK
+      };
+
+      const vlanOptions = this.allNetworks.map((n) => ({
         label: n.nameDisplay || n.metadata.name,
         value: n.id
       }));
+
+      return [mgmtOption, ...vlanOptions];
     }
   },
 
@@ -263,6 +276,17 @@ export default {
 
       return undefined;
     },
+
+    updateBeforeSave() {
+      // If networkMapping exists, filter out the "Management Network" rows
+      // Let the vm-import-controller set the default network mapping
+      if (this.value.spec.networkMapping) {
+        this.value.spec.networkMapping = this.value.spec.networkMapping.filter((row) => {
+          return row.destinationNetwork !== MANAGEMENT_NETWORK;
+        });
+      }
+    },
+
   }
 };
 </script>
