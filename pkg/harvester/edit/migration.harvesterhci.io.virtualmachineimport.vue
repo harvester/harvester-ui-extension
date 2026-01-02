@@ -12,6 +12,8 @@ import { allHash } from '@shell/utils/promise';
 import { MANAGEMENT_NETWORK } from '../mixins/harvester-vm';
 import { VMIMPORT_SOURCE_PROVIDER, VMIMPORT_SOURCE_KINDS } from '../config/types';
 import { HCI } from '../types';
+import { isValidDNSLabelName } from '@pkg/utils/regular';
+import { mapGetters } from 'vuex';
 
 // Full API types for the fetch dispatch
 const VMWARE_SOURCE_TYPE = `${ HCI.MIGRATION }.${ VMIMPORT_SOURCE_KINDS.VMWARE.toLowerCase() }`;
@@ -132,6 +134,8 @@ export default {
   },
 
   computed: {
+    ...mapGetters({ t: 'i18n/t' }),
+
     // Return only the sources that match the selected Provider Type (VMware or OpenStack)
     sourceOptions() {
       let list = [];
@@ -275,11 +279,9 @@ export default {
     fvNameRule(val) {
       if (!val) return undefined; // 'Required' check handles empty state separately
 
-      // Regex: Lowercase alphanumeric, hyphens allowed in middle, start/end with alphanumeric
-      const rfc1123 = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
-
-      if (!rfc1123.test(val)) {
-        return 'Invalid format. Name must be lowercase, alphanumeric, and cannot contain spaces (e.g. "my-vm-1"). If your Source VM name does not match this, you must rename it on the Source cluster first.';
+      // valid RFC 1123
+      if (!isValidDNSLabelName(name)) {
+        return this.t('harvester.addons.vmImport.errors.rfc1123');
       }
 
       return undefined;

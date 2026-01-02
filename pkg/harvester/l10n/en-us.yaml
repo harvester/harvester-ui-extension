@@ -1587,6 +1587,8 @@ harvester:
         vmimportSourceVMWare: Source VMWare
         vmimportSourceOpenStack: Source OpenStack
         vmimportSourceOVA: Source OVA
+      errors:
+        rfc1123: 'Invalid format. Name must be lowercase, alphanumeric, and cannot contain spaces (e.g. "my-vm-1"). If your Source VM name does not match this, you must rename it on the Source cluster first.'
     rancherVcluster:
       accessRancher: Access the Rancher Dashboard
       hostname: Hostname
