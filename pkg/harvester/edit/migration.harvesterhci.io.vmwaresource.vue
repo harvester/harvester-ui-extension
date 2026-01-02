@@ -23,7 +23,7 @@ export default {
     LabeledInput,
     LabeledSelect,
     NameNsDescription,
-    RadioGroup
+    RadioGroup,
   },
 
   mixins: [CreateEditView],
@@ -54,6 +54,7 @@ export default {
       authMode:        initialMode,
       newUsername:     '',
       newPassword:     '',
+      newCaCert:       '',
       authModeOptions: [
         { label: 'Create New Credentials', value: 'new' },
         { label: 'Use Existing Secret', value: 'existing' }
@@ -110,7 +111,9 @@ export default {
           // base64 encode the data
           newSecret['data'] = {
             username: btoa(this.newUsername),
-            password: btoa(this.newPassword)
+            password: btoa(this.newPassword),
+            // Only include CA cert if the user provided one
+            caCert:   this.newCaCert ? btoa(this.newCaCert) : undefined
           };
 
           await newSecret.save();
@@ -218,6 +221,19 @@ export default {
               />
             </div>
           </div>
+          <div class="row mb-20">
+            <div class="col span-12">
+              <LabeledInput
+                v-model:value="newCaCert"
+                type="multiline"
+                label="CA Certificate (PEM)"
+                placeholder="-----BEGIN CERTIFICATE----- ..."
+                :min-height="100"
+                :mode="mode"
+              />
+            </div>
+          </div>
+
           <div class="text-muted">
             Note: A new Kubernetes Secret will be created to store these credentials.
           </div>
