@@ -254,6 +254,7 @@ export default {
           return volume;
         });
 
+        delete cloneVersionVM.metadata.annotations[HCI_ANNOTATIONS.MAC_ADDRESS];
         cloneVersionVM.metadata.annotations[HCI_ANNOTATIONS.VOLUME_CLAIM_TEMPLATE] = JSON.stringify(deleteDataSource);
 
         // Update instance labels, labels and annotations

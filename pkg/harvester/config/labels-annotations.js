@@ -77,4 +77,5 @@ export const HCI = {
   CLONE_STRATEGY:                   'cdi.harvesterhci.io/storageProfileCloneStrategy',
   VOLUME_MODE_ACCESS_MODES:         'cdi.harvesterhci.io/storageProfileVolumeModeAccessModes',
   VOLUME_SNAPSHOT_CLASS:            'cdi.harvesterhci.io/storageProfileVolumeSnapshotClass',
+  MAC_ADDRESS:                      'harvesterhci.io/mac-address',
 };
