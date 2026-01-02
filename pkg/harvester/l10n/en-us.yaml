@@ -20,7 +20,7 @@ nav:
     Monitoring: Monitoring
     Logging: Logging
     'Monitoring and Logging': Monitoring and Logging
-    vmimport: VM Import
+    vmimport: Virtual Machine Imports
 
 resourceTable:
   groupBy:
