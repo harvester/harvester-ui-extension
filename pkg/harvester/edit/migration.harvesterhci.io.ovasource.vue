@@ -6,7 +6,6 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
 import { RadioGroup } from '@components/Form/Radio';
-import { TextAreaAutoGrow } from '@components/Form/TextArea';
 import UnitInput from '@shell/components/form/UnitInput';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { SECRET } from '@shell/config/types';
@@ -25,7 +24,6 @@ export default {
     LabeledSelect,
     NameNsDescription,
     RadioGroup,
-    TextAreaAutoGrow,
     UnitInput
   },
 
@@ -241,8 +239,9 @@ export default {
           </div>
           <div class="row mb-20">
             <div class="col span-12">
-              <TextAreaAutoGrow
+              <LabeledInput
                 v-model:value="newCaCert"
+                type="multiline"
                 label="CA Certificate (PEM)"
                 placeholder="-----BEGIN CERTIFICATE----- ... (Optional)"
                 :min-height="100"
