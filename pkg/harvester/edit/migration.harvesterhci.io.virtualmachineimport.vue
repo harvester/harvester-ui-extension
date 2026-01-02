@@ -10,17 +10,13 @@ import CreateEditView from '@shell/mixins/create-edit-view';
 import { STORAGE_CLASS, NETWORK_ATTACHMENT } from '@shell/config/types';
 import { allHash } from '@shell/utils/promise';
 import { MANAGEMENT_NETWORK } from '../mixins/harvester-vm';
-
-// API Types and Constants
-const MIGRATION_GROUP = 'migration.harvesterhci.io';
-const VMWARE_KIND = 'VmwareSource';
-const OPENSTACK_KIND = 'OpenstackSource';
-const OVA_KIND = 'OvaSource';
+import { VMIMPORT_SOURCE_PROVIDER, VMIMPORT_SOURCE_KINDS } from '../config/types';
+import { HCI } from '../types';
 
 // Full API types for the fetch dispatch
-const VMWARE_SOURCE_TYPE = `${ MIGRATION_GROUP }.${ VMWARE_KIND.toLowerCase() }`;
-const OPENSTACK_SOURCE_TYPE = `${ MIGRATION_GROUP }.${ OPENSTACK_KIND.toLowerCase() }`;
-const OVA_SOURCE_TYPE = `${ MIGRATION_GROUP }.${ OVA_KIND.toLowerCase() }`;
+const VMWARE_SOURCE_TYPE = `${ HCI.MIGRATION }.${ VMIMPORT_SOURCE_KINDS.VMWARE.toLowerCase() }`;
+const OPENSTACK_SOURCE_TYPE = `${ HCI.MIGRATION }.${ VMIMPORT_SOURCE_KINDS.OPENSTACK.toLowerCase() }`;
+const OVA_SOURCE_TYPE = `${ HCI.MIGRATION }.${ VMIMPORT_SOURCE_KINDS.OVA.toLowerCase() }`;
 
 export default {
   name: 'EditVirtualMachineImport',
@@ -78,9 +74,9 @@ export default {
     let initialProvider = '';
     const existingKind = this.value.spec.sourceCluster.kind;
 
-    if (existingKind === VMWARE_KIND) initialProvider = 'vmware';
-    else if (existingKind === OPENSTACK_KIND) initialProvider = 'openstack';
-    else if (existingKind === OVA_KIND) initialProvider = 'ova';
+    if (existingKind === VMIMPORT_SOURCE_KINDS.VMWARE) initialProvider = VMIMPORT_SOURCE_PROVIDER.VMWARE;
+    else if (existingKind === VMIMPORT_SOURCE_KINDS.OPENSTACK) initialProvider = VMIMPORT_SOURCE_PROVIDER.OPENSTACK;
+    else if (existingKind === VMIMPORT_SOURCE_KINDS.OVA) initialProvider = VMIMPORT_SOURCE_PROVIDER.OVA;
 
     // Construct the unique key (Kind/Namespace/Name) if we are editing an existing resource
     let initialSourceKey = null;
@@ -102,9 +98,9 @@ export default {
 
       // Static Options
       providerTypeOptions: [
-        { label: 'VMware', value: 'vmware' },
-        { label: 'OpenStack', value: 'openstack' },
-        { label: 'OVA', value: 'ova' }
+        { label: 'VMware', value: VMIMPORT_SOURCE_PROVIDER.VMWARE },
+        { label: 'OpenStack', value: VMIMPORT_SOURCE_PROVIDER.OPENSTACK },
+        { label: 'OVA', value: VMIMPORT_SOURCE_PROVIDER.OVA }
       ],
       diskBusOptions: [
         // Allow resetting selection / reset to the default behavior (sending null/empty)
@@ -138,11 +134,11 @@ export default {
     sourceOptions() {
       let list = [];
 
-      if (this.sourceProviderType === 'vmware') {
+      if (this.sourceProviderType === VMIMPORT_SOURCE_PROVIDER.VMWARE) {
         list = this.vmwareSources;
-      } else if (this.sourceProviderType === 'openstack') {
+      } else if (this.sourceProviderType === VMIMPORT_SOURCE_PROVIDER.OPENSTACK) {
         list = this.openstackSources;
-      } else if (this.sourceProviderType === 'ova') {
+      } else if (this.sourceProviderType === VMIMPORT_SOURCE_PROVIDER.OVA) {
         list = this.ovaSources;
       }
 
@@ -151,12 +147,12 @@ export default {
         let kind = s.kind;
 
         if (!kind) {
-          if (this.sourceProviderType === 'vmware') kind = VMWARE_KIND;
-          else if (this.sourceProviderType === 'openstack') kind = OPENSTACK_KIND;
-          else if (this.sourceProviderType === 'ova') kind = OVA_KIND;
+          if (this.sourceProviderType === VMIMPORT_SOURCE_PROVIDER.VMWARE) kind = VMIMPORT_SOURCE_KINDS.VMWARE;
+          else if (this.sourceProviderType === VMIMPORT_SOURCE_PROVIDER.OPENSTACK) kind = VMIMPORT_SOURCE_KINDS.OPENSTACK;
+          else if (this.sourceProviderType === VMIMPORT_SOURCE_PROVIDER.OVA) kind = VMIMPORT_SOURCE_KINDS.OVA;
         }
 
-        const apiVersion = s.apiVersion || `${ MIGRATION_GROUP }/v1beta1`;
+        const apiVersion = s.apiVersion || `${ HCI.MIGRATION }/v1beta1`;
 
         return {
           label: s.metadata.name,
