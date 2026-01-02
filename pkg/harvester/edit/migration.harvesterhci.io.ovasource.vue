@@ -101,6 +101,21 @@ export default {
     }
   },
 
+  watch: {
+    authMode(newMode) {
+      if (newMode === 'existing') {
+        // Bind to value.spec.credentials.name for existing credential
+        // Ensure 'credentials' object exists first when selected
+        if (!this.value.spec.credentials) {
+          this.value.spec.credentials = {
+            name:      '',
+            namespace: this.value.metadata.namespace || 'default'
+          };
+        }
+      }
+    }
+  },
+
   methods: {
     async saveSource(buttonCb) {
       try {
