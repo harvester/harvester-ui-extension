@@ -280,7 +280,7 @@ export default {
       if (!val) return undefined; // 'Required' check handles empty state separately
 
       // valid RFC 1123
-      if (!isValidDNSLabelName(name)) {
+      if (!isValidDNSLabelName(val)) {
         return this.t('harvester.addons.vmImport.errors.rfc1123');
       }
 
