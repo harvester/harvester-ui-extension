@@ -48,6 +48,13 @@ export default {
       this[key] = res[key];
     }
 
+    const vmDevices = this.value?.domain?.devices?.hostDevices || [];
+    const vmDeviceNames = vmDevices.map(({ name }) => name);
+
+    this.devices.forEach((row) => {
+      row.allowDisable = !vmDeviceNames.includes(row.metadata.name);
+    });
+
     this.selectedDevices = (this.value?.domain?.devices?.hostDevices || [])
       .map(({ name }) => name)
       .filter((name) => this.enabledDevices.find((device) => device?.metadata?.name === name));

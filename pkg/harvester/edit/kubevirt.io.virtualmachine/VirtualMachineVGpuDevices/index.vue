@@ -46,6 +46,13 @@ export default {
       this[key] = res[key];
     }
 
+    const vmDevices = this.value?.domain?.devices?.gpus || [];
+    const vmDeviceNames = vmDevices.map(({ name }) => name);
+
+    this.devices.forEach((row) => {
+      row.allowDisable = !vmDeviceNames.includes(row.metadata.name);
+    });
+
     const vGpus = this.vm.isOff ? [
       ...(this.value?.domain?.devices?.gpus || []).map(({ name }) => name),
     ] : [
