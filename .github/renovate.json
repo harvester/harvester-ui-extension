@@ -9,6 +9,7 @@
     "main",
     "/^release-harvester-v\\d+\\.\\d+$/"
   ],
+  "exclude": ["release-harvester-v1.0", "release-harvester-v1.5"],
   "automergeMajor": false,
   "semanticCommits": "enabled",
   "semanticCommitType": "deps",
