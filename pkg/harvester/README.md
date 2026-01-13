@@ -163,7 +163,7 @@ If you want to contribute, start by reading this document, then visit our [Getti
 
 ## License
 
-Copyright (c) 2014-2025 [SUSE, LLC.](https://www.suse.com/)
+Copyright (c) 2014-2026 [SUSE, LLC.](https://www.suse.com/)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
