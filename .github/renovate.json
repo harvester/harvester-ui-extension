@@ -7,9 +7,8 @@
   ],
   "baseBranches": [
     "main",
-    "/^release-harvester-v\\d+\\.\\d+$/"
+    "/^release-harvester-v1\\.[7-9]$/"
   ],
-  "exclude": ["release-harvester-v1.0", "release-harvester-v1.5"],
   "automergeMajor": false,
   "semanticCommits": "enabled",
   "semanticCommitType": "deps",
