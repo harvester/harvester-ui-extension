@@ -8,13 +8,14 @@ import NameNsDescription from '@shell/components/form/NameNsDescription';
 import { RadioGroup } from '@components/Form/Radio';
 import UnitInput from '@shell/components/form/UnitInput';
 import CreateEditView from '@shell/mixins/create-edit-view';
+import FormValidation from '@shell/mixins/form-validation';
 import { SECRET } from '@shell/config/types';
 import { randomStr } from '@shell/utils/string';
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'EditOpenstackSource',
 
-  // Declare the event, fixes a console warning
   emits: ['update:value'],
 
   components: {
@@ -28,7 +29,7 @@ export default {
     UnitInput
   },
 
-  mixins: [CreateEditView],
+  mixins: [CreateEditView, FormValidation],
 
   props: {
     value: {
@@ -44,40 +45,44 @@ export default {
   async fetch() {
     const inStore = this.$store.getters['currentProduct'].inStore;
 
-    // Load all existing secrets to populate the "Use Existing Secret" dropdown.
     this.allSecrets = await this.$store.dispatch(`${ inStore }/findAll`, { type: SECRET });
   },
 
   data() {
-    // Initialize the spec structure if it's missing (e.g. fresh create)
     if (!this.value.spec) this.value.spec = {};
     if (!this.value.spec.credentials) this.value.spec.credentials = {};
 
-    // If a secret name is already set, assume the user wants to keep using it, otherwise "Create New".
     const initialMode = this.value.spec.credentials.name ? 'existing' : 'new';
 
     return {
       allSecrets:      [],
       authMode:        initialMode,
 
-      // Temporary fields for credential input.
-      // NOT bind these to the resource model directly to avoid
-      // leaking plain-text passwords into the CRD yaml.
       newUsername:     '',
       newPassword:     '',
       newProjectName:  '',
       newDomainName:   '',
       newCaCert:       '',
 
-      authModeOptions: [
-        { label: 'Create New Credentials', value: 'new' },
-        { label: 'Use Existing Secret', value: 'existing' }
-      ]
+      // Rules for fields that exist in the value object (Model)
+      fvFormRuleSets: [
+        { path: 'metadata.name', rules: ['nameRequired'] },
+        { path: 'spec.endpoint', rules: ['endpointRequired'] },
+        { path: 'spec.region', rules: ['regionRequired'] },
+      ],
     };
   },
 
   computed: {
-    // Filter secrets for the ones in the same namespace.
+    ...mapGetters({ t: 'i18n/t' }),
+
+    authModeOptions() {
+      return [
+        { label: this.t('harvester.addons.vmImport.fields.createSecret'), value: 'new' },
+        { label: this.t('harvester.addons.vmImport.fields.useSecret'), value: 'existing' }
+      ];
+    },
+
     secretOptions() {
       const currentNamespace = this.value.metadata.namespace || 'default';
 
@@ -89,16 +94,26 @@ export default {
         }));
     },
 
-    // Controls the "Save" button state, enforce required fields.
-    isFormValid() {
-      if (!this.value.spec.endpoint) return false;
-      if (!this.value.spec.region) return false;
+    // Define custom rules for the FormValidation mixin
+    fvExtraRules() {
+      return {
+        nameRequired:     (val) => !val ? this.t('validation.required', { key: this.t('harvester.fields.name') }) : undefined,
+        endpointRequired: (val) => !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.openstack.fields.endpoint') }) : undefined,
+        regionRequired:   (val) => !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.openstack.fields.region') }) : undefined,
+      };
+    },
 
+    // Combine mixin validation + conditional manual checks
+    isFormValid() {
+      // Check static fields via Mixin
+      if (!this.fvFormIsValid) {
+        return false;
+      }
+
+      // Check conditional fields
       if (this.authMode === 'new') {
-        // OpenStack requires these 4 fields
         if (!this.newUsername || !this.newPassword) return false;
         if (!this.newProjectName || !this.newDomainName) return false;
-        // CA Cert is optional (e.g. public cloud), don't block saving if empty
       } else {
         if (!this.value.spec.credentials.name) return false;
       }
@@ -108,6 +123,22 @@ export default {
   },
 
   methods: {
+    usernameRule(val) {
+      return !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.fields.username') }) : undefined;
+    },
+    passwordRule(val) {
+      return !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.fields.password') }) : undefined;
+    },
+    projectRule(val) {
+      return !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.openstack.fields.projectName') }) : undefined;
+    },
+    domainRule(val) {
+      return !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.openstack.fields.domainName') }) : undefined;
+    },
+    secretRule(val) {
+      return !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.fields.selectSecret') }) : undefined;
+    },
+
     async saveSource(buttonCb) {
       const inStore = this.$store.getters['currentProduct'].inStore;
 
@@ -116,7 +147,6 @@ export default {
           const secretName = `${ this.value.metadata.name }-creds-${ randomStr(4).toLowerCase() }`;
           const namespace = this.value.metadata.namespace || 'default';
 
-          // Create the model with the correct Schema ID (SECRET)
           const newSecret = await this.$store.dispatch(`${ inStore }/create`, {
             type:     SECRET,
             metadata: {
@@ -125,23 +155,17 @@ export default {
             }
           });
 
-          // Use '_type' to set the Kubernetes 'type' field.
-          // Setting 'type' directly overwrites the Schema ID and breaks the save() URL.
           newSecret['_type'] = 'Opaque';
-
-          // base64 encode the data
           newSecret['data'] = {
             username:     btoa(this.newUsername),
             password:     btoa(this.newPassword),
             project_name: btoa(this.newProjectName),
             domain_name:  btoa(this.newDomainName),
-            // Only include CA cert if the user provided one
             ca_cert:      this.newCaCert ? btoa(this.newCaCert) : undefined
           };
 
           await newSecret.save();
 
-          // Link the new secret to the Source
           this.value.spec.credentials = {
             name: secretName,
             namespace
@@ -172,6 +196,7 @@ export default {
     <NameNsDescription
       :value="value"
       :mode="mode"
+      :rules="{ name: fvGetAndReportPathRules('metadata.name') }"
       @update:value="$emit('update:value', $event)"
     />
 
@@ -182,25 +207,27 @@ export default {
     >
       <Tab
         name="basic"
-        label="Basics"
+        :label="t('harvester.addons.vmImport.titles.basic')"
         :weight="3"
       >
         <div class="row mb-20">
           <div class="col span-6">
             <LabeledInput
               v-model:value="value.spec.endpoint"
-              label="Identity Service Endpoint"
-              placeholder="e.g. https://devstack/identity"
+              :label="t('harvester.addons.vmImport.openstack.fields.endpoint')"
+              :placeholder="t('harvester.addons.vmImport.openstack.placeholders.endpoint')"
               :mode="mode"
+              :rules="fvGetAndReportPathRules('spec.endpoint')"
               required
             />
           </div>
           <div class="col span-6">
             <LabeledInput
               v-model:value="value.spec.region"
-              label="Region"
-              placeholder="e.g. RegionOne"
+              :label="t('harvester.addons.vmImport.openstack.fields.region')"
+              :placeholder="t('harvester.addons.vmImport.openstack.placeholders.region')"
               :mode="mode"
+              :rules="fvGetAndReportPathRules('spec.region')"
               required
             />
           </div>
@@ -209,7 +236,7 @@ export default {
 
       <Tab
         name="auth"
-        label="Authentication"
+        :label="t('harvester.addons.vmImport.titles.auth')"
         :weight="2"
       >
         <div class="row mb-20">
@@ -228,8 +255,9 @@ export default {
             <div class="col span-6">
               <LabeledInput
                 v-model:value="newUsername"
-                label="Username"
+                :label="t('harvester.addons.vmImport.fields.username')"
                 :mode="mode"
+                :rules="[usernameRule]"
                 required
               />
             </div>
@@ -237,8 +265,9 @@ export default {
               <LabeledInput
                 v-model:value="newPassword"
                 type="password"
-                label="Password"
+                :label="t('harvester.addons.vmImport.fields.password')"
                 :mode="mode"
+                :rules="[passwordRule]"
                 required
               />
             </div>
@@ -247,18 +276,20 @@ export default {
             <div class="col span-6">
               <LabeledInput
                 v-model:value="newProjectName"
-                label="Project Name"
-                placeholder="e.g. admin"
+                :label="t('harvester.addons.vmImport.openstack.fields.projectName')"
+                :placeholder="t('harvester.addons.vmImport.openstack.placeholders.projectName')"
                 :mode="mode"
+                :rules="[projectRule]"
                 required
               />
             </div>
             <div class="col span-6">
               <LabeledInput
                 v-model:value="newDomainName"
-                label="Domain Name"
-                placeholder="e.g. default"
+                :label="t('harvester.addons.vmImport.openstack.fields.domainName')"
+                :placeholder="t('harvester.addons.vmImport.openstack.placeholders.domainName')"
                 :mode="mode"
+                :rules="[domainRule]"
                 required
               />
             </div>
@@ -268,8 +299,8 @@ export default {
               <LabeledInput
                 v-model:value="newCaCert"
                 type="multiline"
-                label="CA Certificate (PEM)"
-                placeholder="-----BEGIN CERTIFICATE----- ..."
+                :label="t('harvester.addons.vmImport.fields.caCert')"
+                :placeholder="t('harvester.addons.vmImport.placeholders.caCert')"
                 :min-height="100"
                 :mode="mode"
               />
@@ -283,8 +314,9 @@ export default {
               <LabeledSelect
                 v-model:value="value.spec.credentials.name"
                 :options="secretOptions"
-                label="Select Secret"
+                :label="t('harvester.addons.vmImport.fields.selectSecret')"
                 :mode="mode"
+                :rules="[secretRule]"
                 required
               />
             </div>
@@ -294,15 +326,15 @@ export default {
 
       <Tab
         name="advanced"
-        label="Advanced"
+        :label="t('harvester.addons.vmImport.titles.advanced')"
         :weight="1"
       >
         <div class="row mb-20">
           <div class="col span-6">
             <UnitInput
               v-model:value="value.spec.uploadImageRetryCount"
-              label="Upload Image Retry Count"
-              placeholder="Default: 30"
+              :label="t('harvester.addons.vmImport.openstack.fields.retryCount')"
+              :placeholder="t('harvester.addons.vmImport.openstack.placeholders.retryCount')"
               suffix="Times"
               :mode="mode"
             />
@@ -310,8 +342,8 @@ export default {
           <div class="col span-6">
             <UnitInput
               v-model:value="value.spec.uploadImageRetryDelay"
-              label="Upload Image Retry Delay"
-              placeholder="Default: 10"
+              :label="t('harvester.addons.vmImport.openstack.fields.retryDelay')"
+              :placeholder="t('harvester.addons.vmImport.openstack.placeholders.retryDelay')"
               suffix="Seconds"
               :mode="mode"
             />
