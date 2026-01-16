@@ -8,8 +8,10 @@ import NameNsDescription from '@shell/components/form/NameNsDescription';
 import { RadioGroup } from '@components/Form/Radio';
 import UnitInput from '@shell/components/form/UnitInput';
 import CreateEditView from '@shell/mixins/create-edit-view';
+import FormValidation from '@shell/mixins/form-validation';
 import { SECRET } from '@shell/config/types';
 import { randomStr } from '@shell/utils/string';
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'EditOvaSource',
@@ -27,7 +29,7 @@ export default {
     UnitInput
   },
 
-  mixins: [CreateEditView],
+  mixins: [CreateEditView, FormValidation],
 
   props: {
     value: {
@@ -66,15 +68,25 @@ export default {
       newPassword:     '',
       newCaCert:       '', // Key will be "ca.crt"
 
-      authModeOptions: [
-        { label: 'None (Public URL)', value: 'none' },
-        { label: 'Create New Credentials', value: 'new' },
-        { label: 'Use Existing Secret', value: 'existing' }
-      ]
+      // Validation Rules for static fields
+      fvFormRuleSets: [
+        { path: 'metadata.name', rules: ['nameRequired'] },
+        { path: 'spec.url', rules: ['urlRequired'] },
+      ],
     };
   },
 
   computed: {
+    ...mapGetters({ t: 'i18n/t' }),
+
+    authModeOptions() {
+      return [
+        { label: this.t('harvester.addons.vmImport.fields.none'), value: 'none' },
+        { label: this.t('harvester.addons.vmImport.fields.createSecret'), value: 'new' },
+        { label: this.t('harvester.addons.vmImport.fields.useSecret'), value: 'existing' }
+      ];
+    },
+
     secretOptions() {
       const currentNamespace = this.value.metadata.namespace || 'default';
 
@@ -86,12 +98,22 @@ export default {
         }));
     },
 
+    // Define custom rules for the FormValidation mixin
+    fvExtraRules() {
+      return {
+        nameRequired: (val) => !val ? this.t('validation.required', { key: this.t('harvester.fields.name') }) : undefined,
+        urlRequired:  (val) => !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.ova.fields.url') }) : undefined,
+      };
+    },
+
     isFormValid() {
-      // URL is mandatory
-      if (!this.value.spec.url) return false;
+      if (!this.fvFormIsValid) {
+        return false;
+      }
 
       if (this.authMode === 'new') {
         // At least a username/password OR a CA cert to be provided.
+        // If the user selected "Create New", they likely intend to enter something.
         if (!this.newUsername && !this.newPassword && !this.newCaCert) return false;
       } else if (this.authMode === 'existing') {
         if (!this.value.spec.credentials?.name) return false;
@@ -117,6 +139,10 @@ export default {
   },
 
   methods: {
+    secretRule(val) {
+      return !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.fields.selectSecret') }) : undefined;
+    },
+
     async saveSource(buttonCb) {
       const inStore = this.$store.getters['currentProduct'].inStore;
 
@@ -141,8 +167,7 @@ export default {
             // Optional fields logic
             username: this.newUsername ? btoa(this.newUsername) : undefined,
             password: this.newPassword ? btoa(this.newPassword) : undefined,
-            // vm-import-controller code specifies "ca.crt" with a dot. See:
-            // https://github.com/harvester/vm-import-controller/blob/main/pkg/apis/migration.harvesterhci.io/v1beta1/ova.go#L35
+            // vm-import-controller code specifies "ca.crt" with a dot.
             'ca.crt': this.newCaCert ? btoa(this.newCaCert) : undefined
           };
 
@@ -178,6 +203,7 @@ export default {
     <NameNsDescription
       :value="value"
       :mode="mode"
+      :rules="{ name: fvGetAndReportPathRules('metadata.name') }"
       @update:value="$emit('update:value', $event)"
     />
 
@@ -188,17 +214,18 @@ export default {
     >
       <Tab
         name="basic"
-        label="Basics"
+        :label="t('harvester.addons.vmImport.titles.basic')"
         :weight="3"
       >
         <div class="row mb-20">
           <div class="col span-12">
             <LabeledInput
               v-model:value="value.spec.url"
-              label="OVA URL"
-              placeholder="e.g. https://download.example.com/images/my-vm.ova"
+              :label="t('harvester.addons.vmImport.ova.fields.url')"
+              :placeholder="t('harvester.addons.vmImport.ova.placeholders.url')"
               tooltip="Supports HTTP and HTTPS protocols."
               :mode="mode"
+              :rules="fvGetAndReportPathRules('spec.url')"
               required
             />
           </div>
@@ -207,7 +234,7 @@ export default {
 
       <Tab
         name="auth"
-        label="Authentication"
+        :label="t('harvester.addons.vmImport.titles.auth')"
         :weight="2"
       >
         <div class="row mb-20">
@@ -226,7 +253,7 @@ export default {
             <div class="col span-6">
               <LabeledInput
                 v-model:value="newUsername"
-                label="Username"
+                :label="t('harvester.addons.vmImport.fields.username')"
                 placeholder="(Optional)"
                 :mode="mode"
               />
@@ -235,7 +262,7 @@ export default {
               <LabeledInput
                 v-model:value="newPassword"
                 type="password"
-                label="Password"
+                :label="t('harvester.addons.vmImport.fields.password')"
                 placeholder="(Optional)"
                 :mode="mode"
               />
@@ -246,8 +273,8 @@ export default {
               <LabeledInput
                 v-model:value="newCaCert"
                 type="multiline"
-                label="CA Certificate (PEM)"
-                placeholder="-----BEGIN CERTIFICATE----- ... (Optional)"
+                :label="t('harvester.addons.vmImport.fields.caCert')"
+                :placeholder="t('harvester.addons.vmImport.placeholders.caCert')"
                 :min-height="100"
                 :mode="mode"
               />
@@ -261,8 +288,9 @@ export default {
               <LabeledSelect
                 v-model:value="value.spec.credentials.name"
                 :options="secretOptions"
-                label="Select Secret"
+                :label="t('harvester.addons.vmImport.fields.selectSecret')"
                 :mode="mode"
+                :rules="[secretRule]"
                 required
               />
             </div>
@@ -272,14 +300,14 @@ export default {
 
       <Tab
         name="advanced"
-        label="Advanced"
+        :label="t('harvester.addons.vmImport.titles.advanced')"
         :weight="1"
       >
         <div class="row mb-20">
           <div class="col span-6">
             <UnitInput
               v-model:value="value.spec.httpTimeoutSeconds"
-              label="HTTP Timeout"
+              :label="t('harvester.addons.vmImport.ova.fields.httpTimeout')"
               placeholder="Default: 600"
               suffix="Seconds"
               :mode="mode"
