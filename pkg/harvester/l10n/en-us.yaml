@@ -1582,13 +1582,39 @@ harvester:
       titles:
         basic: Basic
         pvc: Volume
+        networking: Network Mapping
+        advanced: Advanced
       labels:
         vmimport: Virtual Machine Import
         vmimportSourceVMWare: Source VMWare
         vmimportSourceOpenStack: Source OpenStack
         vmimportSourceOVA: Source OVA
+      fields:
+        sourceProvider: Source Provider Type
+        sourceCluster: Source Cluster
+        vmName: VM Name
+        targetStorageClass: Target Storage Class
+        sourceNetwork: Source Network Name
+        destNetwork: Destination Network
+        interfaceModel: Interface Model
+        folder: Folder
+        diskBus: Default Disk Bus
+        defaultInterface: Default Network Interface
+        skipPreflight: Skip Preflight Checks
+        forcePowerOff: Force Power Off Source VM
+      placeholders:
+        selectCluster: Select a cluster...
+        selectProviderFirst: Select a provider type first
+        matchSource: Must match the name in the source cluster
+        folderExample: e.g. /Datacenters/DC1/vm
+      options:
+        useDefault: Use Default
+      actions:
+        addNetwork: Add Network Mapping
+        remove: Remove
       errors:
         rfc1123: 'Invalid format. Name must be lowercase, alphanumeric, and cannot contain spaces (e.g. "my-vm-1"). If your Source VM name does not match this, you must rename it on the Source cluster first.'
+        networkMappingRequired: Every Network Mapping row must have a Source and Destination selected.
     rancherVcluster:
       accessRancher: Access the Rancher Dashboard
       hostname: Hostname
