@@ -690,7 +690,6 @@ export default {
         set(this.spec.template.spec, 'domain.memory.maxGuest', this.maxMemory);
         set(this.spec.template.spec, 'domain.resources.limits.memory', this.maxMemory);
       } else {
-        this.spec.template.spec.domain.cpu.maxSockets = 1;
         this.spec.template.spec.domain.cpu.sockets = 1;
         this.spec.template.spec.domain.cpu.cores = this.cpu;
         this.spec.template.spec.domain.resources.limits.cpu = this.cpu?.toString();
