@@ -54,6 +54,11 @@ export default {
 
     const vmDevices = this.value?.domain?.devices?.hostDevices || [];
     const otherDevices = this.otherDevices(vmDevices).map(({ name }) => name);
+    const vmDeviceNames = vmDevices.map(({ name }) => name);
+
+    this.pciDevices.forEach((row) => {
+      row.allowDisable = !vmDeviceNames.includes(row.metadata.name);
+    });
 
     vmDevices.forEach(({ name, deviceName }) => {
       const checkName = (deviceName || '').split('/')?.[1];

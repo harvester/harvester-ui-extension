@@ -100,6 +100,12 @@ export default class VGpuDevice extends SteveModel {
   }
 
   async disableVGpu() {
+    if (!this.allowDisable) {
+      this.showDetachWarning();
+
+      return;
+    }
+
     const { vGPUTypeName, enabled } = this.spec;
 
     try {
@@ -125,5 +131,21 @@ export default class VGpuDevice extends SteveModel {
 
   get vGpuAvailableTypes() {
     return this.status?.availableTypes ? Object.keys(this.status.availableTypes) : [];
+  }
+
+  showDetachWarning() {
+    this.$dispatch('growl/warning', {
+      title:   this.$rootGetters['i18n/t']('harvester.vgpu.detachWarning.title'),
+      message: this.$rootGetters['i18n/t']('harvester.vgpu.detachWarning.message'),
+      timeout: 5000
+    }, { root: true });
+  }
+
+  get allowDisable() {
+    return this._allowDisable;
+  }
+
+  set allowDisable(value) {
+    this._allowDisable = value;
   }
 }
