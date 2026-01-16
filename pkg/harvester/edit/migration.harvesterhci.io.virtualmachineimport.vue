@@ -7,6 +7,7 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
 import { Checkbox } from '@components/Form/Checkbox';
 import CreateEditView from '@shell/mixins/create-edit-view';
+import FormValidation from '@shell/mixins/form-validation';
 import { STORAGE_CLASS, NETWORK_ATTACHMENT } from '@shell/config/types';
 import { allHash } from '@shell/utils/promise';
 import { MANAGEMENT_NETWORK } from '../mixins/harvester-vm';
@@ -33,7 +34,7 @@ export default {
     Checkbox
   },
 
-  mixins: [CreateEditView],
+  mixins: [CreateEditView, FormValidation],
 
   props: {
     value: {
@@ -108,7 +109,7 @@ export default {
       ],
       diskBusOptions: [
         // Allow resetting selection / reset to the default behavior (sending null/empty)
-        { label: 'Use Default', value: '' },
+        { label: this.t('harvester.addons.vmImport.options.useDefault'), value: '' },
         { label: 'VirtIO', value: 'virtio' },
         { label: 'SCSI', value: 'scsi' },
         { label: 'SATA', value: 'sata' },
@@ -116,14 +117,19 @@ export default {
       ],
       interfaceModelOptions: [
         // Allow resetting selection / reset to the default behavior (sending null/empty)
-        { label: 'Use Default', value: '' },
+        { label: this.t('harvester.addons.vmImport.options.useDefault'), value: '' },
         { label: 'VirtIO', value: 'virtio' },
         { label: 'e1000', value: 'e1000' },
         { label: 'e1000e', value: 'e1000e' },
         { label: 'ne2k_pci', value: 'ne2k_pci' },
         { label: 'pcnet', value: 'pcnet' },
         { label: 'rtl8139', value: 'rtl8139' },
-      ]
+      ],
+
+      fvFormRuleSets: [
+        { path: 'metadata.name', rules: ['nameRequired'] },
+        { path: 'spec.virtualMachineName', rules: ['vmNameRequired', 'rfc1123'] },
+      ],
     };
   },
 
@@ -174,6 +180,21 @@ export default {
       });
     },
 
+    fvExtraRules() {
+      return {
+        nameRequired:   (val) => !val ? this.t('validation.required', { key: this.t('harvester.fields.name') }) : undefined,
+        vmNameRequired: (val) => !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.fields.vmName') }) : undefined,
+        rfc1123:
+        (val) => {
+          if (val && !isValidDNSLabelName(val)) {
+            return this.t('harvester.addons.vmImport.errors.rfc1123');
+          }
+
+          return undefined;
+        }
+      };
+    },
+
     // Perform various form validations before allowing to submit
     isFormValid() {
       // Check VM Name is valid
@@ -193,6 +214,13 @@ export default {
       if (hasInvalidRow) return false;
 
       return true;
+    },
+
+    isNetworkTabInvalid() {
+      const networks = this.value.spec.networkMapping || [];
+      // Only error if a row exists AND it is missing fields
+
+      return networks.some((row) => !row.sourceNetwork || !row.destinationNetwork);
     },
 
     // Filter out internal storage classes
@@ -272,6 +300,14 @@ export default {
       }
     },
 
+    requiredRule(val) {
+      if (!val) {
+        return this.t('validation.required', { key: this.t('generic.value') });
+      }
+
+      return undefined;
+    },
+
     // Validates that the input follows Kubernetes Naming Rules (RFC 1123).
     // If the source VM has uppercase letters or spaces, the user must be warned
     // that they cannot import it until they rename it on the source. See:
@@ -297,6 +333,33 @@ export default {
       }
     },
 
+    // Only handles complex logic that doesn't fit into simple field rules
+    async saveOverride(buttonCb) {
+      const errors = [];
+
+      this.errors = [];
+
+      // Validate Provider Type
+      if (!this.sourceProviderType) {
+        errors.push(this.t('validation.required', { key: this.t('harvester.addons.vmImport.fields.sourceProvider') }));
+      }
+
+      // Validate Network Tab
+      if (this.isNetworkTabInvalid) {
+        errors.push(this.t('harvester.addons.vmImport.errors.networkMappingRequired'));
+      }
+
+      // Return immediately in case of an error, avoid that `this.save()` runs, preventing `updateBeforeSave` from resetting data.
+      if (errors.length > 0) {
+        this.errors = errors;
+        buttonCb(false);
+
+        return;
+      }
+
+      // Only proceed if valid
+      this.save(buttonCb);
+    },
   }
 };
 </script>
@@ -308,13 +371,14 @@ export default {
     :mode="mode"
     :errors="errors"
     :apply-hooks="applyHooks"
-    :validation-passed="isFormValid"
-    @finish="save"
+    :validation-passed="fvFormIsValid"
+    @finish="saveOverride"
     @error="e=>errors=e"
   >
     <NameNsDescription
       :value="value"
       :mode="mode"
+      :rules="{ name: fvGetAndReportPathRules('metadata.name') }"
       @update:value="$emit('update:value', $event)"
     />
 
@@ -325,7 +389,7 @@ export default {
     >
       <Tab
         name="basic"
-        label="Basics"
+        :label="t('harvester.addons.vmImport.titles.basic')"
         :weight="3"
       >
         <div class="row mb-20">
@@ -333,8 +397,10 @@ export default {
             <LabeledSelect
               v-model:value="sourceProviderType"
               :options="providerTypeOptions"
-              label="Source Provider Type"
+              :label="t('harvester.addons.vmImport.fields.sourceProvider')"
               :mode="mode"
+              :rules="[requiredRule]"
+              required
               @update:value="onProviderTypeChange"
             />
           </div>
@@ -342,10 +408,11 @@ export default {
             <LabeledSelect
               :value="selectedSourceKey"
               :options="sourceOptions"
-              label="Source Cluster"
-              :placeholder="sourceProviderType ? 'Select a cluster...' : 'Select a provider type first'"
+              :label="t('harvester.addons.vmImport.fields.sourceCluster')"
+              :placeholder="sourceProviderType ? t('harvester.addons.vmImport.placeholders.selectCluster') : t('harvester.addons.vmImport.placeholders.selectProviderFirst')"
               :disabled="!sourceProviderType"
               :mode="mode"
+              :rules="fvGetAndReportPathRules('selectedSourceKey')"
               required
               @update:value="updateSource"
             />
@@ -356,11 +423,10 @@ export default {
           <div class="col span-6">
             <LabeledInput
               v-model:value="value.spec.virtualMachineName"
-              label="VM Name"
-              placeholder="Must match the name in the source cluster"
-              tooltip="This must match the Source VM name exactly. If your Source VM name contains spaces or uppercase letters, you must rename it in VMware/OpenStack first, as Harvester does not support those characters."
-              :rules="[fvNameRule]"
+              :label="t('harvester.addons.vmImport.fields.vmName')"
+              :placeholder="t('harvester.addons.vmImport.placeholders.matchSource')"
               :mode="mode"
+              :rules="fvGetAndReportPathRules('spec.virtualMachineName')"
               required
             />
           </div>
@@ -368,7 +434,7 @@ export default {
             <LabeledSelect
               v-model:value="value.spec.storageClass"
               :options="storageClassOptions"
-              label="Target Storage Class"
+              :label="t('harvester.addons.vmImport.fields.targetStorageClass')"
               :mode="mode"
             />
           </div>
@@ -377,8 +443,9 @@ export default {
 
       <Tab
         name="networking"
-        label="Network Mapping"
+        :label="t('harvester.addons.vmImport.titles.networking')"
         :weight="2"
+        :error="isNetworkTabInvalid"
       >
         <div
           v-for="(row, i) in value.spec.networkMapping"
@@ -389,8 +456,9 @@ export default {
             <div class="col span-4">
               <LabeledInput
                 v-model:value="row.sourceNetwork"
-                label="Source Network Name"
+                :label="t('harvester.addons.vmImport.fields.sourceNetwork')"
                 :mode="mode"
+                :rules="[requiredRule]"
                 required
               />
             </div>
@@ -398,8 +466,9 @@ export default {
               <LabeledSelect
                 v-model:value="row.destinationNetwork"
                 :options="networkOptions"
-                label="Destination Network"
+                :label="t('harvester.addons.vmImport.fields.destNetwork')"
                 :mode="mode"
+                :rules="[requiredRule]"
                 required
               />
             </div>
@@ -407,7 +476,7 @@ export default {
               <LabeledSelect
                 v-model:value="row.networkInterfaceModel"
                 :options="interfaceModelOptions"
-                label="Interface Model"
+                :label="t('harvester.addons.vmImport.fields.interfaceModel')"
                 :mode="mode"
               />
             </div>
@@ -417,43 +486,41 @@ export default {
                 class="btn role-link"
                 @click="removeNetworkMapping(i)"
               >
-                Remove
+                {{ t('harvester.addons.vmImport.actions.remove') }}
               </button>
             </div>
           </div>
         </div>
-
         <button
           type="button"
           class="btn role-secondary"
           @click="addNetworkMapping"
         >
-          Add Network Mapping
+          {{ t('harvester.addons.vmImport.actions.addNetwork') }}
         </button>
       </Tab>
 
       <Tab
         name="advanced"
-        label="Advanced"
+        :label="t('harvester.addons.vmImport.titles.advanced')"
         :weight="1"
       >
         <div class="row mb-20">
           <div class="col span-6">
             <LabeledInput
               v-model:value="value.spec.folder"
-              label="Folder"
-              placeholder="e.g. /Datacenters/DC1/vm"
+              :label="t('harvester.addons.vmImport.fields.folder')"
+              :placeholder="t('harvester.addons.vmImport.placeholders.folderExample')"
               :mode="mode"
             />
           </div>
         </div>
-
         <div class="row mb-20">
           <div class="col span-6">
             <LabeledSelect
               v-model:value="value.spec.defaultDiskBusType"
               :options="diskBusOptions"
-              label="Default Disk Bus"
+              :label="t('harvester.addons.vmImport.fields.diskBus')"
               :mode="mode"
             />
           </div>
@@ -461,22 +528,21 @@ export default {
             <LabeledSelect
               v-model:value="value.spec.defaultNetworkInterfaceModel"
               :options="interfaceModelOptions"
-              label="Default Network Interface"
+              :label="t('harvester.addons.vmImport.fields.defaultInterface')"
               :mode="mode"
             />
           </div>
         </div>
-
         <div class="row">
           <div class="col span-12">
             <Checkbox
               v-model:value="value.spec.skipPreflightChecks"
-              label="Skip Preflight Checks"
+              :label="t('harvester.addons.vmImport.fields.skipPreflight')"
               :mode="mode"
             />
             <Checkbox
               v-model:value="value.spec.forcePowerOff"
-              label="Force Power Off Source VM"
+              :label="t('harvester.addons.vmImport.fields.forcePowerOff')"
               :mode="mode"
               class="mt-10"
             />
@@ -488,18 +554,12 @@ export default {
 </template>
 
 <style lang="scss" scoped>
-/*
-  Borders for network mapping rows make them better visible as
-  they are more complex objects than simple key-value pairs.
-*/
 .network-row {
   border: 1px solid var(--border);
   padding: 10px;
   border-radius: var(--border-radius);
   background: var(--body-bg);
 }
-
-/* Centers the remove button vertically with the adjacent inputs */
 .remove-btn-container {
   display: flex;
   align-items: center;
