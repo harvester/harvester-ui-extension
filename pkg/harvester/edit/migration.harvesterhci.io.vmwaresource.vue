@@ -7,8 +7,10 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
 import { RadioGroup } from '@components/Form/Radio';
 import CreateEditView from '@shell/mixins/create-edit-view';
+import FormValidation from '@shell/mixins/form-validation';
 import { SECRET } from '@shell/config/types';
 import { randomStr } from '@shell/utils/string';
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'EditVmwareSource',
@@ -26,7 +28,7 @@ export default {
     RadioGroup,
   },
 
-  mixins: [CreateEditView],
+  mixins: [CreateEditView, FormValidation],
 
   props: {
     value: {
@@ -57,14 +59,25 @@ export default {
       newUsername:     '',
       newPassword:     '',
       newCaCert:       '',
-      authModeOptions: [
-        { label: 'Create New Credentials', value: 'new' },
-        { label: 'Use Existing Secret', value: 'existing' }
-      ]
+
+      fvFormRuleSets: [
+        { path: 'metadata.name', rules: ['nameRequired'] },
+        { path: 'spec.endpoint', rules: ['endpointRequired'] },
+        { path: 'spec.dc', rules: ['dcRequired'] },
+      ],
     };
   },
 
   computed: {
+    ...mapGetters({ t: 'i18n/t' }),
+
+    authModeOptions() {
+      return [
+        { label: this.t('harvester.addons.vmImport.fields.createSecret'), value: 'new' },
+        { label: this.t('harvester.addons.vmImport.fields.useSecret'), value: 'existing' }
+      ];
+    },
+
     secretOptions() {
       const currentNamespace = this.value.metadata.namespace || 'default';
 
@@ -76,9 +89,19 @@ export default {
         }));
     },
 
+    // Define custom rules for the FormValidation mixin
+    fvExtraRules() {
+      return {
+        nameRequired:     (val) => !val ? this.t('validation.required', { key: this.t('harvester.fields.name') }) : undefined,
+        endpointRequired: (val) => !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.vmware.fields.endpoint') }) : undefined,
+        dcRequired:       (val) => !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.vmware.fields.datacenter') }) : undefined,
+      };
+    },
+
     isFormValid() {
-      if (!this.value.spec.endpoint) return false;
-      if (!this.value.spec.dc) return false;
+      if (!this.fvFormIsValid) {
+        return false;
+      }
 
       if (this.authMode === 'new') {
         if (!this.newUsername || !this.newPassword) return false;
@@ -91,6 +114,16 @@ export default {
   },
 
   methods: {
+    usernameRule(val) {
+      return !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.fields.username') }) : undefined;
+    },
+    passwordRule(val) {
+      return !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.fields.password') }) : undefined;
+    },
+    secretRule(val) {
+      return !val ? this.t('validation.required', { key: this.t('harvester.addons.vmImport.fields.selectSecret') }) : undefined;
+    },
+
     async saveSource(buttonCb) {
       const inStore = this.$store.getters['currentProduct'].inStore;
 
@@ -109,7 +142,6 @@ export default {
           });
 
           // Use '_type' to set the Kubernetes 'type' field.
-          // Setting 'type' directly overwrites the Schema ID and breaks the save() URL.
           newSecret['_type'] = 'Opaque';
 
           // base64 encode the data
@@ -153,6 +185,7 @@ export default {
     <NameNsDescription
       :value="value"
       :mode="mode"
+      :rules="{ name: fvGetAndReportPathRules('metadata.name') }"
       @update:value="$emit('update:value', $event)"
     />
 
@@ -163,26 +196,28 @@ export default {
     >
       <Tab
         name="basic"
-        label="Basics"
+        :label="t('harvester.addons.vmImport.titles.basic')"
         :weight="2"
       >
         <div class="row mb-20">
           <div class="col span-6">
             <LabeledInput
               v-model:value="value.spec.endpoint"
-              label="vCenter Endpoint"
-              placeholder="e.g. https://vscim/sdk"
+              :label="t('harvester.addons.vmImport.vmware.fields.endpoint')"
+              :placeholder="t('harvester.addons.vmImport.vmware.placeholders.endpoint')"
               :mode="mode"
+              :rules="fvGetAndReportPathRules('spec.endpoint')"
               required
             />
           </div>
           <div class="col span-6">
             <LabeledInput
               v-model:value="value.spec.dc"
-              label="Datacenter"
-              placeholder="e.g. DC0"
-              tooltip="The exact name of the Datacenter object in vCenter"
+              :label="t('harvester.addons.vmImport.vmware.fields.datacenter')"
+              :placeholder="t('harvester.addons.vmImport.vmware.placeholders.datacenter')"
+              :tooltip="t('harvester.addons.vmImport.vmware.tooltips.datacenter')"
               :mode="mode"
+              :rules="fvGetAndReportPathRules('spec.dc')"
               required
             />
           </div>
@@ -191,7 +226,7 @@ export default {
 
       <Tab
         name="auth"
-        label="Authentication"
+        :label="t('harvester.addons.vmImport.titles.auth')"
         :weight="1"
       >
         <div class="row mb-20">
@@ -210,8 +245,9 @@ export default {
             <div class="col span-6">
               <LabeledInput
                 v-model:value="newUsername"
-                label="Username"
+                :label="t('harvester.addons.vmImport.fields.username')"
                 :mode="mode"
+                :rules="[usernameRule]"
                 required
               />
             </div>
@@ -219,8 +255,9 @@ export default {
               <LabeledInput
                 v-model:value="newPassword"
                 type="password"
-                label="Password"
+                :label="t('harvester.addons.vmImport.fields.password')"
                 :mode="mode"
+                :rules="[passwordRule]"
                 required
               />
             </div>
@@ -230,8 +267,8 @@ export default {
               <LabeledInput
                 v-model:value="newCaCert"
                 type="multiline"
-                label="CA Certificate (PEM)"
-                placeholder="-----BEGIN CERTIFICATE----- ..."
+                :label="t('harvester.addons.vmImport.fields.caCert')"
+                :placeholder="t('harvester.addons.vmImport.placeholders.caCert')"
                 :min-height="100"
                 :mode="mode"
               />
@@ -249,8 +286,9 @@ export default {
               <LabeledSelect
                 v-model:value="value.spec.credentials.name"
                 :options="secretOptions"
-                label="Select Secret"
+                :label="t('harvester.addons.vmImport.fields.selectSecret')"
                 :mode="mode"
+                :rules="[secretRule]"
                 required
               />
             </div>
