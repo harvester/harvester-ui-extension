@@ -218,11 +218,6 @@ export default {
       return this.$store.getters['harvester/all'](NODE);
     },
 
-    isArmMachine() {
-      // if one of the nodes is ARM architecture, consider the cluster as ARM architecture
-      return this.nodes.some((node) => node.metadata.labels?.[HCI_ANNOTATIONS.K8S_ARCH]?.includes('arm'));
-    },
-
     nodesIdOptions() {
       const nodes = this.$store.getters[`${ this.inStore }/all`](NODE);
 
@@ -681,6 +676,7 @@ export default {
         // set CPU
         this.spec.template.spec.domain.cpu.sockets = this.cpu;
         this.spec.template.spec.domain.cpu.cores = 1;
+
         // set max CPU
         set(this.spec.template.spec, 'domain.cpu.maxSockets', this.maxCpu);
         // domain.resources.limits.cpu and memory are defined by k8s which requires string values
@@ -694,10 +690,6 @@ export default {
         set(this.spec.template.spec, 'domain.memory.maxGuest', this.maxMemory);
         set(this.spec.template.spec, 'domain.resources.limits.memory', this.maxMemory);
       } else {
-        // on ARM clusters, we can't set cpu maxSockets. See https://github.com/harvester/harvester/issues/9782
-        if (!this.isArmMachine) {
-          this.spec.template.spec.domain.cpu.maxSockets = 1;
-        }
         this.spec.template.spec.domain.cpu.sockets = 1;
         this.spec.template.spec.domain.cpu.cores = this.cpu;
         this.spec.template.spec.domain.resources.limits.cpu = this.cpu?.toString();
