@@ -1578,9 +1578,11 @@ harvester:
       'harvester-system/harvester-seeder': harvester-seeder is an add-on that uses IPMI and Redfish to discover hardware information and perform out-of-band operations.
       'harvester-csi-driver-lvm': harvester-csi-driver-lvm is an add-on allowing users to create PVC through the LVM with local devices.
       'descheduler': 'The virtual machine auto balance optimizes workload scheduling by evicting pods that are not optimally placed according to administrator-defined policies.'
+
     vmImport:
       titles:
         basic: Basic
+        auth: Authentication
         pvc: Volume
         networking: Network Mapping
         advanced: Advanced
@@ -1602,11 +1604,19 @@ harvester:
         defaultInterface: Default Network Interface
         skipPreflight: Skip Preflight Checks
         forcePowerOff: Force Power Off Source VM
+        username: Username
+        password: Password
+        caCert: CA Certificate (PEM)
+        selectSecret: Select Secret
+        createSecret: Create New Credentials
+        useSecret: Use Existing Secret
+        none: None (Public URL)
       placeholders:
         selectCluster: Select a cluster...
         selectProviderFirst: Select a provider type first
         matchSource: Must match the name in the source cluster
         folderExample: e.g. /Datacenters/DC1/vm
+        caCert: "-----BEGIN CERTIFICATE----- ..."
       options:
         useDefault: Use Default
       actions:
@@ -1615,6 +1625,37 @@ harvester:
       errors:
         rfc1123: 'Invalid format. Name must be lowercase, alphanumeric, and cannot contain spaces (e.g. "my-vm-1"). If your Source VM name does not match this, you must rename it on the Source cluster first.'
         networkMappingRequired: Every Network Mapping row must have a Source and Destination selected.
+      openstack:
+        fields:
+          endpoint: Identity Service Endpoint
+          region: Region
+          projectName: Project Name
+          domainName: Domain Name
+          retryCount: Upload Image Retry Count
+          retryDelay: Upload Image Retry Delay
+        placeholders:
+          endpoint: "e.g. https://devstack/identity"
+          region: e.g. RegionOne
+          projectName: e.g. admin
+          domainName: e.g. default
+          retryCount: "Default: 30"
+          retryDelay: "Default: 10"
+      vmware:
+        fields:
+          endpoint: vCenter Endpoint
+          datacenter: Datacenter
+        placeholders:
+          endpoint: "e.g. https://vscim/sdk"
+          datacenter: e.g. DC0
+        tooltips:
+          datacenter: The exact name of the Datacenter object in vCenter
+      ova:
+        fields:
+          url: OVA URL
+          httpTimeout: HTTP Timeout
+        placeholders:
+          url: "e.g. https://download.example.com/images/my-vm.ova"
+
     rancherVcluster:
       accessRancher: Access the Rancher Dashboard
       hostname: Hostname
