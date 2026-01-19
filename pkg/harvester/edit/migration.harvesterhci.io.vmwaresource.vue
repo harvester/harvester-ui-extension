@@ -30,6 +30,8 @@ export default {
 
   mixins: [CreateEditView, FormValidation],
 
+  inheritAttrs: false,
+
   props: {
     value: {
       type:     Object,
