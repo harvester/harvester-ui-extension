@@ -318,8 +318,21 @@ export default class HciVmImage extends HarvesterResource {
   get uploadImage() {
     return async(file, opt = {}) => {
       const formData = new FormData();
+      const backend = this.spec?.backend || 'backingimage';
+      const backendFieldMap = {
+        cdi:          'file',
+        backingimage: 'chunk'
+      };
+      const fieldName = backendFieldMap[backend];
 
-      formData.append('chunk', file);
+      if (!fieldName) {
+        const error = this.t('harvester.image.errors.unsupportedBackend', { backend });
+
+        this.$ctx.commit('harvester-common/uploadError', { name: this.name, message: error }, { root: true });
+        throw new Error(error);
+      }
+
+      formData.append(fieldName, file);
 
       try {
         this.$ctx.commit('harvester-common/uploadStart', this.metadata.name, { root: true });
