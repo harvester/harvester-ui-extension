@@ -922,6 +922,8 @@ harvester:
     checksumTip: Validate the image using the SHA512 checksum, if specified.
     tooltip:
       imported: Created automatically by the vm-import-controller
+    errors:
+      unsupportedBackend: 'Unsupported backend type: {backend}'
 
   vmTemplate:
     label: Templates
