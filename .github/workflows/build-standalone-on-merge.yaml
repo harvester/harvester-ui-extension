@@ -6,6 +6,7 @@ on:
       - main
       - 'release-harvester-v*'
       - '*-dev'
+      - issue_9759
   pull_request:
     branches:
       - main
