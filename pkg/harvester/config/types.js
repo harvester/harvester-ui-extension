@@ -29,3 +29,15 @@ export const L2VLAN_MODE = {
   ACCESS: 'access',
   TRUNK:  'trunk',
 };
+
+export const VMIMPORT_SOURCE_PROVIDER = {
+  VMWARE:    'vmware',
+  OPENSTACK: 'openstack',
+  OVA:       'ova',
+};
+
+export const VMIMPORT_SOURCE_KINDS = {
+  VMWARE:    'VmwareSource',
+  OPENSTACK: 'OpenstackSource',
+  OVA:       'OvaSource',
+};

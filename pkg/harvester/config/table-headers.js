@@ -131,3 +131,102 @@ export const PROVIDER = {
   value:    'spec.provider',
   align:    'left',
 };
+
+// Source VM column in migration.harvesterhci.io.virtualmachineimport list page
+export const VM_IMPORT_SOURCE_VM = {
+  name:     'sourceVm',
+  labelKey: 'harvester.tableHeaders.vmImportSourceVm',
+  value:    'spec.virtualMachineName',
+  sort:     'spec.virtualMachineName',
+  align:    'left',
+};
+
+// Source Cluster column in migration.harvesterhci.io.virtualmachineimport list page
+export const VM_IMPORT_SOURCE_CLUSTER = {
+  name:     'sourceCluster',
+  labelKey: 'harvester.tableHeaders.vmImportSourceCluster',
+  value:    'spec.sourceCluster.name',
+  sort:     'spec.sourceCluster.name',
+  align:    'left',
+};
+
+// Import Status column in migration.harvesterhci.io.virtualmachineimport list page
+export const VM_IMPORT_STATUS = {
+  name:     'importStatus',
+  labelKey: 'harvester.tableHeaders.vmImportStatus',
+  value:    'status.importStatus',
+  sort:     'status.importStatus',
+  align:    'left',
+};
+
+// Datacenter column in migration.harvesterhci.io.vmwaresource list page
+export const VM_IMPORT_SOURCE_V_DC = {
+  name:     'datacenter',
+  labelKey: 'harvester.tableHeaders.vmImportSourceVDatacenter',
+  value:    'spec.dc',
+  sort:     'spec.dc',
+  align:    'left',
+};
+
+// Endpoint column in migration.harvesterhci.io.vmwaresource list page
+export const VM_IMPORT_SOURCE_V_ENDPOINT = {
+  name:     'endpoint',
+  labelKey: 'harvester.tableHeaders.vmImportSourceVEndpoint',
+  value:    'spec.endpoint',
+  sort:     'spec.endpoint',
+  align:    'left',
+};
+
+// Cluster Status column in migration.harvesterhci.io.vmwaresource list page
+export const VM_IMPORT_SOURCE_V_STATUS = {
+  name:     'clusterStatus',
+  labelKey: 'harvester.tableHeaders.vmImportSourceVClusterStatus',
+  value:    'status.status',
+  sort:     'status.status',
+  align:    'left',
+};
+
+// Region column in migration.harvesterhci.io.openstacksource list page
+export const VM_IMPORT_SOURCE_O_REGION = {
+  name:     'region',
+  labelKey: 'harvester.tableHeaders.vmImportSourceORegion',
+  value:    'spec.region',
+  sort:     'spec.region',
+  align:    'left',
+};
+
+// Endpoint column in migration.harvesterhci.io.openstacksource list page
+export const VM_IMPORT_SOURCE_O_ENDPOINT = {
+  name:     'endpoint',
+  labelKey: 'harvester.tableHeaders.vmImportSourceOEndpoint',
+  value:    'spec.endpoint',
+  sort:     'spec.endpoint',
+  align:    'left',
+};
+
+// Cluster Status column in migration.harvesterhci.io.openstacksource list page
+export const VM_IMPORT_SOURCE_O_STATUS = {
+  name:     'clusterStatus',
+  labelKey: 'harvester.tableHeaders.vmImportSourceOClusterStatus',
+  value:    'status.status',
+  sort:     'status.status',
+  align:    'left',
+};
+
+// URL column in migration.harvesterhci.io.ovasource list page
+export const VM_IMPORT_SOURCE_OVA_URL = {
+  name:     'url',
+  labelKey: 'harvester.tableHeaders.vmImportSourceOVAUrl',
+  value:    'spec.url',
+  sort:     'spec.url',
+  align:    'left',
+};
+
+// Status column in migration.harvesterhci.io.ovasource list page
+export const VM_IMPORT_SOURCE_OVA_STATUS = {
+  name:     'status',
+  labelKey: 'harvester.tableHeaders.vmImportSourceOVAStatus',
+  value:    'status.status',
+  sort:     'status.status',
+  align:    'left',
+};
