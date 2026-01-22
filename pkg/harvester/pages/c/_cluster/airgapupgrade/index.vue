@@ -12,7 +12,6 @@ import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../../../config/harvester'
 import ImagePercentageBar from '@shell/components/formatter/ImagePercentageBar';
 import { Banner } from '@components/Banner';
 import isEmpty from 'lodash/isEmpty';
-import { STORAGE_CLASS } from '@shell/config/types';
 
 const IMAGE_METHOD = {
   NEW:    'new',
@@ -33,7 +32,6 @@ export default {
 
   async fetch() {
     await this.$store.dispatch('harvester/findAll', { type: HCI.IMAGE });
-    await this.$store.dispatch('harvester/findAll', { type: STORAGE_CLASS });
 
     const value = await this.$store.dispatch('harvester/create', {
       type:     HCI.UPGRADE,
@@ -65,7 +63,6 @@ export default {
       sourceType:                   UPLOAD,
       uploadController:             null,
       uploadResult:                 null,
-      storageClassValue:            null,
       imageValue:                   null,
       enableLogging:                true,
       IMAGE_METHOD,
@@ -183,38 +180,6 @@ export default {
       });
     },
 
-    async createImageStorageClass(imageName = '') {
-      // delete related SC if existed
-      await this.deleteImageStorageClass(imageName);
-
-      const storageClassPayload = {
-        apiVersion:           'storage.k8s.io/v1',
-        type:                 STORAGE_CLASS,
-        metadata:             { name: imageName },
-        volumeBindingMode:    'Immediate',
-        reclaimPolicy:        'Delete',
-        allowVolumeExpansion: true, // must be boolean type
-        provisioner:          'driver.longhorn.io',
-      };
-
-      this.storageClassValue = await this.$store.dispatch('harvester/create', storageClassPayload);
-
-      if (this.storageClassValue && this.storageClassValue.save) {
-        await this.storageClassValue.save();
-      }
-    },
-
-    async deleteImageStorageClass(imageName = '') {
-      const inStore = this.$store.getters['currentProduct'].inStore;
-      const storageClasses = this.$store.getters[`${ inStore }/all`](STORAGE_CLASS);
-
-      const targetSC = storageClasses.find((sc) => sc.id === imageName);
-
-      if (targetSC && targetSC.remove) {
-        await targetSC.remove();
-      }
-    },
-
     async initImageValue() {
       this.imageValue = await this.$store.dispatch('harvester/create', {
         type:     HCI.IMAGE,
@@ -263,10 +228,8 @@ export default {
               return;
             }
 
-            // create related image storage class first
-            await this.createImageStorageClass(imageDisplayName);
             this.imageValue.spec.sourceType = DOWNLOAD;
-            this.imageValue.spec.targetStorageClassName = imageDisplayName;
+            this.imageValue.spec.targetStorageClassName = 'longhorn-static';
 
             res = await this.imageValue.save();
 
@@ -295,8 +258,6 @@ export default {
       } catch (e) {
         this.errors = [e?.message] || exceptionToErrorsArray(e);
         buttonCb(false);
-        // if anything failed, delete the created image storage class
-        await this.deleteImageStorageClass(imageDisplayName);
       }
     },
 
@@ -325,9 +286,7 @@ export default {
       this.imageValue.spec.url = '';
 
       try {
-        // before uploading image, we need to create related image storage class first
-        await this.createImageStorageClass(fileName);
-        this.imageValue.spec.targetStorageClassName = fileName;
+        this.imageValue.spec.targetStorageClassName = 'longhorn-static';
 
         const res = await this.imageValue.save();
 
@@ -345,8 +304,6 @@ export default {
         } else {
           this.errors = exceptionToErrorsArray(e);
         }
-        // if upload failed, delete the created image storage class
-        await this.deleteImageStorageClass(fileName);
         this.file = {};
         this.uploadImageId = '';
       }
@@ -367,13 +324,10 @@ export default {
 
       if (image && imageDisplayName) {
         this.$store.dispatch('harvester/promptModal', {
-          resources:              [image],
-          component:              'ConfirmRelatedToRemoveDialog',
-          needConfirmation:       false,
-          warningMessage:         this.$store.getters['i18n/t']('harvester.modal.osImage.message', { name: imageDisplayName }),
-          extraActionAfterRemove: async() => {
-            await this.deleteImageStorageClass(imageDisplayName);
-          }
+          resources:        [image],
+          component:        'ConfirmRelatedToRemoveDialog',
+          needConfirmation: false,
+          warningMessage:   this.$store.getters['i18n/t']('harvester.modal.osImage.message', { name: imageDisplayName }),
         });
         this.deleteImageId = '';
       }
