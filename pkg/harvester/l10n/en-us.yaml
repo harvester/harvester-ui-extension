@@ -369,7 +369,6 @@ harvester:
     claimError: Error enabling passthrough on {name}
     unclaimError: Error disabling passthrough on {name}
     cantUnclaim: You cannot disable passthrough on a device claimed by another user.
-    disablePassthroughTooltip: Please detach the device from the VM first
     detachWarning:
       title: Cannot Disable Passthrough
       message: Please detach the device from the VM and save it first before disabling passthrough.
@@ -1825,7 +1824,6 @@ harvester:
   vgpu:
     label: vGPU Devices
     noPermission: Please contact system administrator to add Harvester add-ons first.
-    disableTooltip: Please detach the device from the VM first.
     detachWarning:
       title: Cannot Disable vGPU
       message: Please detach the device from the VM and save it first before disabling this vGPU device.
@@ -1863,7 +1861,6 @@ harvester:
     claimError: Error enabling passthrough on {name}
     unclaimError: Error disabling passthrough on {name}
     cantUnclaim: You cannot disable passthrough on a device claimed by another user.
-    disablePassthroughTooltip: Please detach the device from the VM first.
     detachWarning:
       title: Cannot Disable Passthrough
       message: Please detach the device from the VM and save it first before disabling passthrough.
