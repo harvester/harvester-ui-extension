@@ -65,6 +65,10 @@ export default {
       const vGpuDevices = this.$store.getters[`${ inStore }/all`](HCI.VGPU_DEVICE) || [];
       const srioVGpuDevices = this.$store.getters[`${ inStore }/all`](HCI.SR_IOVGPU_DEVICE) || [];
 
+      vGpuDevices.forEach((row) => {
+        row.allowDisable = true;
+      });
+
       if (this.hasSRIOVGPUSchema) {
         return vGpuDevices.filter((device) => !!srioVGpuDevices.find((s) => s.isEnabled && s.spec?.nodeName === device.spec?.nodeName));
       }

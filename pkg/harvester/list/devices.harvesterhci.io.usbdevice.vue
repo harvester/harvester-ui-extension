@@ -54,7 +54,13 @@ export default {
     devices() {
       const inStore = this.$store.getters['currentProduct'].inStore;
 
-      return this.$store.getters[`${ inStore }/all`](HCI.USB_DEVICE) || [];
+      const data = this.$store.getters[`${ inStore }/all`](HCI.USB_DEVICE) || [];
+
+      data.forEach((row) => {
+        row.allowDisable = true;
+      });
+
+      return data;
     }
   },
 

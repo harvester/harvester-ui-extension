@@ -144,6 +144,12 @@ export default class PCIDevice extends SteveModel {
   // 'disable' passthrough deletes claim
   // backend should return error if device is in use
   async disablePassthrough() {
+    if (!this.allowDisable) {
+      this.showDetachWarning();
+
+      return;
+    }
+
     try {
       if (!this.claimedByMe) {
         throw new Error(this.$rootGetters['i18n/t']('harvester.pci.cantUnclaim', { name: escapeHtml(this.metadata.name) }));
@@ -168,5 +174,21 @@ export default class PCIDevice extends SteveModel {
   // group device list by unique device (same vendorid and deviceid)
   get groupByDevice() {
     return this.status?.description;
+  }
+
+  showDetachWarning() {
+    this.$dispatch('growl/warning', {
+      title:   this.$rootGetters['i18n/t']('harvester.pci.detachWarning.title'),
+      message: this.$rootGetters['i18n/t']('harvester.pci.detachWarning.message'),
+      timeout: 5000
+    }, { root: true });
+  }
+
+  get allowDisable() {
+    return this._allowDisable;
+  }
+
+  set allowDisable(value) {
+    this._allowDisable = value;
   }
 }

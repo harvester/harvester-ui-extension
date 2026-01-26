@@ -64,6 +64,10 @@ export default {
       const inStore = this.$store.getters['currentProduct'].inStore;
       const rows = this.$store.getters[`${ inStore }/all`](HCI.PCI_DEVICE);
 
+      rows.forEach((row) => {
+        row.allowDisable = true;
+      });
+
       return rows;
     }
   },

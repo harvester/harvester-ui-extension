@@ -369,6 +369,9 @@ harvester:
     claimError: Error enabling passthrough on {name}
     unclaimError: Error disabling passthrough on {name}
     cantUnclaim: You cannot disable passthrough on a device claimed by another user.
+    detachWarning:
+      title: Cannot Disable Passthrough
+      message: Please detach the device from the VM and save it first before disabling passthrough.
     enableGroup: Enable Group
     disableGroup: Disable Group
     labelRequired: "This rule should not be manually altered: it ensures that the PCI devices selected for this virtual machine are available on the virtual machine's host."
@@ -1821,6 +1824,9 @@ harvester:
   vgpu:
     label: vGPU Devices
     noPermission: Please contact system administrator to add Harvester add-ons first.
+    detachWarning:
+      title: Cannot Disable vGPU
+      message: Please detach the device from the VM and save it first before disabling this vGPU device.
     goSetting:
       prefix: The nvidia-driver-toolkit add-on is not enabled, click
       middle: here
@@ -1855,6 +1861,9 @@ harvester:
     claimError: Error enabling passthrough on {name}
     unclaimError: Error disabling passthrough on {name}
     cantUnclaim: You cannot disable passthrough on a device claimed by another user.
+    detachWarning:
+      title: Cannot Disable Passthrough
+      message: Please detach the device from the VM and save it first before disabling passthrough.
     enablePassthroughWarning: 'Please re-enable the USB device if the device path changes in the following situations:<br/>&nbsp1) Re-plugging the USB device.<br/>&nbsp2) Rebooting the node.<br/><br/>An incorrect device path may cause passthrough to fail.'
 
   harvesterVlanConfigMigrateDialog:
