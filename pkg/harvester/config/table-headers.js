@@ -213,6 +213,24 @@ export const VM_IMPORT_SOURCE_O_STATUS = {
   align:    'left',
 };
 
+// Endpoint column in migration.harvesterhci.io.kvmsource list page
+export const VM_IMPORT_SOURCE_KVM_ENDPOINT = {
+  name:     'url',
+  labelKey: 'harvester.tableHeaders.vmImportSourceKVMEndpoint',
+  value:    'spec.endpoint',
+  sort:     'spec.endpoint',
+  align:    'left',
+};
+
+// Status column in migration.harvesterhci.io.kvmsource list page
+export const VM_IMPORT_SOURCE_KVM_STATUS = {
+  name:     'status',
+  labelKey: 'harvester.tableHeaders.vmImportSourceKVMStatus',
+  value:    'status.status',
+  sort:     'status.status',
+  align:    'left',
+};
+
 // URL column in migration.harvesterhci.io.ovasource list page
 export const VM_IMPORT_SOURCE_OVA_URL = {
   name:     'url',

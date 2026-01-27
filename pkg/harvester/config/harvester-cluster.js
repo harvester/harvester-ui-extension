@@ -45,6 +45,8 @@ import {
   VM_IMPORT_SOURCE_O_REGION,
   VM_IMPORT_SOURCE_O_ENDPOINT,
   VM_IMPORT_SOURCE_O_STATUS,
+  VM_IMPORT_SOURCE_KVM_ENDPOINT,
+  VM_IMPORT_SOURCE_KVM_STATUS,
   VM_IMPORT_SOURCE_OVA_URL,
   VM_IMPORT_SOURCE_OVA_STATUS,
 } from './table-headers';
@@ -302,6 +304,34 @@ export function init($plugin, store) {
     }
   });
 
+  // Source: KVM
+  headers(HCI.VMIMPORT_SOURCE_KVM, [
+    STATE,
+    NAME_COL,
+    VM_IMPORT_SOURCE_KVM_ENDPOINT,
+    VM_IMPORT_SOURCE_KVM_STATUS,
+    AGE
+  ]);
+  configureType(HCI.VMIMPORT_SOURCE_KVM, {
+    resource:       HCI.VMIMPORT_SOURCE_KVM,
+    resourceDetail: HCI.VMIMPORT_SOURCE_KVM,
+    resourceEdit:   HCI.VMIMPORT_SOURCE_KVM,
+    location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_KVM }
+    }
+  });
+  virtualType({
+    name:       HCI.VMIMPORT_SOURCE_KVM,
+    labelKey:   'harvester.addons.vmImport.labels.vmimportSourceKVM',
+    group:      'vmimport',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VMIMPORT_SOURCE_KVM }
+    }
+  });
+
   // Source: OVA
   headers(HCI.VMIMPORT_SOURCE_OVA, [
     STATE,
@@ -338,6 +368,7 @@ export function init($plugin, store) {
     types:        [
       HCI.VMIMPORT_SOURCE_V,
       HCI.VMIMPORT_SOURCE_O,
+      HCI.VMIMPORT_SOURCE_KVM,
       HCI.VMIMPORT_SOURCE_OVA,
       HCI.VMIMPORT
     ]
