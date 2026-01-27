@@ -1295,7 +1295,10 @@ harvester:
       deleteImage: Please select an image to delete.
       deleteSuccess: "{name} deleted successfully."
       imagePreloadStrategy: Image Preload Strategy
+      nodeUpgradeOption: Node Upgrade Option
       restoreVM: Restore VM
+      strategy: Strategy
+      pauseNodes: Pause Nodes
       strategyType: Strategy Type
       concurrency: Concurrency
     harvesterMonitoring:
