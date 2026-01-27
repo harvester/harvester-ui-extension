@@ -305,6 +305,8 @@ harvester:
     vmImportSourceORegion: Region
     vmImportSourceOEndpoint: Endpoint
     vmImportSourceOClusterStatus: Cluster Status
+    vmImportSourceKVMUri: URI
+    vmImportSourceKVMStatus: Status
     vmImportSourceOVAUrl: URL
     vmImportSourceOVAStatus: Status
   tab:
@@ -1593,6 +1595,7 @@ harvester:
         vmimport: Virtual Machine Import
         vmimportSourceVMWare: Source VMWare
         vmimportSourceOpenStack: Source OpenStack
+        vmimportSourceKVM: Source KVM
         vmimportSourceOVA: Source OVA
       fields:
         sourceProvider: Source Provider Type
@@ -1652,6 +1655,13 @@ harvester:
           datacenter: e.g. DC0
         tooltips:
           datacenter: The exact name of the Datacenter object in vCenter
+      kvm:
+        fields:
+          privateKey: "Private SSH Key (PEM)"
+          uri: URI
+        placeholders:
+          privateKey: "-----BEGIN OPENSSH PRIVATE KEY----- ..."
+          uri: "e.g. qemu+ssh://user@hostname/system"
       ova:
         fields:
           url: OVA URL
