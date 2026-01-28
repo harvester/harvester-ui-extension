@@ -278,7 +278,7 @@ export default {
                 :clearable="true"
                 :multiple="true"
                 :options="namespaceOptions"
-                class="mb-10 label-select"
+                class="mb-10 namespace-select"
                 :tooltip="t('harvester.modal.bundle.namespaces.tooltip', _, true)"
                 @update:value="updateNamespaces"
               />
@@ -371,6 +371,11 @@ export default {
     .circle {
       padding: 10px 0;
       height: 160px;
+    }
+    .namespace-select {
+      :deep(.vs__dropdown-menu) {
+        max-height: 210px;
+      }
     }
   }
 
