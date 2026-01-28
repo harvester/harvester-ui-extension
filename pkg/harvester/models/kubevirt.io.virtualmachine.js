@@ -153,7 +153,7 @@ export default class VirtVm extends HarvesterResource {
       },
       {
         action:  'takeVMSnapshot',
-        enabled: (!!this.actions?.snapshot || !!this.action?.backup),
+        enabled: (!!this.actions?.snapshot || !!this.actions?.backup),
         icon:    'icon icon-snapshot',
         label:   this.t('harvester.action.vmSnapshot')
       },
