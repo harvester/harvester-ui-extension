@@ -63,7 +63,10 @@ export default {
     },
     showPauseNodes() {
       return this.parseDefaultValue.nodeUpgradeOption?.strategy?.mode === 'manual';
-    }
+    },
+    resumeUpgradePausedNodeEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('resumeUpgradePausedNode');
+    },
   },
 
   created() {
@@ -180,26 +183,28 @@ export default {
           :labels="[t('generic.enabled'), t('generic.disabled')]"
           @update:value="update"
         />
-        <label class="mb-5"><b>{{ t('harvester.setting.upgrade.nodeUpgradeOption') }}</b></label>
-        <LabeledSelect
-          v-model:value="parseDefaultValue.nodeUpgradeOption.strategy.mode"
-          class="mb-20 label-select"
-          :mode="mode"
-          :label="t('harvester.setting.upgrade.strategy')"
-          :options="nodeUpgradeOptions"
-          @update:value="update"
-        />
-        <LabeledSelect
-          v-if="showPauseNodes"
-          v-model:value="parseDefaultValue.nodeUpgradeOption.strategy.pauseNodes"
-          class="mb-20 label-select"
-          :clearable="true"
-          :multiple="true"
-          :mode="mode"
-          :label="t('harvester.setting.upgrade.pauseNodes')"
-          :options="nodesOptions"
-          @update:value="update"
-        />
+        <div v-if="resumeUpgradePausedNodeEnabled">
+          <label class="mb-5"><b>{{ t('harvester.setting.upgrade.nodeUpgradeOption') }}</b></label>
+          <LabeledSelect
+            v-model:value="parseDefaultValue.nodeUpgradeOption.strategy.mode"
+            class="mb-20 label-select"
+            :mode="mode"
+            :label="t('harvester.setting.upgrade.strategy')"
+            :options="nodeUpgradeOptions"
+            @update:value="update"
+          />
+          <LabeledSelect
+            v-if="showPauseNodes"
+            v-model:value="parseDefaultValue.nodeUpgradeOption.strategy.pauseNodes"
+            class="mb-20 label-select"
+            :clearable="true"
+            :multiple="true"
+            :mode="mode"
+            :label="t('harvester.setting.upgrade.pauseNodes')"
+            :options="nodesOptions"
+            @update:value="update"
+          />
+        </div>
         <div
           v-if="errors.length"
           class="error"

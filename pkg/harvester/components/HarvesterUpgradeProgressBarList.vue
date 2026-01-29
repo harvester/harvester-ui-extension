@@ -42,6 +42,9 @@ export default {
     latestUpgradeCR() {
       return this.$store.getters['harvester/all'](HCI.UPGRADE).find( (U) => U.isLatestUpgrade);
     },
+    resumeUpgradePausedNodeEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('resumeUpgradePausedNode');
+    },
   },
   methods: {
     handleSwitch() {
@@ -107,7 +110,7 @@ export default {
                   </span>
                 </div>
                 <button
-                  v-if="showResumeButton && item.state === 'Node-upgrade paused'"
+                  v-if="showResumeButton && resumeUpgradePausedNodeEnabled && item.state === 'Node-upgrade paused'"
                   type="button"
                   class="btn bg-info btn-sm"
                   data-testid="add-item"

@@ -54,8 +54,11 @@ const FEATURE_FLAGS = {
     'lhV2VolExpansion',
     'l2VlanTrunkMode',
     'kubevirtMigration',
-    'hotplugNic'
-  ]
+    'hotplugNic',
+    'resumeUpgradePausedNode',
+  ],
+  'v1.7.1': [],
+  'v1.8.0': []
 };
 
 const generateFeatureFlags = () => {
