@@ -190,6 +190,9 @@ harvester:
       title: Restart Virtual Machine
       tip: Restart the virtual machine for configuration changes to take effect.
       cancel: Save
+    restartRequired:
+      title: '{ countMessage } Pending Restart'
+      message: 'Please restart { vmNames } to apply updated configurations'
   notification:
     title:
       succeed: Succeed

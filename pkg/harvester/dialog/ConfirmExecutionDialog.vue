@@ -109,6 +109,9 @@ export default {
           await resource.doActionGrowl(this.modalData.action, {});
         }
         buttonDone(true);
+        if (this.modalData.action === 'restart' || this.modalData.action === 'stop') {
+          this.$store.dispatch('growl/clear');
+        }
         this.close();
       } catch (e) {
         this.errors = exceptionToErrorsArray(e);

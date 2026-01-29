@@ -110,11 +110,12 @@ export default {
 
   data() {
     return {
-      hasNode:            false,
-      allVMs:             [],
-      allVMIs:            [],
-      allNodeNetworks:    [],
-      allClusterNetworks: [],
+      hasNode:                 false,
+      allVMs:                  [],
+      allVMIs:                 [],
+      allNodeNetworks:         [],
+      allClusterNetworks:      [],
+      restartMessageDisplayed: false,
       HCI
     };
   },
@@ -174,6 +175,37 @@ export default {
     this['allVMIs'] = vmis;
   },
 
+  beforeUnmount() {
+    // clear restart message before component unmount
+    this.$store.dispatch('growl/clear');
+  },
+
+  watch: {
+    allVMs: {
+      async handler(neu) {
+        let count = 0;
+        const vmNames = [];
+
+        neu.forEach((vm) => {
+          if (vm.isRestartRequired) {
+            count++;
+            vmNames.push(vm.metadata.name);
+          }
+        });
+
+        if (count > 0 && vmNames.length > 0 && !this.restartMessageDisplayed) {
+          await this.$store.dispatch('growl/warning', {
+            title:   this.t('harvester.modal.restartRequired.title', { countMessage: count === 1 ? '1 Virtual Machine is' : `${ count } Virtual Machines are` }),
+            message: this.t('harvester.modal.restartRequired.message', { vmNames: vmNames.join(', ') }),
+            timeout: 10000,
+          }, { root: true });
+
+          this.restartMessageDisplayed = true;
+        }
+      },
+      deep: true,
+    }
+  },
   methods: {
     lockIconTooltipMessage(row) {
       const message = '';
@@ -242,6 +274,12 @@ export default {
     </ResourceTable>
   </div>
 </template>
+
+<style lang="scss">
+.growl-container {
+  z-index: 56 !important;  // set to be lower than the vm action menu (z-index: 57)
+}
+</style>
 
 <style lang="scss" scoped>
 .state {

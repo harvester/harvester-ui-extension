@@ -1180,11 +1180,15 @@ export default class VirtVm extends HarvesterResource {
     );
   }
 
-  get stateDescription() {
+  get isRestartRequired() {
     const conditions = get(this, 'status.conditions');
     const restartRequired = findBy(conditions, 'type', 'RestartRequired');
 
-    if (restartRequired && restartRequired.status === 'True') {
+    return restartRequired && restartRequired.status === 'True';
+  }
+
+  get stateDescription() {
+    if (this.isRestartRequired) {
       return this.t('harvester.virtualMachine.hotplug.restartVMMessage');
     }
 
