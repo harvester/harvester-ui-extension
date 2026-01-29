@@ -14,6 +14,7 @@ import { _VIEW } from '@shell/config/query-params';
 import LabelValue from '@shell/components/LabelValue';
 import { ucFirst } from '@shell/utils/string';
 import { GIBIBYTE } from '../../../../utils/unit';
+import { EMPTY_IMAGE } from '../../../../utils/vm';
 
 export default {
   name: 'HarvesterEditVMImage',
@@ -96,8 +97,16 @@ export default {
       return this.mode === _VIEW;
     },
 
+    isCdrom() {
+      return this.value.type === 'cd-rom';
+    },
+
+    isEmptyImage() {
+      return this.value.image === EMPTY_IMAGE;
+    },
+
     imagesOption() {
-      return this.images
+      const images = this.images
         .filter((image) => {
           if (!image.isReady) return false;
 
@@ -114,6 +123,15 @@ export default {
           value:    image.id,
           disabled: image.isImportedImage
         }));
+
+      return [
+        {
+          label:    this.t('harvester.virtualMachine.volume.emptyImage'),
+          value:    EMPTY_IMAGE,
+          disabled: false
+        },
+        ...images
+      ];
     },
 
     imageName() {
@@ -226,7 +244,32 @@ export default {
       this.$emit('update');
     },
 
+    onTypeChange() {
+      if (this.value.image === EMPTY_IMAGE && this.value.type !== 'cd-rom') {
+        this.value['image'] = '';
+      }
+
+      this.update();
+    },
+
+    onBusChange() {
+      if (this.value.image === EMPTY_IMAGE && this.value.bus !== 'sata') {
+        this.value['image'] = '';
+      }
+
+      this.update();
+    },
+
     onImageChange() {
+      if (this.value.image === EMPTY_IMAGE) {
+        this.value['type'] = 'cd-rom';
+        this.value['bus'] = 'sata';
+        this.value['size'] = `0${ GIBIBYTE }`;
+        this.update();
+
+        return;
+      }
+
       const imageResource = this.$store.getters['harvester/all'](HCI.IMAGE)?.find( (I) => this.value.image === I.id);
       const isIsoImage = /iso$/i.test(imageResource?.imageSuffix);
       const imageSize = Math.max(imageResource?.status?.size, imageResource?.status?.virtualSize);
@@ -237,6 +280,10 @@ export default {
       } else {
         this.value['type'] = 'disk';
         this.value['bus'] = 'virtio';
+      }
+
+      if (this.value['type'] === 'cd-rom') {
+        this.value['hotpluggable'] = true;
       }
 
       if (imageSize) {
@@ -256,6 +303,10 @@ export default {
     },
 
     checkImageExists(imageId) {
+      if (imageId === EMPTY_IMAGE) {
+        return;
+      }
+
       if (!!imageId && this.imagesOption.length > 0 && !findBy(this.imagesOption, 'value', imageId)) {
         this.$store.dispatch('growl/error', {
           title:   this.$store.getters['i18n/t']('harvester.vmTemplate.tips.notExistImage.title', { name: imageId }),
@@ -283,6 +334,7 @@ export default {
         >
           <LabeledInput
             v-model:value="value.name"
+            :disabled="isEdit && isCdrom"
             :label="t('harvester.fields.name')"
             required
             :mode="mode"
@@ -302,10 +354,11 @@ export default {
         >
           <LabeledSelect
             v-model:value="value.type"
+            :disabled="isEdit && isCdrom"
             :label="t('harvester.fields.type')"
             :options="VOLUME_TYPE"
             :mode="mode"
-            @update:value="update"
+            @update:value="onTypeChange"
           />
         </InputOrDisplay>
       </div>
@@ -323,7 +376,7 @@ export default {
         >
           <LabeledSelect
             v-model:value="value.image"
-            :disabled="idx === 0 && !isCreate && !value.newCreateId && isVirtualType"
+            :disabled="(idx === 0 && !isCreate && !value.newCreateId && isVirtualType) || (isEdit && isCdrom)"
             :label="t('harvester.fields.image')"
             :options="imagesOption"
             :mode="mode"
@@ -351,7 +404,7 @@ export default {
             :label="t('harvester.fields.size')"
             :mode="mode"
             :required="validateRequired"
-            :disabled="isResizeDisabled"
+            :disabled="isEmptyImage || isResizeDisabled || (isEdit && isCdrom)"
             :suffix="GIBIBYTE"
             @update:value="update"
           />
@@ -374,7 +427,8 @@ export default {
             :label="t('harvester.virtualMachine.volume.bus')"
             :mode="mode"
             :options="InterfaceOption"
-            @update:value="update"
+            :disabled="isEdit && isCdrom"
+            @update:value="onBusChange"
           />
         </InputOrDisplay>
       </div>

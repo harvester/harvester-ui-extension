@@ -729,6 +729,7 @@ harvester:
       unmount:
         title: Are you sure?
         message: Are you sure you want to unmount this volume?
+      emptyImage: -- Empty --
     network:
       title: Network
       addNetwork: Add Network
@@ -1000,7 +1001,7 @@ harvester:
     createTitle: Create Schedule
     createButtonText: Create Schedule
     scheduleType: Virtual Machine Schedule Type
-    cron: 
+    cron:
       label: Cron Schedule
       editButton: Edit
     detail:

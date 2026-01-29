@@ -9,3 +9,5 @@ export function parseVolumeClaimTemplates(data) {
 
   return out;
 }
+
+export const EMPTY_IMAGE = 'EMPTY_IMAGE';
