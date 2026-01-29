@@ -55,7 +55,8 @@ const FEATURE_FLAGS = {
     'l2VlanTrunkMode',
     'kubevirtMigration',
     'hotplugNic'
-  ]
+  ],
+  'v1.7.1': [],
 };
 
 const generateFeatureFlags = () => {
