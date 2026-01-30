@@ -110,12 +110,12 @@ export default {
 
   data() {
     return {
-      hasNode:                 false,
-      allVMs:                  [],
-      allVMIs:                 [],
-      allNodeNetworks:         [],
-      allClusterNetworks:      [],
-      restartMessageDisplayed: false,
+      hasNode:                      false,
+      allVMs:                       [],
+      allVMIs:                      [],
+      allNodeNetworks:              [],
+      allClusterNetworks:           [],
+      restartNotificationDisplayed: false,
       HCI
     };
   },
@@ -182,7 +182,7 @@ export default {
 
   watch: {
     allVMs: {
-      async handler(neu) {
+      handler(neu) {
         let count = 0;
         const vmNames = [];
 
@@ -193,14 +193,26 @@ export default {
           }
         });
 
-        if (count > 0 && vmNames.length > 0 && !this.restartMessageDisplayed) {
-          await this.$store.dispatch('growl/warning', {
-            title:   this.t('harvester.modal.restartRequired.title', { countMessage: count === 1 ? '1 Virtual Machine is' : `${ count } Virtual Machines are` }),
-            message: this.t('harvester.modal.restartRequired.message', { vmNames: vmNames.join(', ') }),
+        if ( count === 0 && this.restartNotificationDisplayed) {
+          this.restartNotificationDisplayed = false;
+
+          return;
+        }
+
+        if (count > 0) {
+          // clear old notification before showing new one
+          if (this.restartNotificationDisplayed) {
+            this.$store.dispatch('growl/clear');
+          }
+        }
+
+        if (count > 0 && vmNames.length > 0) {
+          this.$store.dispatch('growl/warning', {
+            title:   this.t('harvester.notification.restartRequired.title', { count }),
+            message: this.t('harvester.notification.restartRequired.message', { vmNames: vmNames.join(', ') }),
             timeout: 10000,
           }, { root: true });
-
-          this.restartMessageDisplayed = true;
+          this.restartNotificationDisplayed = true;
         }
       },
       deep: true,
