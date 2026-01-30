@@ -39,6 +39,12 @@ export const VOLUME_TYPE = [{
   value: 'cd-rom'
 }];
 
+export const VOLUME_HOTPLUG_ACTION_IN_VIEW_MODE = {
+  INSERT_CDROM_IMAGE: 'INSERT_CDROM_IMAGE',
+  EJECT_CDROM_IMAGE:  'EJECT_CDROM_IMAGE',
+  DETACH_DISK:        'DETACH_DISK'
+};
+
 export const ACCESS_CREDENTIALS = {
   RESET_PWD:  'userPassword',
   INJECT_SSH: 'sshPublicKey'

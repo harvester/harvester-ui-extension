@@ -401,6 +401,17 @@ export default class VirtVm extends HarvesterResource {
     });
   }
 
+  ejectCdRomVolume(diskName) {
+    const resources = this;
+
+    this.$dispatch('promptModal', {
+      resources,
+      name:      diskName,
+      type:      'cdrom',
+      component: 'HarvesterHotUnplug',
+    });
+  }
+
   unplugNIC(networkName) {
     const resources = this;
 
@@ -520,6 +531,16 @@ export default class VirtVm extends HarvesterResource {
     this.$dispatch('promptModal', {
       resources,
       component: 'HarvesterAddHotplugVolumeModal'
+    });
+  }
+
+  insertCdRomVolume(diskName) {
+    const resources = this;
+
+    this.$dispatch('promptModal', {
+      resources,
+      name:      diskName,
+      component:  'HarvesterInsertCdRomVolume',
     });
   }
 

@@ -164,6 +164,11 @@ harvester:
       vmNetwork: Virtual Machine Network
       macAddress: MAC Address
       macAddressTooltip: If left blank, the MAC address will be automatically generated.
+    insertCdRomVolume:
+      success: '{ imageName } is inserted into device { deviceName }.'
+      title: Insert Image
+      image: Image
+      actionLabel: Insert Image
     cpuMemoryHotplug:
       success: 'CPU and Memory are updated to the virtual machine { vm }.'
       title: Edit CPU and Memory
@@ -623,6 +628,10 @@ harvester:
         title: 'Are you sure that you want to detach volume {name}?'
         actionLabel: Detach Volume
         success: 'Volume { name } is detached successfully.'
+      ejectCdRomVolume:
+        title: 'Are you sure that you want to eject image from device {name}?'
+        actionLabel: Eject Image
+        success: 'Image from device { name } is ejected successfully.'
       detachNIC:
         title: 'Are you sure that you want to detach network interface {name}?'
         actionLabel: Detach Network Interface
