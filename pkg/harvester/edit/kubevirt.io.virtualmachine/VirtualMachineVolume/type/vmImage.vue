@@ -97,8 +97,8 @@ export default {
       return this.mode === _VIEW;
     },
 
-    isCdrom() {
-      return this.value.type === 'cd-rom';
+    isExistingCdrom() {
+      return this.value.type === 'cd-rom' && !this.value.newCreateId;
     },
 
     isEmptyImage() {
@@ -343,7 +343,7 @@ export default {
         >
           <LabeledInput
             v-model:value="value.name"
-            :disabled="isEdit && isCdrom"
+            :disabled="!isCreate && isExistingCdrom"
             :label="t('harvester.fields.name')"
             required
             :mode="mode"
@@ -363,7 +363,7 @@ export default {
         >
           <LabeledSelect
             v-model:value="value.type"
-            :disabled="isEdit && isCdrom"
+            :disabled="!isCreate && isExistingCdrom"
             :label="t('harvester.fields.type')"
             :options="VOLUME_TYPE"
             :mode="mode"
@@ -385,7 +385,7 @@ export default {
         >
           <LabeledSelect
             v-model:value="value.image"
-            :disabled="(idx === 0 && !isCreate && !value.newCreateId && isVirtualType) || (isEdit && isCdrom)"
+            :disabled="(idx === 0 || isExistingCdrom) && (!isCreate && !value.newCreateId && isVirtualType)"
             :label="t('harvester.fields.image')"
             :options="imagesOption"
             :mode="mode"
@@ -413,7 +413,7 @@ export default {
             :label="t('harvester.fields.size')"
             :mode="mode"
             :required="validateRequired"
-            :disabled="isEmptyImage || isResizeDisabled || (isEdit && isCdrom)"
+            :disabled="isResizeDisabled || isEmptyImage || (!isCreate && isExistingCdrom)"
             :suffix="GIBIBYTE"
             @update:value="update"
           />
@@ -436,7 +436,7 @@ export default {
             :label="t('harvester.virtualMachine.volume.bus')"
             :mode="mode"
             :options="InterfaceOption"
-            :disabled="isEdit && isCdrom"
+            :disabled="!isCreate && isExistingCdrom"
             @update:value="onBusChange"
           />
         </InputOrDisplay>
