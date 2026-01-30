@@ -2,7 +2,7 @@
 import { isEqual } from 'lodash';
 import { mapGetters } from 'vuex';
 import Tabbed from '@shell/components/Tabbed';
-import { clone } from '@shell/utils/object';
+import { clone, set } from '@shell/utils/object';
 import Tab from '@shell/components/Tabbed/Tab';
 import { Checkbox } from '@components/Form/Checkbox';
 import CruResource from '@shell/components/CruResource';
@@ -32,6 +32,7 @@ import PciDevices from './VirtualMachinePciDevices/index';
 import AccessCredentials from './VirtualMachineAccessCredentials';
 import CloudConfig from './VirtualMachineCloudConfig';
 import CpuMemory from './VirtualMachineCpuMemory';
+import CpuModel from './VirtualMachineCpuModel';
 import Network from './VirtualMachineNetwork';
 import Volume from './VirtualMachineVolume';
 import SSHKey from './VirtualMachineSSHKey';
@@ -57,6 +58,7 @@ export default {
     SSHKey,
     Network,
     CpuMemory,
+    CpuModel,
     CloudConfig,
     NodeScheduling,
     PodAffinity,
@@ -538,6 +540,18 @@ export default {
 
       return out;
     },
+
+    updateCpuModel(value) {
+      if (!this.spec?.template?.spec?.domain?.cpu) {
+        set(this.spec, 'template.spec.domain.cpu', {});
+      }
+
+      if (value && value !== '') {
+        set(this.spec.template.spec.domain.cpu, 'model', value);
+      } else {
+        delete this.spec.template.spec.domain.cpu.model;
+      }
+    },
   },
 };
 </script>
@@ -866,6 +880,16 @@ export default {
               :reserved-memory="reservedMemory"
               :mode="mode"
               @updateReserved="updateReserved"
+            />
+          </div>
+        </div>
+
+        <div class="row mb-20">
+          <div class="col span-6">
+            <CpuModel
+              v-model:value="cpuModel"
+              :mode="mode"
+              @update:value="updateCpuModel"
             />
           </div>
         </div>

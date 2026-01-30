@@ -182,6 +182,7 @@ export default {
       immutableMode:                 this.realMode === _CREATE ? _CREATE : _VIEW,
       terminationGracePeriodSeconds: '',
       cpuPinning:                    false,
+      cpuModel:                      '',
     };
   },
 
@@ -394,6 +395,7 @@ export default {
       const efiPersistentStateEnabled = this.isEFIPersistentStateEnabled(spec);
       const secureBoot = this.isSecureBoot(spec);
       const cpuPinning = this.isCpuPinning(spec);
+      const cpuModel = spec.template.spec.domain.cpu?.model || '';
 
       const secretRef = this.getSecret(spec);
       const accessCredentials = this.getAccessCredentials(spec);
@@ -431,6 +433,7 @@ export default {
       this['tpmPersistentStateEnabled'] = tpmPersistentStateEnabled;
       this['secureBoot'] = secureBoot;
       this['cpuPinning'] = cpuPinning;
+      this['cpuModel'] = cpuModel;
 
       this['hasCreateVolumes'] = hasCreateVolumes;
       this['networkRows'] = networkRows;

@@ -617,6 +617,9 @@ harvester:
   virtualMachine:
     label: Virtual Machines
     osType: OS Type
+    cpuModel:
+      label: CPU Model
+      fetchError: 'Failed to load CPU model configuration: {error}'
     hotplug:
       title: Enable CPU and memory hotplug
       tooltip: The default maximum CPU and maximum memory are {hotPlugTimes} times based on CPU and memory.
