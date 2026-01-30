@@ -197,6 +197,7 @@ export default {
     'value.type'(neu) {
       if (neu === 'cd-rom') {
         this.value['bus'] = 'sata';
+        this.updateHotpluggable();
         this.update();
       }
     },
@@ -239,9 +240,18 @@ export default {
 
       return label;
     },
+
     update() {
       this.value.hasDiskError = this.showDiskTooSmallError;
       this.$emit('update');
+    },
+
+    updateHotpluggable() {
+      if (this.value.type !== 'cd-rom') {
+        this.value['hotpluggable'] = false;
+      } else {
+        this.value['hotpluggable'] = (this.value.bus === 'sata');
+      }
     },
 
     onTypeChange() {
@@ -249,6 +259,7 @@ export default {
         this.value['image'] = '';
       }
 
+      this.updateHotpluggable();
       this.update();
     },
 
@@ -257,6 +268,7 @@ export default {
         this.value['image'] = '';
       }
 
+      this.updateHotpluggable();
       this.update();
     },
 
@@ -277,13 +289,10 @@ export default {
       if (isIsoImage) {
         this.value['type'] = 'cd-rom';
         this.value['bus'] = 'sata';
+        this.updateHotpluggable();
       } else {
         this.value['type'] = 'disk';
         this.value['bus'] = 'virtio';
-      }
-
-      if (this.value['type'] === 'cd-rom') {
-        this.value['hotpluggable'] = true;
       }
 
       if (imageSize) {
