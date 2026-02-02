@@ -183,15 +183,14 @@ export default {
   watch: {
     allVMs: {
       handler(neu) {
-        let count = 0;
         const vmNames = [];
 
         neu.forEach((vm) => {
           if (vm.isRestartRequired) {
-            count++;
             vmNames.push(vm.metadata.name);
           }
         });
+        const count = vmNames.length;
 
         if ( count === 0 && this.restartNotificationDisplayed) {
           this.restartNotificationDisplayed = false;
