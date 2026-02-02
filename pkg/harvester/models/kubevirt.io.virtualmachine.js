@@ -182,12 +182,6 @@ export default class VirtVm extends HarvesterResource {
         label:   this.t('harvester.action.restore')
       },
       {
-        action:  'ejectCDROM',
-        enabled: !!this.actions?.ejectCdRom,
-        icon:    'icon icon-delete',
-        label:   this.t('harvester.action.ejectCDROM')
-      },
-      {
         action:  'migrateVM',
         enabled: !!this.actions?.migrate,
         icon:    'icon icon-copy',
@@ -499,13 +493,6 @@ export default class VirtVm extends HarvesterResource {
     this.$dispatch('promptModal', {
       resources,
       component: 'HarvesterMigrationDialog'
-    });
-  }
-
-  ejectCDROM(resources = this) {
-    this.$dispatch('promptModal', {
-      resources,
-      component: 'HarvesterEjectCDROMDialog'
     });
   }
 
