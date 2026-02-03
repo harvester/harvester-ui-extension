@@ -110,11 +110,12 @@ export default {
 
   data() {
     return {
-      hasNode:            false,
-      allVMs:             [],
-      allVMIs:            [],
-      allNodeNetworks:    [],
-      allClusterNetworks: [],
+      hasNode:                      false,
+      allVMs:                       [],
+      allVMIs:                      [],
+      allNodeNetworks:              [],
+      allClusterNetworks:           [],
+      restartNotificationDisplayed: false,
       HCI
     };
   },
@@ -174,6 +175,48 @@ export default {
     this['allVMIs'] = vmis;
   },
 
+  beforeUnmount() {
+    // clear restart message before component unmount
+    this.$store.dispatch('growl/clear');
+  },
+
+  watch: {
+    allVMs: {
+      handler(neu) {
+        const vmNames = [];
+
+        neu.forEach((vm) => {
+          if (vm.isRestartRequired) {
+            vmNames.push(vm.metadata.name);
+          }
+        });
+        const count = vmNames.length;
+
+        if ( count === 0 && this.restartNotificationDisplayed) {
+          this.restartNotificationDisplayed = false;
+
+          return;
+        }
+
+        if (count > 0) {
+          // clear old notification before showing new one
+          if (this.restartNotificationDisplayed) {
+            this.$store.dispatch('growl/clear');
+          }
+        }
+
+        if (count > 0 && vmNames.length > 0) {
+          this.$store.dispatch('growl/warning', {
+            title:   this.t('harvester.notification.restartRequired.title', { count }),
+            message: this.t('harvester.notification.restartRequired.message', { vmNames: vmNames.join(', ') }),
+            timeout: 10000,
+          }, { root: true });
+          this.restartNotificationDisplayed = true;
+        }
+      },
+      deep: true,
+    }
+  },
   methods: {
     lockIconTooltipMessage(row) {
       const message = '';
@@ -242,6 +285,12 @@ export default {
     </ResourceTable>
   </div>
 </template>
+
+<style lang="scss">
+.growl-container {
+  z-index: 56 !important;  // set to be lower than the vm action menu (z-index: 57)
+}
+</style>
 
 <style lang="scss" scoped>
 .state {
