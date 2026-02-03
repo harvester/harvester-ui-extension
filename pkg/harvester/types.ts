@@ -58,6 +58,7 @@ export const HCI = {
   LVM_VOLUME_GROUP:    'harvesterhci.io.lvmvolumegroup',
   VMIMPORT_SOURCE_V:   'migration.harvesterhci.io.vmwaresource',
   VMIMPORT_SOURCE_O:   'migration.harvesterhci.io.openstacksource',
+  VMIMPORT_SOURCE_KVM: 'migration.harvesterhci.io.kvmsource',
   VMIMPORT_SOURCE_OVA: 'migration.harvesterhci.io.ovasource',
   VMIMPORT:            'migration.harvesterhci.io.virtualmachineimport',
   MIGRATION:           'migration.harvesterhci.io',
