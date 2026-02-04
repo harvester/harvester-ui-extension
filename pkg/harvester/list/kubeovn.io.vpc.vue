@@ -155,6 +155,15 @@ export default {
       return location;
     },
 
+    viewTopology(group) {
+      const vpc = group.key;
+      const resource = this.$store.getters[`harvester/byId`](HCI.VPC, vpc);
+
+      if (resource && resource.goToDetail) {
+        resource.goToDetail();
+      }
+    },
+
     showVpcAction(event, group) {
       const vpc = group.key;
 
@@ -218,6 +227,14 @@ export default {
             >
               {{ t('harvester.vpc.createSubnet') }}
             </router-link>
+            <button
+              type="button"
+              class="btn btn-sm role-secondary mr-5"
+              @click="viewTopology(group)"
+            >
+              <i class="icon icon-globe mr-5" />
+              {{ t('harvester.vpc.viewTopology') }}
+            </button>
             <button
               type="button"
               class="btn btn-sm role-multi-action actions mr-10"

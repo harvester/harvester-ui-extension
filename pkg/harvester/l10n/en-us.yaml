@@ -1133,6 +1133,7 @@ harvester:
       banner: The supported field in ACL match can refer to <a href="https://kubeovn.github.io/docs/v1.14.x/en/guide/subnet/#subnet-acl" target="_blank">KubeOvn Subnet ACL document</a>
 
   vpc:
+    viewTopology: Topology
     noAddonEnabled:
       prefix: The kubeovn-operator add-on is not enabled, click
       middle: here
