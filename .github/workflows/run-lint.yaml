@@ -1,7 +1,7 @@
 name: Tests
 
 on:
-  workflow_call:  # This tells GH that the workflow is reusable 
+  workflow_call:  # This tells GH that the workflow is reusable
   push:
     branches:
       - main
@@ -36,6 +36,12 @@ jobs:
           echo "GITHUB_HEAD_SHA=$GITHUB_HEAD_SHA"
           echo "GITHUB_BEFORE=$GITHUB_BEFORE"
           echo "GITHUB_AFTER=$GITHUB_AFTER"
+
+          # Check for new branch (all zeros SHA)
+          if [ "$GITHUB_BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            echo "New branch detected, skipping commit message validation."
+            exit 0
+          fi
 
           if [ "$GITHUB_EVENT_NAME" = "pull_request" ] && [ -n "$GITHUB_BASE_SHA" ] && [ -n "$GITHUB_HEAD_SHA" ]; then
             FROM="$GITHUB_BASE_SHA"

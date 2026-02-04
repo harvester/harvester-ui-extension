@@ -18,6 +18,7 @@ export const HCI = {
   CLUSTER_NETWORK:     'network.harvesterhci.io.clusternetwork',
   SUBNET:              'kubeovn.io.subnet',
   VPC:                 'kubeovn.io.vpc',
+  IP:                  'kubeovn.io.ip',
   VM_IMAGE_DOWNLOADER: 'harvesterhci.io.virtualmachineimagedownloader',
   SUPPORT_BUNDLE:      'harvesterhci.io.supportbundle',
   NETWORK_ATTACHMENT:  'harvesterhci.io.networkattachmentdefinition',
