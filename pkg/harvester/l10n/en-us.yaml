@@ -190,12 +190,16 @@ harvester:
       title: Restart Virtual Machine
       tip: Restart the virtual machine for configuration changes to take effect.
       cancel: Save
+    
   notification:
     title:
       succeed: Succeed
       info: Info
       warning: Warning
       error: Error
+    restartRequired:
+      title: '{count} {count, plural, =1 {Virtual Machine is} other {Virtual Machines are}} Pending Restart'
+      message: 'Please restart { vmNames } to apply updated configurations'
   action:
     createVM: Create Virtual Machine
     start: Start
@@ -1299,7 +1303,10 @@ harvester:
       deleteImage: Please select an image to delete.
       deleteSuccess: "{name} deleted successfully."
       imagePreloadStrategy: Image Preload Strategy
+      nodeUpgradeOption: Node Upgrade Option
       restoreVM: Restore VM
+      strategy: Strategy
+      pauseNodes: Pause Nodes
       strategyType: Strategy Type
       concurrency: Concurrency
     harvesterMonitoring:
