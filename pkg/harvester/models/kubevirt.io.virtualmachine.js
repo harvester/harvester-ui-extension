@@ -183,7 +183,7 @@ export default class VirtVm extends HarvesterResource {
       },
       {
         action:  'ejectCDROM',
-        enabled: !!this.actions?.ejectCdRom,
+        enabled: !this.hotplugCdRomEnabled && !!this.actions?.ejectCdRom,
         icon:    'icon icon-delete',
         label:   this.t('harvester.action.ejectCDROM')
       },
@@ -1286,6 +1286,10 @@ export default class VirtVm extends HarvesterResource {
 
   get hotplugNicFeatureEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('hotplugNic');
+  }
+
+  get hotplugCdRomEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('hotplugCdRom');
   }
 
   get isBackupTargetUnavailable() {

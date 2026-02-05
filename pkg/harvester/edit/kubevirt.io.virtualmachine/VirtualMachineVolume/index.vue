@@ -118,6 +118,10 @@ export default {
       return this.mode === _CREATE;
     },
 
+    isHotplugCdRomFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('hotplugCdRom');
+    },
+
     defaultStorageClass() {
       const defaultStorage = this.$store.getters['harvester/all'](STORAGE_CLASS).find((sc) => sc.isDefault);
 
@@ -219,6 +223,10 @@ export default {
     },
 
     canDoVolumeHotplugAction(volume) {
+      if (!this.isHotplugCdRomFeatureEnabled && volume.type === 'cd-rom') {
+        return false;
+      }
+
       if (volume.hotpluggable) {
         return true;
       }

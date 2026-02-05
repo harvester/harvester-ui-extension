@@ -105,6 +105,10 @@ export default {
       return this.value.image === EMPTY_IMAGE;
     },
 
+    isHotplugCdRomFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('hotplugCdRom');
+    },
+
     imagesOption() {
       const images = this.images
         .filter((image) => {
@@ -124,14 +128,18 @@ export default {
           disabled: image.isImportedImage
         }));
 
-      return [
-        {
+      const options = [];
+
+      if (this.isHotplugCdRomFeatureEnabled) {
+        options.push({
           label:    this.t('harvester.virtualMachine.volume.emptyImage'),
           value:    EMPTY_IMAGE,
           disabled: false
-        },
-        ...images
-      ];
+        });
+      }
+      options.push(...images);
+
+      return options;
     },
 
     imageName() {
