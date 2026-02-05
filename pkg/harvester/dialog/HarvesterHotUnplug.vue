@@ -92,7 +92,6 @@ export default {
         } else if (this.modalData.type === NETWORK) {
           res = await this.actionResource.doAction('removeNic', { interfaceName: this.name });
         } else {
-          // this.modalData.type === CDROM
           res = await this.actionResource.doAction('ejectCdRomVolume', { deviceName: this.name });
         }
 
