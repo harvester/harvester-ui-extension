@@ -512,7 +512,7 @@ export default {
             // Empty CD_ROM
             source = SOURCE_TYPE.IMAGE;
             image = EMPTY_IMAGE;
-            size = '0Gi';
+            size = `0${ GIBIBYTE }`;
           } else if (volume.containerDisk) { // SOURCE_TYPE.CONTAINER
             source = SOURCE_TYPE.CONTAINER;
             container = volume.containerDisk.image;
