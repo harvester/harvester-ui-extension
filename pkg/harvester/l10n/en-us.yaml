@@ -190,7 +190,7 @@ harvester:
       title: Restart Virtual Machine
       tip: Restart the virtual machine for configuration changes to take effect.
       cancel: Save
-    
+
   notification:
     title:
       succeed: Succeed
@@ -736,7 +736,7 @@ harvester:
       unmount:
         title: Are you sure?
         message: Are you sure you want to unmount this volume?
-      emptyImage: -- Empty --
+      emptyImage: No media
     network:
       title: Network
       addNetwork: Add Network
