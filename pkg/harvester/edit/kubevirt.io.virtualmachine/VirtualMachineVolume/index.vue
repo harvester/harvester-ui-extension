@@ -13,7 +13,7 @@ import { ucFirst, randomStr } from '@shell/utils/string';
 import { removeObject } from '@shell/utils/array';
 import { _VIEW, _EDIT, _CREATE } from '@shell/config/query-params';
 import { PLUGIN_DEVELOPER, DEV } from '@shell/store/prefs';
-import { VOLUME_HOTPLUG_ACTION_IN_VIEW_MODE, SOURCE_TYPE } from '../../../config/harvester-map';
+import { VOLUME_HOTPLUG_ACTION, SOURCE_TYPE } from '../../../config/harvester-map';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../../config/harvester';
 import { HCI } from '../../../types';
 import { VOLUME_MODE } from '@pkg/harvester/config/types';
@@ -229,20 +229,20 @@ export default {
     getVolumeHotplugAction(volume) {
       if (volume.type === 'cd-rom' && volume.bus === 'sata') {
         if (volume.image === EMPTY_IMAGE) {
-          return VOLUME_HOTPLUG_ACTION_IN_VIEW_MODE.INSERT_CDROM_IMAGE;
+          return VOLUME_HOTPLUG_ACTION.INSERT_CDROM_IMAGE;
         }
 
-        return VOLUME_HOTPLUG_ACTION_IN_VIEW_MODE.EJECT_CDROM_IMAGE;
+        return VOLUME_HOTPLUG_ACTION.EJECT_CDROM_IMAGE;
       }
 
-      return VOLUME_HOTPLUG_ACTION_IN_VIEW_MODE.DETACH_DISK;
+      return VOLUME_HOTPLUG_ACTION.DETACH_DISK;
     },
 
     getVolumeHotplugActionLabel(volume) {
       const labels = {
-        [VOLUME_HOTPLUG_ACTION_IN_VIEW_MODE.DETACH_DISK]:        'harvester.virtualMachine.hotUnplug.detachVolume.actionLabel',
-        [VOLUME_HOTPLUG_ACTION_IN_VIEW_MODE.INSERT_CDROM_IMAGE]: 'harvester.modal.insertCdRomVolume.actionLabel',
-        [VOLUME_HOTPLUG_ACTION_IN_VIEW_MODE.EJECT_CDROM_IMAGE]:  'harvester.virtualMachine.hotUnplug.ejectCdRomVolume.actionLabel',
+        [VOLUME_HOTPLUG_ACTION.DETACH_DISK]:        'harvester.virtualMachine.hotUnplug.detachVolume.actionLabel',
+        [VOLUME_HOTPLUG_ACTION.INSERT_CDROM_IMAGE]: 'harvester.modal.insertCdRomVolume.actionLabel',
+        [VOLUME_HOTPLUG_ACTION.EJECT_CDROM_IMAGE]:  'harvester.virtualMachine.hotUnplug.ejectCdRomVolume.actionLabel',
       };
 
       return labels[this.getVolumeHotplugAction(volume)];
@@ -250,9 +250,9 @@ export default {
 
     hotplugVolume(volume) {
       const calls = {
-        [VOLUME_HOTPLUG_ACTION_IN_VIEW_MODE.DETACH_DISK]:        () => this.vm.unplugVolume(volume.name),
-        [VOLUME_HOTPLUG_ACTION_IN_VIEW_MODE.INSERT_CDROM_IMAGE]: () => this.vm.insertCdRomVolume(volume.name),
-        [VOLUME_HOTPLUG_ACTION_IN_VIEW_MODE.EJECT_CDROM_IMAGE]:  () => this.vm.ejectCdRomVolume(volume.name),
+        [VOLUME_HOTPLUG_ACTION.DETACH_DISK]:        () => this.vm.unplugVolume(volume.name),
+        [VOLUME_HOTPLUG_ACTION.INSERT_CDROM_IMAGE]: () => this.vm.insertCdRomVolume(volume.name),
+        [VOLUME_HOTPLUG_ACTION.EJECT_CDROM_IMAGE]:  () => this.vm.ejectCdRomVolume(volume.name),
       };
 
       return calls[this.getVolumeHotplugAction(volume)]();

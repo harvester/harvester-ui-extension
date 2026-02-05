@@ -39,7 +39,7 @@ export const VOLUME_TYPE = [{
   value: 'cd-rom'
 }];
 
-export const VOLUME_HOTPLUG_ACTION_IN_VIEW_MODE = {
+export const VOLUME_HOTPLUG_ACTION = {
   INSERT_CDROM_IMAGE: 'INSERT_CDROM_IMAGE',
   EJECT_CDROM_IMAGE:  'EJECT_CDROM_IMAGE',
   DETACH_DISK:        'DETACH_DISK'
