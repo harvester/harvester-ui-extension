@@ -130,6 +130,11 @@ harvester:
         nodeName:
           label: Target Node
           placeholder: Choose Target Node
+    ejectCDROM:
+      title: Eject CD-ROM
+      warnTip: Eject volume will restart the virtual machine.
+      operationTip: 'Select the volume you want to delete:'
+      delete: Delete
     bundle:
       title: Generate a Support Bundle
       titleDescription: Collect system-related logs in Harvester to assist with troubleshooting and support.
@@ -212,6 +217,7 @@ harvester:
     unpause: Unpause
     encryptImage: Encrypt Image
     decryptImage: Decrypt Image
+    ejectCDROM: Eject CD-ROM
     editVMQuota: Edit Virtual Machine Quota
     launchFormTemplate: Launch instance from template
     modifyTemplate: Modify template (Create new version)
