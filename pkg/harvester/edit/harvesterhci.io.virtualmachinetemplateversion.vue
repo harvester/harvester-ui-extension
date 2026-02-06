@@ -6,6 +6,7 @@ import { Checkbox } from '@components/Form/Checkbox';
 import CruResource from '@shell/components/CruResource';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
+import { set } from '@shell/utils/object';
 import { Banner } from '@components/Banner';
 import KeyValue from '@shell/components/form/KeyValue';
 import NodeScheduling from '@shell/components/form/NodeScheduling';
@@ -22,6 +23,7 @@ import Reserved from './kubevirt.io.virtualmachine/VirtualMachineReserved';
 import Volume from './kubevirt.io.virtualmachine/VirtualMachineVolume';
 import Network from './kubevirt.io.virtualmachine/VirtualMachineNetwork';
 import CpuMemory from './kubevirt.io.virtualmachine/VirtualMachineCpuMemory';
+import CpuModel from './kubevirt.io.virtualmachine/VirtualMachineCpuModel';
 import CloudConfig from './kubevirt.io.virtualmachine/VirtualMachineCloudConfig';
 import SSHKey from './kubevirt.io.virtualmachine/VirtualMachineSSHKey';
 
@@ -38,6 +40,7 @@ export default {
     Network,
     Checkbox,
     CpuMemory,
+    CpuModel,
     CruResource,
     CloudConfig,
     LabeledSelect,
@@ -70,12 +73,12 @@ export default {
 
     return {
       templateId,
-      templateValue:    null,
-      templateSpec:     null,
-      versionName:      '',
-      description:      '',
-      defaultVersion:   null,
-      isDefaultVersion: false,
+      templateValue:     null,
+      templateSpec:      null,
+      versionName:       '',
+      description:       '',
+      defaultVersion:    null,
+      isDefaultVersion:  false,
     };
   },
 
@@ -154,6 +157,18 @@ export default {
   },
 
   methods: {
+    updateCpuModel(value) {
+      if (!this.spec?.template?.spec?.domain?.cpu) {
+        set(this.spec, 'template.spec.domain.cpu', {});
+      }
+
+      if (value && value !== '') {
+        set(this.spec.template.spec.domain.cpu, 'model', value);
+      } else {
+        delete this.spec.template.spec.domain.cpu.model;
+      }
+    },
+
     async saveVMT(buttonCb) {
       this.parseVM();
 
@@ -436,6 +451,17 @@ export default {
             />
           </div>
         </div>
+
+        <div class="row mb-20">
+          <div class="col span-6">
+            <CpuModel
+              :value="spec.template.spec.domain.cpu?.model || ''"
+              :mode="mode"
+              @update:value="updateCpuModel"
+            />
+          </div>
+        </div>
+
         <div class="row mb-20">
           <a
             v-if="showAdvanced"
