@@ -4,6 +4,8 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { CONFIG_MAP } from '@shell/config/types';
 import { Banner } from '@components/Banner';
 
+const CPU_MODEL_CONFIG_MAP_ID = 'harvester-system/node-cpu-model-configuration';
+
 export default {
   name: 'HarvesterCpuModel',
 
@@ -29,24 +31,15 @@ export default {
     const inStore = this.$store.getters['currentProduct'].inStore;
 
     try {
-      await this.$store.dispatch(`${ inStore }/findAll`, { type: CONFIG_MAP });
-      this.cpuModelConfigMap = this.$store.getters[`${ inStore }/byId`](CONFIG_MAP, 'harvester-system/node-cpu-model-configuration');
+      await this.$store.dispatch(`${ inStore }/find`, { type: CONFIG_MAP, id: CPU_MODEL_CONFIG_MAP_ID });
       this.fetchError = null;
-
-      // Force re-render of LabeledSelect after options are ready
-      await this.$nextTick();
-      this.componentKey += 1;
     } catch (e) {
-      this.fetchError = this.t('harvester.virtualMachine.cpuModel.fetchError', { error: e.message || e }, true);
+      this.fetchError = this.t('harvester.virtualMachine.cpuModel.fetchError', { error: e.message || e });
     }
   },
 
   data() {
-    return {
-      cpuModelConfigMap: null,
-      fetchError:        null,
-      componentKey:      0,
-    };
+    return { fetchError: null };
   },
 
   computed: {
@@ -59,12 +52,28 @@ export default {
       }
     },
 
+    cpuModelConfigMap() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+
+      return this.$store.getters[`${ inStore }/byId`](
+        CONFIG_MAP,
+        CPU_MODEL_CONFIG_MAP_ID
+      );
+    },
+
     cpuModelOptions() {
-      if (!this.cpuModelConfigMap) {
-        return [];
+      if (!this.cpuModelConfigMap?.data?.cpuModels) {
+        return [{ label: this.t('generic.default'), value: '' }];
       }
 
-      const cpuModelsData = YAML.parse(this.cpuModelConfigMap.data?.cpuModels || '');
+      let cpuModelsData;
+
+      try {
+        cpuModelsData = YAML.parse(this.cpuModelConfigMap.data?.cpuModels || '');
+      } catch (e) {
+        return [{ label: this.t('generic.default'), value: '' }];
+      }
+
       const options = [];
 
       options.push({
@@ -90,8 +99,7 @@ export default {
 
       modelEntries.forEach(([modelName, modelInfo]) => {
         const readyCount = modelInfo.readyCount || 0;
-        const nodeLabel = readyCount === 1 ? 'node' : 'nodes';
-        const label = `${ modelName } (${ readyCount } ${ nodeLabel })`;
+        const label = this.t('harvester.virtualMachine.cpuModel.optionLabel', { modelName, count: readyCount });
 
         options.push({
           label,
@@ -115,7 +123,6 @@ export default {
       {{ fetchError }}
     </Banner>
     <LabeledSelect
-      :key="componentKey"
       v-model:value="localValue"
       :label="t('harvester.virtualMachine.cpuModel.label')"
       :options="cpuModelOptions"
