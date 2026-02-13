@@ -4,21 +4,36 @@ import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
 import { MiniMap } from '@vue-flow/minimap';
 import { allHash } from '@shell/utils/promise';
+import { NETWORK_ATTACHMENT } from '@shell/config/types';
 import Checkbox from '@components/Form/Checkbox/Checkbox.vue';
 import { HCI } from '../types';
+import { NETWORK_TYPE } from '../config/types';
 
-const NETWORK_PROVIDERS = { OVN: 'ovn', OVERLAY: 'overlay' };
+const NETWORK_PROVIDERS = { OVN: 'ovn' };
+
+const NODE_TYPES = {
+  VPC:              'vpc',
+  GROUP:            'group',
+  SUBNET:           'subnet',
+  OVERLAY_NETWORK:  'overlay-network',
+  VM:               'vm',
+  MULTI_NETWORK_VM: 'multi-network-vm',
+};
+
+const STOPPED_VM_STATUSES = ['stopped', 'paused'];
 
 const THEME_COLORS = {
-  VPC:       '#2453ff',
-  SUBNET:    '#fe7c3f',
-  OVERLAY:   '#9333ea',
-  VM:        '#00bda7',
-  STOPPED:   '#9ca3af',
-  TEXT:      '#000000',
-  MUTED:     '#6b7280',
-  BG_STOP:   '#f3f4f6',
-  LINK_GRAY: '#9ca3af',
+  VPC:        '#2453ff',
+  BG_VPC:     'rgba(36, 83, 255, 0.1)',
+  SUBNET:     '#fe7c3f',
+  BG_SUBNET:  'rgba(254, 124, 63, 0.1)',
+  OVERLAY:    '#cb1fdb',
+  BG_OVERLAY: 'rgba(203, 31, 219, 0.1)',
+  VM:         '#00bda7',
+  BG_VM:      'rgba(0, 189, 167, 0.1)',
+  STOPPED:    '#9ca3af',
+  BG_STOPPED: 'rgba(156, 163, 175, 0.1)',
+  LINK_GRAY:  '#9ca3af',
 };
 
 const LAYOUT = {
@@ -28,6 +43,7 @@ const LAYOUT = {
   HORIZONTAL_GAP: 30,
   NODE_WIDTH:     230,
   VM_ROW_HEIGHT:  120,
+  GROUP_NODE_GAP: 30,
 };
 
 export default {
@@ -56,7 +72,6 @@ export default {
       loading:        true,
       selectedNodeId: null,
       relatedIds:     new Set(),
-      // 顯示切換狀態
       showVPC:        true,
       showSubnets:    true,
       showVMs:        true,
@@ -73,9 +88,7 @@ export default {
         ips:                this.$store.dispatch(`${ store }/findAll`, { type: HCI.IP }),
         vms:                this.$store.dispatch(`${ store }/findAll`, { type: HCI.VM }),
         clusterNetworks:    this.$store.dispatch(`${ store }/findAll`, { type: HCI.CLUSTER_NETWORK }),
-        networkAttachments: this.$store
-          .dispatch(`${ store }/findAll`, { type: HCI.NETWORK_ATTACHMENT })
-          .catch(() => []),
+        networkAttachments: this.$store.dispatch(`${ store }/findAll`, { type: NETWORK_ATTACHMENT })
       });
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -98,21 +111,22 @@ export default {
       return this.$store.getters[`${ this.inStore }/all`](HCI.VM) || [];
     },
     allNetworkAttachments() {
-      try {
-        return this.$store.getters[`${ this.inStore }/all`](HCI.NETWORK_ATTACHMENT) || [];
-      } catch {
-        return [];
-      }
+      return this.$store.getters[`${ this.inStore }/all`](NETWORK_ATTACHMENT) || [];
     },
 
     subnetCount() {
-      return this.nodes.filter((node) => node.type === 'subnet').length;
+      return this.nodes.filter((node) => node.type === NODE_TYPES.SUBNET)
+        .length;
     },
     overlayCount() {
-      return this.nodes.filter((node) => node.type === 'overlay-network').length;
+      return this.nodes.filter(
+        (node) => node.type === NODE_TYPES.OVERLAY_NETWORK,
+      ).length;
     },
     vmCount() {
-      return this.nodes.filter((node) => node.type && node.type.includes('vm')).length;
+      return this.nodes.filter(
+        (node) => node.type && node.type.includes(NODE_TYPES.VM),
+      ).length;
     },
 
     backgroundPatternColor() {
@@ -124,22 +138,58 @@ export default {
     colors() {
       return THEME_COLORS;
     },
+    topologyCssVars() {
+      return {
+        '--node-vpc-color':        this.colors.VPC,
+        '--node-vpc-bg':           this.colors.BG_VPC,
+        '--node-subnet-color':     this.colors.SUBNET,
+        '--node-subnet-bg':        this.colors.BG_SUBNET,
+        '--node-overlay-color':    this.colors.OVERLAY,
+        '--node-overlay-bg':       this.colors.BG_OVERLAY,
+        '--node-vm-color':         this.colors.VM,
+        '--node-vm-bg':            this.colors.BG_VM,
+        '--node-vm-stopped-color': this.colors.STOPPED,
+        '--node-vm-stopped-bg':    this.colors.BG_STOPPED,
+        '--badge-vpc-bg':          this.colors.VPC,
+        '--badge-subnet-bg':       this.colors.SUBNET,
+        '--badge-overlay-bg':      this.colors.OVERLAY,
+        '--badge-vm-bg':           this.colors.VM,
+        '--status-running-color':  this.colors.VM,
+        '--status-running-glow':   'rgba(0, 189, 167, 0.6)',
+        '--status-stopped-color':  this.colors.STOPPED,
+      };
+    },
 
     visibilityOptions() {
-      return [
+      const options = [
         {
-          modelKey: 'showVPC', label: 'VPC', badgeKey: 'VPC', count: 1
+          modelKey:   'showVPC',
+          label:      this.t('harvester.vpc.topology.visibility.vpc'),
+          badgeClass: 'badge-vpc',
+          count:      this.nodes.filter((node) => node.type === NODE_TYPES.VPC).length,
         },
         {
-          modelKey: 'showSubnets', label: 'Subnets', badgeKey: 'SUBNET', count: this.subnetCount
+          modelKey:   'showSubnets',
+          label:      this.t('harvester.vpc.topology.visibility.subnets'),
+          badgeClass: 'badge-subnet',
+          count:      this.subnetCount,
         },
         {
-          modelKey: 'showOverlays', label: 'Overlay Networks', badgeKey: 'OVERLAY', count: this.overlayCount, disabled: !this.showSubnets
+          modelKey:   'showOverlays',
+          label:      this.t('harvester.vpc.topology.visibility.overlayNetworks'),
+          badgeClass: 'badge-overlay',
+          count:      this.overlayCount,
+          disabled:   !this.showSubnets,
         },
         {
-          modelKey: 'showVMs', label: 'VMs', badgeKey: 'VM', count: this.vmCount
+          modelKey:   'showVMs',
+          label:      this.t('harvester.vpc.topology.visibility.vms'),
+          badgeClass: 'badge-vm',
+          count:      this.vmCount,
         },
       ];
+
+      return options.filter((option) => option.count > 0);
     },
 
     filteredNodes() {
@@ -147,33 +197,17 @@ export default {
         .filter((node) => {
           const type = node.type;
 
-          if (type === 'vpc' && !this.showVPC) return false;
-          if ((type === 'subnet' || type === 'group' || type === 'overlay-network') && !this.showSubnets) return false;
-          if (type === 'overlay-network' && !this.showOverlays) return false;
-          if (type.includes('vm') && !this.showVMs) return false;
+          if (type === NODE_TYPES.VPC && !this.showVPC) return false;
+          if (this.isSubnetScopedType(type) && !this.showSubnets) return false;
+          if (type === NODE_TYPES.OVERLAY_NETWORK && !this.showOverlays) {
+            return false;
+          }
+          if (this.isVmType(type) && !this.showVMs) return false;
 
           return true;
         })
         .map((node) => {
-          const isTarget = this.selectedNodeId === node.id;
-          const isRelated = this.selectedNodeId && (this.relatedIds.has(node.id) || node.type === 'vpc');
-          const isDimmed = this.selectedNodeId && node.type !== 'group' && !isRelated && !isTarget;
-
-          let stateClass = '';
-          let zIndex = node.zIndex || 1;
-
-          if (this.selectedNodeId) {
-            if (isTarget) {
-              stateClass = 'node-focused';
-              zIndex = 1000;
-            } else if (isRelated) {
-              stateClass = 'node-related';
-              zIndex = 999;
-            } else if (isDimmed) {
-              stateClass = 'node-dimmed';
-              zIndex = 0;
-            }
-          }
+          const { stateClass, zIndex } = this.getNodeState(node);
 
           return {
             ...node,
@@ -187,9 +221,14 @@ export default {
       const visibleIds = new Set(this.filteredNodes.map((node) => node.id));
 
       return this.edges
-        .filter((edge) => visibleIds.has(edge.source) && visibleIds.has(edge.target))
+        .filter(
+          (edge) => visibleIds.has(edge.source) && visibleIds.has(edge.target),
+        )
         .map((edge) => {
-          const isRelated = !this.selectedNodeId || (this.relatedIds.has(edge.source) && this.relatedIds.has(edge.target));
+          const isRelated =
+            !this.selectedNodeId ||
+            (this.relatedIds.has(edge.source) &&
+              this.relatedIds.has(edge.target));
 
           return {
             ...edge,
@@ -205,13 +244,13 @@ export default {
       handler() {
         if (!this.loading) this.loadTopology();
       },
-      deep: true
+      deep: true,
     },
-    allVMs:     {
+    allVMs: {
       handler() {
         if (!this.loading) this.loadTopology();
       },
-      deep: true
+      deep: true,
     },
     'value.metadata.resourceVersion'() {
       if (!this.loading) this.loadTopology();
@@ -223,15 +262,20 @@ export default {
 
   methods: {
     prepareResources(vpcName) {
-      const vpcSubnets = this.allSubnets.filter((subnet) => subnet.spec?.vpc === vpcName);
+      const vpcSubnets = this.allSubnets.filter(
+        (subnet) => subnet.spec?.vpc === vpcName,
+      );
       const vmToSubnetsMap = {};
       const vmToDetailsMap = {};
+      const vmNames = new Set(
+        this.allVMs.map((vm) => vm.metadata?.name).filter(Boolean),
+      );
 
       this.allIps.forEach((ip) => {
         const podName = ip.spec?.podName;
         const subnetName = ip.spec?.subnet;
 
-        if (podName && subnetName && this.allVMs.find((vm) => vm.metadata?.name === podName)) {
+        if (podName && subnetName && vmNames.has(podName)) {
           if (!vmToSubnetsMap[podName]) {
             vmToSubnetsMap[podName] = [];
             vmToDetailsMap[podName] = [];
@@ -250,11 +294,15 @@ export default {
       const filteredVMs = this.allVMs.filter((vm) => {
         const subnets = vmToSubnetsMap[vm.metadata?.name] || [];
 
-        return subnets.some((name) => vpcSubnets.some((s) => s.metadata.name === name));
+        return subnets.some((name) => vpcSubnets.some((s) => s.metadata.name === name),
+        );
       });
 
       return {
-        vpcSubnets, vmToSubnetsMap, vmToDetailsMap, vpcVMs: filteredVMs
+        vpcSubnets,
+        vmToSubnetsMap,
+        vmToDetailsMap,
+        vpcVMs: filteredVMs,
       };
     },
 
@@ -267,7 +315,8 @@ export default {
         const vpc = this.value;
         const {
           vpcSubnets, vmToSubnetsMap, vmToDetailsMap, vpcVMs
-        } = this.prepareResources(vpc.metadata.name);
+        } =
+          this.prepareResources(vpc.metadata.name);
 
         const nodes = [];
         const edges = [];
@@ -276,14 +325,15 @@ export default {
         const subnetXPositions = vpcSubnets.map(() => {
           const position = currentX;
 
-          currentX += LAYOUT.NODE_WIDTH + (LAYOUT.BASE_PADDING * 2) + LAYOUT.HORIZONTAL_GAP;
+          currentX +=
+            LAYOUT.NODE_WIDTH + LAYOUT.BASE_PADDING * 2 + LAYOUT.HORIZONTAL_GAP;
 
           return position;
         });
 
         nodes.push({
-          id:       'vpc',
-          type:     'vpc',
+          id:       NODE_TYPES.VPC,
+          type:     NODE_TYPES.VPC,
           position: { x: currentX / 2, y: LAYOUT.BASE_PADDING },
           data:     { name: vpc.metadata.name },
           style:    { width: `${ LAYOUT.NODE_WIDTH }px` },
@@ -292,13 +342,26 @@ export default {
         const subnetY = LAYOUT.BASE_PADDING + 100;
 
         vpcSubnets.forEach((subnet, index) => {
-          this.createNetworkNodes(nodes, edges, subnet, subnetXPositions[index], subnetY);
+          this.createNetworkNodes(
+            nodes,
+            edges,
+            subnet,
+            subnetXPositions[index],
+            subnetY,
+          );
         });
 
         const vmStartY = subnetY + 400;
 
         this.createVMNodes({
-          nodes, edges, vpcVMs, vpcSubnets, subnetXPositions, vmToSubnetsMap, vmToDetailsMap, vmStartY
+          nodes,
+          edges,
+          vpcVMs,
+          vpcSubnets,
+          subnetXPositions,
+          vmToSubnetsMap,
+          vmToDetailsMap,
+          vmStartY,
         });
 
         this.nodes = nodes;
@@ -318,20 +381,33 @@ export default {
       const subnetName = subnet.metadata.name;
       const subnetNodeId = `subnet-${ subnetName }`;
       const provider = subnet.spec?.provider || NETWORK_PROVIDERS.OVN;
-      const hasOverlay = provider !== NETWORK_PROVIDERS.OVN && provider.trim() !== '';
+      const hasOverlay =
+        provider !== NETWORK_PROVIDERS.OVN && provider.trim() !== '';
 
       if (hasOverlay) {
         const groupId = `group-${ subnetName }`;
-        const nad = this.allNetworkAttachments.find((n) => n.id === provider || n.metadata?.name === provider);
-        const overlayName = nad?.metadata?.name || provider.split('/').pop();
-        const clusterNetwork = nad?.metadata?.labels?.[HCI.CLUSTER_NETWORK] || 'mgmt';
+
+        const nad = this.allNetworkAttachments.find(
+          (networkAttachment) => {
+            return networkAttachment?.parseConfig?.provider === provider;
+          }
+        );
+
+        const overlayName =
+          nad?.parseConfig?.name || nad?.metadata?.name;
+
+        const clusterNetwork =
+          nad?.metadata?.labels?.[HCI.CLUSTER_NETWORK] || 'mgmt';
+
+        const nadType = nad?.metadata?.labels?.[HCI.NETWORK_TYPE] ||
+          NETWORK_TYPE.OVERLAY;
         const overlayNodeId = `overlay-${ provider.replace(/\//g, '-') }`;
 
         nodes.push({
           id:       groupId,
-          type:     'group',
+          type:     NODE_TYPES.GROUP,
           position: { x, y },
-          data:     { type: 'group' },
+          data:     { type: NODE_TYPES.GROUP },
           style:    {
             background:   'rgba(0,0,0,0.05)',
             borderRadius: '16px',
@@ -343,7 +419,7 @@ export default {
 
         nodes.push({
           id:         subnetNodeId,
-          type:       'subnet',
+          type:       NODE_TYPES.SUBNET,
           parentNode: groupId,
           extent:     'parent',
           position:   { x: LAYOUT.BASE_PADDING, y: LAYOUT.BASE_PADDING },
@@ -357,12 +433,15 @@ export default {
 
         nodes.push({
           id:         overlayNodeId,
-          type:       'overlay-network',
+          type:       NODE_TYPES.OVERLAY_NETWORK,
           parentNode: groupId,
           extent:     'parent',
           position:   { x: LAYOUT.BASE_PADDING, y: 150 },
           data:       {
-            name: overlayName, nadType: 'overlay', clusterNetwork, subnetId: subnetNodeId
+            name:     overlayName,
+            nadType,
+            clusterNetwork,
+            subnetId: subnetNodeId,
           },
           style: { width: `${ LAYOUT.NODE_WIDTH }px` },
         });
@@ -374,13 +453,15 @@ export default {
           type:     'straight',
           animated: false,
           style:    {
-            stroke: THEME_COLORS.LINK_GRAY, strokeWidth: 2, strokeDasharray: '4,4'
+            stroke:          THEME_COLORS.LINK_GRAY,
+            strokeWidth:     2,
+            strokeDasharray: '4,4',
           },
         });
       } else {
         nodes.push({
           id:       subnetNodeId,
-          type:     'subnet',
+          type:     NODE_TYPES.SUBNET,
           position: { x, y: y + LAYOUT.BASE_PADDING },
           data:     {
             name:     subnetName,
@@ -392,12 +473,23 @@ export default {
       }
 
       edges.push({
-        id: `vpc-to-${ subnetName }`, source: 'vpc', target: subnetNodeId, animated: true, style: { stroke: THEME_COLORS.VPC, strokeWidth: 2 }
+        id:       `vpc-to-${ subnetName }`,
+        source:   NODE_TYPES.VPC,
+        target:   subnetNodeId,
+        animated: true,
+        style:    { stroke: THEME_COLORS.VPC, strokeWidth: 2 },
       });
     },
 
     createVMNodes({
-      nodes, edges, vpcVMs, vpcSubnets, subnetXPositions, vmToSubnetsMap, vmToDetailsMap, vmStartY
+      nodes,
+      edges,
+      vpcVMs,
+      vpcSubnets,
+      subnetXPositions,
+      vmToSubnetsMap,
+      vmToDetailsMap,
+      vmStartY,
     }) {
       const columnTrackers = {};
 
@@ -426,20 +518,26 @@ export default {
         if (tracker.count >= LAYOUT.VMS_PER_ROW) {
           tracker.row++;
           tracker.count = 0;
-          const subnetIndex = vpcSubnets.findIndex((s) => s.metadata.name === primarySubnet);
+          const subnetIndex = vpcSubnets.findIndex(
+            (s) => s.metadata.name === primarySubnet,
+          );
 
           tracker.x = subnetXPositions[subnetIndex] + LAYOUT.BASE_PADDING;
         }
 
         const status = (vm.status?.printableStatus || '').toLowerCase();
-        const isStopped = ['stopped', 'off', 'paused', 'shutoff'].includes(status);
+        const isStopped = STOPPED_VM_STATUSES.includes(status);
+
         const vmId = `vm-${ vmName }`;
 
         nodes.push({
           id:       vmId,
-          type:     isMulti ? 'multi-network-vm' : 'vm',
-          position: { x: tracker.x, y: vmStartY + (tracker.row * LAYOUT.VM_ROW_HEIGHT) },
-          data:     {
+          type:     isMulti ? NODE_TYPES.MULTI_NETWORK_VM : NODE_TYPES.VM,
+          position: {
+            x: tracker.x,
+            y: vmStartY + tracker.row * LAYOUT.VM_ROW_HEIGHT,
+          },
+          data: {
             name:       vmName,
             isStopped,
             interfaces: vmToDetailsMap[vmName] || [],
@@ -453,8 +551,10 @@ export default {
 
         (vmToSubnetsMap[vmName] || []).forEach((name) => {
           const targetSubnet = vpcSubnets.find((s) => s.metadata.name === name);
-          const provider = targetSubnet?.spec?.provider || NETWORK_PROVIDERS.OVN;
-          const sourceId = (provider !== NETWORK_PROVIDERS.OVN) ? `overlay-${ provider.replace(/\//g, '-') }` : `subnet-${ name }`;
+          const provider =
+            targetSubnet?.spec?.provider || NETWORK_PROVIDERS.OVN;
+          const sourceId =
+            provider !== NETWORK_PROVIDERS.OVN ? `overlay-${ provider.replace(/\//g, '-') }` : `subnet-${ name }`;
 
           edges.push({
             id:       `edge-${ name }-to-${ vmName }`,
@@ -471,38 +571,104 @@ export default {
         });
       };
 
-      vpcVMs.filter((v) => (vmToSubnetsMap[v.metadata.name] || []).length === 1).forEach((v) => renderVM(v, false));
-      vpcVMs.filter((v) => (vmToSubnetsMap[v.metadata.name] || []).length > 1).forEach((v) => renderVM(v, true));
+      vpcVMs
+        .filter((v) => (vmToSubnetsMap[v.metadata.name] || []).length === 1)
+        .forEach((v) => renderVM(v, false));
+      vpcVMs
+        .filter((v) => (vmToSubnetsMap[v.metadata.name] || []).length > 1)
+        .forEach((v) => renderVM(v, true));
     },
 
     resizeGroups() {
       this.nodes.forEach((groupNode) => {
-        if (groupNode.type === 'group') {
-          const subnetNode = this.nodes.find((n) => n.parentNode === groupNode.id && n.type === 'subnet');
-          const overlayNode = this.nodes.find((n) => n.parentNode === groupNode.id && n.type === 'overlay-network');
+        if (groupNode.type === NODE_TYPES.GROUP) {
+          const subnetNode = this.nodes.find(
+            (node) => node.parentNode === groupNode.id &&
+              node.type === NODE_TYPES.SUBNET,
+          );
+          const overlayNode = this.nodes.find(
+            (node) => node.parentNode === groupNode.id &&
+              node.type === NODE_TYPES.OVERLAY_NETWORK,
+          );
 
           if (subnetNode && overlayNode) {
-            const subnetElement = document.querySelector(`[data-id="${ subnetNode.id }"] .custom-node`);
-            const overlayElement = document.querySelector(`[data-id="${ overlayNode.id }"] .custom-node`);
+            const subnetElement = document.querySelector(
+              `[data-id="${ subnetNode.id }"] .custom-node`,
+            );
+            const overlayElement = document.querySelector(
+              `[data-id="${ overlayNode.id }"] .custom-node`,
+            );
 
             if (subnetElement && overlayElement) {
+              const subnetWidth = subnetElement.offsetWidth;
               const subnetHeight = subnetElement.offsetHeight;
+              const overlayWidth = overlayElement.offsetWidth;
               const overlayHeight = overlayElement.offsetHeight;
-              const groupWidth = LAYOUT.NODE_WIDTH + (LAYOUT.BASE_PADDING * 2);
-              const groupHeight = LAYOUT.BASE_PADDING + subnetHeight + 30 + overlayHeight + LAYOUT.BASE_PADDING;
+
+              const contentWidth = Math.max(subnetWidth, overlayWidth);
+              const groupWidth = contentWidth + LAYOUT.BASE_PADDING * 2;
+              const groupHeight =
+                LAYOUT.BASE_PADDING +
+                subnetHeight +
+                LAYOUT.GROUP_NODE_GAP +
+                overlayHeight +
+                LAYOUT.BASE_PADDING;
 
               groupNode.style.width = `${ groupWidth }px`;
               groupNode.style.height = `${ groupHeight }px`;
-              subnetNode.position = { x: LAYOUT.BASE_PADDING, y: LAYOUT.BASE_PADDING };
-              overlayNode.position = { x: LAYOUT.BASE_PADDING, y: LAYOUT.BASE_PADDING + subnetHeight + 30 };
+
+              subnetNode.position = {
+                x: LAYOUT.BASE_PADDING,
+                y: LAYOUT.BASE_PADDING,
+              };
+              overlayNode.position = {
+                x: LAYOUT.BASE_PADDING,
+                y: LAYOUT.BASE_PADDING + subnetHeight + LAYOUT.GROUP_NODE_GAP,
+              };
             }
           }
         }
       });
     },
 
+    isVmType(type) {
+      return type === NODE_TYPES.VM || type === NODE_TYPES.MULTI_NETWORK_VM;
+    },
+
+    isSubnetScopedType(type) {
+      return (
+        type === NODE_TYPES.SUBNET ||
+        type === NODE_TYPES.GROUP ||
+        type === NODE_TYPES.OVERLAY_NETWORK
+      );
+    },
+
+    getNodeState(node) {
+      const defaultZIndex = node.zIndex || 1;
+
+      if (!this.selectedNodeId) {
+        return { stateClass: '', zIndex: defaultZIndex };
+      }
+
+      const isTarget = this.selectedNodeId === node.id;
+      const isRelated =
+        this.relatedIds.has(node.id) || node.type === NODE_TYPES.VPC;
+      const isDimmed =
+        node.type !== NODE_TYPES.GROUP && !isRelated && !isTarget;
+
+      if (isTarget) return { stateClass: 'node-focused', zIndex: 1000 };
+      if (isRelated) return { stateClass: 'node-related', zIndex: 999 };
+      if (isDimmed) return { stateClass: 'node-dimmed', zIndex: 0 };
+
+      return { stateClass: '', zIndex: defaultZIndex };
+    },
+
+    hasOutgoingConnection(nodeId) {
+      return this.filteredEdges.some((edge) => edge.source === nodeId);
+    },
+
     onNodeClick({ node }) {
-      if (node.type === 'group') return;
+      if (node.type === NODE_TYPES.GROUP) return;
       if (this.selectedNodeId === node.id) {
         this.selectedNodeId = null;
         this.relatedIds.clear();
@@ -514,7 +680,8 @@ export default {
 
       const traverse = (id, direction) => {
         this.edges.forEach((edge) => {
-          const nextId = (direction === 'down') ? (edge.source === id ? edge.target : null) : (edge.target === id ? edge.source : null);
+          const nextId =
+            direction === 'down' ? edge.source === id ? edge.target : null : edge.target === id ? edge.source : null;
 
           if (nextId && !related.has(nextId)) {
             related.add(nextId);
@@ -541,7 +708,10 @@ export default {
 </script>
 
 <template>
-  <div class="vpc-topology">
+  <div
+    class="vpc-topology"
+    :style="topologyCssVars"
+  >
     <div class="topology-header">
       <div class="visibility-controls">
         <Checkbox
@@ -556,10 +726,7 @@ export default {
             {{ option.label }}
             <span
               class="count-badge"
-              :style="{
-                background: colors[option.badgeKey],
-                opacity: option.disabled ? 0.4 : 1,
-              }"
+              :class="[option.badgeClass, { disabled: option.disabled }]"
             >{{ option.count }}</span>
           </template>
         </Checkbox>
@@ -570,14 +737,15 @@ export default {
       v-if="loading"
       class="loading"
     >
-      <i class="icon icon-spinner icon-spin" /> Loading topology...
+      <i class="icon icon-spinner icon-spin" />
+      {{ t("harvester.vpc.topology.loading") }}
     </div>
     <div
       v-else-if="nodes.length === 0"
       class="empty-state"
     >
       <i class="icon icon-info" />
-      <p>No resources found</p>
+      <p>{{ t("harvester.vpc.topology.empty") }}</p>
     </div>
 
     <VueFlow
@@ -589,18 +757,15 @@ export default {
       @node-click="onNodeClick"
       @pane-click="onPaneClick"
     >
-      <template #node-vpc="{ data }">
+      <template #node-vpc="{ id, data }">
         <Handle
+          v-if="hasOutgoingConnection(id)"
           type="source"
           position="bottom"
         />
         <div
           class="custom-node vpc-node"
           :class="data.stateClass"
-          :style="{
-            width: layoutConfig.NODE_WIDTH + 'px',
-            border: `2px solid ${colors.VPC}`,
-          }"
         >
           <div class="node-name">
             {{ data.name }}
@@ -610,52 +775,64 @@ export default {
 
       <template #node-group></template>
 
-      <template #node-subnet="{ data }">
+      <template #node-subnet="{ id, data }">
         <Handle
+          class="handle-center"
           type="target"
           position="top"
-          style="left: 50%"
-        /><Handle
+        />
+        <Handle
+          v-if="hasOutgoingConnection(id)"
+          class="handle-center"
           type="source"
           position="bottom"
-          style="left: 50%"
         />
         <div
           class="custom-node subnet-node"
           :class="data.stateClass"
-          :style="{ width: '100%', border: `2px solid ${colors.SUBNET}` }"
         >
           <div class="node-name">
             {{ data.name }}
           </div>
           <div class="node-details">
-            <div>CIDR: {{ data.cidr }}</div>
-            <div>Provider: {{ data.provider }}</div>
+            <div>
+              {{ t("harvester.vpc.topology.labels.cidr") }}: {{ data.cidr }}
+            </div>
+            <div>
+              {{ t("harvester.vpc.topology.labels.provider") }}:
+              {{ data.provider }}
+            </div>
           </div>
         </div>
       </template>
 
-      <template #node-overlay-network="{ data }">
+      <template #node-overlay-network="{ id, data }">
         <Handle
+          class="handle-center"
           type="target"
           position="top"
-          style="left: 50%"
-        /><Handle
+        />
+        <Handle
+          v-if="hasOutgoingConnection(id)"
+          class="handle-center"
           type="source"
           position="bottom"
-          style="left: 50%"
         />
         <div
           class="custom-node overlay-node"
           :class="data.stateClass"
-          :style="{ width: '100%', border: `2px dashed ${colors.OVERLAY}` }"
         >
           <div class="node-name">
             {{ data.name }}
           </div>
           <div class="node-details">
-            <div>Type: {{ data.nadType }}</div>
-            <div>Cluster Network: {{ data.clusterNetwork }}</div>
+            <div>
+              {{ t("harvester.vpc.topology.labels.type") }}: {{ data.nadType }}
+            </div>
+            <div>
+              {{ t("harvester.vpc.topology.labels.clusterNetwork") }}:
+              {{ data.clusterNetwork }}
+            </div>
           </div>
         </div>
       </template>
@@ -668,13 +845,6 @@ export default {
         <div
           class="custom-node vm-node"
           :class="[data.stateClass, { stopped: data.isStopped }]"
-          :style="{
-            width: layoutConfig.NODE_WIDTH + 'px',
-            border: data.isStopped
-              ? `2px dashed ${colors.STOPPED}`
-              : `2px solid ${colors.VM}`,
-            backgroundColor: data.isStopped ? colors.BG_STOP : '#ffffff',
-          }"
         >
           <div class="node-header">
             <span
@@ -692,10 +862,10 @@ export default {
               class="interface-group"
             >
               <div class="ip-text">
-                IP: {{ iface.ip }}
+                {{ t("harvester.vpc.topology.labels.ip") }}: {{ iface.ip }}
               </div>
               <div class="mac-text-static">
-                MAC: {{ iface.mac }}
+                {{ t("harvester.vpc.topology.labels.mac") }}: {{ iface.mac }}
               </div>
             </div>
           </div>
@@ -710,13 +880,6 @@ export default {
         <div
           class="custom-node vm-node"
           :class="[data.stateClass, { stopped: data.isStopped }]"
-          :style="{
-            width: layoutConfig.NODE_WIDTH + 'px',
-            border: data.isStopped
-              ? `2px dashed ${colors.STOPPED}`
-              : `2px solid ${colors.VM}`,
-            backgroundColor: data.isStopped ? colors.BG_STOP : '#ffffff',
-          }"
         >
           <div class="node-header">
             <span
@@ -734,10 +897,10 @@ export default {
               class="interface-group"
             >
               <div class="ip-text">
-                IP: {{ iface.ip }}
+                {{ t("harvester.vpc.topology.labels.ip") }}: {{ iface.ip }}
               </div>
               <div class="mac-text-static">
-                MAC: {{ iface.mac }}
+                {{ t("harvester.vpc.topology.labels.mac") }}: {{ iface.mac }}
               </div>
             </div>
           </div>
@@ -760,7 +923,10 @@ $transition-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 $transition-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
 
 .vpc-topology {
-  height: 800px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 220px);
+  min-height: 480px;
   width: 100%;
   background: var(--body-bg);
   border-radius: 4px;
@@ -774,7 +940,6 @@ $transition-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       gap: 24px;
       align-items: center;
-      margin-left: 12px;
       .control-item {
         display: flex;
         align-items: center;
@@ -794,9 +959,29 @@ $transition-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
           min-width: 20px;
           height: 20px;
           text-align: center;
-          color: #ffffff;
+          color: #fff;
           margin-left: 8px;
           line-height: 1;
+
+          &.badge-vpc {
+            background: var(--badge-vpc-bg);
+          }
+
+          &.badge-subnet {
+            background: var(--badge-subnet-bg);
+          }
+
+          &.badge-overlay {
+            background: var(--badge-overlay-bg);
+          }
+
+          &.badge-vm {
+            background: var(--badge-vm-bg);
+          }
+
+          &.disabled {
+            opacity: 0.4;
+          }
         }
       }
     }
@@ -806,7 +991,8 @@ $transition-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
-    height: calc(100% - 100px);
+    flex: 1;
+    min-height: 0;
     font-size: 16px;
     color: var(--muted);
     i {
@@ -819,7 +1005,8 @@ $transition-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: calc(100% - 100px);
+    flex: 1;
+    min-height: 0;
     color: var(--muted);
     i {
       font-size: 48px;
@@ -831,11 +1018,15 @@ $transition-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
     }
   }
   .vpc-flow {
-    height: calc(100% - 100px);
+    flex: 1;
+    min-height: 0;
   }
 
   .vue-flow__node {
     transition: all $transition-duration $transition-ease-spring;
+  }
+  ::v-deep(.handle-center) {
+    left: 50%;
   }
   ::v-deep(.vue-flow__edge) {
     transition: opacity $transition-duration $transition-ease-smooth,
@@ -853,12 +1044,11 @@ $transition-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .custom-node {
+    width: 100%;
     padding: 10px;
     font-size: 13px;
     line-height: 1.4;
-    color: #000000;
     box-sizing: border-box;
-    background: #ffffff;
     border-radius: 12px;
     height: auto;
     transition: transform $transition-duration $transition-ease-spring,
@@ -873,6 +1063,10 @@ $transition-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       align-items: center;
       margin-bottom: 6px;
+
+      .node-name {
+        margin-bottom: 0;
+      }
     }
     .status-indicator {
       width: 10px;
@@ -881,21 +1075,23 @@ $transition-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
       margin-right: 8px;
       flex-shrink: 0;
       &.is-running {
-        background-color: #00bda7;
-        box-shadow: 0 0 6px rgba(0, 189, 167, 0.6);
+        background-color: var(--status-running-color);
+        box-shadow: 0 0 6px var(--status-running-glow);
       }
       &.is-stopped {
-        background-color: #9ca3af;
+        background-color: var(--status-stopped-color);
       }
     }
 
     .node-name {
       font-weight: 600;
       font-size: 18px;
+      margin-bottom: 6px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
+
     .node-details {
       font-size: 14px;
     }
@@ -904,7 +1100,36 @@ $transition-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
       &:not(:first-child) {
         margin-top: 6px;
         padding-top: 6px;
-        border-top: 1px solid #eee;
+      }
+    }
+
+    &.vpc-node {
+      text-align: center;
+      border: 2px solid var(--node-vpc-color);
+      background-color: var(--node-vpc-bg);
+
+      .node-name {
+        margin-bottom: 0;
+      }
+    }
+
+    &.subnet-node {
+      border: 2px solid var(--node-subnet-color);
+      background-color: var(--node-subnet-bg);
+    }
+
+    &.overlay-node {
+      border: 2px dashed var(--node-overlay-color);
+      background-color: var(--node-overlay-bg);
+    }
+
+    &.vm-node {
+      border: 2px solid var(--node-vm-color);
+      background-color: var(--node-vm-bg);
+
+      &.stopped {
+        border: 2px dashed var(--node-vm-stopped-color);
+        background-color: var(--node-vm-stopped-bg);
       }
     }
 
@@ -914,7 +1139,6 @@ $transition-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
       opacity: 1 !important;
       box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.15),
         0 0 0 3px rgba(36, 83, 255, 0.15);
-      background-color: #fafafa;
     }
     &.node-related {
       transform: scale(1.03);

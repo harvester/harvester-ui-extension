@@ -1134,6 +1134,21 @@ harvester:
 
   vpc:
     viewTopology: Topology
+    topology:
+      loading: Loading topology...
+      empty: No resources found
+      visibility:
+        vpc: VPC
+        subnets: Subnets
+        overlayNetworks: Overlay Networks
+        vms: VMs
+      labels:
+        cidr: CIDR
+        provider: Provider
+        type: Type
+        clusterNetwork: Cluster Network
+        ip: IP
+        mac: MAC
     noAddonEnabled:
       prefix: The kubeovn-operator add-on is not enabled, click
       middle: here
