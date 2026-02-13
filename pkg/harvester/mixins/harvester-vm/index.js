@@ -22,7 +22,7 @@ import {
 } from '../../config/harvester-map';
 import { HCI_SETTING } from '../../config/settings';
 import { HCI } from '../../types';
-import { parseVolumeClaimTemplates } from '../../utils/vm';
+import { parseVolumeClaimTemplates, EMPTY_IMAGE } from '../../utils/vm';
 import impl, { QGA_JSON, USB_TABLET } from './impl';
 import { GIBIBYTE } from '../../utils/unit';
 import { VOLUME_MODE } from '@pkg/harvester/config/types';
@@ -511,12 +511,15 @@ export default {
 
           const type = DISK?.cdrom ? CD_ROM : DISK?.disk ? HARD_DISK : '';
 
-          if (volume?.containerDisk) { // SOURCE_TYPE.CONTAINER
+          if (type === CD_ROM && volume === undefined) {
+            // Empty CD_ROM
+            source = SOURCE_TYPE.IMAGE;
+            image = EMPTY_IMAGE;
+            size = `0${ GIBIBYTE }`;
+          } else if (volume.containerDisk) { // SOURCE_TYPE.CONTAINER
             source = SOURCE_TYPE.CONTAINER;
             container = volume.containerDisk.image;
-          }
-
-          if (volume.persistentVolumeClaim && volume.persistentVolumeClaim?.claimName) {
+          } else if (volume.persistentVolumeClaim && volume.persistentVolumeClaim?.claimName) {
             volumeName = volume.persistentVolumeClaim.claimName;
             const DVT = _volumeClaimTemplates.find( (T) => T.metadata.name === volumeName);
 
@@ -704,6 +707,14 @@ export default {
       }
     },
 
+    needVolume(R) {
+      if (R.image === EMPTY_IMAGE) {
+        return false;
+      }
+
+      return true;
+    },
+
     parseDiskRows(disk) {
       const disks = [];
       const volumes = [];
@@ -711,18 +722,18 @@ export default {
       const volumeClaimTemplates = [];
 
       disk.forEach( (R, index) => {
-        const prefixName = this.value.metadata?.name || '';
-        const dataVolumeName = this.parseDataVolumeName(R, prefixName);
-
         const _disk = this.parseDisk(R, index);
-        const _volume = this.parseVolume(R, dataVolumeName);
-        const _dataVolumeTemplate = this.parseVolumeClaimTemplate(R, dataVolumeName);
 
         disks.push(_disk);
-        volumes.push(_volume);
-        diskNameLabels.push(dataVolumeName);
 
-        if (R.source !== SOURCE_TYPE.CONTAINER) {
+        if (this.needVolume(R)) {
+          const prefixName = this.value.metadata?.name || '';
+          const dataVolumeName = this.parseDataVolumeName(R, prefixName);
+          const _volume = this.parseVolume(R, dataVolumeName);
+          const _dataVolumeTemplate = this.parseVolumeClaimTemplate(R, dataVolumeName);
+
+          volumes.push(_volume);
+          diskNameLabels.push(dataVolumeName);
           volumeClaimTemplates.push(_dataVolumeTemplate);
         }
       });

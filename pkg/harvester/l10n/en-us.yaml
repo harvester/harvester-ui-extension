@@ -164,6 +164,11 @@ harvester:
       vmNetwork: Virtual Machine Network
       macAddress: MAC Address
       macAddressTooltip: If left blank, the MAC address will be automatically generated.
+    insertCdRomVolume:
+      success: '{ imageName } is inserted into device { deviceName }.'
+      title: Insert Image
+      image: Image
+      actionLabel: Insert Image
     cpuMemoryHotplug:
       success: 'CPU and Memory are updated to the virtual machine { vm }.'
       title: Edit CPU and Memory
@@ -190,7 +195,7 @@ harvester:
       title: Restart Virtual Machine
       tip: Restart the virtual machine for configuration changes to take effect.
       cancel: Save
-    
+
   notification:
     title:
       succeed: Succeed
@@ -631,6 +636,10 @@ harvester:
         title: 'Are you sure that you want to detach volume {name}?'
         actionLabel: Detach Volume
         success: 'Volume { name } is detached successfully.'
+      ejectCdRomVolume:
+        title: 'Are you sure that you want to eject image from device {name}?'
+        actionLabel: Eject Image
+        success: 'Image from device { name } is ejected successfully.'
       detachNIC:
         title: 'Are you sure that you want to detach network interface {name}?'
         actionLabel: Detach Network Interface
@@ -737,6 +746,7 @@ harvester:
       unmount:
         title: Are you sure?
         message: Are you sure you want to unmount this volume?
+      emptyImage: No media
     network:
       title: Network
       addNetwork: Add Network
@@ -1008,7 +1018,7 @@ harvester:
     createTitle: Create Schedule
     createButtonText: Create Schedule
     scheduleType: Virtual Machine Schedule Type
-    cron: 
+    cron:
       label: Cron Schedule
       editButton: Edit
     detail:
