@@ -56,7 +56,6 @@ export default {
       loading:        true,
       selectedNodeId: null,
       relatedIds:     new Set(),
-      // 顯示切換狀態
       showVPC:        true,
       showSubnets:    true,
       showVMs:        true,
