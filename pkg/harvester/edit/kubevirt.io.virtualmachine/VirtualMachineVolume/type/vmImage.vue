@@ -297,11 +297,12 @@ export default {
       if (isIsoImage) {
         this.value['type'] = 'cd-rom';
         this.value['bus'] = 'sata';
-        this.updateHotpluggable();
       } else {
         this.value['type'] = 'disk';
         this.value['bus'] = 'virtio';
       }
+
+      this.updateHotpluggable();
 
       if (imageSize) {
         let imageSizeGiB = Math.ceil(imageSize / 1024 / 1024 / 1024);
