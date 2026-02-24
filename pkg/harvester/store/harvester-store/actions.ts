@@ -99,6 +99,10 @@ export default {
       hash.upgrades = dispatch('findAll', { type: HCI.UPGRADE });
     }
 
+    if (getters['schemaFor'](HCI.UPGRADE_LOG)) {
+      hash.upgradeLogs = dispatch('findAll', { type: HCI.UPGRADE_LOG });
+    }
+
     const res: any = await allHash(hash);
 
     const isHarvesterVersionSupported = rootGetters['harvester-common/getFeatureEnabled']('supportHarvesterClusterVersion');
