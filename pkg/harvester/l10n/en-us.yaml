@@ -1675,10 +1675,11 @@ harvester:
           datacenter: The exact name of the Datacenter object in vCenter
       ova:
         fields:
-          url: OVA URL
+          url: URL
           httpTimeout: HTTP Timeout
         placeholders:
           url: "e.g. https://download.example.com/images/my-vm.ova"
+          httpTimeout: "Default: 600"
 
     rancherVcluster:
       accessRancher: Access the Rancher Dashboard

@@ -306,11 +306,11 @@ export default {
         :weight="1"
       >
         <div class="row mb-20">
-          <div class="col span-6">
+          <div class="col span-12">
             <UnitInput
               v-model:value="value.spec.httpTimeoutSeconds"
               :label="t('harvester.addons.vmImport.ova.fields.httpTimeout')"
-              placeholder="Default: 600"
+              :placeholder="t('harvester.addons.vmImport.ova.placeholders.httpTimeout')"
               suffix="Seconds"
               :mode="mode"
             />
