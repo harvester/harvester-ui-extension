@@ -69,6 +69,15 @@ export default {
         :mode="mode"
         label-key="harvester.setting.vmForceDeletionPolicy.period"
       />
+
+      <LabeledInput
+        v-if="parseDefaultValue.enable"
+        v-model:value.number="parseDefaultValue.vmMigrationTimeout"
+        class="mb-20"
+        type="number"
+        :mode="mode"
+        label-key="harvester.setting.vmForceDeletionPolicy.vmMigrationTimeout"
+      />
     </div>
   </div>
 </template>

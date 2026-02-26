@@ -1250,6 +1250,7 @@ harvester:
       tip: 'Specify an IP range in the IPv4 CIDR format. <code>Number of IPs Required = Number of Nodes * 2 + Number of Disks * 2 + Number of Images to Download/Upload </code>. For more information about storage network settings, see the <a href="{url}" target="_blank">documentation</a>.'
     vmForceDeletionPolicy:
       period: Period
+      vmMigrationTimeout: VM Migration Timeout
     vmMigrationNetwork:
       parseError: "Failed to parse existing configuration."
       fetchError: "Failed to load required network resources: {error}. Please refresh the page or try again later."
