@@ -1983,7 +1983,7 @@ advancedSettings:
     'harv-max-hotplug-ratio': 'The ratio for kubevirt to limit the maximum CPU and memory that can be hotplugged to a VM. The value could be an integer between 1 and 20, default to 4.'
     'harv-kubevirt-migration': 'Configure cluster-wide KubeVirt live migration parameters.'
 
-typeLabel:
+typeLabel: 
   kubevirt.io.virtualmachine: |-
     {count, plural,
       one { Virtual Machine }
@@ -2162,4 +2162,29 @@ typeLabel:
     {count, plural,
       one { IP Pool }
       other { IP Pools }
+    }
+  migration.harvesterhci.io.ovasource: |-
+    {count, plural,
+      one { OVA Source }
+      other { OVA Sources }
+    }
+  migration.harvesterhci.io.openstacksource: |-
+    {count, plural,
+      one { Openstack Source }
+      other { Openstack Sources }
+    }
+  migration.harvesterhci.io.vmwaresource: |-
+    {count, plural,
+      one { VMware Source }
+      other { VMware Sources }
+    }
+  migration.harvesterhci.io.kvmsource: |-
+    {count, plural,
+      one { KVM Source }
+      other { KVM Sources }
+    }
+  migration.harvesterhci.io.virtualmachineimport: |-
+    {count, plural,
+      one { Virtual Machine Import }
+      other { Virtual Machine Imports }
     }
