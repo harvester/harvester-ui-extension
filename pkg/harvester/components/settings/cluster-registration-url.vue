@@ -21,7 +21,7 @@ export default {
     try {
       parseDefaultValue = JSON.parse(this.value.value);
     } catch (error) {
-      parseDefaultValue = { url: '', insecureSkipTLSVerify: true };
+      parseDefaultValue = { url: '', insecureSkipTLSVerify: false };
     }
 
     return {
@@ -47,7 +47,7 @@ export default {
         try {
           parseDefaultValue = JSON.parse(neu.value);
         } catch (err) {
-          parseDefaultValue = { url: '', insecureSkipTLSVerify: true };
+          parseDefaultValue = { url: '', insecureSkipTLSVerify: false };
         }
         this.parseDefaultValue = parseDefaultValue;
         this.update();
@@ -62,8 +62,15 @@ export default {
     },
 
     useDefault() {
-      this.parseDefaultValue = { url: '', insecureSkipTLSVerify: true };
-    }
+      this.parseDefaultValue = { url: '', insecureSkipTLSVerify: false };
+    },
+
+    updateInsecureSkipTLSVerify(newValue) {
+      const { url = '' } = this.parseDefaultValue;
+
+      this.parseDefaultValue = { url, insecureSkipTLSVerify: newValue };
+      this.update();
+    },
   }
 };
 </script>
@@ -85,6 +92,7 @@ export default {
         class="check mb-5"
         type="checkbox"
         :label="t('harvester.setting.clusterRegistrationUrl.insecureSkipTLSVerify')"
+        @update:value="updateInsecureSkipTLSVerify"
       />
       <Tip
         class="mb-20"
@@ -101,11 +109,3 @@ export default {
     </div>
   </div>
 </template>
-
-<style lang="scss" scoped>
-// p {
-//   display: flex;
-//   align-items: center;
-// }
-
-</style>
