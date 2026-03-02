@@ -98,6 +98,11 @@ export default {
     if (getters['schemaFor'](HCI.UPGRADE)) {
       hash.upgrades = dispatch('findAll', { type: HCI.UPGRADE });
     }
+    // Pre-fetch all HCI.UPGRADE_LOG data within loadCluster to ensure HarvesterUpgradeHeader has the necessary data. This is required because the header is dynamically loaded before the user enters the cluster in Rancher integration mode.
+    // See more details in https://github.com/harvester/harvester-ui-extension/pull/715
+    if (getters['schemaFor'](HCI.UPGRADE_LOG)) {
+      hash.upgradeLogs = dispatch('findAll', { type: HCI.UPGRADE_LOG });
+    }
 
     const res: any = await allHash(hash);
 
