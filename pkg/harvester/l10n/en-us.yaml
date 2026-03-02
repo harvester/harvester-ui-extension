@@ -1332,6 +1332,12 @@ harvester:
         retention: How long to retain metrics
         retentionSize: Maximum size of metrics
     clusterRegistrationUrl:
+      url: URL
+      insecureSkipTLSVerify: Insecure Skip TLS Verify
+      tip: 
+        prefix: Harvester secures cluster registration via TLS by default. If opt out this option, you must provide custom CA certificates using the
+        middle: 'additional-ca'
+        suffix: setting.
       message: To completely unset the imported Harvester cluster, please also remove it on the Rancher Dashboard UI via the <code> Virtualization Management </code> page.
     ntpServers:
       isNotIPV4: The address you entered is not IPv4 or host. Please enter a valid IPv4 address or a host address.
