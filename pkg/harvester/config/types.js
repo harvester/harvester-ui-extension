@@ -33,11 +33,13 @@ export const L2VLAN_MODE = {
 export const VMIMPORT_SOURCE_PROVIDER = {
   VMWARE:    'vmware',
   OPENSTACK: 'openstack',
+  KVM:       'kvm',
   OVA:       'ova',
 };
 
 export const VMIMPORT_SOURCE_KINDS = {
   VMWARE:    'VmwareSource',
   OPENSTACK: 'OpenstackSource',
+  KVM:       'KVMSource',
   OVA:       'OvaSource',
 };
