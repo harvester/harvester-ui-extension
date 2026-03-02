@@ -60,6 +60,7 @@ const FEATURE_FLAGS = {
   'v1.7.1': [],
   'v1.8.0': [
     'hotplugCdRom',
+    'clusterRegistrationTLSVerify'
   ],
 };
 
