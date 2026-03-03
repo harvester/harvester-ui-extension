@@ -536,8 +536,7 @@ export default class HciNode extends HarvesterResource {
   get isStopped() {
     const inventory = this.inventory || {};
 
-    return inventory.spec?.powerActionRequested === 'shutdown' &&
-            inventory.status?.powerAction?.actionStatus === 'complete';
+    return inventory.status?.machinePowerState === 'off';
   }
 
   get isStopping() {
@@ -553,8 +552,7 @@ export default class HciNode extends HarvesterResource {
   get isStarted() {
     const inventory = this.inventory || {};
 
-    return inventory.spec?.powerActionRequested === 'poweron' &&
-            inventory.status?.powerAction?.actionStatus === 'complete';
+    return inventory.status?.machinePowerState === 'on';
   }
 
   get isStarting() {

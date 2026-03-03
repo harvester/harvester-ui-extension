@@ -58,7 +58,9 @@ const FEATURE_FLAGS = {
     'resumeUpgradePausedNode',
   ],
   'v1.7.1': [],
-  'v1.8.0': []
+  'v1.8.0': [
+    'hotplugCdRom',
+  ],
 };
 
 const generateFeatureFlags = () => {

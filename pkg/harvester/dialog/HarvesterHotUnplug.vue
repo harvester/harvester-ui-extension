@@ -5,6 +5,10 @@ import { Card } from '@components/Card';
 import { Banner } from '@components/Banner';
 import AsyncButton from '@shell/components/AsyncButton';
 
+const VOLUME = 'volume';
+const NETWORK = 'network';
+const CDROM = 'cdrom';
+
 export default {
   name: 'HarvesterHotUnplug',
 
@@ -40,19 +44,37 @@ export default {
     },
 
     isVolume() {
-      return this.modalData.type === 'volume';
+      return this.modalData.type === VOLUME;
     },
 
     titleKey() {
-      return this.isVolume ? 'harvester.virtualMachine.hotUnplug.detachVolume.title' : 'harvester.virtualMachine.hotUnplug.detachNIC.title';
+      const keys = {
+        [VOLUME]:  'harvester.virtualMachine.hotUnplug.detachVolume.title',
+        [CDROM]:   'harvester.virtualMachine.hotUnplug.ejectCdRomVolume.title',
+        [NETWORK]: 'harvester.virtualMachine.hotUnplug.detachNIC.title',
+      };
+
+      return keys[this.modalData.type];
     },
 
     actionLabelKey() {
-      return this.isVolume ? 'harvester.virtualMachine.hotUnplug.detachVolume.actionLabel' : 'harvester.virtualMachine.hotUnplug.detachNIC.actionLabel';
+      const keys = {
+        [VOLUME]:  'harvester.virtualMachine.hotUnplug.detachVolume.actionLabels',
+        [CDROM]:   'harvester.virtualMachine.hotUnplug.ejectCdRomVolume.actionLabels',
+        [NETWORK]: 'harvester.virtualMachine.hotUnplug.detachNIC.actionLabels',
+      };
+
+      return keys[this.modalData.type];
     },
 
     successMessageKey() {
-      return this.isVolume ? 'harvester.virtualMachine.hotUnplug.detachVolume.success' : 'harvester.virtualMachine.hotUnplug.detachNIC.success';
+      const keys = {
+        [VOLUME]:  'harvester.virtualMachine.hotUnplug.detachVolume.success',
+        [CDROM]:   'harvester.virtualMachine.hotUnplug.ejectCdRomVolume.success',
+        [NETWORK]: 'harvester.virtualMachine.hotUnplug.detachNIC.success',
+      };
+
+      return keys[this.modalData.type];
     }
   },
 
@@ -65,10 +87,12 @@ export default {
       try {
         let res;
 
-        if (this.isVolume) {
+        if (this.modalData.type === VOLUME) {
           res = await this.actionResource.doAction('removeVolume', { diskName: this.name });
-        } else {
+        } else if (this.modalData.type === NETWORK) {
           res = await this.actionResource.doAction('removeNic', { interfaceName: this.name });
+        } else {
+          res = await this.actionResource.doAction('ejectCdRomVolume', { deviceName: this.name });
         }
 
         if (res._status === 200 || res._status === 204) {

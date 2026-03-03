@@ -164,6 +164,11 @@ harvester:
       vmNetwork: Virtual Machine Network
       macAddress: MAC Address
       macAddressTooltip: If left blank, the MAC address will be automatically generated.
+    insertCdRomVolume:
+      success: '{ imageName } is inserted into device { deviceName }.'
+      title: Insert Image
+      image: Image
+      actionLabel: Insert Image
     cpuMemoryHotplug:
       success: 'CPU and Memory are updated to the virtual machine { vm }.'
       title: Edit CPU and Memory
@@ -616,6 +621,10 @@ harvester:
   virtualMachine:
     label: Virtual Machines
     osType: OS Type
+    cpuModel:
+      label: CPU Model
+      fetchError: 'Failed to load CPU model configuration: {error}'
+      optionLabel: "{modelName} ({count} {count, plural, one {node} other {nodes}})"
     hotplug:
       title: Enable CPU and memory hotplug
       tooltip: The default maximum CPU and maximum memory are {hotPlugTimes} times based on CPU and memory.
@@ -626,6 +635,10 @@ harvester:
         title: 'Are you sure that you want to detach volume {name}?'
         actionLabel: Detach Volume
         success: 'Volume { name } is detached successfully.'
+      ejectCdRomVolume:
+        title: 'Are you sure that you want to eject image from device {name}?'
+        actionLabel: Eject Image
+        success: 'Image from device { name } is ejected successfully.'
       detachNIC:
         title: 'Are you sure that you want to detach network interface {name}?'
         actionLabel: Detach Network Interface
@@ -732,6 +745,7 @@ harvester:
       unmount:
         title: Are you sure?
         message: Are you sure you want to unmount this volume?
+      emptyImage: No media
     network:
       title: Network
       addNetwork: Add Network
@@ -1253,6 +1267,7 @@ harvester:
       tip: 'Specify an IP range in the IPv4 CIDR format. <code>Number of IPs Required = Number of Nodes * 2 + Number of Disks * 2 + Number of Images to Download/Upload </code>. For more information about storage network settings, see the <a href="{url}" target="_blank">documentation</a>.'
     vmForceDeletionPolicy:
       period: Period
+      vmMigrationTimeout: VM Migration Timeout
     vmMigrationNetwork:
       parseError: "Failed to parse existing configuration."
       fetchError: "Failed to load required network resources: {error}. Please refresh the page or try again later."
@@ -1678,10 +1693,11 @@ harvester:
           datacenter: The exact name of the Datacenter object in vCenter
       ova:
         fields:
-          url: OVA URL
+          url: URL
           httpTimeout: HTTP Timeout
         placeholders:
           url: "e.g. https://download.example.com/images/my-vm.ova"
+          httpTimeout: "Default: 600"
 
     rancherVcluster:
       accessRancher: Access the Rancher Dashboard
