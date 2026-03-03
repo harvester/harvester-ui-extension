@@ -1164,6 +1164,7 @@ harvester:
         subnet: Subnet
         ip: IP
         mac: MAC
+        peering: Peering
     noAddonEnabled:
       prefix: The kubeovn-operator add-on is not enabled, click
       middle: here

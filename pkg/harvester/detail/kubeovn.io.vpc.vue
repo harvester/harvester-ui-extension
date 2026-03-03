@@ -23,28 +23,36 @@ const NODE_TYPES = {
 const STOPPED_VM_STATUSES = ['stopped', 'paused'];
 
 const THEME_COLORS = {
-  VPC:        '#2453ff',
-  BG_VPC:     'rgba(36, 83, 255, 0.1)',
-  SUBNET:     '#fe7c3f',
-  BG_SUBNET:  'rgba(254, 124, 63, 0.1)',
-  OVERLAY:    '#cb1fdb',
-  BG_OVERLAY: 'rgba(203, 31, 219, 0.1)',
-  VM:         '#00bda7',
-  VM_GLOW:    'rgba(0, 189, 167, 0.6)',
-  BG_VM:      'rgba(0, 189, 167, 0.1)',
-  STOPPED:    '#9ca3af',
-  BG_STOPPED: 'rgba(156, 163, 175, 0.1)',
-  LINK_GRAY:  '#9ca3af',
+  VPC:             '#2453ff',
+  PEER_VPC:        'rgba(36, 83, 255, 0.6)',
+  BG_VPC:          'rgba(36, 83, 255, 0.1)',
+  BG_PEER_VPC:     'rgba(36, 83, 255, 0.05)',
+  SUBNET:          '#fe7c3f',
+  BG_SUBNET:       'rgba(254, 124, 63, 0.1)',
+  OVERLAY:         '#cb1fdb',
+  BG_OVERLAY:      'rgba(203, 31, 219, 0.1)',
+  VM:              '#00bda7',
+  VM_GLOW:         'rgba(0, 189, 167, 0.6)',
+  BG_VM:           'rgba(0, 189, 167, 0.1)',
+  STOPPED:         '#9ca3af',
+  BG_STOPPED:      'rgba(156, 163, 175, 0.1)',
+  LINK_GRAY:       '#9ca3af',
+  PEER_BADGE_BG:   'rgba(36, 83, 255, 0.14)',
+  PEER_BADGE_TEXT: '#1f3fbf',
 };
 
 const LAYOUT = {
-  VMS_PER_ROW:    5,
-  BASE_PADDING:   24,
-  VERTICAL_GAP:   40,
-  HORIZONTAL_GAP: 30,
-  NODE_WIDTH:     230,
-  VM_ROW_HEIGHT:  120,
-  GROUP_NODE_GAP: 30,
+  VMS_PER_ROW:       5,
+  BASE_PADDING:      24,
+  VERTICAL_GAP:      40,
+  HORIZONTAL_GAP:    30,
+  NODE_WIDTH:        230,
+  VM_ROW_HEIGHT:     100,
+  GROUP_NODE_GAP:    30,
+  PEERING_GAP:       350,
+  PEERING_START_GAP: 350,
+  PEERING_PER_ROW:   1,
+  PEERING_ROW_GAP:   100,
 };
 
 export default {
@@ -85,11 +93,12 @@ export default {
 
     try {
       await allHash({
+        vpcs:               this.$store.dispatch(`${ store }/findAll`, { type: HCI.VPC }),
         subnets:            this.$store.dispatch(`${ store }/findAll`, { type: HCI.SUBNET }),
         ips:                this.$store.dispatch(`${ store }/findAll`, { type: HCI.IP }),
         vms:                this.$store.dispatch(`${ store }/findAll`, { type: HCI.VM }),
         clusterNetworks:    this.$store.dispatch(`${ store }/findAll`, { type: HCI.CLUSTER_NETWORK }),
-        networkAttachments: this.$store.dispatch(`${ store }/findAll`, { type: NETWORK_ATTACHMENT })
+        networkAttachments: this.$store.dispatch(`${ store }/findAll`, { type: NETWORK_ATTACHMENT }),
       });
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -105,6 +114,9 @@ export default {
     allSubnets() {
       return this.$store.getters[`${ this.inStore }/all`](HCI.SUBNET) || [];
     },
+    allVpcs() {
+      return this.$store.getters[`${ this.inStore }/all`](HCI.VPC) || [];
+    },
     allIps() {
       return this.$store.getters[`${ this.inStore }/all`](HCI.IP) || [];
     },
@@ -112,7 +124,9 @@ export default {
       return this.$store.getters[`${ this.inStore }/all`](HCI.VM) || [];
     },
     allNetworkAttachments() {
-      return this.$store.getters[`${ this.inStore }/all`](NETWORK_ATTACHMENT) || [];
+      return (
+        this.$store.getters[`${ this.inStore }/all`](NETWORK_ATTACHMENT) || []
+      );
     },
 
     subnetCount() {
@@ -143,6 +157,8 @@ export default {
       return {
         '--node-vpc-color':        this.colors.VPC,
         '--node-vpc-bg':           this.colors.BG_VPC,
+        '--node-peer-vpc-color':   this.colors.PEER_VPC,
+        '--node-peer-vpc-bg':      this.colors.BG_PEER_VPC,
         '--node-subnet-color':     this.colors.SUBNET,
         '--node-subnet-bg':        this.colors.BG_SUBNET,
         '--node-overlay-color':    this.colors.OVERLAY,
@@ -159,6 +175,8 @@ export default {
         '--status-running-color':  this.colors.VM,
         '--status-running-glow':   this.colors.VM_GLOW,
         '--status-stopped-color':  this.colors.STOPPED,
+        '--badge-peer-bg':         this.colors.PEER_BADGE_BG,
+        '--badge-peer-text':       this.colors.PEER_BADGE_TEXT,
       };
     },
 
@@ -168,7 +186,8 @@ export default {
           modelKey:   'showVPC',
           label:      this.t('harvester.vpc.topology.visibility.vpc'),
           badgeClass: 'badge-vpc',
-          count:      this.nodes.filter((node) => node.type === NODE_TYPES.VPC).length,
+          count:      this.nodes.filter((node) => node.type === NODE_TYPES.VPC)
+            .length,
         },
         {
           modelKey:   'showSubnets',
@@ -242,21 +261,6 @@ export default {
   },
 
   watch: {
-    allSubnets: {
-      handler() {
-        if (!this.loading) this.loadTopology();
-      },
-      deep: true,
-    },
-    allVMs: {
-      handler() {
-        if (!this.loading) this.loadTopology();
-      },
-      deep: true,
-    },
-    'value.metadata.resourceVersion'() {
-      if (!this.loading) this.loadTopology();
-    },
     showSubnets(newValue) {
       this.showOverlays = newValue;
     },
@@ -341,6 +345,13 @@ export default {
           style:    { width: `${ LAYOUT.NODE_WIDTH }px` },
         });
 
+        this.createVpcPeeringNodes({
+          nodes,
+          edges,
+          vpc,
+          peerStartX: currentX + LAYOUT.PEERING_START_GAP,
+        });
+
         const subnetY = LAYOUT.BASE_PADDING + 100;
 
         vpcSubnets.forEach((subnet, index) => {
@@ -379,6 +390,78 @@ export default {
       }
     },
 
+    createVpcPeeringNodes({
+      nodes, edges, vpc, peerStartX
+    }) {
+      const peerings = vpc?.spec?.vpcPeerings || [];
+      const peerNodeByRemote = new Map();
+      let peerIndex = 0;
+
+      peerings.forEach((peering, index) => {
+        const remoteVpc = peering?.remoteVpc;
+
+        if (!remoteVpc) {
+          return;
+        }
+
+        if (!peerNodeByRemote.has(remoteVpc)) {
+          const remoteVpcObj = this.allVpcs.find((item) => {
+            return item.id === remoteVpc || item.metadata?.name === remoteVpc;
+          });
+
+          const peerName =
+            remoteVpcObj?.metadata?.name ||
+            remoteVpc.split('/').pop() ||
+            remoteVpc;
+
+          const peerNodeId = `vpc-peer-${ peerIndex }-${ remoteVpc.replace(
+            /[^a-zA-Z0-9-]/g,
+            '-',
+          ) }`;
+
+          peerNodeByRemote.set(remoteVpc, peerNodeId);
+
+          const peerRow = Math.floor(peerIndex / LAYOUT.PEERING_PER_ROW);
+          const peerCol = peerIndex % LAYOUT.PEERING_PER_ROW;
+
+          nodes.push({
+            id:       peerNodeId,
+            type:     NODE_TYPES.VPC,
+            position: {
+              x:
+                peerStartX +
+                peerCol * (LAYOUT.NODE_WIDTH + LAYOUT.PEERING_GAP),
+              y: LAYOUT.BASE_PADDING + peerRow * LAYOUT.PEERING_ROW_GAP,
+            },
+            data: {
+              name:      peerName,
+              remoteVpcObj,
+              isPeerVpc: true,
+            },
+            style: { width: `${ LAYOUT.NODE_WIDTH }px` },
+          });
+
+          peerIndex++;
+        }
+
+        edges.push({
+          id:           `vpc-peering-${ index }-${ remoteVpc }`,
+          source:       NODE_TYPES.VPC,
+          sourceHandle: 'vpc-right-handle',
+          target:       peerNodeByRemote.get(remoteVpc),
+          type:         'straight',
+          animated:     false,
+          style:        {
+            stroke:          THEME_COLORS.LINK_GRAY,
+            strokeWidth:     2,
+            strokeDasharray: '6,4',
+            opacity:         0.9,
+          },
+          label: peering?.localConnectIP || '',
+        });
+      });
+    },
+
     createNetworkNodes(nodes, edges, subnet, x, y) {
       const subnetName = subnet.metadata.name;
       const subnetNodeId = `subnet-${ subnetName }`;
@@ -389,20 +472,17 @@ export default {
       if (hasOverlay) {
         const groupId = `group-${ subnetName }`;
 
-        const nad = this.allNetworkAttachments.find(
-          (networkAttachment) => {
-            return networkAttachment?.parseConfig?.provider === provider;
-          }
-        );
+        const nad = this.allNetworkAttachments.find((networkAttachment) => {
+          return networkAttachment?.parseConfig?.provider === provider;
+        });
 
-        const overlayName =
-          nad?.parseConfig?.name || nad?.metadata?.name;
+        const overlayName = nad?.parseConfig?.name || nad?.metadata?.name;
 
         const clusterNetwork =
           nad?.metadata?.labels?.[HCI.CLUSTER_NETWORK] || 'mgmt';
 
-        const nadType = nad?.metadata?.labels?.[HCI.NETWORK_TYPE] ||
-          NETWORK_TYPE.OVERLAY;
+        const nadType =
+          nad?.metadata?.labels?.[HCI.NETWORK_TYPE] || NETWORK_TYPE.OVERLAY;
         const overlayNodeId = `overlay-${ provider.replace(/\//g, '-') }`;
 
         nodes.push({
@@ -475,11 +555,12 @@ export default {
       }
 
       edges.push({
-        id:       `vpc-to-${ subnetName }`,
-        source:   NODE_TYPES.VPC,
-        target:   subnetNodeId,
-        animated: true,
-        style:    { stroke: THEME_COLORS.VPC, strokeWidth: 2 },
+        id:           `vpc-to-${ subnetName }`,
+        source:       NODE_TYPES.VPC,
+        sourceHandle: 'vpc-bottom-handle',
+        target:       subnetNodeId,
+        animated:     true,
+        style:        { stroke: THEME_COLORS.VPC, strokeWidth: 2 },
       });
     },
 
@@ -500,7 +581,8 @@ export default {
       const subnetNetworkMap = {};
 
       vpcSubnets.forEach((subnet) => {
-        subnetNetworkMap[subnet.metadata.name] = this.getNetworkDisplayBySubnet(subnet);
+        subnetNetworkMap[subnet.metadata.name] =
+          this.getNetworkDisplayBySubnet(subnet);
       });
 
       vpcSubnets.forEach((subnet, index) => {
@@ -522,12 +604,12 @@ export default {
         const vmSubnetsInVpc = (vmToSubnetsMap[vmName] || []).filter(
           (subnetName) => vpcSubnetNames.has(subnetName),
         );
-        const interfacesInVpc = (vmToDetailsMap[vmName] || []).filter(
-          (iface) => vpcSubnetNames.has(iface.subnet),
-        ).map((iface) => ({
-          ...iface,
-          network: subnetNetworkMap[iface.subnet] || iface.subnet,
-        }));
+        const interfacesInVpc = (vmToDetailsMap[vmName] || [])
+          .filter((iface) => vpcSubnetNames.has(iface.subnet))
+          .map((iface) => ({
+            ...iface,
+            network: subnetNetworkMap[iface.subnet] || iface.subnet,
+          }));
         const primarySubnet = vmSubnetsInVpc[0];
 
         if (!columnTrackers[primarySubnet]) return;
@@ -592,9 +674,7 @@ export default {
 
       vpcVMs
         .filter((v) => {
-          return (
-            (vmToSubnetsMap[v.metadata.name] || []).length === 1
-          );
+          return (vmToSubnetsMap[v.metadata.name] || []).length === 1;
         })
         .forEach((v) => renderVM(v, false));
       vpcVMs
@@ -713,6 +793,14 @@ export default {
 
     onNodeClick({ node }) {
       if (node.type === NODE_TYPES.GROUP) return;
+
+      // Navigate to peered VPC topology view
+      if (node.data?.isPeerVpc && node.data?.remoteVpcObj) {
+        this.navigateToPeeringVpc(node.data.remoteVpcObj);
+
+        return;
+      }
+
       if (this.selectedNodeId === node.id) {
         this.selectedNodeId = null;
         this.relatedIds.clear();
@@ -742,6 +830,12 @@ export default {
     onPaneClick() {
       this.selectedNodeId = null;
       this.relatedIds.clear();
+    },
+
+    navigateToPeeringVpc(remoteVpcObj) {
+      if (remoteVpcObj && remoteVpcObj.goToDetail) {
+        remoteVpcObj.goToDetail();
+      }
     },
 
     getCssVar(name) {
@@ -803,16 +897,32 @@ export default {
     >
       <template #node-vpc="{ id, data }">
         <Handle
-          v-if="hasOutgoingConnection(id)"
+          v-if="!data.isPeerVpc"
+          id="vpc-bottom-handle"
           type="source"
           position="bottom"
         />
+        <Handle
+          v-if="!data.isPeerVpc && hasOutgoingConnection(id)"
+          id="vpc-right-handle"
+          type="source"
+          position="right"
+        />
+        <Handle
+          v-if="data.isPeerVpc"
+          type="target"
+          position="left"
+        />
         <div
           class="custom-node vpc-node"
-          :class="data.stateClass"
+          :class="[data.stateClass, { 'peer-vpc': data.isPeerVpc }]"
         >
           <div class="node-name">
             {{ data.name }}
+            <span
+              v-if="data.isPeerVpc"
+              class="peer-badge"
+            >{{ t("harvester.vpc.topology.labels.peering") }}</span>
           </div>
         </div>
       </template>
@@ -906,10 +1016,12 @@ export default {
               class="interface-group"
             >
               <div class="subnet-text">
-                {{ t("harvester.vpc.topology.labels.subnet") }}: {{ iface.subnet }}
+                {{ t("harvester.vpc.topology.labels.subnet") }}:
+                {{ iface.subnet }}
               </div>
               <div class="network-text">
-                {{ t("harvester.vpc.topology.labels.network") }}: {{ iface.network }}
+                {{ t("harvester.vpc.topology.labels.network") }}:
+                {{ iface.network }}
               </div>
               <div class="ip-text">
                 {{ t("harvester.vpc.topology.labels.ip") }}: {{ iface.ip }}
@@ -947,10 +1059,12 @@ export default {
               class="interface-group"
             >
               <div class="subnet-text">
-                {{ t("harvester.vpc.topology.labels.subnet") }}: {{ iface.subnet }}
+                {{ t("harvester.vpc.topology.labels.subnet") }}:
+                {{ iface.subnet }}
               </div>
               <div class="network-text">
-                {{ t("harvester.vpc.topology.labels.network") }}: {{ iface.network }}
+                {{ t("harvester.vpc.topology.labels.network") }}:
+                {{ iface.network }}
               </div>
               <div class="ip-text">
                 {{ t("harvester.vpc.topology.labels.ip") }}: {{ iface.ip }}
@@ -1099,6 +1213,10 @@ $transition-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
     }
   }
 
+  ::v-deep(.vue-flow__edge-text) {
+    font-size: 14px;
+  }
+
   .custom-node {
     width: 100%;
     padding: 10px;
@@ -1168,6 +1286,30 @@ $transition-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
       .node-name {
         margin-bottom: 0;
       }
+    }
+
+    &.peer-vpc {
+      border-color: var(--node-peer-vpc-color);
+      background-color: var(--node-peer-vpc-bg);
+      cursor: pointer;
+
+      &:hover {
+        border-color: var(--node-vpc-color);
+        box-shadow: 0 6px 16px rgba(36, 83, 255, 0.18);
+        transform: translateY(-2px);
+      }
+    }
+
+    .peer-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-left: 8px;
+      background-color: var(--badge-peer-bg);
+      color: var(--badge-peer-text);
     }
 
     &.subnet-node {
