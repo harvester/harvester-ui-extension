@@ -414,10 +414,7 @@ export default {
             remoteVpc.split('/').pop() ||
             remoteVpc;
 
-          const peerNodeId = `vpc-peer-${ peerIndex }-${ remoteVpc.replace(
-            /[^a-zA-Z0-9-]/g,
-            '-',
-          ) }`;
+          const peerNodeId = `vpc-peer-${ peerIndex }`;
 
           peerNodeByRemote.set(remoteVpc, peerNodeId);
 
@@ -483,7 +480,7 @@ export default {
 
         const nadType =
           nad?.metadata?.labels?.[HCI.NETWORK_TYPE] || NETWORK_TYPE.OVERLAY;
-        const overlayNodeId = `overlay-${ provider.replace(/\//g, '-') }`;
+        const overlayNodeId = `overlay-${ provider }`;
 
         nodes.push({
           id:       groupId,
@@ -655,7 +652,7 @@ export default {
           const provider =
             targetSubnet?.spec?.provider || NETWORK_PROVIDERS.OVN;
           const sourceId =
-            provider !== NETWORK_PROVIDERS.OVN ? `overlay-${ provider.replace(/\//g, '-') }` : `subnet-${ name }`;
+            provider !== NETWORK_PROVIDERS.OVN ? `overlay-${ provider }` : `subnet-${ name }`;
 
           edges.push({
             id:       `edge-${ name }-to-${ vmName }`,
