@@ -519,8 +519,8 @@ export default {
           } else if (volume.containerDisk) { // SOURCE_TYPE.CONTAINER
             source = SOURCE_TYPE.CONTAINER;
             container = volume.containerDisk.image;
-          } else if (volume.persistentVolumeClaim && volume.persistentVolumeClaim?.claimName) {
-            volumeName = volume.persistentVolumeClaim.claimName;
+          } else if ((volume.persistentVolumeClaim && volume.persistentVolumeClaim?.claimName) || volume.dataVolume?.name) {
+            volumeName = volume.persistentVolumeClaim?.claimName || volume.dataVolume?.name;
             const DVT = _volumeClaimTemplates.find( (T) => T.metadata.name === volumeName);
 
             realName = volumeName;
@@ -545,7 +545,7 @@ export default {
               // SOURCE_TYPE.ATTACH_VOLUME
               // Compatible with VMS that have been created before, Because they're not saved in the annotation
               const allPVCs = this.$store.getters['harvester/all'](PVC);
-              const pvcResource = allPVCs.find( (O) => O.id === `${ namespace }/${ volume?.persistentVolumeClaim?.claimName }`);
+              const pvcResource = allPVCs.find( (O) => O.id === `${ namespace }/${ volumeName }`);
 
               source = SOURCE_TYPE.ATTACH_VOLUME;
               accessMode = pvcResource?.spec?.accessModes?.[0] || 'ReadWriteMany';
@@ -555,7 +555,7 @@ export default {
               volumeName = pvcResource?.metadata?.name || '';
             }
 
-            hotpluggable = volume.persistentVolumeClaim.hotpluggable || false;
+            hotpluggable = volume.persistentVolumeClaim?.hotpluggable || false;
           }
 
           const bus = DISK?.disk?.bus || DISK?.cdrom?.bus;
