@@ -1,4 +1,5 @@
 <script>
+import ELK from 'elkjs/lib/elk.bundled.js';
 import { VueFlow, Handle } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
@@ -21,6 +22,7 @@ const NODE_TYPES = {
 };
 
 const STOPPED_VM_STATUSES = ['stopped', 'paused'];
+const elk = new ELK();
 
 const THEME_COLORS = {
   VPC:             '#2453ff',
@@ -42,17 +44,22 @@ const THEME_COLORS = {
 };
 
 const LAYOUT = {
-  VMS_PER_ROW:       5,
   BASE_PADDING:      24,
-  VERTICAL_GAP:      40,
-  HORIZONTAL_GAP:    30,
   NODE_WIDTH:        230,
-  VM_ROW_HEIGHT:     160,
   GROUP_NODE_GAP:    30,
-  PEERING_GAP:       350,
-  PEERING_START_GAP: 350,
-  PEERING_PER_ROW:   1,
-  PEERING_ROW_GAP:   100,
+  AUTO_NODE_GAP:     110,
+  AUTO_RANK_GAP:     140,
+  PEER_COLUMN_GAP:   220,
+  PEER_VERTICAL_GAP: 36,
+};
+
+const NODE_WIDTH_PX = `${ LAYOUT.NODE_WIDTH }px`;
+
+const NODE_HEIGHT = {
+  DEFAULT: 96,
+  SUBNET:  120,
+  OVERLAY: 120,
+  VM:      170,
 };
 
 export default {
@@ -79,6 +86,8 @@ export default {
       nodes:          [],
       edges:          [],
       loading:        true,
+      flowInstance:   null,
+      isFitted:       false,
       selectedNodeId: null,
       relatedIds:     new Set(),
       showVPC:        true,
@@ -146,9 +155,6 @@ export default {
 
     backgroundPatternColor() {
       return this.getCssVar('--default-active-bg') || '#f1f1f1';
-    },
-    layoutConfig() {
-      return LAYOUT;
     },
     colors() {
       return THEME_COLORS;
@@ -271,6 +277,9 @@ export default {
       const vpcSubnets = this.allSubnets.filter(
         (subnet) => subnet.spec?.vpc === vpcName,
       );
+      const vpcSubnetNames = new Set(
+        vpcSubnets.map((subnet) => subnet.metadata.name),
+      );
       const vmToSubnetsMap = {};
       const vmToDetailsMap = {};
       const vmNames = new Set(
@@ -300,8 +309,7 @@ export default {
       const filteredVMs = this.allVMs.filter((vm) => {
         const subnets = vmToSubnetsMap[vm.metadata?.name] || [];
 
-        return subnets.some((name) => vpcSubnets.some((s) => s.metadata.name === name),
-        );
+        return subnets.some((name) => vpcSubnetNames.has(name));
       });
 
       return {
@@ -316,6 +324,7 @@ export default {
       if (this._loadingTopology) return;
       this._loadingTopology = true;
       this.loading = true;
+      this.isFitted = false;
 
       try {
         const vpc = this.value;
@@ -327,60 +336,38 @@ export default {
         const nodes = [];
         const edges = [];
 
-        let currentX = LAYOUT.BASE_PADDING * 2;
-        const subnetXPositions = vpcSubnets.map(() => {
-          const position = currentX;
-
-          currentX +=
-            LAYOUT.NODE_WIDTH + LAYOUT.BASE_PADDING * 2 + LAYOUT.HORIZONTAL_GAP;
-
-          return position;
-        });
-
         nodes.push({
           id:       NODE_TYPES.VPC,
           type:     NODE_TYPES.VPC,
-          position: { x: currentX / 2, y: LAYOUT.BASE_PADDING },
+          position: { x: 0, y: 0 },
           data:     { name: vpc.metadata.name },
-          style:    { width: `${ LAYOUT.NODE_WIDTH }px` },
+          style:    { width: NODE_WIDTH_PX },
         });
 
         this.createVpcPeeringNodes({
           nodes,
           edges,
           vpc,
-          peerStartX: currentX + LAYOUT.PEERING_START_GAP,
         });
 
-        const subnetY = LAYOUT.BASE_PADDING + 100;
-
-        vpcSubnets.forEach((subnet, index) => {
-          this.createNetworkNodes(
-            nodes,
-            edges,
-            subnet,
-            subnetXPositions[index],
-            subnetY,
-          );
+        vpcSubnets.forEach((subnet) => {
+          this.createNetworkNodes(nodes, edges, subnet);
         });
-
-        const vmStartY = subnetY + 400;
 
         this.createVMNodes({
           nodes,
           edges,
           vpcVMs,
           vpcSubnets,
-          subnetXPositions,
           vmToSubnetsMap,
           vmToDetailsMap,
-          vmStartY,
         });
+
+        await this.applyAutoLayout(nodes, edges);
 
         this.nodes = nodes;
         this.edges = edges;
-
-        this.$nextTick(() => this.resizeGroups());
+        this.scheduleInitialFit();
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Topology Load Error:', error);
@@ -390,9 +377,7 @@ export default {
       }
     },
 
-    createVpcPeeringNodes({
-      nodes, edges, vpc, peerStartX
-    }) {
+    createVpcPeeringNodes({ nodes, edges, vpc }) {
       const peerings = vpc?.spec?.vpcPeerings || [];
       const peerNodeByRemote = new Map();
       let peerIndex = 0;
@@ -418,24 +403,16 @@ export default {
 
           peerNodeByRemote.set(remoteVpc, peerNodeId);
 
-          const peerRow = Math.floor(peerIndex / LAYOUT.PEERING_PER_ROW);
-          const peerCol = peerIndex % LAYOUT.PEERING_PER_ROW;
-
           nodes.push({
             id:       peerNodeId,
             type:     NODE_TYPES.VPC,
-            position: {
-              x:
-                peerStartX +
-                peerCol * (LAYOUT.NODE_WIDTH + LAYOUT.PEERING_GAP),
-              y: LAYOUT.BASE_PADDING + peerRow * LAYOUT.PEERING_ROW_GAP,
-            },
-            data: {
+            position: { x: 0, y: 0 },
+            data:     {
               name:      peerName,
               remoteVpcObj,
               isPeerVpc: true,
             },
-            style: { width: `${ LAYOUT.NODE_WIDTH }px` },
+            style: { width: NODE_WIDTH_PX },
           });
 
           peerIndex++;
@@ -448,18 +425,19 @@ export default {
           target:       peerNodeByRemote.get(remoteVpc),
           type:         'straight',
           animated:     false,
+          class:        'peering-edge',
           style:        {
             stroke:          THEME_COLORS.LINK_GRAY,
-            strokeWidth:     2,
+            strokeWidth:     1.5,
             strokeDasharray: '6,4',
-            opacity:         0.9,
+            opacity:         0.5,
           },
           label: peering?.localConnectIP || '',
         });
       });
     },
 
-    createNetworkNodes(nodes, edges, subnet, x, y) {
+    createNetworkNodes(nodes, edges, subnet) {
       const subnetName = subnet.metadata.name;
       const subnetNodeId = `subnet-${ subnetName }`;
       const provider = subnet.spec?.provider || NETWORK_PROVIDERS.OVN;
@@ -485,7 +463,7 @@ export default {
         nodes.push({
           id:       groupId,
           type:     NODE_TYPES.GROUP,
-          position: { x, y },
+          position: { x: 0, y: 0 },
           data:     { type: NODE_TYPES.GROUP },
           style:    {
             background:   'var(--node-group-bg)',
@@ -507,7 +485,7 @@ export default {
             cidr:     subnet.spec?.cidrBlock,
             provider: provider.split('/').pop(),
           },
-          style: { width: `${ LAYOUT.NODE_WIDTH }px` },
+          style: { width: NODE_WIDTH_PX },
         });
 
         nodes.push({
@@ -522,7 +500,7 @@ export default {
             clusterNetwork,
             subnetId: subnetNodeId,
           },
-          style: { width: `${ LAYOUT.NODE_WIDTH }px` },
+          style: { width: NODE_WIDTH_PX },
         });
 
         edges.push({
@@ -541,13 +519,13 @@ export default {
         nodes.push({
           id:       subnetNodeId,
           type:     NODE_TYPES.SUBNET,
-          position: { x, y: y + LAYOUT.BASE_PADDING },
+          position: { x: 0, y: 0 },
           data:     {
             name:     subnetName,
             cidr:     subnet.spec?.cidrBlock,
             provider: NETWORK_PROVIDERS.OVN,
           },
-          style: { width: `${ LAYOUT.NODE_WIDTH }px` },
+          style: { width: NODE_WIDTH_PX },
         });
       }
 
@@ -566,12 +544,9 @@ export default {
       edges,
       vpcVMs,
       vpcSubnets,
-      subnetXPositions,
       vmToSubnetsMap,
       vmToDetailsMap,
-      vmStartY,
     }) {
-      const columnTrackers = {};
       const vpcSubnetNames = new Set(
         vpcSubnets.map((subnet) => subnet.metadata.name),
       );
@@ -582,22 +557,8 @@ export default {
           this.getNetworkDisplayBySubnet(subnet);
       });
 
-      vpcSubnets.forEach((subnet, index) => {
-        columnTrackers[subnet.metadata.name] = {
-          x:     subnetXPositions[index] + LAYOUT.BASE_PADDING,
-          row:   0,
-          count: 0,
-        };
-      });
-
-      const processedVMs = new Set();
-
-      const renderVM = (vm, isMulti) => {
+      vpcVMs.forEach((vm) => {
         const vmName = vm.metadata?.name;
-
-        if (isMulti && processedVMs.has(vmName)) return;
-        processedVMs.add(vmName);
-
         const vmSubnetsInVpc = (vmToSubnetsMap[vmName] || []).filter(
           (subnetName) => vpcSubnetNames.has(subnetName),
         );
@@ -607,45 +568,23 @@ export default {
             ...iface,
             network: subnetNetworkMap[iface.subnet] || iface.subnet,
           }));
-        const primarySubnet = vmSubnetsInVpc[0];
-
-        if (!columnTrackers[primarySubnet]) return;
-
-        const tracker = columnTrackers[primarySubnet];
-
-        if (tracker.count >= LAYOUT.VMS_PER_ROW) {
-          tracker.row++;
-          tracker.count = 0;
-          const subnetIndex = vpcSubnets.findIndex(
-            (s) => s.metadata.name === primarySubnet,
-          );
-
-          tracker.x = subnetXPositions[subnetIndex] + LAYOUT.BASE_PADDING;
-        }
-
+        const isMulti = vmSubnetsInVpc.length > 1;
         const status = (vm.status?.printableStatus || '').toLowerCase();
         const isStopped = STOPPED_VM_STATUSES.includes(status);
-
         const vmId = `vm-${ vmName }`;
 
         nodes.push({
           id:       vmId,
           type:     isMulti ? NODE_TYPES.MULTI_NETWORK_VM : NODE_TYPES.VM,
-          position: {
-            x: tracker.x,
-            y: vmStartY + tracker.row * LAYOUT.VM_ROW_HEIGHT,
-          },
-          data: {
+          position: { x: 0, y: 0 },
+          data:     {
             name:       vmName,
             isStopped,
             interfaces: interfacesInVpc,
           },
-          style:  { width: `${ LAYOUT.NODE_WIDTH }px` },
+          style:  { width: NODE_WIDTH_PX },
           zIndex: 10,
         });
-
-        tracker.x += LAYOUT.NODE_WIDTH + 20;
-        tracker.count++;
 
         vmSubnetsInVpc.forEach((name) => {
           const targetSubnet = vpcSubnets.find((s) => s.metadata.name === name);
@@ -667,16 +606,195 @@ export default {
             },
           });
         });
+      });
+    },
+
+    getNodeTypeHeight(type) {
+      switch (type) {
+      case NODE_TYPES.SUBNET:
+        return NODE_HEIGHT.SUBNET;
+      case NODE_TYPES.OVERLAY_NETWORK:
+        return NODE_HEIGHT.OVERLAY;
+      default:
+        return this.isVmType(type) ? NODE_HEIGHT.VM : NODE_HEIGHT.DEFAULT;
+      }
+    },
+
+    getLayoutNodeDimensions(nodes, node) {
+      if (node.type !== NODE_TYPES.GROUP) {
+        return {
+          width:  Number.parseInt(node?.style?.width, 10) || LAYOUT.NODE_WIDTH,
+          height: this.getNodeTypeHeight(node?.type),
+        };
+      }
+
+      const children = nodes.filter((child) => child.parentNode === node.id);
+      const childWidth = Number.parseInt(children[0]?.style?.width, 10) || LAYOUT.NODE_WIDTH;
+      const contentHeight = children.reduce((total, child) => {
+        return total + this.getNodeTypeHeight(child.type);
+      }, 0);
+      const gapsHeight = Math.max(children.length - 1, 0) * LAYOUT.GROUP_NODE_GAP;
+      const baseHeight = contentHeight + gapsHeight + LAYOUT.BASE_PADDING * 2;
+      const minHeight = NODE_HEIGHT.DEFAULT + LAYOUT.BASE_PADDING * 2;
+
+      return {
+        width:  childWidth + LAYOUT.BASE_PADDING * 2,
+        height: Math.max(baseHeight, minHeight),
+      };
+    },
+
+    getTopLevelNodeId(nodeById, nodeId) {
+      return nodeById.get(nodeId)?.parentNode || nodeId;
+    },
+
+    placePeerNodes(topLevelNodes, nodeDimensionsById) {
+      const peerNodes = topLevelNodes.filter((node) => node.data?.isPeerVpc);
+
+      if (!peerNodes.length) {
+        return;
+      }
+
+      const maxNonPeerRight = topLevelNodes
+        .filter((node) => !node.data?.isPeerVpc)
+        .reduce((maxRight, node) => {
+          const { width } = nodeDimensionsById.get(node.id);
+
+          return Math.max(maxRight, node.position.x + width);
+        }, 0);
+      const minPeerY = Math.min(...peerNodes.map((node) => node.position.y));
+
+      peerNodes
+        .sort((left, right) => left.position.y - right.position.y)
+        .forEach((node, index) => {
+          const { height } = nodeDimensionsById.get(node.id);
+
+          node.position = {
+            x: maxNonPeerRight + LAYOUT.PEER_COLUMN_GAP,
+            y: minPeerY + index * (height + LAYOUT.PEER_VERTICAL_GAP),
+          };
+        });
+    },
+
+    buildElkGraph(nodes, edges, nodeById, topLevelNodes, nodeDimensionsById) {
+      const elkGraph = {
+        id:            'root',
+        layoutOptions: {
+          'elk.algorithm':                             'layered',
+          'elk.direction':                             'DOWN',
+          'elk.spacing.nodeNode':                      `${ LAYOUT.AUTO_NODE_GAP }`,
+        },
+        children:      [],
+        edges:         [],
       };
 
-      vpcVMs
-        .filter((v) => {
-          return (vmToSubnetsMap[v.metadata.name] || []).length === 1;
-        })
-        .forEach((v) => renderVM(v, false));
-      vpcVMs
-        .filter((v) => (vmToSubnetsMap[v.metadata.name] || []).length > 1)
-        .forEach((v) => renderVM(v, true));
+      topLevelNodes.forEach((node) => {
+        const { width, height } = nodeDimensionsById.get(node.id);
+
+        if (node.type === NODE_TYPES.GROUP) {
+          const children = nodes.filter((child) => child.parentNode === node.id)
+            .map((child) => {
+              const childDimensions = this.getLayoutNodeDimensions(nodes, child);
+
+              return {
+                id:     child.id,
+                width:  childDimensions.width,
+                height: childDimensions.height,
+              };
+            });
+
+          elkGraph.children.push({
+            id: node.id,
+            width,
+            height,
+            children,
+          });
+
+          return;
+        }
+
+        elkGraph.children.push({
+          id: node.id,
+          width,
+          height,
+        });
+      });
+
+      const graphEdgeKeys = new Set();
+
+      edges.forEach((edge) => {
+        const source = this.getTopLevelNodeId(nodeById, edge.source);
+        const target = this.getTopLevelNodeId(nodeById, edge.target);
+
+        if (!source || !target || source === target) {
+          return;
+        }
+
+        if (!nodeDimensionsById.has(source) || !nodeDimensionsById.has(target)) {
+          return;
+        }
+
+        const edgeKey = `${ source }->${ target }`;
+
+        if (graphEdgeKeys.has(edgeKey)) {
+          return;
+        }
+
+        graphEdgeKeys.add(edgeKey);
+
+        elkGraph.edges.push({
+          id:            edgeKey,
+          sources:       [source],
+          targets:       [target],
+        });
+      });
+
+      return elkGraph;
+    },
+
+    applyElkLayout(layout, nodeById) {
+      const applyLayoutNode = (layoutNode) => {
+        const targetNode = nodeById.get(layoutNode.id);
+
+        if (targetNode) {
+          targetNode.position = {
+            x: layoutNode.x || 0,
+            y: layoutNode.y || 0,
+          };
+
+          if (targetNode.type === NODE_TYPES.GROUP) {
+            targetNode.style.width = `${ layoutNode.width }px`;
+            targetNode.style.height = `${ layoutNode.height }px`;
+          }
+        }
+
+        if (layoutNode.children) {
+          layoutNode.children.forEach((child) => applyLayoutNode(child));
+        }
+      };
+
+      if (layout.children) {
+        layout.children.forEach((child) => applyLayoutNode(child));
+      }
+    },
+
+    async applyAutoLayout(nodes, edges) {
+      const nodeById = new Map(nodes.map((node) => [node.id, node]));
+      const topLevelNodes = nodes.filter((node) => !node.parentNode);
+      const nodeDimensionsById = new Map(topLevelNodes.map((node) => {
+        return [node.id, this.getLayoutNodeDimensions(nodes, node)];
+      }));
+
+      const elkGraph = this.buildElkGraph(
+        nodes,
+        edges,
+        nodeById,
+        topLevelNodes,
+        nodeDimensionsById,
+      );
+      const layout = await elk.layout(elkGraph);
+
+      this.applyElkLayout(layout, nodeById);
+      this.placePeerNodes(topLevelNodes, nodeDimensionsById);
     },
 
     getNetworkDisplayBySubnet(subnet) {
@@ -699,59 +817,6 @@ export default {
 
       return namespace ? `${ namespace }/${ networkName }` : networkName;
     },
-
-    resizeGroups() {
-      this.nodes.forEach((groupNode) => {
-        if (groupNode.type === NODE_TYPES.GROUP) {
-          const subnetNode = this.nodes.find(
-            (node) => node.parentNode === groupNode.id &&
-              node.type === NODE_TYPES.SUBNET,
-          );
-          const overlayNode = this.nodes.find(
-            (node) => node.parentNode === groupNode.id &&
-              node.type === NODE_TYPES.OVERLAY_NETWORK,
-          );
-
-          if (subnetNode && overlayNode) {
-            const subnetElement = document.querySelector(
-              `[data-id="${ subnetNode.id }"] .custom-node`,
-            );
-            const overlayElement = document.querySelector(
-              `[data-id="${ overlayNode.id }"] .custom-node`,
-            );
-
-            if (subnetElement && overlayElement) {
-              const subnetWidth = subnetElement.offsetWidth;
-              const subnetHeight = subnetElement.offsetHeight;
-              const overlayWidth = overlayElement.offsetWidth;
-              const overlayHeight = overlayElement.offsetHeight;
-
-              const contentWidth = Math.max(subnetWidth, overlayWidth);
-              const groupWidth = contentWidth + LAYOUT.BASE_PADDING * 2;
-              const groupHeight =
-                LAYOUT.BASE_PADDING +
-                subnetHeight +
-                LAYOUT.GROUP_NODE_GAP +
-                overlayHeight +
-                LAYOUT.BASE_PADDING;
-
-              groupNode.style.width = `${ groupWidth }px`;
-              groupNode.style.height = `${ groupHeight }px`;
-
-              subnetNode.position = {
-                x: LAYOUT.BASE_PADDING,
-                y: LAYOUT.BASE_PADDING,
-              };
-              overlayNode.position = {
-                x: LAYOUT.BASE_PADDING,
-                y: LAYOUT.BASE_PADDING + subnetHeight + LAYOUT.GROUP_NODE_GAP,
-              };
-            }
-          }
-        }
-      });
-    },
-
     isVmType(type) {
       return type === NODE_TYPES.VM || type === NODE_TYPES.MULTI_NETWORK_VM;
     },
@@ -829,6 +894,28 @@ export default {
       this.relatedIds.clear();
     },
 
+    onFlowInit(instance) {
+      this.flowInstance = instance;
+      this.scheduleInitialFit();
+    },
+
+    scheduleInitialFit() {
+      if (this.isFitted || !this.flowInstance || !this.filteredNodes.length) return;
+
+      this.$nextTick(() => {
+        requestAnimationFrame(() => {
+          if (this.isFitted || !this.filteredNodes.length) return;
+
+          this.flowInstance?.fitView({
+            padding:            0.25,
+            duration:           0,
+            includeHiddenNodes: true,
+          });
+          this.isFitted = true;
+        });
+      });
+    },
+
     navigateToPeeringVpc(remoteVpcObj) {
       if (remoteVpcObj && remoteVpcObj.goToDetail) {
         remoteVpcObj.goToDetail();
@@ -887,8 +974,10 @@ export default {
       v-else
       :nodes="filteredNodes"
       :edges="filteredEdges"
-      class="vpc-flow"
-      fit-view-on-init
+      :class="['vpc-flow', { 'is-fitting': !isFitted }]"
+      :min-zoom="0.1"
+      :max-zoom="2"
+      @init="onFlowInit"
       @node-click="onNodeClick"
       @pane-click="onPaneClick"
     >
@@ -1187,6 +1276,11 @@ $transition-ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
   .vpc-flow {
     flex: 1;
     min-height: 0;
+  }
+
+  .vpc-flow.is-fitting {
+    opacity: 0;
+    pointer-events: none;
   }
 
   .vue-flow__node {
