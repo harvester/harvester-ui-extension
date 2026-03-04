@@ -195,7 +195,6 @@ harvester:
       title: Restart Virtual Machine
       tip: Restart the virtual machine for configuration changes to take effect.
       cancel: Save
-
   notification:
     title:
       succeed: Succeed
@@ -1147,6 +1146,25 @@ harvester:
       banner: The supported field in ACL match can refer to <a href="https://kubeovn.github.io/docs/v1.14.x/en/guide/subnet/#subnet-acl" target="_blank">KubeOvn Subnet ACL document</a>
 
   vpc:
+    viewTopology: Topology
+    topology:
+      loading: Loading topology...
+      empty: No resources found
+      visibility:
+        vpc: VPC
+        subnets: Subnets
+        overlayNetworks: Overlay Networks
+        vms: VMs
+      labels:
+        cidr: CIDR
+        provider: Provider
+        type: Type
+        clusterNetwork: Cluster Network
+        network: Network
+        subnet: Subnet
+        ip: IP
+        mac: MAC
+        peering: Peering
     noAddonEnabled:
       prefix: The kubeovn-operator add-on is not enabled, click
       middle: here
