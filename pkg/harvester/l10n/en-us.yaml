@@ -2157,8 +2157,8 @@ typeLabel:
     }
   migration.harvesterhci.io.vmwaresource: |-
     {count, plural,
-      one { VMWare Source }
-      other { VMWare Sources }
+      one { VMware Source }
+      other { VMware Sources }
     }
   migration.harvesterhci.io.ovasource: |-
     {count, plural,     
