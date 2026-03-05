@@ -31,6 +31,7 @@ export default {
     const _hash = {
       pciclaims: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.PCI_CLAIM }),
       sriovs:    this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.SR_IOV }),
+      srigpuovs:    this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.SR_IOVGPU_DEVICE }),
     };
 
     await allHash(_hash);
@@ -106,19 +107,27 @@ export default {
   },
 
   computed: {
-    parentSriovOptions() {
+    allSriovs() {
       const inStore = this.$store.getters['currentProduct'].inStore;
-      const allSriovs = this.$store.getters[`${ inStore }/all`](HCI.SR_IOV) || [];
-
-      return allSriovs.map((sriov) => {
-        return sriov.id;
-      });
+      return this.$store.getters[`${ inStore }/all`](HCI.SR_IOV) || [];
+    },
+    allSriovGPUs() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      return this.$store.getters[`${ inStore }/all`](HCI.SR_IOVGPU_DEVICE) || [];
+    },
+    parentSriovOptions() {
+      return this.allSriovs.map((sriov) => sriov.id);
+    },
+    parentSriovGPUOptions() {
+      return this.allSriovGPUs.map((sriovgpu) => sriovgpu.id);
     },
     parentSriovLabel() {
       return HCI_ANNOTATIONS.PARENT_SRIOV;
-    }
+    },
+    parentSriovGPULabel() {
+      return HCI_ANNOTATIONS.PARENT_SRIOV_GPU;
+    },
   },
-
   methods: {
     enableGroup(rows = []) {
       const row = rows[0];
@@ -203,6 +212,14 @@ export default {
         :parent-sriov-options="parentSriovOptions"
         :parent-sriov-label="parentSriovLabel"
         :label="t('harvester.sriov.parentSriov')"
+        :rows="rows"
+        @change-rows="changeRows"
+      />
+      <FilterBySriov
+        ref="filterByParentSRIOVGPU"
+        :parent-sriov-options="parentSriovGPUOptions"
+        :parent-sriov-label="parentSriovGPULabel"
+        :label="t('harvester.sriov.parentSriovGPU')"
         :rows="rows"
         @change-rows="changeRows"
       />
