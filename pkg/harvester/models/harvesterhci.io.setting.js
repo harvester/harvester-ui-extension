@@ -52,10 +52,18 @@ export default class HciSetting extends HarvesterResource {
     });
   }
 
+  get clusterRegistrationTLSVerifyFeatureEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('clusterRegistrationTLSVerify');
+  }
+
   get customValue() {
     if (this.metadata.name === HCI_SETTING.STORAGE_NETWORK) {
       try {
         return JSON.stringify(JSON.parse(this.value), null, 2);
+      } catch (e) {}
+    } else if (this.metadata.name === HCI_SETTING.CLUSTER_REGISTRATION_URL) {
+      try {
+        return this.clusterRegistrationTLSVerifyFeatureEnabled ? JSON.stringify(JSON.parse(this.value), null, 2) : this.value;
       } catch (e) {}
     }
 
