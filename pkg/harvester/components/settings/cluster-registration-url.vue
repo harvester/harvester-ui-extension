@@ -19,11 +19,10 @@ export default {
     let parseDefaultValue = {};
 
     try {
-      const tlsVerifyEnabled = this.$store.getters['harvester-common/getFeatureEnabled']('clusterRegistrationTLSVerify');
-
-      parseDefaultValue = tlsVerifyEnabled ? JSON.parse(this.value.value) : this.value.value;
+      parseDefaultValue = JSON.parse(this.value.value);
     } catch (error) {
-      parseDefaultValue = this.getDefaultValue();
+      parseDefaultValue.url = this.value.value;
+      parseDefaultValue.insecureSkipTLSVerify = true;
     }
 
     return {
