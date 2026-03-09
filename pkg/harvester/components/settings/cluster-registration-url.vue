@@ -1,16 +1,16 @@
 <script>
-import Tip from '@shell/components/Tip';
 import MessageLink from '@shell/components/MessageLink';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { HCI_SETTING } from '../../config/settings';
 import { Checkbox } from '@components/Form/Checkbox';
+import { Banner } from '@components/Banner';
 
 export default {
   name: 'HarvesterEditClusterRegistrationURL',
 
   components: {
-    LabeledInput, Tip, MessageLink, Checkbox
+    LabeledInput, MessageLink, Checkbox, Banner
   },
 
   mixins: [CreateEditView],
@@ -93,6 +93,15 @@ export default {
     class="row"
   >
     <div class="col span-12">
+      <Banner color="info">
+        <MessageLink
+          :to="toCA"
+          target="_blank"
+          prefix-label="harvester.setting.clusterRegistrationUrl.tip.prefix"
+          middle-label="harvester.setting.clusterRegistrationUrl.tip.middle"
+          suffix-label="harvester.setting.clusterRegistrationUrl.tip.suffix"
+        />
+      </Banner>
       <LabeledInput
         v-model:value="registrationURL"
         class="mb-20"
@@ -108,18 +117,6 @@ export default {
           :label="t('harvester.setting.clusterRegistrationUrl.insecureSkipTLSVerify')"
           @update:value="updateInsecureSkipTLSVerify"
         />
-        <Tip
-          class="mb-20"
-          icon="icon icon-info"
-        >
-          <MessageLink
-            :to="toCA"
-            target="_blank"
-            prefix-label="harvester.setting.clusterRegistrationUrl.tip.prefix"
-            middle-label="harvester.setting.clusterRegistrationUrl.tip.middle"
-            suffix-label="harvester.setting.clusterRegistrationUrl.tip.suffix"
-          />
-        </Tip>
       </div>
     </div>
   </div>

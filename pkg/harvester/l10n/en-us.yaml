@@ -1354,7 +1354,7 @@ harvester:
       url: URL
       insecureSkipTLSVerify: Insecure Skip TLS Verify
       tip: 
-        prefix: Harvester secures cluster registration via TLS by default. If opt out this option, you must provide custom CA certificates using the
+        prefix: Harvester secures cluster registration via TLS by default. If opt out "Insecure SKip TLS Verify", you must provide custom CA certificates using the
         middle: 'additional-ca'
         suffix: setting.
       message: To completely unset the imported Harvester cluster, please also remove it on the Rancher Dashboard UI via the <code> Virtualization Management </code> page.
