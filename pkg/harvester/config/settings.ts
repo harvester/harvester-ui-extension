@@ -40,6 +40,7 @@ export const HCI_SETTING = {
   RANCHER_CLUSTER:                        'rancher-cluster',
   MAX_HOTPLUG_RATIO:                      'max-hotplug-ratio',
   KUBEVIRT_MIGRATION:                     'kubevirt-migration'
+
 };
 
 export const HCI_ALLOWED_SETTINGS = {
@@ -127,9 +128,10 @@ export const HCI_ALLOWED_SETTINGS = {
 
 export const HCI_SINGLE_CLUSTER_ALLOWED_SETTING = {
   [HCI_SETTING.CLUSTER_REGISTRATION_URL]: {
-    kind:     'json',
+    kind:     'custom',
     from:     'import',
     canReset: true,
+    // featureFlag: 'clusterRegistrationTLSVerify'
   },
   [HCI_SETTING.UI_PL]: {
     kind: 'custom', from: 'import', alias: 'branding'

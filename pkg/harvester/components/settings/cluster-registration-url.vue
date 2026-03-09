@@ -19,9 +19,9 @@ export default {
     let parseDefaultValue = {};
 
     try {
-      parseDefaultValue = JSON.parse(this.value.value);
+      parseDefaultValue = this.value.value.includes('insecureSkipTLSVerify') ? JSON.parse(this.value.value) : this.value.value;
     } catch (error) {
-      parseDefaultValue = { url: '', insecureSkipTLSVerify: false };
+      parseDefaultValue = this.getDefaultValue();
     }
 
     return {
@@ -30,39 +30,51 @@ export default {
     };
   },
 
-  created() {
-    this.update();
-  },
   computed: {
     toCA() {
       return `${ HCI_SETTING.ADDITIONAL_CA }?mode=edit`;
-    }
-  },
-
-  watch: {
-    value: {
-      handler(neu) {
-        let parseDefaultValue;
-
-        try {
-          parseDefaultValue = JSON.parse(neu.value);
-        } catch (err) {
-          parseDefaultValue = { url: '', insecureSkipTLSVerify: false };
-        }
-        this.parseDefaultValue = parseDefaultValue;
-        this.update();
+    },
+    clusterRegistrationTLSVerifyEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('clusterRegistrationTLSVerify');
+    },
+    registrationURL: {
+      get() {
+        return this.clusterRegistrationTLSVerifyEnabled ? this.parseDefaultValue.url : this.parseDefaultValue;
       },
-      deep: true
+
+      set(value) {
+        if (this.clusterRegistrationTLSVerifyEnabled) {
+          this.parseDefaultValue.url = value;
+        } else {
+          this.parseDefaultValue = value;
+        }
+      }
     }
   },
 
   methods: {
+    getDefaultValue() {
+      if (this.clusterRegistrationTLSVerifyEnabled) {
+        return { url: '', insecureSkipTLSVerify: false };
+      } else {
+        return '';
+      }
+    },
+
+    updateUrl() {
+      this.update();
+    },
+
     update() {
-      this.value['value'] = JSON.stringify(this.parseDefaultValue);
+      if (this.clusterRegistrationTLSVerifyEnabled) {
+        this.value['value'] = JSON.stringify(this.parseDefaultValue);
+      } else {
+        this.value['value'] = this.parseDefaultValue;
+      }
     },
 
     useDefault() {
-      this.parseDefaultValue = { url: '', insecureSkipTLSVerify: false };
+      this.parseDefaultValue = this.getDefaultValue();
     },
 
     updateInsecureSkipTLSVerify(newValue) {
@@ -78,34 +90,36 @@ export default {
 <template>
   <div
     class="row"
-    @input="update"
   >
     <div class="col span-12">
       <LabeledInput
-        v-model:value="parseDefaultValue.url"
+        v-model:value="registrationURL"
         class="mb-20"
         :mode="mode"
         :label="t('harvester.setting.clusterRegistrationUrl.url')"
+        @update:value="updateUrl"
       />
-      <Checkbox
-        v-model:value="parseDefaultValue.insecureSkipTLSVerify"
-        class="check mb-5"
-        type="checkbox"
-        :label="t('harvester.setting.clusterRegistrationUrl.insecureSkipTLSVerify')"
-        @update:value="updateInsecureSkipTLSVerify"
-      />
-      <Tip
-        class="mb-20"
-        icon="icon icon-info"
-      >
-        <MessageLink
-          :to="toCA"
-          target="_blank"
-          prefix-label="harvester.setting.clusterRegistrationUrl.tip.prefix"
-          middle-label="harvester.setting.clusterRegistrationUrl.tip.middle"
-          suffix-label="harvester.setting.clusterRegistrationUrl.tip.suffix"
+      <div v-if="clusterRegistrationTLSVerifyEnabled">
+        <Checkbox
+          v-model:value="parseDefaultValue.insecureSkipTLSVerify"
+          class="check mb-5"
+          type="checkbox"
+          :label="t('harvester.setting.clusterRegistrationUrl.insecureSkipTLSVerify')"
+          @update:value="updateInsecureSkipTLSVerify"
         />
-      </Tip>
+        <Tip
+          class="mb-20"
+          icon="icon icon-info"
+        >
+          <MessageLink
+            :to="toCA"
+            target="_blank"
+            prefix-label="harvester.setting.clusterRegistrationUrl.tip.prefix"
+            middle-label="harvester.setting.clusterRegistrationUrl.tip.middle"
+            suffix-label="harvester.setting.clusterRegistrationUrl.tip.suffix"
+          />
+        </Tip>
+      </div>
     </div>
   </div>
 </template>
