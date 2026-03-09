@@ -127,7 +127,8 @@ export const HCI_ALLOWED_SETTINGS = {
 
 export const HCI_SINGLE_CLUSTER_ALLOWED_SETTING = {
   [HCI_SETTING.CLUSTER_REGISTRATION_URL]: {
-    kind:     'url',
+    kind:     'custom',
+    from:     'import',
     canReset: true,
   },
   [HCI_SETTING.UI_PL]: {
