@@ -1978,6 +1978,7 @@ advancedSettings:
     'harv-additional-ca': 'Custom CA root certificates for TLS validation.'
     'harv-overcommit-config': 'Resource overcommit configuration.'
     'harv-support-bundle-timeout': 'Support bundle timeout configuration in minutes, use 0 to disable the timeout.'
+    'harv-support-bundle-file-name': 'Support bundle file name configuration.'
     'harv-support-bundle-expiration': 'Support bundle expiration configuration in minutes.'
     'harv-support-bundle-node-collection-timeout': 'Support bundle node collection timeout configuration in minutes.'
     'harv-vm-force-reset-policy': Configuration for the force-reset action when a virtual machine is stuck on a node that is down.
@@ -2178,4 +2179,24 @@ typeLabel:
     {count, plural,
       one { IP Pool }
       other { IP Pools }
+    }
+  migration.harvesterhci.io.openstacksource: |-
+    {count, plural,
+      one { OpenStack Source }
+      other { OpenStack Sources }
+    }
+  migration.harvesterhci.io.vmwaresource: |-
+    {count, plural,
+      one { VMware Source }
+      other { VMware Sources }
+    }
+  migration.harvesterhci.io.ovasource: |-
+    {count, plural,     
+      one { OVA Source }
+      other { OVA Sources }
+    } 
+  migration.harvesterhci.io.virtualmachineimport: |-
+    {count, plural,
+      one { Virtual Machine Import }
+      other { Virtual Machine Imports }
     }
