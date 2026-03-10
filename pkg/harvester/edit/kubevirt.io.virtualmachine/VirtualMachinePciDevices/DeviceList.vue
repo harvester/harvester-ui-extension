@@ -109,10 +109,12 @@ export default {
   computed: {
     allSriovs() {
       const inStore = this.$store.getters['currentProduct'].inStore;
+
       return this.$store.getters[`${ inStore }/all`](HCI.SR_IOV) || [];
     },
     allSriovGPUs() {
       const inStore = this.$store.getters['currentProduct'].inStore;
+
       return this.$store.getters[`${ inStore }/all`](HCI.SR_IOVGPU_DEVICE) || [];
     },
     parentSriovOptions() {

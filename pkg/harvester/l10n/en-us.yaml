@@ -355,7 +355,10 @@ harvester:
     available: Available Devices
     compatibleNodes: Compatible Nodes
     impossibleSelection: 'There are no hosts with all of the selected devices.'
-    howToUseDevice: 'Use the table below to enable PCI passthrough on each device you want to use in this virtual machine.'
+    howToUseDevice: 
+      prefix: 'Use the table below to enable PCI passthrough on each device you want to use in this virtual machine.<br>For vGPU devices, please enable them on the'
+      middle: vGPU Devices 
+      suffix: page first.
     deviceInTheSameHost: 'You can only select devices on the same host.'
     oldFormatDevices:
       help: |-
