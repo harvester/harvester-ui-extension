@@ -129,6 +129,9 @@ export default {
     parentSriovGPULabel() {
       return HCI_ANNOTATIONS.PARENT_SRIOV_GPU;
     },
+    vGPUAsPCIDeviceEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('vGPUAsPCIDevice');
+    },
   },
   methods: {
     enableGroup(rows = []) {
@@ -218,6 +221,7 @@ export default {
         @change-rows="changeRows"
       />
       <FilterBySriov
+        v-if="vGPUAsPCIDeviceEnabled"
         ref="filterByParentSRIOVGPU"
         :parent-sriov-options="parentSriovGPUOptions"
         :parent-sriov-label="parentSriovGPULabel"
