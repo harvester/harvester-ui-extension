@@ -1,6 +1,7 @@
 import SteveModel from '@shell/plugins/steve/steve-class';
 import { escapeHtml } from '@shell/utils/string';
 import { HCI } from '../types';
+import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 
 const STATUS_DISPLAY = {
   enabled: {
@@ -32,7 +33,7 @@ export default class PCIDevice extends SteveModel {
     out.push(
       {
         action:     'enablePassthroughBulk',
-        enabled:    !this.isEnabling,
+        enabled:    !this.isEnabling && !this.isvGPUDevice,
         icon:       'icon icon-fw icon-dot',
         label:      'Enable Passthrough',
         bulkable:   true,
@@ -41,7 +42,7 @@ export default class PCIDevice extends SteveModel {
       },
       {
         action:   'disablePassthrough',
-        enabled:  this.isEnabling && this.claimedByMe,
+        enabled:  this.isEnabling && this.claimedByMe && !this.isvGPUDevice,
         icon:     'icon icon-fw icon-dot-open',
         label:    'Disable Passthrough',
         bulkable: true,
@@ -50,6 +51,14 @@ export default class PCIDevice extends SteveModel {
     );
 
     return out;
+  }
+
+  get isvGPUDevice() {
+    if (!this.vGPUAsPCIDeviceFeatureEnabled) {
+      return false;
+    }
+
+    return !!this.metadata?.labels?.[HCI_ANNOTATIONS.PARENT_SRIOV_GPU] || this.status?.resourceName.includes('nvidia.com');
   }
 
   get canYaml() {
@@ -174,6 +183,10 @@ export default class PCIDevice extends SteveModel {
   // group device list by unique device (same vendorid and deviceid)
   get groupByDevice() {
     return this.status?.description;
+  }
+
+  get vGPUAsPCIDeviceFeatureEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('vGPUAsPCIDevice');
   }
 
   showDetachWarning() {
