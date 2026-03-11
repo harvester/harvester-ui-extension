@@ -28,6 +28,7 @@ export const HCI = {
   NODE_ROLE_CONTROL_PLANE:          'node-role.kubernetes.io/control-plane',
   NODE_ROLE_ETCD:                   'node-role.harvesterhci.io/witness',
   PROMOTE_STATUS:                   'harvesterhci.io/promote-status',
+  CLONE_BACKEND_STORAGE_STATUS:     'harvesterhci.io/clone-backend-storage-status',
   MIGRATION_STATE:                  'harvesterhci.io/migrationState',
   VOLUME_CLAIM_TEMPLATE:            'harvesterhci.io/volumeClaimTemplates',
   IMAGE_NAME:                       'harvesterhci.io/image-name',
