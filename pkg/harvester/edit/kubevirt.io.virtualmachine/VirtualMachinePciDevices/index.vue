@@ -8,6 +8,7 @@ import { set } from '@shell/utils/object';
 import { HCI } from '../../../types';
 import DeviceList from './DeviceList';
 import CompatibilityMatrix from '../CompatibilityMatrix';
+import MessageLink from '@shell/components/MessageLink';
 
 export default {
   name:       'VirtualMachinePCIDevices',
@@ -15,7 +16,8 @@ export default {
     LabeledSelect,
     DeviceList,
     CompatibilityMatrix,
-    Banner
+    Banner,
+    MessageLink
   },
   props: {
     mode: {
@@ -138,6 +140,13 @@ export default {
       return inUse;
     },
 
+    toVGpuDevicesPage() {
+      return {
+        name:   'harvester-c-cluster-resource',
+        params: { cluster: this.$store.getters['clusterId'], resource: HCI.VGPU_DEVICE },
+      };
+    },
+
     devicesByNode() {
       return this.enabledDevices?.reduce((acc, device) => {
         const nodeName = device.status?.nodeName;
@@ -232,7 +241,12 @@ export default {
       <div class="row">
         <div class="col span-12">
           <Banner color="info">
-            <t k="harvester.pci.howToUseDevice" />
+            <MessageLink
+              :to="toVGpuDevicesPage"
+              prefix-label="harvester.pci.howToUseDevice.prefix"
+              middle-label="harvester.pci.howToUseDevice.middle"
+              suffix-label="harvester.pci.howToUseDevice.suffix"
+            />
           </Banner>
           <Banner
             v-if="selectedDevices.length > 0"

@@ -211,6 +211,10 @@ export default {
 
       return false;
     },
+
+    vGPUAsPCIDeviceEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('vGPUAsPCIDevice');
+    },
     usbPassthroughEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('usbPassthrough');
     },
@@ -740,7 +744,7 @@ export default {
       </Tab>
 
       <Tab
-        v-if="enabledSriovgpu"
+        v-if="enabledSriovgpu && !vGPUAsPCIDeviceEnabled"
         :label="t('harvester.tab.vGpuDevices')"
         name="vGpuDevices"
         :weight="-6"
