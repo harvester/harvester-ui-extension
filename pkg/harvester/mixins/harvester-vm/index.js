@@ -707,8 +707,12 @@ export default {
       }
     },
 
-    needVolume(R) {
-      if (R.image === EMPTY_IMAGE) {
+    needVolumeClaimTemplate(R) {
+      if (R.source === SOURCE_TYPE.CONTAINER) {
+        return false;
+      }
+
+      if (R.source === SOURCE_TYPE.IMAGE && R.image === EMPTY_IMAGE) {
         return false;
       }
 
@@ -718,22 +722,20 @@ export default {
     parseDiskRows(disk) {
       const disks = [];
       const volumes = [];
-      const diskNameLabels = [];
       const volumeClaimTemplates = [];
 
       disk.forEach( (R, index) => {
+        const prefixName = this.value.metadata?.name || '';
+        const dataVolumeName = this.parseDataVolumeName(R, prefixName);
+
         const _disk = this.parseDisk(R, index);
+        const _volume = this.parseVolume(R, dataVolumeName);
 
         disks.push(_disk);
+        volumes.push(_volume);
 
-        if (this.needVolume(R)) {
-          const prefixName = this.value.metadata?.name || '';
-          const dataVolumeName = this.parseDataVolumeName(R, prefixName);
-          const _volume = this.parseVolume(R, dataVolumeName);
+        if (this.needVolumeClaimTemplate(R)) {
           const _dataVolumeTemplate = this.parseVolumeClaimTemplate(R, dataVolumeName);
-
-          volumes.push(_volume);
-          diskNameLabels.push(dataVolumeName);
           volumeClaimTemplates.push(_dataVolumeTemplate);
         }
       });
