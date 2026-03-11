@@ -774,7 +774,7 @@ export default class VirtVm extends HarvesterResource {
       !this.isVMExpectedRunning &&
       this.isVMCreated &&
       this.vmi?.status?.phase === VMIPhase.Pending
-    ) || (this.metadata?.annotations?.['harvesterhci.io/clone-backend-storage-status'] === 'cloning')) {
+    ) || (this.metadata?.annotations?.[HCI_ANNOTATIONS.CLONE_BACKEND_STORAGE_STATUS] === 'cloning')) {
       return { status: VMIPhase.Pending };
     }
 
