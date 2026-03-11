@@ -425,7 +425,7 @@ harvester:
       volume:
         upperType: Volume name
         lowerType: volume name
-        needImageOrExisting: 'At least an image volume or an existing root-disk volume is required!'
+        needAtLeastOneBootable: 'At least one bootable volume is required!'
     image:
       ruleTip: 'The URL you have entered ends in an extension that we do not support. We only accept image files that end in .img, .iso, .qcow, .qcow2, .raw.'
       ruleFileTip: 'The file you have chosen ends in an extension that we do not support. We only accept image files that end in .img, .iso, .qcow, .qcow2, .raw.'
@@ -1353,7 +1353,7 @@ harvester:
     clusterRegistrationUrl:
       url: URL
       insecureSkipTLSVerify: Insecure Skip TLS Verify
-      tip: 
+      tip:
         prefix: Harvester secures cluster registration via TLS by default. If opt out "Insecure SKip TLS Verify", you must provide custom CA certificates using the
         middle: 'additional-ca'
         suffix: setting.
@@ -2186,10 +2186,10 @@ typeLabel:
       other { VMware Sources }
     }
   migration.harvesterhci.io.ovasource: |-
-    {count, plural,     
+    {count, plural,
       one { OVA Source }
       other { OVA Sources }
-    } 
+    }
   migration.harvesterhci.io.virtualmachineimport: |-
     {count, plural,
       one { Virtual Machine Import }
