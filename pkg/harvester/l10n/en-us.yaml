@@ -123,6 +123,15 @@ harvester:
       namespace: Namespace
       message:
         success: 'Image { name } created successfully.'
+    storageMigration:
+      title: Storage Migration
+      fields:
+        sourceVolume:
+          label: Source Volume
+          placeholder: Select a source volume
+        targetVolume:
+          label: Target Volume
+          placeholder: Select a target volume
     migration:
       failedMessage: Latest migration failed!
       title: Migration
@@ -232,6 +241,8 @@ harvester:
     migrate: Migrate
     cpuAndMemoryHotplug: Edit CPU and Memory
     abortMigration: Abort Migration
+    storageMigration: Storage Migration
+    cancelStorageMigration: Cancel Storage Migration
     createTemplate: Generate Template
     enableMaintenance: Enable Maintenance Mode
     disableMaintenance: Disable Maintenance Mode
