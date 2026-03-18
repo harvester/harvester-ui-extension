@@ -63,6 +63,7 @@ const FEATURE_FLAGS = {
     'supportBundleFileNameSetting',
     'clusterRegistrationTLSVerify',
     'vGPUAsPCIDevice',
+    'instanceManagerResourcesSetting',
   ],
 };
 
