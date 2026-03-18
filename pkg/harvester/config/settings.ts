@@ -39,7 +39,8 @@ export const HCI_SETTING = {
   VM_MIGRATION_NETWORK:                   'vm-migration-network',
   RANCHER_CLUSTER:                        'rancher-cluster',
   MAX_HOTPLUG_RATIO:                      'max-hotplug-ratio',
-  KUBEVIRT_MIGRATION:                     'kubevirt-migration'
+  KUBEVIRT_MIGRATION:                     'kubevirt-migration',
+  INSTANCE_MANAGER_RESOURCES:             'instance-manager-resources'
 };
 
 export const HCI_ALLOWED_SETTINGS = {
@@ -122,6 +123,9 @@ export const HCI_ALLOWED_SETTINGS = {
   },
   [HCI_SETTING.KUBEVIRT_MIGRATION]: {
     kind: 'json', from: 'import', canReset: true, featureFlag: 'kubevirtMigration',
+  },
+  [HCI_SETTING.INSTANCE_MANAGER_RESOURCES]: {
+    kind: 'json', from: 'import', featureFlag: 'instanceManagerResourcesSetting'
   }
 };
 

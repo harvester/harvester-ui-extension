@@ -1364,6 +1364,10 @@ harvester:
     ntpServers:
       isNotIPV4: The address you entered is not IPv4 or host. Please enter a valid IPv4 address or a host address.
       isDuplicate: There are duplicate NTP server configurations.
+    instanceManagerResources:
+      parseError: "Failed to parse configuration: {error}"
+      v1: "V1 Data Engine"
+      v2: "V2 Data Engine"
     kubevirtMigration:
       parseError: "Failed to parse configuration: {error}"
       parallelMigrationsPerCluster: "Parallel Migrations Per Cluster"
@@ -1998,6 +2002,7 @@ advancedSettings:
     'harv-rancher-cluster': 'Configure Rancher cluster integration settings for guest cluster management.'
     'harv-max-hotplug-ratio': 'The ratio for kubevirt to limit the maximum CPU and memory that can be hotplugged to a VM. The value could be an integer between 1 and 20, default to 4.'
     'harv-kubevirt-migration': 'Configure cluster-wide KubeVirt live migration parameters.'
+    'harv-instance-manager-resources': 'Configure resource percentage reservations for Longhorn instance manager V1 and V2. Valid instance manager CPU range between 0 - 40.'
 
 typeLabel:
   kubevirt.io.virtualmachine: |-
