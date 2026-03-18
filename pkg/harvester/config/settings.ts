@@ -20,6 +20,7 @@ export const HCI_SETTING = {
   SUPPORT_BUNDLE_IMAGE:                   'support-bundle-image',
   SUPPORT_BUNDLE_NODE_COLLECTION_TIMEOUT: 'support-bundle-node-collection-timeout',
   STORAGE_NETWORK:                        'storage-network',
+  RWX_NETWORK:                            'rwx-network',
   VM_FORCE_RESET_POLICY:                  'vm-force-reset-policy',
   SSL_CERTIFICATES:                       'ssl-certificates',
   SSL_PARAMETERS:                         'ssl-parameters',
@@ -80,6 +81,9 @@ export const HCI_ALLOWED_SETTINGS = {
   [HCI_SETTING.SUPPORT_BUNDLE_IMAGE]:                   { kind: 'json', from: 'import' },
   [HCI_SETTING.STORAGE_NETWORK]:                        {
     kind: 'custom', from: 'import', canReset: true
+  },
+  [HCI_SETTING.RWX_NETWORK]:                            {
+    kind: 'custom', from: 'import', canReset: true, featureFlag: 'rwxNetworkSetting'
   },
   [HCI_SETTING.VM_FORCE_RESET_POLICY]:                  { kind: 'json', from: 'import' },
   [HCI_SETTING.SSL_CERTIFICATES]:                       { kind: 'json', from: 'import' },
