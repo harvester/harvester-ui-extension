@@ -58,7 +58,7 @@ export default class PCIDevice extends SteveModel {
       return false;
     }
 
-    return !!this.metadata?.labels?.[HCI_ANNOTATIONS.PARENT_SRIOV_GPU] || this.status?.resourceName.includes('nvidia.com');
+    return !!this.metadata?.labels?.[HCI_ANNOTATIONS.PARENT_SRIOV_GPU];
   }
 
   get canYaml() {
