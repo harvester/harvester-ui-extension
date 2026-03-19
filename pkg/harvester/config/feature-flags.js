@@ -64,6 +64,7 @@ const FEATURE_FLAGS = {
     'clusterRegistrationTLSVerify',
     'vGPUAsPCIDevice',
     'instanceManagerResourcesSetting',
+    'rwxNetworkSetting',
   ],
 };
 
