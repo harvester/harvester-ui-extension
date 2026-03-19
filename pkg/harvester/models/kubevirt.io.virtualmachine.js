@@ -200,6 +200,18 @@ export default class VirtVm extends HarvesterResource {
         label:   this.t('harvester.action.abortMigration')
       },
       {
+        action:  'storageMigration',
+        enabled: !!this.actions?.storageMigration,
+        icon:    'icon icon-copy',
+        label:   this.t('harvester.action.storageMigration')
+      },
+      {
+        action:  'cancelStorageMigration',
+        enabled: !!this.actions?.cancelStorageMigration,
+        icon:    'icon icon-close',
+        label:   this.t('harvester.action.cancelStorageMigration')
+      },
+      {
         action:  'addHotplugVolume',
         enabled: !!this.actions?.addVolume,
         icon:    'icon icon-plus',
@@ -368,6 +380,13 @@ export default class VirtVm extends HarvesterResource {
     });
   }
 
+  storageMigration(resources = this) {
+    this.$dispatch('promptModal', {
+      resources,
+      component: 'HarvesterStorageMigrationDialog'
+    });
+  }
+
   backupVM(resources = this) {
     this.$dispatch('promptModal', {
       resources,
@@ -518,6 +537,10 @@ export default class VirtVm extends HarvesterResource {
 
   abortMigrationVM() {
     this.doActionGrowl('abortMigration', {});
+  }
+
+  cancelStorageMigration() {
+    this.doActionGrowl('cancelStorageMigration', {});
   }
 
   createTemplate(resources = this) {
