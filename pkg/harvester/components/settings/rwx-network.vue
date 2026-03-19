@@ -12,6 +12,7 @@ import { NETWORK_TYPE } from '../../config/types';
 
 const { L2VLAN, UNTAGGED } = NETWORK_TYPE;
 const SHARE_STORAGE_NETWORK = 'share-storage-network';
+const NETWORK = 'network';
 
 const DEFAULT_DEDICATED_NETWORK = {
   vlan:           '',
@@ -68,17 +69,18 @@ export default {
 
     try {
       const parsedValue = JSON.parse(this.value.value || this.value.default || '{}');
+      const parsedNetwork = parsedValue?.[NETWORK] || parsedValue || {};
 
       if (parsedValue && typeof parsedValue === 'object') {
         shareStorageNetwork = !!parsedValue[SHARE_STORAGE_NETWORK];
-        networkType = 'vlan' in parsedValue ? L2VLAN : UNTAGGED;
+        networkType = 'vlan' in parsedNetwork ? L2VLAN : UNTAGGED;
         dedicatedNetwork = {
-          vlan:           parsedValue.vlan || '',
-          clusterNetwork: parsedValue.clusterNetwork || '',
-          range:          parsedValue.range || '',
+          vlan:           parsedNetwork.vlan || '',
+          clusterNetwork: parsedNetwork.clusterNetwork || '',
+          range:          parsedNetwork.range || '',
         };
-        exclude = parsedValue?.exclude?.toString().split(',') || [];
-        enabled = shareStorageNetwork || !!(parsedValue.vlan || parsedValue.clusterNetwork || parsedValue.range);
+        exclude = parsedNetwork?.exclude?.toString().split(',') || [];
+        enabled = shareStorageNetwork || !!(parsedNetwork.vlan || parsedNetwork.clusterNetwork || parsedNetwork.range);
       }
     } catch (error) {
       enabled = false;
@@ -198,17 +200,19 @@ export default {
       }
 
       if (this.showDedicatedNetworkConfig) {
+        value[NETWORK] = {};
+
         if (this.showVlan) {
-          value.vlan = this.dedicatedNetwork.vlan;
+          value[NETWORK].vlan = this.dedicatedNetwork.vlan;
         }
 
-        value.clusterNetwork = this.dedicatedNetwork.clusterNetwork;
-        value.range = this.dedicatedNetwork.range;
+        value[NETWORK].clusterNetwork = this.dedicatedNetwork.clusterNetwork;
+        value[NETWORK].range = this.dedicatedNetwork.range;
 
         const excludeList = this.exclude.filter((ip) => ip);
 
         if (Array.isArray(excludeList) && excludeList.length > 0) {
-          value.exclude = excludeList;
+          value[NETWORK].exclude = excludeList;
         }
       }
 
