@@ -83,7 +83,7 @@ export const HCI_ALLOWED_SETTINGS = {
     kind: 'custom', from: 'import', canReset: true
   },
   [HCI_SETTING.RWX_NETWORK]:                            {
-    kind: 'custom', from: 'import', canReset: true, featureFlag: 'rwxNetworkSetting'
+    kind: 'json', from: 'import', canReset: true, featureFlag: 'rwxNetworkSetting'
   },
   [HCI_SETTING.VM_FORCE_RESET_POLICY]:                  { kind: 'json', from: 'import' },
   [HCI_SETTING.SSL_CERTIFICATES]:                       { kind: 'json', from: 'import' },
