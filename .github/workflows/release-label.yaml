@@ -1,29 +1,30 @@
 name: "[PR Management] Add PR Label"
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, reopened, edited]
     branches:
       - main
       - 'release-harvester-v*'
 
 permissions:
-  pull-requests: write
+  actions: write
+  pull-requests: read
 
 jobs:
   auto-assign-pr-label:
     if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.base_ref }}
+      # - name: Checkout repository
+      #   uses: actions/checkout@v4
+      #   with:
+      #     ref: ${{ github.base_ref }}
       - name: Setup Nodejs and yarn install
         uses: ./.github/actions/setup
       - name: Set PR label
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # env:
+        #   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR_LABEL=$(node ./scripts/extract-release-label.mjs "${{ github.event.pull_request.title }}")
           echo "PR_LABEL = $PR_LABEL"
