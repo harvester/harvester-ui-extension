@@ -1,7 +1,7 @@
-name: Auto Assign Reviewers and Assignee
+name: "[PR Management] Auto Assign Reviewers and Assignee"
 on:
   pull_request:
-    types: [opened] # 只在 PR 剛建立時執行
+    types: [opened]
 
 jobs:
   assign:
@@ -17,7 +17,6 @@ jobs:
             const { owner, repo, number } = context.issue;
             const author = context.payload.pull_request.user.login;
 
-            // 1. 指派 PR 建立者為 Assignee
             await github.rest.issues.addAssignees({
               owner,
               repo,
@@ -25,10 +24,9 @@ jobs:
               assignees: [author]
             });
 
-            // 2. 指派特定的 Reviewers (請替換為實際的 GitHub 帳號)
             await github.rest.pulls.requestReviewers({
               owner,
               repo,
               pull_number: number,
-              reviewers: ['reviewer-username-1', 'reviewer-username-2']
+              reviewers: ['a110605', 'houhoucoop']
             });
