@@ -2,7 +2,7 @@ name: "PR Management Auto Assign"
 
 on:
   workflow_run:
-    workflows: ["PR Management Auto Assign Collect Data"]
+    workflows: [PR Management Auto Assign Collect Data]
     types: [completed]
 
 env:
