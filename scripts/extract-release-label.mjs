@@ -7,7 +7,9 @@ if (process.argv.length < 3) {
 }
 
 const prTitle = process.argv[2];
-const prLabel = prTitle.split(':')[0].trim();
+const match = prTitle.match(/^(\w+)(\(.+\))?:/);
+const prLabel = match ? match[1].trim() : prTitle.split(':')[0].trim();
+console.log('PR Label:', prLabel);
 
 const config = await load({ extends: ["./commitlint.config.js"] });
 const commitPrefix = config?.rules?.['type-enum']?.[2] || [];
