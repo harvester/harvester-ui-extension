@@ -7,7 +7,7 @@ The Harvester UI Extension is a Rancher extension that provides the user interfa
 
 ## Installation
 
-For detailed installation instructions, please refer to the [official Harvester documentation](https://docs.harvesterhci.io/v1.5/rancher/harvester-ui-extension#installation-on-rancher-210).
+For detailed installation123instructions, please refer to the [official Harvester documentation](https://docs.harvesterhci.io/v1.5/rancher/harvester-ui-extension#installation-on-rancher-210).
 
 
 ## Development Setup
