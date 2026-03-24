@@ -1,17 +1,34 @@
-name: "[PR Management] Auto Assign Reviewer & Assignee"
-
+name: Auto Assign Reviewers and Assignee
 on:
-  pull_request_target:
-    types: [opened, ready_for_review]
-
-permissions:
-  pull-requests: write
+  pull_request:
+    types: [opened] # 只在 PR 剛建立時執行
 
 jobs:
-  auto-assign:
-    if: github.event.pull_request.draft == false
+  assign:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
     steps:
-      - uses: rancher/gh-issue-mgr/auto-assign-action@main
+      - name: Auto assign author and reviewers
+        uses: actions/github-script@v7
         with:
-          configuration-path: .github/auto-assign-config.yaml
+          script: |
+            const { owner, repo, number } = context.issue;
+            const author = context.payload.pull_request.user.login;
+
+            // 1. 指派 PR 建立者為 Assignee
+            await github.rest.issues.addAssignees({
+              owner,
+              repo,
+              issue_number: number,
+              assignees: [author]
+            });
+
+            // 2. 指派特定的 Reviewers (請替換為實際的 GitHub 帳號)
+            await github.rest.pulls.requestReviewers({
+              owner,
+              repo,
+              pull_number: number,
+              reviewers: ['reviewer-username-1', 'reviewer-username-2']
+            });
