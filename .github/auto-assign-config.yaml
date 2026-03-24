@@ -1,6 +1,5 @@
 addAssignees: author
 addReviewers: true
-numberOfReviewers: 0
 reviewers:
 - a110605
 - houhoucoop
