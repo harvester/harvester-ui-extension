@@ -45,8 +45,8 @@ export default {
 
       const cpu = { ...this.resources?.cpu };
 
-      if (cpu.v1 !== null) cpu.v1 = String(cpu.v1);
-      if (cpu.v2 !== null) cpu.v2 = String(cpu.v2);
+      if (cpu.v1 !== null && cpu.v1 !== undefined) cpu.v1 = String(cpu.v1);
+      if (cpu.v2 !== null && cpu.v2 !== undefined) cpu.v2 = String(cpu.v2);
 
       this.value.value = JSON.stringify({ ...this.resources, cpu });
     },
