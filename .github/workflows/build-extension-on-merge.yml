@@ -13,7 +13,7 @@ jobs:
       target_branch: ${{ steps.get-version.outputs.target_branch }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Determine target branch
         id: get-version
@@ -44,7 +44,7 @@ jobs:
       version: ${{ steps.get_version.outputs.version }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Extract version from package.json
         id: get_version
@@ -62,7 +62,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Setup environment
         run: |
@@ -70,7 +70,7 @@ jobs:
           yarn install --frozen-lockfile
 
       - name: Setup Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@5119fcb9089d432beecbf79bb2c7915207344b78 # v3
         with:
           version: v3.8.0
 
@@ -79,7 +79,7 @@ jobs:
           yarn publish-pkgs -s ${{ github.repository }} -b ${{ needs.setup-target-branch.outputs.target_branch }} -t harvester-${{ needs.extract-version.outputs.version }}
 
       - name: Upload charts artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: charts
           path: tmp
@@ -94,7 +94,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout release branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: '${{ github.ref_name }}'
 
@@ -105,7 +105,7 @@ jobs:
           echo "LAST_COMMIT=${LAST_COMMIT}" >> $GITHUB_ENV
 
       - name: Checkout target branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
           ref: '${{ needs.setup-target-branch.outputs.target_branch }}'
 
@@ -121,7 +121,7 @@ jobs:
           git config user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: charts
 
@@ -132,7 +132,7 @@ jobs:
           git push origin ${{ needs.setup-target-branch.outputs.target_branch }}
 
       - name: Run Helm chart releaser
-        uses: helm/chart-releaser-action@v1.7.0
+        uses: helm/chart-releaser-action@cae68fefc6b5f367a0275617c9f83181ba54714f # v1.7.0
         with:
           charts_dir: ./charts
         env:
