@@ -3,7 +3,7 @@
 The Harvester UI Extension is a Rancher extension that provides the user interface for [Harvester](https://harvesterhci.io) within the [Rancher Dashboard](https://github.com/rancher/dashboard).
 
 > **Note:**
-> This extension is available starting from **Rancher 2.10.0**. Ensure your Rancher version is **2.10.0 or later** to access Harvester integration.
+> This extension is available starting from **Rancher 2.10.0**. Ensure your Rancher version is **2.10.0 or later** to access Harvester integrations.
 
 ## Installation
 
