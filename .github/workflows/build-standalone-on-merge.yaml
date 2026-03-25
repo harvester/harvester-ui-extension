@@ -6,6 +6,7 @@ on:
       - main
       - 'release-harvester-v*'
       - '*-dev'
+      - fix_hash_test
   pull_request:
     branches:
       - main
