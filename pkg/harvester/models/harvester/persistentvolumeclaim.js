@@ -339,6 +339,10 @@ export default class HciPv extends HarvesterResource {
     return this?.metadata?.annotations?.[HCI_ANNOTATIONS.GOLDEN_IMAGE] === 'true';
   }
 
+  get isCDIVolumeImportSrc() {
+    return this?.metadata?.annotations?.['cdi.kubevirt.io/storage.populator.kind'] === 'VolumeImportSource';
+  }
+
   get thirdPartyStorageFeatureEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('thirdPartyStorage');
   }

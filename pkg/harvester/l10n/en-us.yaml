@@ -912,6 +912,8 @@ harvester:
       conditions: Conditions
     size: Size
     volumeMode: Volume Mode
+    accessModes: Access Modes
+    createWithDataVolume: Create with DataVolume
     source: Source
     kind: Kind
     sourceOptions:
