@@ -9,6 +9,7 @@ import { colorForState } from '@shell/plugins/dashboard-store/resource-class';
 import { HCI, VOLUME_SNAPSHOT } from '../../types';
 import HarvesterResource from '../harvester';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../config/harvester';
+import { CDI_POPULATOR_KIND } from '../../config/types';
 import { LVM_DRIVER } from './storage.k8s.io.storageclass';
 
 const DEGRADED_ERRORS = ['replica scheduling failed', 'precheck new replica failed'];
@@ -44,7 +45,7 @@ export default class HciPv extends HarvesterResource {
     const exportImageAction = {
       action:  'exportImage',
       enabled: this.hasAction('export') && !this.isEncrypted,
-      icon:    'icon icon-copy',
+      icon:    'icon icon-external-link',
       label:   this.t('harvester.action.exportImage')
     };
     const takeSnapshotAction = {
@@ -77,8 +78,21 @@ export default class HciPv extends HarvesterResource {
         icon:    'icon icon-backup',
         label:   this.t('harvester.action.cancelExpand')
       },
+      {
+        action:  'dataMigration',
+        enabled: this.hasAction('dataMigration') && this.createPVCWithDataVolumeFeatureEnabled,
+        icon:    'icon icon-copy',
+        label:   this.t('harvester.action.dataMigration')
+      },
       ...out
     ];
+  }
+
+  dataMigration(resources = this) {
+    this.$dispatch('promptModal', {
+      resources,
+      component: 'HarvesterDataMigrationDialog'
+    });
   }
 
   exportImage(resources = this) {
@@ -339,8 +353,18 @@ export default class HciPv extends HarvesterResource {
     return this?.metadata?.annotations?.[HCI_ANNOTATIONS.GOLDEN_IMAGE] === 'true';
   }
 
+  get isCDIPopulatorVolume() {
+    const kind = this?.metadata?.annotations?.[HCI_ANNOTATIONS.CDI_POPULATOR_KIND];
+
+    return kind === CDI_POPULATOR_KIND.VOLUME_IMPORT_SOURCE || kind === CDI_POPULATOR_KIND.VOLUME_CLONE_SOURCE;
+  }
+
   get thirdPartyStorageFeatureEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('thirdPartyStorage');
+  }
+
+  get createPVCWithDataVolumeFeatureEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('createPVCWithDataVolume');
   }
 
   get resourceExternalLink() {

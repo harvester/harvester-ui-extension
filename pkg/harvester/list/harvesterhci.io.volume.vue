@@ -70,8 +70,13 @@ export default {
       return schema;
     },
     filterRows() {
-      // we only show the non golden image PVCs in the list
-      return this.rows.filter((pvc) => !pvc?.isGoldenImageVolume);
+      return this.rows.filter((pvc) => {
+        if (pvc?.isGoldenImageVolume || pvc?.isCDIPopulatorVolume) {
+          return false;
+        }
+
+        return true;
+      });
     },
     headers() {
       return [
