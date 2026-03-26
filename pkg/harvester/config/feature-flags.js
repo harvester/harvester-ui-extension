@@ -65,6 +65,7 @@ const FEATURE_FLAGS = {
     'vGPUAsPCIDevice',
     'instanceManagerResourcesSetting',
     'rwxNetworkSetting',
+    'createPVCWithDataVolume'
   ],
 };
 
