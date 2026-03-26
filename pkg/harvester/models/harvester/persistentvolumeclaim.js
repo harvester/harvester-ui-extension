@@ -80,7 +80,7 @@ export default class HciPv extends HarvesterResource {
       },
       {
         action:  'dataMigration',
-        enabled: this.hasAction('dataMigration'),
+        enabled: this.hasAction('dataMigration') && this.createPVCWithDataVolumeFeatureEnabled,
         icon:    'icon icon-copy',
         label:   this.t('harvester.action.dataMigration')
       },
@@ -361,6 +361,10 @@ export default class HciPv extends HarvesterResource {
 
   get thirdPartyStorageFeatureEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('thirdPartyStorage');
+  }
+
+  get createPVCWithDataVolumeFeatureEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('createPVCWithDataVolume');
   }
 
   get resourceExternalLink() {
