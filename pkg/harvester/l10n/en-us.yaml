@@ -924,6 +924,7 @@ harvester:
     volumeMode: Volume Mode
     accessModes: Access Modes
     createWithDataVolume: Create with DataVolume
+    createWithDataVolumeTooltip: Create Volume with Kubevirt/Containerized Data Importer way. It can fill accessMode/volumeMode automatically.
     showAdvanced: Show Advanced Options
     hideAdvanced: Hide Advanced Options
     source: Source

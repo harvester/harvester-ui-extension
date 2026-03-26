@@ -303,6 +303,10 @@ export default {
       return this.$store.getters['harvester-common/getFeatureEnabled']('lhV2VolExpansion');
     },
 
+    isCreatePVCWithDataVolumeFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('createPVCWithDataVolume');
+    },
+
     isResizeDisabled() {
       return (
         !this.isLHV2VolExpansionFeatureEnabled &&
@@ -569,13 +573,14 @@ export default {
 
         <div class="row mb-20">
           <Checkbox
-            v-if="isCreate && isBlank"
+            v-if="isCreate && isBlank && isCreatePVCWithDataVolumeFeatureEnabled"
             v-model:value="createWithDataVolume"
             :label="t('harvester.volume.createWithDataVolume')"
+            tooltip-key="harvester.volume.createWithDataVolumeTooltip"
           />
         </div>
         <a
-          v-if="isCreate"
+          v-if="isCreate && isCreatePVCWithDataVolumeFeatureEnabled"
           role="button"
           class="hand"
           @click="showAdvanced = !showAdvanced"
