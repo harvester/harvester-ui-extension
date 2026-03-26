@@ -41,3 +41,8 @@ export const VMIMPORT_SOURCE_KINDS = {
   OPENSTACK: 'OpenstackSource',
   OVA:       'OvaSource',
 };
+
+export const CDI_POPULATOR_KIND = {
+  VOLUME_IMPORT_SOURCE: 'VolumeImportSource',
+  VOLUME_CLONE_SOURCE:  'VolumeCloneSource',
+};

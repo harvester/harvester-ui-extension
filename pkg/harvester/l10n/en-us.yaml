@@ -924,6 +924,8 @@ harvester:
     volumeMode: Volume Mode
     accessModes: Access Modes
     createWithDataVolume: Create with DataVolume
+    showAdvanced: Show Advanced Options
+    hideAdvanced: Hide Advanced Options
     source: Source
     kind: Kind
     sourceOptions:

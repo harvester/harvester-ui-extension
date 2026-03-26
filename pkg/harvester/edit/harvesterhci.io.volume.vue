@@ -567,19 +567,21 @@ export default {
           <span>{{ t('harvester.volume.longhorn.disableResize') }}</span>
         </Banner>
 
-        <Checkbox
-          v-if="isCreate && isBlank"
-          v-model:value="createWithDataVolume"
-          class="mb-20"
-          :label="t('harvester.volume.createWithDataVolume')"
-        />
-
-        <Checkbox
+        <div class="row mb-20">
+          <Checkbox
+            v-if="isCreate && isBlank"
+            v-model:value="createWithDataVolume"
+            :label="t('harvester.volume.createWithDataVolume')"
+          />
+        </div>
+        <a
           v-if="isCreate"
-          v-model:value="showAdvanced"
-          class="mb-20"
-          :label="t('harvester.tab.advanced')"
-        />
+          role="button"
+          class="hand"
+          @click="showAdvanced = !showAdvanced"
+        >
+          {{ showAdvanced ? t('harvester.volume.hideAdvanced') : t('harvester.volume.showAdvanced') }}
+        </a>
 
         <LabeledSelect
           v-if="showAdvanced"
@@ -588,7 +590,7 @@ export default {
           :options="accessModeOptions"
           :multiple="true"
           :mode="mode"
-          class="mb-20"
+          class="mb-20 mt-20"
           @update:value="update"
         />
 
