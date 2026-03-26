@@ -132,6 +132,15 @@ harvester:
         targetVolume:
           label: Target Volume
           placeholder: Select a target volume
+    dataMigration:
+      title: Data Migration
+      fields:
+        targetVolumeName:
+          label: Target Volume Name
+          placeholder: Enter a target volume name
+        targetStorageClassName:
+          label: Target Storage Class
+          placeholder: Select a storage class
     migration:
       failedMessage: Latest migration failed!
       title: Migration
@@ -243,6 +252,7 @@ harvester:
     abortMigration: Abort Migration
     storageMigration: Storage Migration
     cancelStorageMigration: Cancel Storage Migration
+    dataMigration: Data Migration
     createTemplate: Generate Template
     enableMaintenance: Enable Maintenance Mode
     disableMaintenance: Disable Maintenance Mode
@@ -912,6 +922,11 @@ harvester:
       conditions: Conditions
     size: Size
     volumeMode: Volume Mode
+    accessModes: Access Modes
+    createWithDataVolume: Create with DataVolume
+    createWithDataVolumeTooltip: Create Volume with Kubevirt/Containerized Data Importer way. It can fill accessMode/volumeMode automatically.
+    showAdvanced: Show Advanced Options
+    hideAdvanced: Hide Advanced Options
     source: Source
     kind: Kind
     sourceOptions:
