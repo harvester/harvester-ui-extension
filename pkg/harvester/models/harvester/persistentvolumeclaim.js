@@ -77,8 +77,21 @@ export default class HciPv extends HarvesterResource {
         icon:    'icon icon-backup',
         label:   this.t('harvester.action.cancelExpand')
       },
+      {
+        action:  'dataMigration',
+        enabled: this.hasAction('dataMigration'),
+        icon:    'icon icon-copy',
+        label:   this.t('harvester.action.dataMigration')
+      },
       ...out
     ];
+  }
+
+  dataMigration(resources = this) {
+    this.$dispatch('promptModal', {
+      resources,
+      component: 'HarvesterDataMigrationDialog'
+    });
   }
 
   exportImage(resources = this) {
@@ -339,8 +352,10 @@ export default class HciPv extends HarvesterResource {
     return this?.metadata?.annotations?.[HCI_ANNOTATIONS.GOLDEN_IMAGE] === 'true';
   }
 
-  get isCDIVolumeImportSrc() {
-    return this?.metadata?.annotations?.['cdi.kubevirt.io/storage.populator.kind'] === 'VolumeImportSource';
+  get isCDIPopulatorVolume() {
+    const kind = this?.metadata?.annotations?.['cdi.kubevirt.io/storage.populator.kind'];
+
+    return kind === 'VolumeImportSource' || kind === 'VolumeCloneSource';
   }
 
   get thirdPartyStorageFeatureEnabled() {

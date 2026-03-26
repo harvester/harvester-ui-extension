@@ -71,7 +71,7 @@ export default {
     },
     filterRows() {
       return this.rows.filter((pvc) => {
-        if (pvc?.isGoldenImageVolume || pvc?.isCDIVolumeImportSrc) {
+        if (pvc?.isGoldenImageVolume || pvc?.isCDIPopulatorVolume) {
           return false;
         }
 
