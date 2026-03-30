@@ -27,23 +27,6 @@ OUTPUT_DIR=dist/${DIR}-embedded
 echo "Building..."
 COMMIT=${COMMIT} VERSION=${VERSION} OUTPUT_DIR=$OUTPUT_DIR ROUTER_BASE='/dashboard/' RESOURCE_BASE='/dashboard/' RANCHER_ENV=harvester yarn run build
 
-if [ -v EMBED_PKG ]; then
-    echo "Build and embed plugin from: $EMBED_PKG"
-    PKG_FILE_NAME=${EMBED_PKG##*/}
-    echo PKG_FILE_NAME: $PKG_FILE_NAME
-
-    PKG_NAME="${PKG_FILE_NAME/.tar.gz/""}"
-    echo "Plugin name: '$PKG_NAME'"
-
-    # Fetch file, unpack and move to dist
-    curl $EMBED_PKG --output $PKG_FILE_NAME
-    OUTPUT_DIR_PKG=$OUTPUT_DIR/$PKG_NAME
-    mkdir -p $OUTPUT_DIR_PKG
-    tar xvfz $PKG_FILE_NAME -C $OUTPUT_DIR/$PKG_NAME
-    echo "Plugin contents that will be served from $PKG_NAME"
-    ls -alR $OUTPUT_DIR/$PKG_NAME
-fi
-
 echo "Destroying..."
 find $OUTPUT_DIR -name "index.html" -mindepth 2 -exec rm {} \;
 find $OUTPUT_DIR -type d -empty -depth -exec rmdir {} \;
