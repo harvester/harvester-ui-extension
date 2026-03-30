@@ -6,6 +6,7 @@ on:
       - main
       - 'release-harvester-v*'
       - '*-dev'
+      - remove_curl_embedded_demo
   pull_request:
     branches:
       - main
