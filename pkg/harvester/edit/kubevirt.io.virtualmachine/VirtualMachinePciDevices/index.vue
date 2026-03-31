@@ -243,9 +243,9 @@ export default {
           <Banner color="info">
             <MessageLink
               :to="toVGpuDevicesPage"
-              prefix-label="harvester.pci.howToUseDevice.prefix"
-              middle-label="harvester.pci.howToUseDevice.middle"
-              suffix-label="harvester.pci.howToUseDevice.suffix"
+              prefix-label="harvester.pci.howToUseDeviceInVMCreation.prefix"
+              middle-label="harvester.pci.howToUseDeviceInVMCreation.middle"
+              suffix-label="harvester.pci.howToUseDeviceInVMCreation.suffix"
             />
           </Banner>
           <Banner

@@ -60,6 +60,17 @@ export default {
       return schema;
     },
 
+    toVGpuDevicesPage() {
+      return {
+        name:   'harvester-c-cluster-resource',
+        params: { cluster: this.$store.getters['clusterId'], resource: HCI.VGPU_DEVICE },
+      };
+    },
+
+    vGPUAsPCIDeviceEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('vGPUAsPCIDevice');
+    },
+
     rows() {
       const inStore = this.$store.getters['currentProduct'].inStore;
       const rows = this.$store.getters[`${ inStore }/all`](HCI.PCI_DEVICE);
@@ -85,11 +96,23 @@ export default {
       {{ t('harvester.pci.noPCIPermission') }}
     </Banner>
   </div>
-  <DeviceList
-    v-else-if="hasSchema && enabledPCI"
-    :devices="rows"
-    :schema="schema"
-  />
+  <div v-else-if="hasSchema && enabledPCI">
+    <Banner
+      v-if="vGPUAsPCIDeviceEnabled"
+      color="info"
+    >
+      <MessageLink
+        :to="toVGpuDevicesPage"
+        prefix-label="harvester.pci.howToUseDevice.prefix"
+        middle-label="harvester.pci.howToUseDevice.middle"
+        suffix-label="harvester.pci.howToUseDevice.suffix"
+      />
+    </Banner>
+    <DeviceList
+      :devices="rows"
+      :schema="schema"
+    />
+  </div>
   <div v-else>
     <Banner color="warning">
       <MessageLink
