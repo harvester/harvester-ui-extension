@@ -91,7 +91,7 @@ export default {
       },
       set(value) {
         this.randomStr = randomStr(10).toLowerCase();
-        const [provisioner, provisionerVersion] = value?.split('_');
+        const [provisioner, provisionerVersion] = (value || '').split('_');
 
         this.value.provisioner = provisioner;
 
