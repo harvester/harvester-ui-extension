@@ -34,12 +34,14 @@
     {
       "matchUpdateTypes": ["minor"],
       "groupName": "minor dependencies",
+      "minimumReleaseAge": "7 days",
       "labels": ["minor-update"],
       "reviewers": ["a110605", "houhoucoop"]
     },
     {
       "matchUpdateTypes": ["patch", "digest"],
       "automerge": true,
+      "minimumReleaseAge": "7 days",
       "groupName": "patch digest dependencies",
       "labels": ["patch-update", "automerge"]
     }
