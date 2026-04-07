@@ -17,7 +17,7 @@ jobs:
       release_tag: ${{ steps.determine_tag.outputs.release_tag }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Determine release tag
         id: determine_tag
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - name: Check package version
         env:
           TAG_VERSION: ${{ github.event.release.tag_name }}
@@ -43,7 +43,7 @@ jobs:
     needs:
       - setup-release-tag
       - check-version
-    uses: rancher/dashboard/.github/workflows/build-extension-charts.yml@master
+    uses: rancher/dashboard/.github/workflows/build-extension-charts.yml@9eb70a732e9be146722e1dbab431338366c2afc6 # creators-pkg-v3.0.10
     permissions:
       actions: write
       contents: write
