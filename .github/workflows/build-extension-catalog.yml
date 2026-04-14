@@ -55,14 +55,8 @@ jobs:
         with:
           version: v3.8.0
 
-      - name: Setup Nodejs with yarn caching
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: '24'
-          cache: yarn
-
-      - name: Install dependencies
-        run: yarn
+      - name: Setup Nodejs with yarn install
+        uses: ./.github/actions/setup
 
       - name: Build and push UI image
         run: |
