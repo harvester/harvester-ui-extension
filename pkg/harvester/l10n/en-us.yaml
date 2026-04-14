@@ -1764,6 +1764,8 @@ harvester:
         repository: Image Repository
       driver:
         location: Driver Location
+      enable:
+        title: Enable NVIDIA Driver Toolkit
       parsingSpecError:
         The field 'spec.valuesContent' has invalid format.
     usbController:

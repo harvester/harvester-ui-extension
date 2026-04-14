@@ -35,6 +35,7 @@ export default class HciAddonConfig extends HarvesterResource {
     const enableHistory = this.spec.enabled;
 
     try {
+      // rancher-vcluster/rancher-vcluster addon not used ?
       if (!this.spec.enabled && this.id === 'rancher-vcluster/rancher-vcluster') {
         const valuesContent = jsyaml.load(this.spec.valuesContent);
 
@@ -43,6 +44,15 @@ export default class HciAddonConfig extends HarvesterResource {
 
           return;
         }
+      }
+
+      if (!this.spec.enabled && this.id === 'harvester-system/nvidia-driver-toolkit') {
+        this.$dispatch('promptModal', {
+          resources:  [this],
+          component:  'HarvesterEnableNvidiaDriverToolkit',
+        });
+
+        return;
       }
 
       this.spec.enabled = !this.spec.enabled;
