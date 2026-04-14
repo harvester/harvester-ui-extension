@@ -40,7 +40,15 @@ export default {
     return { valuesContentJson };
   },
 
-  computed: { ...mapGetters({ t: 'i18n/t' }) },
+  computed: {
+    ...mapGetters({ t: 'i18n/t' }),
+
+    buttonDisabled() {
+      const { image, driverLocation } = this.valuesContentJson;
+
+      return !(image?.repository || '').trim() || !(image?.tag || '').trim() || !(driverLocation || '').trim();
+    }
+  },
 
   methods: {
     close() {
@@ -119,6 +127,7 @@ export default {
 
         <AsyncButton
           mode="enable"
+          :disabled="buttonDisabled"
           @click="enable"
         />
       </div>
