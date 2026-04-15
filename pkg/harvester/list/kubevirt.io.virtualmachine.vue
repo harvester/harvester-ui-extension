@@ -163,6 +163,12 @@ export default {
      */
     hasBackUpRestoreInProgress() {
       return !!this.rows.find((r) => r.restoreResource && !r.restoreResource.fromSnapshot && !r.restoreResource.isComplete);
+    },
+
+    vmRestartRequiredNames() {
+      return this.allVMs
+        .filter((vm) => vm.isRestartRequired)
+        .map((vm) => vm.metadata.name);
     }
   },
 
@@ -181,40 +187,28 @@ export default {
   },
 
   watch: {
-    allVMs: {
-      handler(neu) {
-        const vmNames = [];
+    vmRestartRequiredNames(vmNames) {
+      const count = vmNames.length;
 
-        neu.forEach((vm) => {
-          if (vm.isRestartRequired) {
-            vmNames.push(vm.metadata.name);
-          }
-        });
-        const count = vmNames.length;
+      if (count === 0 && this.restartNotificationDisplayed) {
+        this.restartNotificationDisplayed = false;
 
-        if ( count === 0 && this.restartNotificationDisplayed) {
-          this.restartNotificationDisplayed = false;
+        return;
+      }
 
-          return;
+      if (count > 0) {
+        // clear old notification before showing new one
+        if (this.restartNotificationDisplayed) {
+          this.$store.dispatch('growl/clear');
         }
 
-        if (count > 0) {
-          // clear old notification before showing new one
-          if (this.restartNotificationDisplayed) {
-            this.$store.dispatch('growl/clear');
-          }
-        }
-
-        if (count > 0 && vmNames.length > 0) {
-          this.$store.dispatch('growl/warning', {
-            title:   this.t('harvester.notification.restartRequired.title', { count }),
-            message: this.t('harvester.notification.restartRequired.message', { vmNames: vmNames.join(', ') }),
-            timeout: 10000,
-          }, { root: true });
-          this.restartNotificationDisplayed = true;
-        }
-      },
-      deep: true,
+        this.$store.dispatch('growl/warning', {
+          title:   this.t('harvester.notification.restartRequired.title', { count }),
+          message: this.t('harvester.notification.restartRequired.message', { vmNames: vmNames.join(', ') }),
+          timeout: 10000,
+        }, { root: true });
+        this.restartNotificationDisplayed = true;
+      }
     }
   },
   methods: {
