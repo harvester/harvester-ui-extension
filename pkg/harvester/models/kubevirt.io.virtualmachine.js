@@ -1073,41 +1073,41 @@ export default class VirtVm extends HarvesterResource {
     return out;
   }
 
-  get warningCount() {
-    return this.resourcesStatus.warningCount;
-  }
+  // get warningCount() {
+  //   return this.resourcesStatus.warningCount;
+  // }
 
-  get errorCount() {
-    return this.resourcesStatus.errorCount;
-  }
+  // get errorCount() {
+  //   return this.resourcesStatus.errorCount;
+  // }
 
-  get resourcesStatus() {
-    const inStore = this.productInStore;
-    const vmList = this.$rootGetters[`${ inStore }/all`](HCI.VM);
-    let warningCount = 0;
-    let errorCount = 0;
+  // get resourcesStatus() {
+  //   const inStore = this.productInStore;
+  //   const vmList = this.$rootGetters[`${ inStore }/all`](HCI.VM);
+  //   let warningCount = 0;
+  //   let errorCount = 0;
 
-    vmList.forEach((vm) => {
-      const status = vm.actualState;
+  //   vmList.forEach((vm) => {
+  //     const status = vm.actualState;
 
-      if (status === VM_ERROR) {
-        errorCount += 1;
-      } else if (
-        status === 'Stopping' ||
-        status === 'Waiting' ||
-        status === 'Pending' ||
-        status === 'Starting' ||
-        status === 'Terminating'
-      ) {
-        warningCount += 1;
-      }
-    });
+  //     if (status === VM_ERROR) {
+  //       errorCount += 1;
+  //     } else if (
+  //       status === 'Stopping' ||
+  //       status === 'Waiting' ||
+  //       status === 'Pending' ||
+  //       status === 'Starting' ||
+  //       status === 'Terminating'
+  //     ) {
+  //       warningCount += 1;
+  //     }
+  //   });
 
-    return {
-      warningCount,
-      errorCount
-    };
-  }
+  //   return {
+  //     warningCount,
+  //     errorCount
+  //   };
+  // }
 
   get volumeClaimTemplates() {
     return parseVolumeClaimTemplates(this);

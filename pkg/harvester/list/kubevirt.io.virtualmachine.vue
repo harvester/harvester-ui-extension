@@ -219,15 +219,14 @@ export default {
   },
   methods: {
     lockIconTooltipMessage(row) {
-      const message = '';
+      const tooltipKeyByEncryptedVolumeType = {
+        all:     'harvester.virtualMachine.volume.lockTooltip.all',
+        partial: 'harvester.virtualMachine.volume.lockTooltip.partial',
+      };
 
-      if (row.encryptedVolumeType === 'all') {
-        return this.t('harvester.virtualMachine.volume.lockTooltip.all');
-      } else if (row.encryptedVolumeType === 'partial') {
-        return this.t('harvester.virtualMachine.volume.lockTooltip.partial');
-      }
+      const key = tooltipKeyByEncryptedVolumeType[row.encryptedVolumeType];
 
-      return message;
+      return key ? this.t(key) : '';
     }
   }
 };
@@ -267,7 +266,7 @@ export default {
           >
             {{ scope.row.metadata.name }}
             <i
-              v-if="lockIconTooltipMessage(scope.row)"
+              v-if="scope.row.encryptedVolumeType !== 'none'"
               v-tooltip="lockIconTooltipMessage(scope.row)"
               class="icon icon-lock"
               :class="{'green-icon': scope.row.encryptedVolumeType === 'all', 'yellow-icon': scope.row.encryptedVolumeType === 'partial'}"
