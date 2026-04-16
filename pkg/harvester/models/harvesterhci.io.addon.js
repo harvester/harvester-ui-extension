@@ -4,6 +4,8 @@ import { HCI as HCI_ANNOTATIONS } from '../config/labels-annotations';
 import HarvesterResource from './harvester';
 import { HCI } from '../types';
 
+const HARVESTER_NVIDIA_DRIVER_TOOLKIT = 'harvester-system/nvidia-driver-toolkit';
+
 export default class HciAddonConfig extends HarvesterResource {
   get availableActions() {
     const out = super._availableActions;
@@ -35,7 +37,6 @@ export default class HciAddonConfig extends HarvesterResource {
     const enableHistory = this.spec.enabled;
 
     try {
-      // rancher-vcluster/rancher-vcluster addon not used ?
       if (!this.spec.enabled && this.id === 'rancher-vcluster/rancher-vcluster') {
         const valuesContent = jsyaml.load(this.spec.valuesContent);
 
@@ -46,7 +47,7 @@ export default class HciAddonConfig extends HarvesterResource {
         }
       }
 
-      if (!this.spec.enabled && this.id === 'harvester-system/nvidia-driver-toolkit') {
+      if (!this.spec.enabled && this.id === HARVESTER_NVIDIA_DRIVER_TOOLKIT) {
         this.$dispatch('promptModal', {
           resources:  [this],
           component:  'HarvesterEnableNvidiaDriverToolkit',
