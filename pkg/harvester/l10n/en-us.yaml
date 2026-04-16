@@ -726,7 +726,7 @@ harvester:
         other {Start}
       } Now
     createSSHKey: Create a New...
-    genericLoginError: Session may have expired. Please log in again and try again.
+    genericLoginError: Session may have expired. Please re-log in and try again.
     installAgent: Install guest agent
     enableUsb: Enable USB Tablet
     advancedOptions:
