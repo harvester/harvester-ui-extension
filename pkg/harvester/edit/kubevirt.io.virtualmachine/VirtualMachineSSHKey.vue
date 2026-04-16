@@ -10,6 +10,7 @@ import { _VIEW } from '@shell/config/query-params';
 
 import { NAMESPACE } from '@shell/config/types';
 import { HCI } from '../../types';
+import { getLoginAwareErrors } from '../../utils/error';
 
 const _NEW = '_NEW';
 
@@ -214,7 +215,7 @@ export default {
         buttonCb(true);
         this.cancel();
       } catch (err) {
-        this.errors = [err.message];
+        this.errors = getLoginAwareErrors(err, (key) => this.t(key));
         buttonCb(false);
       }
     },
