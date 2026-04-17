@@ -47,6 +47,13 @@ import {
   VM_IMPORT_SOURCE_O_STATUS,
   VM_IMPORT_SOURCE_OVA_URL,
   VM_IMPORT_SOURCE_OVA_STATUS,
+  FORKLIFT_PROVIDER_TYPE,
+  FORKLIFT_PROVIDER_URL,
+  FORKLIFT_MAP_SOURCE_PROVIDER,
+  FORKLIFT_MAP_DEST_PROVIDER,
+  FORKLIFT_PLAN_TARGET_NS,
+  FORKLIFT_PLAN_VM_COUNT,
+  FORKLIFT_MIGRATION_PLAN,
 } from './table-headers';
 import { ADD_ONS } from './harvester-map';
 import { registerAddonSideNav } from '../utils/dynamic-nav';
@@ -1162,4 +1169,168 @@ export function init($plugin, store) {
     exact:      false,
     ifHaveType: HCI.HOST_NETWORK_CONFIG,
   });
+  // ===========================================================================
+  // Forklift Addon UI Flow
+  // ===========================================================================
+  weightGroup('forklift', 0, false);
+
+  // Provider
+  headers(HCI.FORKLIFT_PROVIDER, [
+    STATE,
+    NAME_COL,
+    NAMESPACE_COL,
+    FORKLIFT_PROVIDER_TYPE,
+    FORKLIFT_PROVIDER_URL,
+    AGE
+  ]);
+  configureType(HCI.FORKLIFT_PROVIDER, {
+    resource:       HCI.FORKLIFT_PROVIDER,
+    resourceDetail: HCI.FORKLIFT_PROVIDER,
+    resourceEdit:   HCI.FORKLIFT_PROVIDER,
+    location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_PROVIDER }
+    }
+  });
+  virtualType({
+    name:       HCI.FORKLIFT_PROVIDER,
+    labelKey:   'harvester.addons.forklift.labels.provider',
+    group:      'forklift',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_PROVIDER }
+    }
+  });
+
+  // NetworkMap
+  headers(HCI.FORKLIFT_NETWORK_MAP, [
+    STATE,
+    NAME_COL,
+    NAMESPACE_COL,
+    FORKLIFT_MAP_SOURCE_PROVIDER,
+    FORKLIFT_MAP_DEST_PROVIDER,
+    AGE
+  ]);
+  configureType(HCI.FORKLIFT_NETWORK_MAP, {
+    resource:       HCI.FORKLIFT_NETWORK_MAP,
+    resourceDetail: HCI.FORKLIFT_NETWORK_MAP,
+    resourceEdit:   HCI.FORKLIFT_NETWORK_MAP,
+    location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_NETWORK_MAP }
+    }
+  });
+  virtualType({
+    name:       HCI.FORKLIFT_NETWORK_MAP,
+    labelKey:   'harvester.addons.forklift.labels.networkMap',
+    group:      'forklift',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_NETWORK_MAP }
+    }
+  });
+
+  // StorageMap
+  headers(HCI.FORKLIFT_STORAGE_MAP, [
+    STATE,
+    NAME_COL,
+    NAMESPACE_COL,
+    FORKLIFT_MAP_SOURCE_PROVIDER,
+    FORKLIFT_MAP_DEST_PROVIDER,
+    AGE
+  ]);
+  configureType(HCI.FORKLIFT_STORAGE_MAP, {
+    resource:       HCI.FORKLIFT_STORAGE_MAP,
+    resourceDetail: HCI.FORKLIFT_STORAGE_MAP,
+    resourceEdit:   HCI.FORKLIFT_STORAGE_MAP,
+    location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_STORAGE_MAP }
+    }
+  });
+  virtualType({
+    name:       HCI.FORKLIFT_STORAGE_MAP,
+    labelKey:   'harvester.addons.forklift.labels.storageMap',
+    group:      'forklift',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_STORAGE_MAP }
+    }
+  });
+
+  // Plan
+  headers(HCI.FORKLIFT_PLAN, [
+    STATE,
+    NAME_COL,
+    NAMESPACE_COL,
+    FORKLIFT_MAP_SOURCE_PROVIDER,
+    FORKLIFT_PLAN_TARGET_NS,
+    FORKLIFT_PLAN_VM_COUNT,
+    AGE
+  ]);
+  configureType(HCI.FORKLIFT_PLAN, {
+    resource:       HCI.FORKLIFT_PLAN,
+    resourceDetail: HCI.FORKLIFT_PLAN,
+    resourceEdit:   HCI.FORKLIFT_PLAN,
+    location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_PLAN }
+    }
+  });
+  virtualType({
+    name:       HCI.FORKLIFT_PLAN,
+    labelKey:   'harvester.addons.forklift.labels.plan',
+    group:      'forklift',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_PLAN }
+    }
+  });
+
+  // Migration
+  headers(HCI.FORKLIFT_MIGRATION, [
+    STATE,
+    NAME_COL,
+    NAMESPACE_COL,
+    FORKLIFT_MIGRATION_PLAN,
+    AGE
+  ]);
+  configureType(HCI.FORKLIFT_MIGRATION, {
+    resource:       HCI.FORKLIFT_MIGRATION,
+    resourceDetail: HCI.FORKLIFT_MIGRATION,
+    resourceEdit:   HCI.FORKLIFT_MIGRATION,
+    location:       {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_MIGRATION }
+    }
+  });
+  virtualType({
+    name:       HCI.FORKLIFT_MIGRATION,
+    labelKey:   'harvester.addons.forklift.labels.migration',
+    group:      'forklift',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_MIGRATION }
+    }
+  });
+
+  // Enable SideNav based on Forklift Addon Status
+  registerAddonSideNav(store, PRODUCT_NAME, {
+    addonName:    ADD_ONS.FORKLIFT_OPERATOR,
+    resourceType: HCI.ADD_ONS,
+    navGroup:     'forklift',
+    types:        [
+      HCI.FORKLIFT_PROVIDER,
+      HCI.FORKLIFT_NETWORK_MAP,
+      HCI.FORKLIFT_STORAGE_MAP,
+      HCI.FORKLIFT_PLAN,
+      HCI.FORKLIFT_MIGRATION,
+    ]
+  });
+  // ===========================================================================
 }

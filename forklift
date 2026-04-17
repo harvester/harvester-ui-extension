@@ -1,0 +1,264 @@
+# Forklift Addon
+
+## Summary
+
+This enhancement details the changes needed to include [forklift](https://github.com/kubev2v/forklift) as a Harvester addon. 
+
+The addon can be used as an alternate option for performing vm migrations from vmware.
+
+### Related Issues
+
+https://github.com/harvester/harvester/issues/9588
+
+## Motivation
+forklift is a tool similar to vm-import-controller which allows users to migrate VM based workloads from platforms such as vmware and openstack to Harvester. forklift has the added advantage of support [vsphere-xcopy](https://techdocs.broadcom.com/us/en/vmware-cis/vsphere/vsphere/7-0/vsphere-storage/storage-hardware-acceleration-in-vsphere/vsphere-hardware-acceleration-on-block-storage/managing-hardware-acceleration-filter-and-plug-ins/configure-xcopy-parameters.html) based plugins. When used in conjuction with supported storage arrays that are being shared across both vmware and Harvester installations, the plugin offloads the disk clone operation to the storage array. This allows the data to be populated in the kubernetes pvc directly from the vsphere datastore. This speeds up the data migration as the compute and network layer for both vsphere and Harvester components are skipped.  
+
+### Goals
+
+- Addon to allow users to enable/disable the forklift addon on a Harvester cluster
+- Allow migration of VM's from vsphere to Harvester using forklift
+
+### Non-goals [optional]
+
+- QA of individual vsphere-xcopy plugins
+
+## Proposal
+
+This is where we get down to the nitty gritty of what the proposal actually is.
+
+### User Stories
+
+#### Story 1: Migration VirtualMachines from vmware to Harvester
+As a user I wish to migration my existing VM workloads from vmware to Harvester.
+
+### User Experience In Detail
+
+A user can trigger a migration of VM from vmware to Harvester by following the listed steps:
+
+##### create a provider
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vmware-secret
+  namespace: default
+  labels:
+    createdForProviderType: vsphere
+    createdForResourceType: providers
+type: Opaque
+stringData:
+  user: "username"
+  password: "password"
+  insecureSkipVerify: "true"
+  url: "https://vcenter/sdk"
+---
+apiVersion: forklift.konveyor.io/v1beta1
+kind: Provider
+metadata:
+  name: vmware-source
+  namespace: default
+spec:
+  type: vsphere
+  url: "https://mako-vcenter.devlab.pgu1.suse.com/sdk"
+  secret:
+    name: vmware-secret
+    namespace: default
+---
+apiVersion: forklift.konveyor.io/v1beta1
+kind: Provider
+metadata:
+  name: local
+  namespace: default
+spec:
+  type: openshift
+  secret: {}
+```
+
+##### create a network map defining mapping of vmware networks to Harvester vm networks
+```yaml
+apiVersion: forklift.konveyor.io/v1beta1
+kind: NetworkMap
+metadata:
+  name: vsphere-network-map
+  namespace: default
+spec:
+  map:
+    - destination:
+        type: pod
+      source:
+        id: dvportgroup-13025
+  provider:
+    destination:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: Provider
+      name: local
+      namespace: default
+    source:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: Provider
+      name: vmware-source
+      namespace: default
+```
+
+##### create a storage map defining mapping of vmware storage to Harvester storage class
+```yaml
+apiVersion: forklift.konveyor.io/v1beta1
+kind: StorageMap
+metadata:
+  name: vsphere-storage-map
+  namespace: default
+spec:
+  map:
+    - destination:
+        storageClass: longhorn-v2
+      source:
+        id: datastore-2040
+  provider:
+    destination:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: Provider
+      name: local
+      namespace: default
+    source:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: Provider
+      name: vmware-source
+      namespace: default
+```
+
+##### create a migration plan which details steps be carried out for a list of VMs in question
+```yaml
+apiVersion: forklift.konveyor.io/v1beta1
+kind: Plan
+metadata:
+  annotations:
+    populatorLabels: 'True'
+  name: vmware-gm-ubuntu-test-migration
+  namespace: default
+spec:
+  map:
+    network:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: NetworkMap
+      name: vsphere-network-map
+      namespace: default
+    storage:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: StorageMap
+      name: vsphere-storage-map
+      namespace: default
+  migrateSharedDisks: true
+  provider:
+    destination:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: Provider
+      name: local
+      namespace: default
+    source:
+      apiVersion: forklift.konveyor.io/v1beta1
+      kind: Provider
+      name: vmware-source
+      namespace: default
+  targetNamespace: default
+  vms:
+    - id: vm-13007
+      name: gm-ubuntu-test
+```
+
+##### trigger the vm migration
+```yaml
+kind: Migration
+metadata:
+  name: vmware-gm-ubuntu-test-migration
+  namespace: default
+spec:
+  plan:
+    name: vmware-gm-ubuntu-test-migration
+    namespace: default
+```
+
+
+Once the migration is successful the VM's listed in the plan will have been migrated to the Harvester
+
+### API changes
+There are no API changes in core Harvester itself.
+
+Enabling the Addon will create the following CRDs on the Harvester cluster:
+* forkliftcontrollers.forklift.konveyor.io
+* hooks.forklift.konveyor.io
+* hosts.forklift.konveyor.io
+* migrations.forklift.konveyor.io
+* networkmaps.forklift.konveyor.io
+* openstackvolumepopulators.forklift.konveyor.io
+* ovirtvolumepopulators.forklift.konveyor.io
+* plans.forklift.konveyor.io
+* providers.forklift.konveyor.io
+* storagemaps.forklift.konveyor.io
+* vspherexcopyvolumepopulators.forklift.konveyor.io
+
+## Design
+
+### Implementation Overview
+Implementation requires two main tasks:
+
+* repackaging of forklift components using SLE BCL base images
+* packaging of forklift-operator as a helm chart. Upstream this is managed by [OLM](https://olm.operatorframework.io/)
+
+We are going to skip the introduction of OLM to Harvester as we have our own AppCo and Helm based component delivery mechanism. OLM ties will with `operator-sdk` which we do not leverage, as core Harvester capability leverages the rancher wrangler framework.
+
+The [repo](https://github.com/ibrokethecloud/forklift-packaging) already contains the tooling to repackage and publish all forklift components using SLE BCL or Opensuse images.
+
+
+The forklift addon will be leveraging the forklift-operator, which will be packaged as a vanilla helm chart. This will allow users to enable / disable the addon as per their needs.
+
+Once the addon is enabled, the users will need to create a `ForkliftController` CR to trigger the installation of forklift components
+
+```yaml
+apiVersion: forklift.konveyor.io/v1beta1
+kind: ForkliftController
+metadata:
+  name: forklift-controller
+  namespace: forklift
+spec:
+  feature_ui_plugin: "false"
+```
+
+The creation of the `ForkliftController` CR will trigger the following deployments
+
+```
+NAME                                          READY   UP-TO-DATE   AVAILABLE   AGE
+forklift-api                                  1/1     1            1           10d
+forklift-controller                           1/1     1            1           10d
+forklift-operator-forklift-operator-ansible   1/1     1            1           10d
+forklift-validation                           1/1     1            1           10d
+forklift-volume-populator-controller          1/1     1            1           10d
+```
+
+#### harvester-webhook changes
+Forklift controller runs the migration pod with the default seccomp profile. This stops the actual virt-v2v converstion from completing successfully. The Harvester webhook needs a change to patch the migration pod to provide it priveleged permissions to allow successful conversion.
+
+The harvester-webhook will also patch the migration pod's `ImagePullPolicy` from `Always` to `IfNotPresent` to ensure simpler operation in air-gapped environments.
+
+
+### Test plan
+
+* Enable forklift addon
+* Create a `ForkliftController` CR
+* Once forklift components have been installed, trigger a VM migration from vmware to forklift by using the sample available earlier in the HEP
+* The VM should migrate successfully
+
+### Upgrade strategy
+
+No specific upgrade enhancement is needed. The addon will be upgrade as part of the Harvester upgrade process.
+
+## Note [optional]
+
+* forklift-operator needs [cert-manager ](https://cert-manager.io/). Users will need to manually install cert-manager from `AppCo` or upstream to ensure the forklift components can be initialised successfully by the operator
+
+* forklift leverages [vddk images](https://docs.redhat.com/en/documentation/migration_toolkit_for_virtualization/2.0/html/installing_and_using_the_migration_toolkit_for_virtualization/installing-mtv_mtv#adding-vddk-to-mtv_mtv) which is a proprietary package. We cannot packaging this in our distribution, and users will need to manually build and host this image in their environment to leverage vddk based migration capabilities
+
+* QA has no way to validate vmware-xcopy based plugin capabilities. We may need to leverage vendor relationships to QA and validate the same
+
+* Forklift also introduces [OPA](https://v0-12-2--opa-docs.netlify.app/kubernetes-admission-control/) to run its validation layer.
+
+* A mutating webhook is needed in [harvester-webhook](https://github.com/harvester/harvester/pull/9935) to mutate virt-v2v pods being created by forklift to have privileged escalation. This is to ensure passt interface can initialise successfully inside the pod, to allow for subsequent vm conversion.
