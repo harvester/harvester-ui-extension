@@ -230,3 +230,70 @@ export const VM_IMPORT_SOURCE_OVA_STATUS = {
   sort:     'status.status',
   align:    'left',
 };
+
+// ========================================
+// Forklift table headers
+// ========================================
+
+// Provider type column in forklift.konveyor.io.provider list page
+export const FORKLIFT_PROVIDER_TYPE = {
+  name:     'providerType',
+  labelKey: 'harvester.tableHeaders.forkliftProviderType',
+  value:    'spec.type',
+  sort:     'spec.type',
+  align:    'left',
+};
+
+// Provider URL column in forklift.konveyor.io.provider list page
+export const FORKLIFT_PROVIDER_URL = {
+  name:     'providerUrl',
+  labelKey: 'harvester.tableHeaders.forkliftProviderUrl',
+  value:    'spec.url',
+  sort:     'spec.url',
+  align:    'left',
+};
+
+// Source provider column in forklift network/storage map list page
+export const FORKLIFT_MAP_SOURCE_PROVIDER = {
+  name:     'sourceProvider',
+  labelKey: 'harvester.tableHeaders.forkliftMapSourceProvider',
+  value:    'spec.provider.source.name',
+  sort:     'spec.provider.source.name',
+  align:    'left',
+};
+
+// Destination provider column in forklift network/storage map list page
+export const FORKLIFT_MAP_DEST_PROVIDER = {
+  name:     'destProvider',
+  labelKey: 'harvester.tableHeaders.forkliftMapDestProvider',
+  value:    'spec.provider.destination.name',
+  sort:     'spec.provider.destination.name',
+  align:    'left',
+};
+
+// Target namespace column in forklift.konveyor.io.plan list page
+export const FORKLIFT_PLAN_TARGET_NS = {
+  name:     'targetNamespace',
+  labelKey: 'harvester.tableHeaders.forkliftPlanTargetNs',
+  value:    'spec.targetNamespace',
+  sort:     'spec.targetNamespace',
+  align:    'left',
+};
+
+// VM count column in forklift.konveyor.io.plan list page
+export const FORKLIFT_PLAN_VM_COUNT = {
+  name:     'vmCount',
+  labelKey: 'harvester.tableHeaders.forkliftPlanVmCount',
+  value:    'spec.vms.length',
+  sort:     'spec.vms.length',
+  align:    'center',
+};
+
+// Plan reference column in forklift.konveyor.io.migration list page
+export const FORKLIFT_MIGRATION_PLAN = {
+  name:     'plan',
+  labelKey: 'harvester.tableHeaders.forkliftMigrationPlan',
+  value:    'spec.plan.name',
+  sort:     'spec.plan.name',
+  align:    'left',
+};

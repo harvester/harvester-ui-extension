@@ -79,6 +79,7 @@ export const ADD_ONS = {
   VM_IMPORT_CONTROLLER:             'vm-import-controller',
   LVM_DRIVER:                       'lvm.driver.harvesterhci.io',
   KUBEOVN_OPERATOR:                 'kubeovn-operator',
+  FORKLIFT_OPERATOR:                'forklift-operator',
 };
 
 export const CSI_SECRETS = {
@@ -91,6 +92,8 @@ export const CSI_SECRETS = {
   CSI_NODE_EXPAND_SECRET_NAME:       'csi.storage.k8s.io/node-expand-secret-name',
   CSI_NODE_EXPAND_SECRET_NAMESPACE:  'csi.storage.k8s.io/node-expand-secret-namespace'
 };
+
+export const FORKLIFT_API_VERSION = 'forklift.konveyor.io/v1beta1';
 
 // Some harvester CRD type is not equal to model file name, define the mapping here
 export const HARVESTER_CRD_MAP = {

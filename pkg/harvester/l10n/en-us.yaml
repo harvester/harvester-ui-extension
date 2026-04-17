@@ -22,6 +22,7 @@ nav:
     Logging: Logging
     'Monitoring and Logging': Monitoring and Logging
     vmimport: Virtual Machine Imports
+    forklift: Forklift Migration
 
 resourceTable:
   groupBy:
@@ -352,6 +353,13 @@ harvester:
     v4ip: V4 IP
     v6ip: V6 IP
     eipName: EIP Name
+    forkliftProviderType: Type
+    forkliftProviderUrl: URL
+    forkliftMapSourceProvider: Source Provider
+    forkliftMapDestProvider: Destination Provider
+    forkliftPlanTargetNs: Target Namespace
+    forkliftPlanVmCount: VMs
+    forkliftMigrationPlan: Plan
   tab:
     volume: Volumes
     network: Networks
@@ -1799,6 +1807,61 @@ harvester:
       'harvester-csi-driver-lvm': harvester-csi-driver-lvm is an add-on allowing users to create PVC through the LVM with local devices.
       'descheduler': 'The virtual machine auto balance optimizes workload scheduling by evicting pods that are not optimally placed according to administrator-defined policies.'
 
+    forklift:
+      labels:
+        provider: Providers
+        networkMap: Network Maps
+        storageMap: Storage Maps
+        plan: Migration Plans
+        migration: Migrations
+      titles:
+        basic: Basic
+        auth: Authentication
+        providers: Providers
+        networkMappings: Network Mappings
+        storageMappings: Storage Mappings
+        mappings: Mappings
+        vms: Virtual Machines
+      fields:
+        providerType: Provider Type
+        providerTypeVsphere: vSphere
+        providerTypeOpenstack: OpenStack
+        providerTypeOpenshift: OpenShift / Harvester (Local)
+        url: URL
+        username: Username
+        password: Password
+        caCert: CA Certificate (PEM)
+        insecureSkipVerify: Skip TLS Certificate Verification
+        selectSecret: Select Secret
+        createSecret: Create New Credentials
+        useSecret: Use Existing Secret
+        sourceProvider: Source Provider
+        destProvider: Destination Provider
+        sourceNetworkId: Source Network ID
+        destNetworkType: Destination Network Type
+        destNetworkPod: Pod Network
+        destNetworkMultus: Multus
+        sourceDatastoreId: Source Datastore ID
+        destStorageClass: Destination Storage Class
+        networkMap: Network Map
+        storageMap: Storage Map
+        targetNamespace: Target Namespace
+        migrateSharedDisks: Migrate Shared Disks
+        vmId: VM ID
+        vmName: VM Name
+        plan: Migration Plan
+      placeholders:
+        url: "e.g. https://vcenter/sdk"
+        caCert: "-----BEGIN CERTIFICATE----- ..."
+        sourceNetworkId: "e.g. dvportgroup-13025"
+        sourceDatastoreId: "e.g. datastore-2040"
+        vmId: "e.g. vm-13007"
+        vmName: "e.g. my-vm"
+      actions:
+        addMapping: Add Mapping
+        addVm: Add VM
+        remove: Remove
+
     vmImport:
       titles:
         basic: Basic
@@ -2433,4 +2496,29 @@ typeLabel:
     {count, plural,
       one { Virtual Machine Import }
       other { Virtual Machine Imports }
+    }
+  forklift.konveyor.io.provider: |-
+    {count, plural,
+      one { Provider }
+      other { Providers }
+    }
+  forklift.konveyor.io.networkmap: |-
+    {count, plural,
+      one { Network Map }
+      other { Network Maps }
+    }
+  forklift.konveyor.io.storagemap: |-
+    {count, plural,
+      one { Storage Map }
+      other { Storage Maps }
+    }
+  forklift.konveyor.io.plan: |-
+    {count, plural,
+      one { Migration Plan }
+      other { Migration Plans }
+    }
+  forklift.konveyor.io.migration: |-
+    {count, plural,
+      one { Migration }
+      other { Migrations }
     }
