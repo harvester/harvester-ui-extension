@@ -4,6 +4,8 @@ import { HCI as HCI_ANNOTATIONS } from '../config/labels-annotations';
 import HarvesterResource from './harvester';
 import { HCI } from '../types';
 
+const HARVESTER_NVIDIA_DRIVER_TOOLKIT = 'harvester-system/nvidia-driver-toolkit';
+
 export default class HciAddonConfig extends HarvesterResource {
   get availableActions() {
     const out = super._availableActions;
@@ -43,6 +45,15 @@ export default class HciAddonConfig extends HarvesterResource {
 
           return;
         }
+      }
+
+      if (!this.spec.enabled && this.id === HARVESTER_NVIDIA_DRIVER_TOOLKIT) {
+        this.$dispatch('promptModal', {
+          resources:  [this],
+          component:  'HarvesterEnableNvidiaDriverToolkit',
+        });
+
+        return;
       }
 
       this.spec.enabled = !this.spec.enabled;
