@@ -71,21 +71,38 @@ export default {
   },
 
   data() {
-    let provisioner = `${ this.value.provisioner || LONGHORN_DRIVER }`;
-
-    if (provisioner === LONGHORN_DRIVER) {
-      provisioner = `${ provisioner }_${ this.value.provisionerVersion || LONGHORN_VERSION_V1 }`;
-    }
-
     return {
-      provisioner,
       volumeGroupDialog: null,
       randomStr:         randomStr(10).toLowerCase(),
-      isOpen:            false
+      isOpen:            false,
     };
   },
 
   computed: {
+    provisioner: {
+      get() {
+        let provisioner = `${ this.value?.provisioner || LONGHORN_DRIVER }`;
+
+        if (provisioner === LONGHORN_DRIVER) {
+          provisioner = `${ provisioner }_${ this.value?.provisionerVersion || LONGHORN_VERSION_V1 }`;
+        }
+
+        return provisioner;
+      },
+      set(value) {
+        this.randomStr = randomStr(10).toLowerCase();
+        const [provisioner, provisionerVersion] = (value || '').split('_');
+
+        this.value.provisioner = provisioner;
+
+        if (provisioner === LONGHORN_DRIVER) {
+          this.value.provisionerVersion = provisionerVersion || LONGHORN_VERSION_V1;
+        } else {
+          this.value.provisionerVersion = undefined;
+        }
+      },
+    },
+
     provisioners() {
       const out = [];
 
@@ -283,20 +300,6 @@ export default {
   },
 
   watch: {
-    provisioner(value) {
-      this.randomStr = randomStr(10).toLowerCase();
-
-      const [provisioner, provisionerVersion] = value?.split('_');
-
-      this.value.provisioner = provisioner;
-
-      if (provisioner === LONGHORN_DRIVER) {
-        this.value.provisionerVersion = provisionerVersion || LONGHORN_VERSION_V1;
-      } else {
-        this.value.provisionerVersion = undefined;
-      }
-    },
-
     'value.lvmVolumeGroup'(neu) {
       if (neu === _NEW) {
         this.value.lvmVolumeGroup = null;
