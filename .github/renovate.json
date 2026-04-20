@@ -39,11 +39,15 @@
       "reviewers": ["a110605", "houhoucoop"]
     },
     {
-      "matchUpdateTypes": ["patch", "digest"],
-      "automerge": true,
+      "matchUpdateTypes": ["patch"],
+      "automerge": false,
       "minimumReleaseAge": "7 days",
-      "groupName": "patch digest dependencies",
-      "labels": ["patch-update", "automerge"]
+      "groupName": "patch dependencies",
+      "labels": ["patch-update"]
+    },
+    {
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "enabled": false
     }
   ]
 }
