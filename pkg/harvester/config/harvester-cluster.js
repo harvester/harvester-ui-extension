@@ -81,7 +81,6 @@ export function init($plugin, store) {
     configureType,
     virtualType,
     weightGroup,
-    // weightType,
   } = $plugin.DSL(store, PRODUCT_NAME);
 
   const isSingleVirtualCluster = process.env.rancherEnv === PRODUCT_NAME;
@@ -593,7 +592,6 @@ export function init($plugin, store) {
   );
 
   weightGroup('networks', 494, true);
-  // weightType(NAMESPACE, 299, true);
   weightGroup('backupAndSnapshot', 493, true);
 
   basicType(
