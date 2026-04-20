@@ -81,7 +81,7 @@ export function init($plugin, store) {
     configureType,
     virtualType,
     weightGroup,
-    weightType,
+    // weightType,
   } = $plugin.DSL(store, PRODUCT_NAME);
 
   const isSingleVirtualCluster = process.env.rancherEnv === PRODUCT_NAME;
@@ -168,7 +168,7 @@ export function init($plugin, store) {
     group:      'Root',
     name:       HCI.HOST,
     namespaced: true,
-    weight:     399,
+    weight:     499,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.HOST }
@@ -200,7 +200,7 @@ export function init($plugin, store) {
     group:      'root',
     name:       HCI.VM,
     namespaced: true,
-    weight:     299,
+    weight:     498,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.VM }
@@ -361,7 +361,7 @@ export function init($plugin, store) {
     ifHaveType: PVC,
     name:       HCI.VOLUME,
     namespaced: true,
-    weight:     199,
+    weight:     497,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.VOLUME }
@@ -387,7 +387,7 @@ export function init($plugin, store) {
     group:      'root',
     name:       HCI.IMAGE,
     namespaced: true,
-    weight:     198,
+    weight:     496,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.IMAGE }
@@ -402,7 +402,7 @@ export function init($plugin, store) {
     group:      'root',
     namespaced: true,
     name:       'projects-namespaces',
-    weight:     98,
+    weight:     495,
     route:      { name: `${ PRODUCT_NAME }-c-cluster-projectsnamespaces` },
     exact:      true,
   });
@@ -414,7 +414,7 @@ export function init($plugin, store) {
       labelKey:   'harvester.namespace.label',
       name:       NAMESPACE,
       namespaced: true,
-      weight:     89,
+      weight:     495,
       route:      {
         name:   `${ PRODUCT_NAME }-c-cluster-resource`,
         params: { resource: NAMESPACE }
@@ -592,9 +592,9 @@ export function init($plugin, store) {
     'backupAndSnapshot'
   );
 
-  weightGroup('networks', 300, true);
-  weightType(NAMESPACE, 299, true);
-  weightGroup('backupAndSnapshot', 289, true);
+  weightGroup('networks', 494, true);
+  // weightType(NAMESPACE, 299, true);
+  weightGroup('backupAndSnapshot', 493, true);
 
   basicType(
     [

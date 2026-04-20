@@ -2601,10 +2601,10 @@
   resolved "https://registry.yarnpkg.com/@rancher/icons/-/icons-2.0.55.tgz#394159bddbf786c17a12bc38e59b88346b30dcf4"
   integrity sha512-hPcmsvfYNO36dJ7/lb3JbJC5BOnHbwBylic7HRqhSCSIcFlFaKnRt9aB/hvv3ip0Wo6J5yVEv2o7oXGErXkWFw==
 
-"@rancher/shell@3.0.11":
-  version "3.0.11"
-  resolved "https://registry.yarnpkg.com/@rancher/shell/-/shell-3.0.11.tgz#4c390d3809ec08c11f243546a2990645150a801d"
-  integrity sha512-2Z9vzjBWTVI3na2dYtKeM+8mWIdVveelYlW2OuozSrXWD2Gk4efptgCJUTXnTfjDw1yF4/0pTqn72CQO3ZdenA==
+"@rancher/shell@3.0.12-rc.1":
+  version "3.0.12-rc.1"
+  resolved "https://registry.yarnpkg.com/@rancher/shell/-/shell-3.0.12-rc.1.tgz#8131887866628130411810b4daa1664a3ee0bad7"
+  integrity sha512-9gDOFHJqjoEdZGBCkskbHqZO/XIaKgeX9mjpESvf0EC+xInGQKwHU0Ck6PXMuIhGX0H6pSChuvyADnrtoLKs1w==
   dependencies:
     "@aws-sdk/client-ec2" "3.863.0"
     "@aws-sdk/client-eks" "3.879.0"
@@ -2654,7 +2654,6 @@
     d3 "7.3.0"
     d3-selection "3.0.0"
     dayjs "1.11.18"
-    defu "6.1.4"
     diff2html "3.4.24"
     dompurify "3.2.5"
     element-matches "^0.1.2"
@@ -6663,11 +6662,6 @@ define-properties@^1.1.3, define-properties@^1.2.1:
     define-data-property "^1.0.1"
     has-property-descriptors "^1.0.0"
     object-keys "^1.1.1"
-
-defu@6.1.4:
-  version "6.1.4"
-  resolved "https://registry.yarnpkg.com/defu/-/defu-6.1.4.tgz#4e0c9cf9ff68fe5f3d7f2765cc1a012dfdcb0479"
-  integrity sha512-mEQCMmwJu317oSz8CwdIOdwf3xMif1ttiM8LTufzc3g6kR+9Pe236twL8j3IYT1F7GfRgGcW6MWxzZjLIkuHIg==
 
 delaunator@5:
   version "5.1.0"
