@@ -81,13 +81,13 @@ export default {
   computed: {
     provisioner: {
       get() {
-        let p = `${ this.value?.provisioner || LONGHORN_DRIVER }`;
+        let provisioner = `${ this.value?.provisioner || LONGHORN_DRIVER }`;
 
-        if (p === LONGHORN_DRIVER) {
-          p = `${ p }_${ this.value?.provisionerVersion || LONGHORN_VERSION_V1 }`;
+        if (provisioner === LONGHORN_DRIVER) {
+          provisioner = `${ provisioner }_${ this.value?.provisionerVersion || LONGHORN_VERSION_V1 }`;
         }
 
-        return p;
+        return provisioner;
       },
       set(value) {
         this.randomStr = randomStr(10).toLowerCase();
