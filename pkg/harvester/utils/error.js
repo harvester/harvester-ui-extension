@@ -1,14 +1,13 @@
 const SESSION_LOST_CODES = [401, 403, 404];
-const FALLBACK = 'Session may have expired. Please re-log in and try again.';
 
-export function getLoginAwareErrors(err, t, key = 'harvester.virtualMachine.genericLoginError') {
+export function getLoginAwareErrors(err, message = '') {
   const errors = Array.isArray(err) ? err : (err ? [err] : []);
 
   if (!errors.length) {
     return [];
   }
 
-  const generic = (typeof t === 'function' ? (t(key) || FALLBACK) : FALLBACK);
+  const generic = message;
 
   if (errors.some((e) => SESSION_LOST_CODES.includes(e?._status || e?.response?.status))) {
     return [generic];

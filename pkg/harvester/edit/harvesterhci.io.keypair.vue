@@ -66,7 +66,9 @@ export default {
 
   computed: {
     normalizedErrors() {
-      return getLoginAwareErrors(this.errors, (key) => this.t(key));
+      const message = this.t('harvester.virtualMachine.genericLoginError');
+
+      return getLoginAwareErrors(this.errors, message);
     }
   },
 

@@ -215,7 +215,9 @@ export default {
         buttonCb(true);
         this.cancel();
       } catch (err) {
-        this.errors = getLoginAwareErrors(err, (key) => this.t(key));
+        const message = this.t('harvester.virtualMachine.genericLoginError');
+
+        this.errors = getLoginAwareErrors(err, message);
         buttonCb(false);
       }
     },
