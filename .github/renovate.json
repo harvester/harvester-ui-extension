@@ -51,6 +51,7 @@
       "automerge": false,
       "groupName": "digest dependencies",
       "labels": ["digest-update"],
+      "schedule": ["on the first day of the month"],
       "reviewers": ["a110605", "houhoucoop"]
     }
   ]
