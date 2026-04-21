@@ -8,6 +8,7 @@ import FileSelector, { createOnSelected } from '@shell/components/form/FileSelec
 
 import { randomStr } from '@shell/utils/string';
 import CreateEditView from '@shell/mixins/create-edit-view';
+import { getLoginAwareErrors } from '../utils/error';
 
 export default {
   name: 'HarvesterEditKeypair',
@@ -63,6 +64,14 @@ export default {
     }
   },
 
+  computed: {
+    normalizedErrors() {
+      const message = this.t('harvester.virtualMachine.genericLoginError');
+
+      return getLoginAwareErrors(this.errors, message);
+    }
+  },
+
   methods: { onKeySelected: createOnSelected('publicKey') },
 };
 </script>
@@ -72,10 +81,9 @@ export default {
     :done-route="doneRoute"
     :resource="value"
     :mode="mode"
-    :errors="errors"
+    :errors="normalizedErrors"
     :apply-hooks="applyHooks"
     @finish="save"
-    @error="e=>errors=e"
   >
     <div class="header mb-20">
       <FileSelector
