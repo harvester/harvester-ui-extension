@@ -39,11 +39,20 @@
       "reviewers": ["a110605", "houhoucoop"]
     },
     {
-      "matchUpdateTypes": ["patch", "digest"],
-      "automerge": true,
+      "matchUpdateTypes": ["patch"],
+      "automerge": false,
       "minimumReleaseAge": "7 days",
-      "groupName": "patch digest dependencies",
-      "labels": ["patch-update", "automerge"]
+      "groupName": "patch dependencies",
+      "labels": ["patch-update"],
+      "reviewers": ["a110605", "houhoucoop"]
+    },
+    {
+      "matchUpdateTypes": ["digest", "pinDigest"],
+      "automerge": false,
+      "groupName": "digest dependencies",
+      "labels": ["digest-update"],
+      "schedule": ["on the first day of the month"],
+      "reviewers": ["a110605", "houhoucoop"]
     }
   ]
 }
