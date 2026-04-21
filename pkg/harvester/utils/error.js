@@ -1,4 +1,4 @@
-const SESSION_LOST_CODES = [401, 403, 404];
+const AUTH_ERROR_CODES = [401, 403, 404];
 
 export function getLoginAwareErrors(err, message = '') {
   const errors = Array.isArray(err) ? err : (err ? [err] : []);
@@ -9,7 +9,7 @@ export function getLoginAwareErrors(err, message = '') {
 
   const generic = message;
 
-  if (errors.some((e) => SESSION_LOST_CODES.includes(e?._status || e?.response?.status))) {
+  if (errors.some((e) => AUTH_ERROR_CODES.includes(e?._status || e?.response?.status))) {
     return [generic];
   }
 

@@ -726,7 +726,7 @@ harvester:
         other {Start}
       } Now
     createSSHKey: Create a New...
-    genericLoginError: Network error. Please re-log in and try again.
+    genericLoginError: Authentication failed. Please re-log in and try again.
     installAgent: Install guest agent
     enableUsb: Enable USB Tablet
     advancedOptions:
