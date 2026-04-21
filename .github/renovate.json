@@ -43,11 +43,15 @@
       "automerge": false,
       "minimumReleaseAge": "7 days",
       "groupName": "patch dependencies",
-      "labels": ["patch-update"]
+      "labels": ["patch-update"],
+      "reviewers": ["a110605", "houhoucoop"]
     },
     {
       "matchUpdateTypes": ["digest", "pinDigest"],
-      "enabled": false
+      "automerge": false,
+      "groupName": "digest dependencies",
+      "labels": ["digest-update"],
+      "reviewers": ["a110605", "houhoucoop"]
     }
   ]
 }
