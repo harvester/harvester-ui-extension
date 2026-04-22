@@ -25,7 +25,7 @@ export default {
   },
 
   data() {
-    const user = this.$store.getters['auth/v3User'];
+    const user = this.$store.getters['auth/user'];
 
     return {
       harvesterSettings:          [],

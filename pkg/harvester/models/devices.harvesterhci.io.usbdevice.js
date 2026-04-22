@@ -92,7 +92,7 @@ export default class USBDevice extends SteveModel {
 
     // if this is imported Harvester, there may be users other than admin
     if (!isSingleProduct) {
-      const user = this.$rootGetters['auth/v3User'];
+      const user = this.$rootGetters['auth/user'];
 
       userName = user?.username || user?.id;
     }
