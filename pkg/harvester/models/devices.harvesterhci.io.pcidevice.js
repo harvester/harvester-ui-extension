@@ -2,6 +2,7 @@ import SteveModel from '@shell/plugins/steve/steve-class';
 import { escapeHtml } from '@shell/utils/string';
 import { HCI } from '../types';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
+import { getHarvesterUserName } from '../utils/auth';
 
 const STATUS_DISPLAY = {
   enabled: {
@@ -96,15 +97,8 @@ export default class PCIDevice extends SteveModel {
     if (!this.passthroughClaim) {
       return false;
     }
-    const isSingleProduct = this.$rootGetters['isSingleProduct'];
-    let userName = 'admin';
 
-    // if this is imported Harvester, there may be users other than admin
-    if (!isSingleProduct) {
-      const user = this.$rootGetters['auth/user'];
-
-      userName = user?.username || user?.id;
-    }
+    const userName = getHarvesterUserName(this.$rootGetters);
 
     return this.claimedBy === userName;
   }
