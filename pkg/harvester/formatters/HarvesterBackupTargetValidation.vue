@@ -1,6 +1,7 @@
 <script>
 import { NORMAN } from '@shell/config/types';
 import { HCI } from '../types';
+import { getHarvesterUser } from '../utils/auth';
 
 export default {
   props: {
@@ -25,7 +26,7 @@ export default {
   },
 
   data() {
-    const user = this.$store.getters['auth/v3User'];
+    const user = getHarvesterUser(this.$store.getters);
 
     return {
       harvesterSettings:          [],

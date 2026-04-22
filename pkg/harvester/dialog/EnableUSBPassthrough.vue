@@ -4,6 +4,7 @@ import { Card } from '@components/Card';
 import AsyncButton from '@shell/components/AsyncButton';
 import { escapeHtml } from '@shell/utils/string';
 import { HCI } from '../types';
+import { getHarvesterUserName } from '../utils/auth';
 
 export default {
   name: 'HarvesterEnableUSBPassthrough',
@@ -34,16 +35,7 @@ export default {
     },
 
     async save(buttonCb) {
-      // isSingleProduct == this is a standalone Harvester cluster
-      const isSingleProduct = this.$store.getters['isSingleProduct'];
-      let userName = 'admin';
-
-      // if this is imported Harvester, there may be users other than 'admin
-      if (!isSingleProduct) {
-        const user = this.$store.getters['auth/v3User'];
-
-        userName = user?.username || user?.id;
-      }
+      const userName = getHarvesterUserName(this.$store.getters);
 
       for (let i = 0; i < this.resources.length; i++) {
         const actionResource = this.resources[i];
