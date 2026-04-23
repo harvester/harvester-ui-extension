@@ -1761,6 +1761,34 @@ harvester:
         addMapping: Add Mapping
         addVm: Add VM
         remove: Remove
+      detail:
+        plan: Plan
+        planNamespace: Plan Namespace
+        started: Started
+        completed: Completed
+        vmId: VM ID
+        vmPhase: Phase
+        vmStarted: Started
+        vmCompleted: Completed
+        vmCount: VMs in Plan
+        overallProgress: Overall Progress
+        pipelineSteps: Pipeline Steps
+        migrationName: Migration
+        migrationRun: "Migration #{idx}"
+        noCurrentMigration: No migration is currently running for this plan.
+        noHistory: No migration history available.
+        status:
+          label: Status
+          succeeded: Succeeded
+          failed: Failed
+          running: Running
+          executing: Executing
+          pending: Pending
+          ready: Ready
+          unknown: Unknown
+        tabs:
+          currentMigration: Current Migration
+          history: Migration History
 
     vmImport:
       titles:
