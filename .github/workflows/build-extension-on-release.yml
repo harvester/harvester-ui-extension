@@ -43,7 +43,7 @@ jobs:
     needs:
       - setup-release-tag
       - check-version
-    uses: rancher/dashboard/.github/workflows/build-extension-charts.yml@9eb70a732e9be146722e1dbab431338366c2afc6 # creators-pkg-v3.0.10
+    uses: rancher/dashboard/.github/workflows/build-extension-charts.yml@3b26a36bad555e5e2b8634b24823be29732f287c # master
     permissions:
       actions: write
       contents: write
