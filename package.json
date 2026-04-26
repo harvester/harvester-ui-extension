@@ -21,7 +21,7 @@
     "yaml": "^2.5.1"
   },
   "resolutions": {
-    "@types/node": "25.3.3",
+    "@types/node": "25.6.0",
     "cronstrue": "2.59.0",
     "d3-color": "3.1.0",
     "ejs": "3.1.10",
