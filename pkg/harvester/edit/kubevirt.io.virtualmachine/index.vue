@@ -408,7 +408,7 @@ export default {
       for (let i = 1; i <= this.count; i++) {
         this.value['spec'] = cloneValue.spec;
         this['spec'] = cloneSpec;
-        const suffix = i < 50 ? `0${ i }` : i;
+        const suffix = i < 10 ? `0${ i }` : i;
 
         this.value.cleanForNew();
         this.value.metadata.name = `${ this.namePrefix }${ join }${ suffix }`;
@@ -510,8 +510,8 @@ export default {
     },
 
     validateCount(count) {
-      if (count > 50) {
-        this['count'] = 50;
+      if (count > 10) {
+        this['count'] = 10;
       }
     },
 
