@@ -57,14 +57,9 @@ const FEATURE_FLAGS = {
     'hotplugNic'
   ],
   'v1.7.1': [],
-<<<<<<< HEAD
-=======
-  'v1.8.0': [
-    'hotplugCdRom',
-    'supportBundleFileNameSetting',
+  'v1.7.2': [
     'clusterRegistrationTLSVerify'
   ],
->>>>>>> 62b80b3 (feat: add Insecure Skip TLS Verify checkbox in cluster-registration-url setting (#716))
 };
 
 const generateFeatureFlags = () => {
