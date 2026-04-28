@@ -49,7 +49,8 @@
     "publish-pkgs": "./node_modules/@rancher/shell/scripts/extension/publish",
     "parse-tag-name": "./node_modules/@rancher/shell/scripts/extension/parse-tag-name",
     "commitlint": "commitlint --edit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "agents:generate": "./scripts/generate-agent-and-persona-mds.sh"
   },
   "devDependencies": {
     "@commitlint/load": "^19.8.1",
