@@ -57,6 +57,9 @@ const FEATURE_FLAGS = {
     'hotplugNic'
   ],
   'v1.7.1': [],
+  'v1.7.2': [
+    'clusterRegistrationTLSVerify'
+  ],
 };
 
 const generateFeatureFlags = () => {
