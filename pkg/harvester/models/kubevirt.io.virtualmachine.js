@@ -89,8 +89,9 @@ let _podOwnerMapSource = null;
 function getPodByOwnerName(rootGetters, inStore, ownerName) {
   const podList = rootGetters[`${ inStore }/all`](POD);
 
+  // if not equals (usually means the pod list has been updated), we need to rebuild the map, otherwise we can reuse the map for better performance
   if (_podOwnerMapSource !== podList) {
-    _podOwnerMap = new Map();
+    _podOwnerMap = new Map(); // use Map to store ownerReference name and pod mapping
     for (const pod of podList) {
       const refName = pod.metadata?.ownerReferences?.[0]?.name;
 
@@ -104,41 +105,11 @@ function getPodByOwnerName(rootGetters, inStore, ownerName) {
   return _podOwnerMap.get(ownerName);
 }
 
-let _pvcNameMap = null;
-let _pvcNameMapSource = null;
-
 function getPvcsByNames(rootGetters, inStore, names) {
   const pvcList = rootGetters[`${ inStore }/all`](PVC);
+  const uniqueNames = new Set(names);
 
-  if (_pvcNameMapSource !== pvcList) {
-    _pvcNameMap = new Map();
-    for (const pvc of pvcList) {
-      const name = pvc.metadata?.name;
-
-      if (name) {
-        let list = _pvcNameMap.get(name);
-
-        if (!list) {
-          list = [];
-          _pvcNameMap.set(name, list);
-        }
-        list.push(pvc);
-      }
-    }
-    _pvcNameMapSource = pvcList;
-  }
-
-  const result = [];
-
-  for (const name of names) {
-    const pvcs = _pvcNameMap.get(name);
-
-    if (pvcs) {
-      result.push(...pvcs);
-    }
-  }
-
-  return result;
+  return pvcList.filter((pvc) => uniqueNames.has(pvc.metadata?.name));
 }
 
 const IgnoreMessages = ['pod has unbound immediate PersistentVolumeClaims'];
