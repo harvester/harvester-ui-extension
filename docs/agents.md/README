@@ -25,7 +25,7 @@ We do this because
 When referencing code or configuration it's good to include an example
 
 ## Future Tasks
-- Add real world examples when references code
+- Add real world examples when referencing code
 - Create a GH workflow to monitor `agents.md` folder files in a PR, if changed run generate script and add new AGENTS.md to PR
 - Discuss
   - Three multi AI tool related questions
