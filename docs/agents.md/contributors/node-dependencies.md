@@ -7,6 +7,6 @@ Dependencies are managed via `package.json` and `yarn`
 - To upgrade a dependency use `yarn run upgrade:no-lock ...` instead of `yarn upgrade`
 
 
-We have renovate bot to auto update the dependencies and open upgraded PR in every Sunday morning 10AM.
-For the renovate config, see .github/renovate.json
+Renovate automatically updates dependencies and opens upgrade PRs after 10:00 AM on Sundays (`Asia/Taipei`).
+For the Renovate config, see `.github/renovate.json`.
 

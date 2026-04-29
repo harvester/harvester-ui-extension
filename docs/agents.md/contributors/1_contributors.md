@@ -28,13 +28,15 @@ To get started, follow the `Development Setup` section.
      - `components/`: Store reusable, cross-page UI components here.
      - `config/`: configuration files to put variables definitions
      - `dialog/`: pup up dialog in harvester ui extension
+     - `detail/`: resource customized detail page
      - `edit/`: create and edit page 
      - `formatters/`: customized column formatter
-     - `I10n/`: translation file
+     - `l10n/`: translation file
      - `list/`: list page
      - `mixins/`: harvester VM mixin
      - `models/`: harvester ui extension resource model
      - `pages/`: specific pages like support, members and brand
+     - `styles/`: style file can be imported into harvester ui extension
      - `promptRemove/`: customized prompt remove dialog
      - `routing/`: routing file
      - `store/`: harvester ui extension self store
