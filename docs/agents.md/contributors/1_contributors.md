@@ -21,27 +21,29 @@ To get started, follow the `Development Setup` section.
   - `Linting`: Follow the ESLint configuration in the root.
 
 - **File Structure:**
-  - `.github/`: github workflows yaml files.
-  - `docs/`: Internal documentation source.
-  - `scripts/`: Bash scripts used in build, test and github workflows.
-  - `pkg/`: Internal Harvester UI extensions.
-     - `components/`: Store reusable, cross-page UI components here.
-     - `config/`: configuration files to put variables definitions
-     - `dialog/`: pup up dialog in harvester ui extension
-     - `detail/`: resource customized detail page
-     - `edit/`: create and edit page 
-     - `formatters/`: customized column formatter
-     - `l10n/`: translation file
-     - `list/`: list page
-     - `mixins/`: harvester VM mixin
-     - `models/`: harvester ui extension resource model
-     - `pages/`: specific pages like support, members and brand
-     - `styles/`: style file can be imported into harvester ui extension
-     - `promptRemove/`: customized prompt remove dialog
-     - `routing/`: routing file
-     - `store/`: harvester ui extension self store
-     - `utils/`: util functions
-     - `validators/`:  validation functions
+  - `.github/`: CI/CD workflows and Renovate config.
+  - `docs/`: Documentation source for `AGENTS.md` generation.
+  - `scripts/`: Bash scripts for build, CI and doc generation.
+  - `pkg/harvester/`: Main extension source. Files are named after K8s resource types (e.g., `kubevirt.io.virtualmachine`, `harvesterhci.io.volume`).
+     - `index.ts`: Plugin entry point — registers the product and auto-imports models/detail/edit views.
+     - `types.ts`: `HCI` constant mapping 60+ K8s resource types to string identifiers.
+     - `components/`: Reusable Vue components (VNC/serial console, settings panels, upgrade banners, filters).
+     - `config/`: Constants — settings keys, table column definitions, feature flags, type mappings, doc links.
+     - `detail/`: Read-only detail views per resource type. Complex resources use subdirectories with tabs.
+     - `dialog/`: Modal dialogs for operations (VM clone/migrate/restart, backup/restore, device passthrough, etc.).
+     - `edit/`: Create/edit forms. Complex resources (e.g., VM) split into subcomponents (CpuMemory, Network, Volume, CloudConfig, etc.).
+     - `formatters/`: Table cell formatters — state badges, usage bars, resource references.
+     - `l10n/`: Localization (`en-us.yaml`).
+     - `list/`: List (table) views per resource type, mirroring `detail/` and `edit/` naming.
+     - `mixins/`: Shared Vue mixins — VM helpers (`harvester-vm/`) and disk helpers (`harvester-disk.js`).
+     - `models/`: Model classes extending `SteveModel` with computed properties and actions. Base class: `harvester.js`.
+     - `pages/`: Route-level pages — dashboard, support, console, members, brand, alertmanager.
+     - `promptRemove/`: Custom delete-confirmation dialogs (VM, backup).
+     - `routing/`: Vue Router config — all product routes (CRUD, console, support, upgrade, etc.).
+     - `store/`: Vuex modules — `harvester-common.js` for shared state; `harvester-store/` for VM/resource creation actions with Steve integration.
+     - `styles/`: Global SCSS files.
+     - `utils/`: Helpers — VM volume templates, CPU/memory calc, cron parsing, regex validators, feature flags.
+     - `validators/`: Form validation functions per resource type, pushing i18n error messages.
   
   
 
