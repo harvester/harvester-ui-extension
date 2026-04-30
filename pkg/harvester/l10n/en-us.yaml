@@ -98,7 +98,6 @@ harvester:
         tip: Please enter a schedule name!
         success: 'Schedule { name } created successfully.'
         failed: 'Failed create schedule!'
-  
     cloneVM:
       title: Clone Virtual Machine
       name: New Virtual Machine Name
