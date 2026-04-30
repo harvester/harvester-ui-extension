@@ -61,7 +61,7 @@ export default {
     allNamespaces() {
       const inStore = this.$store.getters['currentProduct'].inStore;
 
-      return this.$store.getters[`${ inStore }/all`](NAMESPACE).map((ns) => ns.id);
+      return this.$store.getters[`${ inStore }/all`](NAMESPACE).filter((ns) => !ns.isSystem).map((ns) => ns.id);
     },
 
     whitelistedOptions() {
