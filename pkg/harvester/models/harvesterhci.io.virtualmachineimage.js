@@ -39,9 +39,6 @@ function isReady() {
 export default class HciVmImage extends HarvesterResource {
   get availableActions() {
     let out = super._availableActions;
-    const toFilter = ['goToEditYaml'];
-
-    out = out.filter( (A) => !toFilter.includes(A.action));
 
     // show `Clone` only when imageSource is `download`
     if (this.imageSource !== 'download') {
