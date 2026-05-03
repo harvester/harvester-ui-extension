@@ -3,6 +3,9 @@ name: "[PR Management] Auto Assign Collect Data"
 on:
   pull_request:
     types: [opened, ready_for_review]
+    branches:
+      - main
+      - 'release-harvester-v*'
 
 jobs:
   collect:
