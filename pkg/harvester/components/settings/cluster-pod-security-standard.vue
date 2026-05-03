@@ -40,7 +40,12 @@ export default {
       whitelistedNamespaces = parsed.whitelistedNamespacesList ? parsed.whitelistedNamespacesList.split(',') : [];
       privilegedNamespaces = parsed.privilegedNamespacesList ? parsed.privilegedNamespacesList.split(',') : [];
       restrictedNamespaces = parsed.restrictedNamespacesList ? parsed.restrictedNamespacesList.split(',') : [];
-    } catch (e) {}
+    } catch (e) {
+      enabled = false;
+      whitelistedNamespaces = [];
+      privilegedNamespaces = [];
+      restrictedNamespaces = [];
+    }
 
     return {
       enabled,
