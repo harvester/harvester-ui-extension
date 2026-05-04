@@ -1,4 +1,4 @@
-name: "[PR Management] Add PR Label Collect Data"
+name: "PR Management - Add PR Label Collect Data"
 
 on:
   pull_request:

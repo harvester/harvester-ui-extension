@@ -1,9 +1,9 @@
-name: "[PR Management] Add PR Label"
+name: "PR Management - Add PR Label"
 
 on:
   workflow_run:
     workflows:
-      - "[PR Management] Add PR Label Collect Data"
+      - "PR Management - Add PR Label Collect Data"
     types: [completed]
 
 jobs:
