@@ -64,6 +64,12 @@ export default {
         value: 'status.productID',
         sort:  ['status.productID', 'status.vendorID']
       },
+      {
+        name:     'classType',
+        labelKey: 'harvester.usb.classType',
+        value:    'status.classType',
+        sort:     ['status.classType']
+      },
     ];
 
     if (!isSingleProduct) {

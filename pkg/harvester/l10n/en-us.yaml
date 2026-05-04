@@ -1958,6 +1958,7 @@ harvester:
       title: Cannot Disable Passthrough
       message: Please detach the device from the VM and save it first before disabling passthrough.
     enablePassthroughWarning: 'Please re-enable the USB device if the device path changes in the following situations:<br/>&nbsp1) Re-plugging the USB device.<br/>&nbsp2) Rebooting the node.<br/><br/>An incorrect device path may cause passthrough to fail.'
+    classType: Class Type
 
   harvesterVlanConfigMigrateDialog:
     targetClusterNetwork:
