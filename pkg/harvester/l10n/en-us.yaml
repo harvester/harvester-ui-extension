@@ -2165,11 +2165,13 @@ typeLabel:
       one { PCI Device }
       other { PCI Devices }
     }
+
   persistentvolumeclaim: |-
     {count, plural,
       one { Volume }
       other { Volumes }
     }
+
   network.harvesterhci.io.clusternetwork: |-
     {count, plural,
       one { Cluster Network }

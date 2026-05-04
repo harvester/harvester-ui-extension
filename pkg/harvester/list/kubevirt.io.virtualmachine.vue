@@ -12,6 +12,11 @@ import { HCI } from '../types';
 import HarvesterVmState from '../formatters/HarvesterVmState';
 import ConsoleBar from '../components/VMConsoleBar';
 
+const ENCRYPTED_VOLUME_TOOLTIP_KEYS = {
+  all:     'harvester.virtualMachine.volume.lockTooltip.all',
+  partial: 'harvester.virtualMachine.volume.lockTooltip.partial',
+};
+
 export const VM_HEADERS = [
   STATE,
   {
@@ -163,6 +168,12 @@ export default {
      */
     hasBackUpRestoreInProgress() {
       return !!this.rows.find((r) => r.restoreResource && !r.restoreResource.fromSnapshot && !r.restoreResource.isComplete);
+    },
+
+    vmRestartRequiredNames() {
+      return this.allVMs
+        .filter((vm) => vm.isRestartRequired)
+        .map((vm) => vm.metadata.name);
     }
   },
 
@@ -181,53 +192,35 @@ export default {
   },
 
   watch: {
-    allVMs: {
-      handler(neu) {
-        const vmNames = [];
+    vmRestartRequiredNames(vmNames) {
+      const count = vmNames.length;
 
-        neu.forEach((vm) => {
-          if (vm.isRestartRequired) {
-            vmNames.push(vm.metadata.name);
-          }
-        });
-        const count = vmNames.length;
+      if (count === 0 && this.restartNotificationDisplayed) {
+        this.restartNotificationDisplayed = false;
 
-        if ( count === 0 && this.restartNotificationDisplayed) {
-          this.restartNotificationDisplayed = false;
+        return;
+      }
 
-          return;
+      if (count > 0) {
+        // clear old notification before showing new one
+        if (this.restartNotificationDisplayed) {
+          this.$store.dispatch('growl/clear');
         }
 
-        if (count > 0) {
-          // clear old notification before showing new one
-          if (this.restartNotificationDisplayed) {
-            this.$store.dispatch('growl/clear');
-          }
-        }
-
-        if (count > 0 && vmNames.length > 0) {
-          this.$store.dispatch('growl/warning', {
-            title:   this.t('harvester.notification.restartRequired.title', { count }),
-            message: this.t('harvester.notification.restartRequired.message', { vmNames: vmNames.join(', ') }),
-            timeout: 10000,
-          }, { root: true });
-          this.restartNotificationDisplayed = true;
-        }
-      },
-      deep: true,
+        this.$store.dispatch('growl/warning', {
+          title:   this.t('harvester.notification.restartRequired.title', { count }),
+          message: this.t('harvester.notification.restartRequired.message', { vmNames: vmNames.join(', ') }),
+          timeout: 10000,
+        }, { root: true });
+        this.restartNotificationDisplayed = true;
+      }
     }
   },
   methods: {
     lockIconTooltipMessage(row) {
-      const message = '';
+      const key = ENCRYPTED_VOLUME_TOOLTIP_KEYS[row.encryptedVolumeType];
 
-      if (row.encryptedVolumeType === 'all') {
-        return this.t('harvester.virtualMachine.volume.lockTooltip.all');
-      } else if (row.encryptedVolumeType === 'partial') {
-        return this.t('harvester.virtualMachine.volume.lockTooltip.partial');
-      }
-
-      return message;
+      return key ? this.t(key) : '';
     }
   }
 };
@@ -267,7 +260,7 @@ export default {
           >
             {{ scope.row.metadata.name }}
             <i
-              v-if="lockIconTooltipMessage(scope.row)"
+              v-if="scope.row.encryptedVolumeType !== 'none'"
               v-tooltip="lockIconTooltipMessage(scope.row)"
               class="icon icon-lock"
               :class="{'green-icon': scope.row.encryptedVolumeType === 'all', 'yellow-icon': scope.row.encryptedVolumeType === 'partial'}"

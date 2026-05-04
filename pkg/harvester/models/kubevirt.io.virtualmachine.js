@@ -83,6 +83,42 @@ const VMIPhase = {
 
 let productInStore;
 
+let _podOwnerMap = null;
+let _podOwnerMapSource = null;
+
+function getPodByOwnerName(rootGetters, inStore, ownerName) {
+  const podList = rootGetters[`${ inStore }/all`](POD);
+
+  if (!Array.isArray(podList)) {
+    return undefined;
+  }
+  // if not equals (usually means the pod list has been updated), we need to rebuild the map, otherwise we can reuse the map for better performance
+  if (_podOwnerMapSource !== podList) {
+    _podOwnerMap = new Map(); // use Map to store ownerReference name and pod mapping
+    for (const pod of podList) {
+      const refName = pod.metadata?.ownerReferences?.[0]?.name;
+
+      if (refName) {
+        _podOwnerMap.set(refName, pod);
+      }
+    }
+    _podOwnerMapSource = podList;
+  }
+
+  return _podOwnerMap.get(ownerName);
+}
+
+function getPvcsByNames(rootGetters, inStore, names) {
+  const pvcList = rootGetters[`${ inStore }/all`](PVC);
+
+  if (!Array.isArray(pvcList)) {
+    return [];
+  }
+  const uniqueNames = new Set(names);
+
+  return pvcList.filter((pvc) => uniqueNames.has(pvc.metadata?.name));
+}
+
 const IgnoreMessages = ['pod has unbound immediate PersistentVolumeClaims'];
 
 export default class VirtVm extends HarvesterResource {
@@ -660,16 +696,13 @@ export default class VirtVm extends HarvesterResource {
 
   get podResource() {
     const inStore = this.productInStore;
-
     const vmiResource = this.$rootGetters[`${ inStore }/byId`](HCI.VMI, this.id);
-    const podList = this.$rootGetters[`${ inStore }/all`](POD);
 
-    return podList.find((P) => {
-      return (
-        vmiResource?.metadata?.name &&
-        vmiResource?.metadata?.name === P.metadata?.ownerReferences?.[0].name
-      );
-    });
+    if (!vmiResource?.metadata?.name) {
+      return undefined;
+    }
+
+    return getPodByOwnerName(this.$rootGetters, inStore, vmiResource.metadata.name);
   }
 
   get isPaused() {
@@ -710,17 +743,13 @@ export default class VirtVm extends HarvesterResource {
   get vmi() {
     const inStore = this.productInStore;
 
-    const vmis = this.$rootGetters[`${ inStore }/all`](HCI.VMI);
-
-    return vmis.find((VMI) => VMI.id === this.id);
+    return this.$rootGetters[`${ inStore }/byId`](HCI.VMI, this.id);
   }
 
   get volumes() {
-    const pvcs = this.$rootGetters[`${ this.productInStore }/all`](PVC);
-
     const volumeClaimNames = this.spec.template.spec.volumes?.map((v) => v.persistentVolumeClaim?.claimName).filter((v) => !!v) || [];
 
-    return pvcs.filter((pvc) => volumeClaimNames.includes(pvc.metadata.name));
+    return getPvcsByNames(this.$rootGetters, this.productInStore, volumeClaimNames);
   }
 
   get lvmVolumes() {
@@ -751,17 +780,6 @@ export default class VirtVm extends HarvesterResource {
 
     if (vmiFailureCond) {
       return { status: 'VMI error', detailedMessage: vmiFailureCond.message };
-    }
-
-    if ((this.vmi || this.isVMCreated) && this.podResource) {
-      // const podStatus = this.podResource.getPodStatus;
-      // if (POD_STATUS_ALL_ERROR.includes(podStatus?.status)) {
-      //   return {
-      //     ...podStatus,
-      //     status: 'LAUNCHER_POD_ERROR',
-      //     pod:    this.podResource,
-      //   };
-      // }
     }
 
     return this?.vmi?.status?.phase;
@@ -901,9 +919,7 @@ export default class VirtVm extends HarvesterResource {
 
     const inStore = this.productInStore;
 
-    const allRestore = this.$rootGetters[`${ inStore }/all`](HCI.RESTORE);
-
-    const res = allRestore.find((O) => O.id === id);
+    const res = this.$rootGetters[`${ inStore }/byId`](HCI.RESTORE, id);
 
     if (res) {
       const allBackups = this.$rootGetters[`${ inStore }/all`](HCI.BACKUP);
@@ -1073,42 +1089,6 @@ export default class VirtVm extends HarvesterResource {
     return out;
   }
 
-  get warningCount() {
-    return this.resourcesStatus.warningCount;
-  }
-
-  get errorCount() {
-    return this.resourcesStatus.errorCount;
-  }
-
-  get resourcesStatus() {
-    const inStore = this.productInStore;
-    const vmList = this.$rootGetters[`${ inStore }/all`](HCI.VM);
-    let warningCount = 0;
-    let errorCount = 0;
-
-    vmList.forEach((vm) => {
-      const status = vm.actualState;
-
-      if (status === VM_ERROR) {
-        errorCount += 1;
-      } else if (
-        status === 'Stopping' ||
-        status === 'Waiting' ||
-        status === 'Pending' ||
-        status === 'Starting' ||
-        status === 'Terminating'
-      ) {
-        warningCount += 1;
-      }
-    });
-
-    return {
-      warningCount,
-      errorCount
-    };
-  }
-
   get volumeClaimTemplates() {
     return parseVolumeClaimTemplates(this);
   }
@@ -1126,7 +1106,6 @@ export default class VirtVm extends HarvesterResource {
   get rootImageId() {
     let imageId = '';
     const inStore = this.productInStore;
-    const pvcs = this.$rootGetters[`${ inStore }/all`](PVC) || [];
 
     const volumes = this.spec.template.spec.volumes || [];
 
@@ -1136,9 +1115,7 @@ export default class VirtVm extends HarvesterResource {
     });
 
     if (!isNoExistingVolume) {
-      const existingVolume = pvcs.find(
-        (P) => P.id === `${ this.metadata.namespace }/${ firstVolumeName }`
-      );
+      const existingVolume = this.$rootGetters[`${ inStore }/byId`](PVC, `${ this.metadata.namespace }/${ firstVolumeName }`);
 
       if (existingVolume) {
         return existingVolume?.metadata?.annotations?.[
@@ -1316,8 +1293,7 @@ export default class VirtVm extends HarvesterResource {
   }
 
   get isBackupTargetUnavailable() {
-    const allSettings = this.$rootGetters['harvester/all'](HCI.SETTING) || [];
-    const backupTargetSetting = allSettings.find( (O) => O.id === 'backup-target');
+    const backupTargetSetting = this.$rootGetters['harvester/byId'](HCI.SETTING, 'backup-target');
 
     return isBackupTargetSettingUnavailable(backupTargetSetting);
   }
