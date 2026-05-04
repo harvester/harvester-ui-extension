@@ -1,0 +1,33 @@
+name: "PR Management Add PR Label"
+
+on:
+  workflow_run:
+    workflows:
+      - "PR Management Add PR Label Collect Data"
+    types: [completed]
+
+jobs:
+  auto-assign-pr-label:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      actions: read
+      pull-requests: write
+    steps:
+      - name: Download PR data artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: pr-add-label-data
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Load PR data
+        run: |
+          cat pr-add-label-data.env >> $GITHUB_ENV
+
+      - name: Set PR label
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "PR_LABEL = $PR_LABEL"
+          gh pr edit "$PR_NUMBER" --repo "${{ github.repository }}" --add-label "$PR_LABEL"

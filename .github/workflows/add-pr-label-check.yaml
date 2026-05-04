@@ -1,0 +1,39 @@
+name: "PR Management Add PR Label Collect Data"
+
+on:
+  pull_request:
+    types: [opened, reopened, edited]
+    branches:
+      - main
+      - 'release-harvester-v*'
+
+jobs:
+  collect:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.base_ref }}
+
+      - name: Setup Nodejs and yarn install
+        uses: ./.github/actions/setup
+
+      - name: Extract PR label
+        run: |
+          PR_LABEL=$(node ./scripts/extract-release-label.mjs "${{ github.event.pull_request.title }}")
+          echo "PR_LABEL=$PR_LABEL"
+          {
+            echo "PR_NUMBER=${{ github.event.pull_request.number }}"
+            echo "PR_LABEL=$PR_LABEL"
+          } > pr-add-label-data.env
+
+      - name: Upload PR data artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pr-add-label-data
+          path: pr-add-label-data.env

@@ -1,0 +1,28 @@
+name: "PR Management Request Backport via Mergify Collect Data"
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+jobs:
+  collect:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Save PR data to artifact
+        run: |
+          labels_json='${{ toJson(github.event.pull_request.labels.*.name) }}'
+          {
+            echo "PR_NUMBER=${{ github.event.pull_request.number }}"
+            echo "PR_LABELS=$(echo "$labels_json" | jq -r '[.[]] | join(",")')"
+          } > pr-backport-request-data.env
+
+      - name: Upload PR data artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: pr-backport-request-data
+          path: pr-backport-request-data.env

@@ -1,41 +1,47 @@
-name: "[PR Management] Request Backport via Mergify"
+name: "PR Management Request Backport via Mergify"
 
 on:
-  pull_request_target:
-    types: [closed]
-    branches: [main]
-
-permissions:
-  pull-requests: write
+  workflow_run:
+    workflows:
+      - "PR Management Request Backport via Mergify Collect Data"
+    types: [completed]
 
 jobs:
   comment-backport:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    permissions:
+      actions: read
+      pull-requests: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Download PR data artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          ref: ${{ github.base_ref }}
+          name: pr-backport-request-data
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Load PR data
+        run: |
+          cat pr-backport-request-data.env >> $GITHUB_ENV
 
       - name: Post Mergify backport command
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
-          pr_number=${{ github.event.pull_request.number }}
+          pr_number="$PR_NUMBER"
           repo="${{ github.repository }}"
 
-          labels_json='${{ toJson(github.event.pull_request.labels.*.name) }}'
-          labels=$(echo "$labels_json" | jq -r '.[] // empty')
+          labels=$(echo "$PR_LABELS" | tr ',' '\n')
 
           echo "Labels on PR: $labels"
 
           matches=$(echo "$labels" | grep -oE '^require backport/v[0-9]+\.[0-9]+$' || true)
 
           if [[ -z "$matches" ]]; then
-            echo "No back‑port labels found — skipping."
+            echo "No back-port labels found — skipping."
             exit 0
           fi
 
