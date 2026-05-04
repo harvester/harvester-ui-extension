@@ -106,6 +106,15 @@ export default class HciStorageClass extends StorageClass {
 
   get availableActions() {
     let out = super.availableActions || [];
+    const canUpdate = !!this.linkFor('update');
+
+    out = out.map((action) => {
+      if (['setDefault', 'setAsDefault', 'resetDefault'].includes(action.action)) {
+        return { ...action, enabled: canUpdate };
+      }
+
+      return action;
+    });
 
     if (this.isInternalStorageClass()) {
       out = out.filter((action) => {

@@ -61,7 +61,7 @@ export default class HciVmImage extends HarvesterResource {
       },
       {
         action:  'encryptImage',
-        enabled: this.volumeEncryptionFeatureEnabled && !this.isEncrypted,
+        enabled: this.volumeEncryptionFeatureEnabled && !this.isEncrypted && canCreateVM,
         icon:    'icon icon-lock',
         label:   this.t('harvester.action.encryptImage'),
       },
