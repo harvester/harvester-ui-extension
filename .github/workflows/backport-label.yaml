@@ -1,9 +1,9 @@
-name: "[PR Management] Add Backport Labels"
+name: "PR Management Add Backport Labels"
 
 on:
   workflow_run:
     workflows:
-      - "[PR Management] Add Labels Collect Data"
+      - "PR Management Add Labels Collect Data"
     types: [completed]
 
 jobs:

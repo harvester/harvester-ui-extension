@@ -1,4 +1,4 @@
-name: "[PR Management] Request Backport via Mergify Collect Data"
+name: "PR Management Request Backport via Mergify Collect Data"
 
 on:
   pull_request:

@@ -1,9 +1,9 @@
-name: "[PR Management] Request Backport via Mergify"
+name: "PR Management Request Backport via Mergify"
 
 on:
   workflow_run:
     workflows:
-      - "[PR Management] Request Backport via Mergify Collect Data"
+      - "PR Management Request Backport via Mergify Collect Data"
     types: [completed]
 
 jobs:

@@ -1,9 +1,9 @@
-name: "[PR Management] Auto Assign"
+name: "PR Management Auto Assign"
 
 on:
   workflow_run:
     workflows:
-      - "[PR Management] Auto Assign Collect Data"
+      - "PR Management Auto Assign Collect Data"
     types: [completed]
 
 jobs:
