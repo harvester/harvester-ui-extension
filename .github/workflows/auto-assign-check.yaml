@@ -1,4 +1,4 @@
-name: "[PR Management] Auto Assign Collect Data"
+name: "PR Management Auto Assign Collect Data"
 
 on:
   pull_request:
