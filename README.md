@@ -1,4 +1,4 @@
-# harvester-ui-extension
+# harvester-ui-extensionsss
 
 The Harvester UI Extension is a Rancher extension that provides the user interface for [Harvester](https://harvesterhci.io) within the [Rancher Dashboard](https://github.com/rancher/dashboard).
 
