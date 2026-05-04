@@ -96,7 +96,7 @@ export default class VirtVm extends HarvesterResource {
 
     return [
       {
-        action:     'stopVM',
+        action:     'stopVMwe',
         altAction:  'altStopVM',
         enabled:    !!this.actions?.stop,
         icon:       'icon icon-close',
