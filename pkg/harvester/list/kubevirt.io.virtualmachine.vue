@@ -12,6 +12,11 @@ import { HCI } from '../types';
 import HarvesterVmState from '../formatters/HarvesterVmState';
 import ConsoleBar from '../components/VMConsoleBar';
 
+const ENCRYPTED_VOLUME_TOOLTIP_KEYS = {
+  all:     'harvester.virtualMachine.volume.lockTooltip.all',
+  partial: 'harvester.virtualMachine.volume.lockTooltip.partial',
+};
+
 export const VM_HEADERS = [
   STATE,
   {
@@ -213,12 +218,7 @@ export default {
   },
   methods: {
     lockIconTooltipMessage(row) {
-      const tooltipKeyByEncryptedVolumeType = {
-        all:     'harvester.virtualMachine.volume.lockTooltip.all',
-        partial: 'harvester.virtualMachine.volume.lockTooltip.partial',
-      };
-
-      const key = tooltipKeyByEncryptedVolumeType[row.encryptedVolumeType];
+      const key = ENCRYPTED_VOLUME_TOOLTIP_KEYS[row.encryptedVolumeType];
 
       return key ? this.t(key) : '';
     }

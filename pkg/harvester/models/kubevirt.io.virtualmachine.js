@@ -89,6 +89,9 @@ let _podOwnerMapSource = null;
 function getPodByOwnerName(rootGetters, inStore, ownerName) {
   const podList = rootGetters[`${ inStore }/all`](POD);
 
+  if (!Array.isArray(podList)) {
+    return undefined;
+  }
   // if not equals (usually means the pod list has been updated), we need to rebuild the map, otherwise we can reuse the map for better performance
   if (_podOwnerMapSource !== podList) {
     _podOwnerMap = new Map(); // use Map to store ownerReference name and pod mapping
@@ -107,6 +110,10 @@ function getPodByOwnerName(rootGetters, inStore, ownerName) {
 
 function getPvcsByNames(rootGetters, inStore, names) {
   const pvcList = rootGetters[`${ inStore }/all`](PVC);
+
+  if (!Array.isArray(pvcList)) {
+    return [];
+  }
   const uniqueNames = new Set(names);
 
   return pvcList.filter((pvc) => uniqueNames.has(pvc.metadata?.name));
