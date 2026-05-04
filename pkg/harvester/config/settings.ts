@@ -41,7 +41,8 @@ export const HCI_SETTING = {
   RANCHER_CLUSTER:                        'rancher-cluster',
   MAX_HOTPLUG_RATIO:                      'max-hotplug-ratio',
   KUBEVIRT_MIGRATION:                     'kubevirt-migration',
-  INSTANCE_MANAGER_RESOURCES:             'instance-manager-resources'
+  INSTANCE_MANAGER_RESOURCES:             'instance-manager-resources',
+  CLUSTER_POD_SECURITY_STANDARD:          'cluster-pod-security-standard'
 };
 
 export const HCI_ALLOWED_SETTINGS = {
@@ -130,6 +131,9 @@ export const HCI_ALLOWED_SETTINGS = {
   },
   [HCI_SETTING.INSTANCE_MANAGER_RESOURCES]: {
     kind: 'json', from: 'import', featureFlag: 'instanceManagerResourcesSetting'
+  },
+  [HCI_SETTING.CLUSTER_POD_SECURITY_STANDARD]: {
+    kind: 'json', from: 'import', canReset: true, featureFlag: 'clusterPodSecurityStandardSetting'
   }
 };
 
