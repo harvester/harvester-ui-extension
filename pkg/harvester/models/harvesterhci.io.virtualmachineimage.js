@@ -52,6 +52,7 @@ export default class HciVmImage extends HarvesterResource {
       canCreateVM = false;
     }
 
+    const canCreateImage = !!this.$getters?.['schemaFor']?.(HCI.IMAGE)?.collectionMethods?.includes('POST');
     const customActions = this.isReady ? [
       {
         action:  'createFromImage',
@@ -61,13 +62,13 @@ export default class HciVmImage extends HarvesterResource {
       },
       {
         action:  'encryptImage',
-        enabled: this.volumeEncryptionFeatureEnabled && !this.isEncrypted && canCreateVM,
+        enabled: this.volumeEncryptionFeatureEnabled && !this.isEncrypted && canCreateImage,
         icon:    'icon icon-lock',
         label:   this.t('harvester.action.encryptImage'),
       },
       {
         action:  'decryptImage',
-        enabled: this.volumeEncryptionFeatureEnabled && this.isEncrypted,
+        enabled: this.volumeEncryptionFeatureEnabled && this.isEncrypted && canCreateImage,
         icon:    'icon icon-unlock',
         label:   this.t('harvester.action.decryptImage'),
       },
