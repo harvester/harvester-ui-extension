@@ -19,16 +19,18 @@ export default class ScheduleVmBackup extends HarvesterResource {
       }
     });
 
+    const canUpdate = !!this.linkFor('update');
+
     return [
       {
         action:  'resumeSchedule',
-        enabled: ucFirst(this.state) === STATES.suspended.label,
+        enabled: canUpdate && ucFirst(this.state) === STATES.suspended.label,
         icon:    'icons icon-play',
         label:   this.t('harvester.action.resumeSchedule'),
       },
       {
         action:  'suspendSchedule',
-        enabled: ucFirst(this.state) === STATES.active.label,
+        enabled: canUpdate && ucFirst(this.state) === STATES.active.label,
         icon:    'icons icon-pause',
         label:   this.t('harvester.action.suspendSchedule'),
       },

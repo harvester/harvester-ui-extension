@@ -130,6 +130,8 @@ export default class VirtVm extends HarvesterResource {
       clone.action = 'goToCloneVM';
     }
 
+    const canCreateVMSSchedule = !!this.$getters?.['schemaFor']?.(HCI.SCHEDULE_VM_BACKUP)?.collectionMethods?.includes('POST');
+
     return [
       {
         action:     'stopVM',
@@ -207,7 +209,7 @@ export default class VirtVm extends HarvesterResource {
       },
       {
         action:  'createSchedule',
-        enabled: this.schedulingVMBackupFeatureEnabled,
+        enabled:  canCreateVMSSchedule && this.schedulingVMBackupFeatureEnabled,
         icon:    'icon icon-history',
         label:   this.t('harvester.action.createSchedule')
       },

@@ -5,6 +5,20 @@ import Secret from '@shell/models/secret';
 import { NAMESPACE } from '@shell/config/types';
 
 export default class HciSecret extends Secret {
+  get _availableActions() {
+    let out = super._availableActions;
+
+    out = out.map((action) => {
+      if (['download'].includes(action.action)) {
+        return { ...action, enabled: !!this.linkFor('update') };
+      }
+
+      return action;
+    });
+
+    return out;
+  }
+
   // prevent harvester secret detail page be overridden.
   // See isFullPageOverride in https://github.com/rancher/dashboard/blob/master/shell/components/ResourceDetail/index.vue
   get fullDetailPageOverride() {

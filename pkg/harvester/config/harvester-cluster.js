@@ -686,7 +686,7 @@ export function init($plugin, store) {
     },
     resource:       NETWORK_ATTACHMENT,
     resourceDetail: HCI.NETWORK_ATTACHMENT,
-    resourceEdit:   HCI.NETWORK_ATTACHMENT
+    resourceEdit:   HCI.NETWORK_ATTACHMENT,
   });
 
   virtualType({
