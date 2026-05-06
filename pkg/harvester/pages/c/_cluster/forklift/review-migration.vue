@@ -1,5 +1,5 @@
-<script>
-import { defineComponent, ref, computed } from 'vue';
+<script setup>
+import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import Loading from '@shell/components/Loading';
@@ -24,246 +24,247 @@ const schema = {
   metadata: { name: HCI.FORKLIFT_PLAN },
 };
 
-export default defineComponent({
-  name: 'ForkliftReviewMigration',
+const store = useStore();
+const route = useRoute();
+const router = useRouter();
+const { t } = useI18n(store);
 
-  components: {
-    Loading,
-    Masthead,
-    AsyncButton,
-    Banner,
-    MappingsCell,
-    RcItemCard,
-  },
+const vms = ref([]);
+const networkMappings = ref([]);
+const storageMappings = ref([]);
+const errors = ref([]);
+const loading = ref(true);
 
-  setup() {
-    const store = useStore();
-    const route = useRoute();
-    const router = useRouter();
-    const { t } = useI18n(store);
+const NAMESPACE = 'forklift';
+const TARGET_NAMESPACE = 'default';
+const providerName = computed(() => route.query.provider || 'vsphere');
+const networkMapName = computed(() => route.query.networkMap || '');
+const storageMapName = computed(() => route.query.storageMap || '');
 
-    const vms = ref([]);
-    const networkMappings = ref([]);
-    const storageMappings = ref([]);
-    const errors = ref([]);
-    const loading = ref(true);
+const totalVCpu = computed(() => vms.value.reduce((sum, vm) => sum + (vm.cpuCount || vm.numCPU || 0), 0));
 
-    const providerName = computed(() => route.query.provider || 'vsphere');
-    const namespace = computed(() => route.query.namespace || 'default');
-    const networkMapName = computed(() => route.query.networkMap || '');
-    const storageMapName = computed(() => route.query.storageMap || '');
+const totalMemoryGB = computed(() => {
+  const totalMB = vms.value.reduce((sum, vm) => sum + (vm.memoryMB || vm.memory || 0), 0);
 
-    const totalVCpu = computed(() => vms.value.reduce((sum, vm) => sum + (vm.cpuCount || vm.numCPU || 0), 0));
+  return Math.round(totalMB / 1024);
+});
 
-    const totalMemoryGB = computed(() => {
-      const totalMB = vms.value.reduce((sum, vm) => sum + (vm.memoryMB || vm.memory || 0), 0);
+const totalStorageGB = computed(() => {
+  let totalBytes = 0;
 
-      return Math.round(totalMB / 1024);
-    });
+  vms.value.forEach((vm) => {
+    if (vm.disks && vm.disks.length > 0) {
+      totalBytes += vm.disks.reduce((sum, d) => sum + (d.capacity || 0), 0);
+    }
+  });
 
-    const totalStorageGB = computed(() => {
-      let totalBytes = 0;
+  return Math.round(totalBytes / (1024 * 1024 * 1024));
+});
 
-      vms.value.forEach((vm) => {
-        if (vm.disks && vm.disks.length > 0) {
-          totalBytes += vm.disks.reduce((sum, d) => sum + (d.capacity || 0), 0);
-        }
-      });
+const vmCards = computed(() => {
+  return vms.value.map((vm) => {
+    const cpus = vm.cpuCount || vm.numCPU || 0;
+    const memMB = vm.memoryMB || vm.memory || 0;
+    const memGB = memMB ? `${ Math.round(memMB / 1024) } GB` : '-';
 
-      return Math.round(totalBytes / (1024 * 1024 * 1024));
-    });
+    let totalDiskBytes = 0;
 
-    const vmCards = computed(() => {
-      return vms.value.map((vm) => {
-        const cpus = vm.cpuCount || vm.numCPU || 0;
-        const memMB = vm.memoryMB || vm.memory || 0;
-        const memGB = memMB ? `${ Math.round(memMB / 1024) } GB` : '-';
+    if (vm.disks && vm.disks.length > 0) {
+      totalDiskBytes = vm.disks.reduce((sum, d) => sum + (d.capacity || 0), 0);
+    }
 
-        let totalDiskBytes = 0;
+    const diskDisplay = totalDiskBytes ? `${ Math.round(totalDiskBytes / (1024 * 1024 * 1024)) } GB` : '-';
+    const os = vm.guestName || vm.guestOS || vm.os || '-';
 
-        if (vm.disks && vm.disks.length > 0) {
-          totalDiskBytes = vm.disks.reduce((sum, d) => sum + (d.capacity || 0), 0);
-        }
-
-        const diskDisplay = totalDiskBytes ? `${ Math.round(totalDiskBytes / (1024 * 1024 * 1024)) } GB` : '-';
-        const os = vm.guestName || vm.guestOS || vm.os || '-';
-
-        const vmNetworkMappings = networkMappings.value.filter((m) => m.vmId === vm.id);
-        const vmStorageMappings = storageMappings.value.filter((m) => m.vmId === vm.id);
-
-        return {
-          id:              vm.id,
-          name:            vm.name || vm.id,
-          os,
-          cpus,
-          memGB,
-          diskDisplay,
-          networkMappings: vmNetworkMappings,
-          storageMappings: vmStorageMappings,
-        };
-      });
-    });
-
-    const cancel = () => {
-      router.push({
-        name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
-        params: {
-          product: route.params.product,
-          cluster: route.params.cluster,
-        }
-      });
-    };
-
-    const startMigration = async(buttonCb) => {
-      const inStore = store.getters['currentProduct'].inStore;
-
-      try {
-        const planName = `${ providerName.value }-plan-${ Math.random().toString(36).substring(2, 7) }`;
-
-        const planSpec = {
-          provider: {
-            source: {
-              apiVersion: 'forklift.konveyor.io/v1beta1',
-              kind:       'Provider',
-              name:       providerName.value,
-              namespace:  namespace.value,
-            },
-            destination: {
-              apiVersion: 'forklift.konveyor.io/v1beta1',
-              kind:       'Provider',
-              name:       'host',
-              namespace:  'forklift',
-            },
-          },
-          map: {
-            network: {
-              apiVersion: 'forklift.konveyor.io/v1beta1',
-              kind:       'NetworkMap',
-              name:       networkMapName.value,
-              namespace:  namespace.value,
-            },
-            storage: {
-              apiVersion: 'forklift.konveyor.io/v1beta1',
-              kind:       'StorageMap',
-              name:       storageMapName.value,
-              namespace:  namespace.value,
-            },
-          },
-          targetNamespace: namespace.value,
-          vms:             vms.value.map((vm) => ({
-            id:   vm.id,
-            name: vm.name || vm.id,
-          })),
-          warm: false,
-        };
-
-        const plan = await store.dispatch(`${ inStore }/create`, {
-          type:     HCI.FORKLIFT_PLAN,
-          metadata: {
-            name:      planName,
-            namespace: namespace.value,
-          },
-          spec: planSpec,
-        });
-
-        await plan.save();
-
-        const migrationName = `${ planName }-migration-${ Math.random().toString(36).substring(2, 7) }`;
-
-        const migration = await store.dispatch(`${ inStore }/create`, {
-          type:     HCI.FORKLIFT_MIGRATION,
-          metadata: {
-            name:      migrationName,
-            namespace: namespace.value,
-          },
-          spec: {
-            plan: {
-              apiVersion: 'forklift.konveyor.io/v1beta1',
-              kind:       'Plan',
-              name:       planName,
-              namespace:  namespace.value,
-            },
-          },
-        });
-
-        await migration.save();
-
-        router.push({
-          name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
-          params: {
-            product: route.params.product,
-            cluster: route.params.cluster,
-          }
-        });
-
-        buttonCb(true);
-      } catch (err) {
-        errors.value = [err.message || err];
-        buttonCb(false);
-      }
-    };
-
-    const init = async() => {
-      const vmsParam = route.query.vms;
-
-      if (vmsParam) {
-        try {
-          const vmIds = JSON.parse(vmsParam);
-
-          vms.value = vmIds.map((id) => {
-            const found = vmData.find((vm) => vm.id === id);
-
-            return found || {
-              id, name: id, networks: [], disks: [], cpuCount: 0, memoryMB: 0, guestName: ''
-            };
-          });
-        } catch (e) {
-          vms.value = [];
-        }
-      }
-
-      const networkMappingsParam = route.query.networkMappings;
-
-      if (networkMappingsParam) {
-        try {
-          networkMappings.value = JSON.parse(networkMappingsParam);
-        } catch (e) {
-          networkMappings.value = [];
-        }
-      }
-
-      const storageMappingsParam = route.query.storageMappings;
-
-      if (storageMappingsParam) {
-        try {
-          storageMappings.value = JSON.parse(storageMappingsParam);
-        } catch (e) {
-          storageMappings.value = [];
-        }
-      }
-
-      loading.value = false;
-    };
-
-    init();
+    const vmNetworkMappings = networkMappings.value.filter((m) => m.usedBy && m.usedBy.includes(vm.name || vm.id));
+    const vmStorageMappings = storageMappings.value.filter((m) => m.usedBy && m.usedBy.includes(vm.name || vm.id));
 
     return {
-      schema,
-      loading,
-      vms,
-      errors,
-      providerName,
-      namespace,
-      totalVCpu,
-      totalMemoryGB,
-      totalStorageGB,
-      vmCards,
-      t,
-      cancel,
-      startMigration,
+      id:              vm.id,
+      name:            vm.name || vm.id,
+      os,
+      cpus,
+      memGB,
+      diskDisplay,
+      networkMappings: vmNetworkMappings,
+      storageMappings: vmStorageMappings,
     };
-  },
+  });
 });
+
+const cancel = async() => {
+  const inStore = store.getters['currentProduct'].inStore;
+  const allProviders = store.getters[`${ inStore }/all`](HCI.FORKLIFT_PROVIDER) || [];
+  const provider = allProviders.find((p) => p.metadata.name === providerName.value && p.metadata.namespace === NAMESPACE);
+
+  if (provider) {
+    await provider.remove();
+  }
+
+  router.push({
+    name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
+    params: {
+      product: route.params.product,
+      cluster: route.params.cluster,
+    }
+  });
+};
+
+const startMigration = async(buttonCb) => {
+  const inStore = store.getters['currentProduct'].inStore;
+
+  try {
+    const planName = `${ providerName.value }-plan-${ Math.random().toString(36).substring(2, 7) }`;
+
+    const planSpec = {
+      provider: {
+        source: {
+          apiVersion: 'forklift.konveyor.io/v1beta1',
+          kind:       'Provider',
+          name:       providerName.value,
+          namespace:  NAMESPACE,
+        },
+        destination: {
+          apiVersion: 'forklift.konveyor.io/v1beta1',
+          kind:       'Provider',
+          name:       'host',
+          namespace:  NAMESPACE,
+        },
+      },
+      map: {
+        network: {
+          apiVersion: 'forklift.konveyor.io/v1beta1',
+          kind:       'NetworkMap',
+          name:       networkMapName.value,
+          namespace:  NAMESPACE,
+        },
+        storage: {
+          apiVersion: 'forklift.konveyor.io/v1beta1',
+          kind:       'StorageMap',
+          name:       storageMapName.value,
+          namespace:  NAMESPACE,
+        },
+      },
+      targetNamespace: 'default',
+      vms:             vms.value.map((vm) => ({
+        id:   vm.id,
+        name: vm.name || vm.id,
+      })),
+      warm: false,
+    };
+
+    const plan = await store.dispatch(`${ inStore }/create`, {
+      type:     HCI.FORKLIFT_PLAN,
+      metadata: {
+        name:      planName,
+        namespace: NAMESPACE,
+      },
+      spec: planSpec,
+    });
+
+    await plan.save();
+
+    // Build ownerReference pointing to the Plan
+    const planOwnerRef = {
+      apiVersion:         'forklift.konveyor.io/v1beta1',
+      kind:               'Plan',
+      name:               plan.metadata.name,
+      uid:                plan.metadata.uid,
+      blockOwnerDeletion: true,
+    };
+
+    // Create Migration owned by Plan
+    const migrationName = `${ planName }-migration-${ Math.random().toString(36).substring(2, 7) }`;
+
+    const migration = await store.dispatch(`${ inStore }/create`, {
+      type:     HCI.FORKLIFT_MIGRATION,
+      metadata: {
+        name:            migrationName,
+        namespace:       NAMESPACE,
+        ownerReferences: [planOwnerRef],
+      },
+      spec: {
+        plan: {
+          apiVersion: 'forklift.konveyor.io/v1beta1',
+          kind:       'Plan',
+          name:       planName,
+          namespace:  NAMESPACE,
+        },
+      },
+    });
+
+    await migration.save();
+
+    // Set Plan as owner of Provider (Provider already owns NetworkMap, StorageMap, Secret)
+    const allProviders = store.getters[`${ inStore }/all`](HCI.FORKLIFT_PROVIDER) || [];
+    const provider = allProviders.find((p) => p.metadata.name === providerName.value && p.metadata.namespace === NAMESPACE);
+
+    if (provider) {
+      provider.metadata.ownerReferences = [
+        ...(provider.metadata.ownerReferences || []),
+        planOwnerRef,
+      ];
+      await provider.save();
+    }
+
+    router.push({
+      name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
+      params: {
+        product: route.params.product,
+        cluster: route.params.cluster,
+      }
+    });
+
+    buttonCb(true);
+  } catch (err) {
+    errors.value = [err.message || err];
+    buttonCb(false);
+  }
+};
+
+const init = async() => {
+  const vmsParam = route.query.vms;
+
+  if (vmsParam) {
+    try {
+      const vmIds = JSON.parse(vmsParam);
+
+      vms.value = vmIds.map((id) => {
+        const found = vmData.find((vm) => vm.id === id);
+
+        return found || {
+          id, name: id, networks: [], disks: [], cpuCount: 0, memoryMB: 0, guestName: ''
+        };
+      });
+    } catch (e) {
+      vms.value = [];
+    }
+  }
+
+  const networkMappingsParam = route.query.networkMappings;
+
+  if (networkMappingsParam) {
+    try {
+      networkMappings.value = JSON.parse(networkMappingsParam);
+    } catch (e) {
+      networkMappings.value = [];
+    }
+  }
+
+  const storageMappingsParam = route.query.storageMappings;
+
+  if (storageMappingsParam) {
+    try {
+      storageMappings.value = JSON.parse(storageMappingsParam);
+    } catch (e) {
+      storageMappings.value = [];
+    }
+  }
+
+  loading.value = false;
+};
+
+init();
 </script>
 
 <template>
@@ -310,7 +311,7 @@ export default defineComponent({
             <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.targetNamespace') }}</span>
           </div>
           <div class="detail-item">
-            <span class="detail-value">{{ namespace }}</span>
+            <span class="detail-value">{{ TARGET_NAMESPACE }}</span>
           </div>
         </div>
         <div class="detail-column">
@@ -334,9 +335,6 @@ export default defineComponent({
           <div class="detail-item">
             <span class="detail-value">
               {{ t('harvester.addons.forklift.reviewMigration.coldMigration') }}
-              <span
-                class="ml-10 small-text"
-              >{{ t('harvester.addons.forklift.reviewMigration.vmsWillShutDown') }}</span>
             </span>
           </div>
         </div>

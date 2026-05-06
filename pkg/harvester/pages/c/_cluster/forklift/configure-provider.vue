@@ -1,5 +1,5 @@
-<script>
-import { defineComponent, ref, computed } from 'vue';
+<script setup>
+import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import { LabeledInput } from '@components/Form/LabeledInput';
@@ -23,302 +23,248 @@ const schema = {
   metadata: { name: HCI.FORKLIFT_PROVIDER },
 };
 
-export default defineComponent({
-  name: 'ForkliftConfigureProvider',
+const store = useStore();
+const route = useRoute();
+const router = useRouter();
+const { t } = useI18n(store);
 
-  components: {
-    LabeledInput,
-    Checkbox,
-    Banner,
-    Masthead,
-    AsyncButton,
-  },
+const allSecrets = ref([]);
+const providerName = ref('');
+const url = ref('');
+const username = ref('');
+const password = ref('');
+const skipTlsVerify = ref(false);
+const testResult = ref(null);
+const testError = ref(null);
+const errors = ref([]);
+const createdProvider = ref(null);
+const createdSecret = ref(null);
+const loading = ref(true);
+const testPassed = ref(false);
 
-  setup() {
-    const store = useStore();
-    const route = useRoute();
-    const router = useRouter();
-    const { t } = useI18n(store);
+const isFormValid = computed(() => !!providerName.value && !!url.value && !!username.value && !!password.value);
 
-    const allSecrets = ref([]);
-    const providerName = ref('');
-    const url = ref('');
-    const username = ref('');
-    const password = ref('');
-    const skipTlsVerify = ref(false);
-    const testResult = ref(null);
-    const testError = ref(null);
-    const errors = ref([]);
-    const createdProvider = ref(null);
-    const createdSecret = ref(null);
-    const loading = ref(true);
+// Reset test state when any field changes
+watch([providerName, url, username, password], () => {
+  testPassed.value = false;
+  testResult.value = null;
+});
 
-    const isFormValid = computed(() => !!providerName.value && !!url.value && !!username.value && !!password.value);
+const cancel = async() => {
+  if (createdProvider.value) {
+    await createdProvider.value.remove();
+    createdProvider.value = null;
+  } else if (createdSecret.value) {
+    await createdSecret.value.remove();
+    createdSecret.value = null;
+  }
 
-    const cancel = () => {
-      router.push({
-        name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
-        params: {
-          product: route.params.product,
-          cluster: route.params.cluster,
-        }
+  router.push({
+    name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
+    params: {
+      product: route.params.product,
+      cluster: route.params.cluster,
+    }
+  });
+};
+
+const testConnection = async(buttonCb) => {
+  testResult.value = null;
+  testError.value = null;
+
+  if (!providerName.value || !url.value || !username.value || !password.value) {
+    testError.value = t('harvester.addons.forklift.configureProvider.testMissingFields');
+    buttonCb(false);
+
+    return;
+  }
+
+  const inStore = store.getters['currentProduct'].inStore;
+
+  try {
+    // Delete previous provider (cascades to secret via ownerReferences)
+    if (createdProvider.value) {
+      await createdProvider.value.remove();
+      createdProvider.value = null;
+      createdSecret.value = null;
+    } else if (createdSecret.value) {
+      await createdSecret.value.remove();
+      createdSecret.value = null;
+    }
+
+    const namespace = 'forklift';
+    const secretName = `${ providerName.value }-creds-${ randomStr(4).toLowerCase() }`;
+
+    // Create Provider first so we have its UID for the ownerReference on the Secret
+    const provider = await store.dispatch(`${ inStore }/create`, {
+      type:     HCI.FORKLIFT_PROVIDER,
+      metadata: {
+        name: providerName.value,
+        namespace,
+      },
+      spec: {
+        type:   'vsphere',
+        url:    url.value,
+        secret: {
+          name: secretName,
+          namespace,
+        },
+      }
+    });
+
+    await provider.save();
+    createdProvider.value = provider;
+
+    // Create Secret with ownerReference already set (avoids an extra PUT)
+    const newSecret = await store.dispatch(`${ inStore }/create`, {
+      type:     SECRET,
+      metadata: {
+        name:            secretName,
+        namespace,
+        labels:          {
+          createdForProviderType: 'vsphere',
+          createdForResourceType: 'providers',
+        },
+        ownerReferences: [
+          {
+            apiVersion:         'forklift.konveyor.io/v1beta1',
+            kind:               'Provider',
+            name:               provider.metadata.name,
+            uid:                provider.metadata.uid,
+            blockOwnerDeletion: true,
+          },
+        ],
+      }
+    });
+
+    newSecret['_type'] = 'Opaque';
+    newSecret['data'] = {
+      user:               btoa(username.value),
+      password:           btoa(password.value),
+      insecureSkipVerify: btoa(String(skipTlsVerify.value)),
+      url:                btoa(url.value),
+    };
+
+    await newSecret.save();
+    createdSecret.value = newSecret;
+
+    const maxAttempts = 15;
+    let attempts = 0;
+    let connected = false;
+    let errorMsg = '';
+
+    while (attempts < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      attempts++;
+
+      const refreshed = await store.dispatch(`${ inStore }/find`, {
+        type: HCI.FORKLIFT_PROVIDER,
+        id:   `${ namespace }/${ providerName.value }`,
+        opt:  { force: true }
       });
-    };
 
-    const testConnection = async(buttonCb) => {
-      testResult.value = null;
-      testError.value = null;
+      const conditions = refreshed?.status?.conditions || [];
+      const readyCondition = conditions.find((c) => c.type === 'Ready');
+      const connectionCondition = conditions.find((c) => c.type === 'ConnectionTestSucceeded');
 
-      if (!providerName.value || !url.value || !username.value || !password.value) {
-        testError.value = t('harvester.addons.forklift.configureProvider.testMissingFields');
-        buttonCb(false);
-
-        return;
-      }
-
-      const inStore = store.getters['currentProduct'].inStore;
-
-      try {
-        if (createdProvider.value) {
-          await createdProvider.value.remove();
-          createdProvider.value = null;
-        }
-        if (createdSecret.value) {
-          await createdSecret.value.remove();
-          createdSecret.value = null;
-        }
-
-        const namespace = 'default';
-        const secretName = `${ providerName.value }-creds-${ randomStr(4).toLowerCase() }`;
-
-        const newSecret = await store.dispatch(`${ inStore }/create`, {
-          type:     SECRET,
-          metadata: {
-            name:   secretName,
-            namespace,
-            labels: {
-              createdForProviderType: 'vsphere',
-              createdForResourceType: 'providers',
-            }
-          }
-        });
-
-        newSecret['_type'] = 'Opaque';
-        newSecret['data'] = {
-          user:               btoa(username.value),
-          password:           btoa(password.value),
-          insecureSkipVerify: btoa(String(skipTlsVerify.value)),
-          url:                btoa(url.value),
-        };
-
-        await newSecret.save();
-        createdSecret.value = newSecret;
-
-        const provider = await store.dispatch(`${ inStore }/create`, {
-          type:     HCI.FORKLIFT_PROVIDER,
-          metadata: {
-            name: providerName.value,
-            namespace,
-          },
-          spec: {
-            type:   'vsphere',
-            url:    url.value,
-            secret: {
-              name: secretName,
-              namespace,
-            },
-          }
-        });
-
-        await provider.save();
-        createdProvider.value = provider;
-
-        const maxAttempts = 15;
-        let attempts = 0;
-        let connected = false;
-        let errorMsg = '';
-
-        while (attempts < maxAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-          attempts++;
-
-          const refreshed = await store.dispatch(`${ inStore }/find`, {
-            type: HCI.FORKLIFT_PROVIDER,
-            id:   `${ namespace }/${ providerName.value }`,
-            opt:  { force: true }
-          });
-
-          const conditions = refreshed?.status?.conditions || [];
-          const readyCondition = conditions.find((c) => c.type === 'Ready');
-          const connectionCondition = conditions.find((c) => c.type === 'ConnectionTestSucceeded');
-
-          if (connectionCondition) {
-            if (connectionCondition.status === 'True') {
-              connected = true;
-              break;
-            } else {
-              errorMsg = connectionCondition.message || 'Connection failed';
-              break;
-            }
-          }
-
-          if (readyCondition) {
-            if (readyCondition.status === 'True') {
-              connected = true;
-              break;
-            } else if (readyCondition.status === 'False') {
-              errorMsg = readyCondition.message || 'Provider not ready';
-              break;
-            }
-          }
-        }
-
-        if (connected) {
-          testResult.value = t('harvester.addons.forklift.configureProvider.testSuccess');
-          buttonCb(true);
+      if (connectionCondition) {
+        if (connectionCondition.status === 'True') {
+          connected = true;
+          break;
         } else {
-          if (createdProvider.value) {
-            await createdProvider.value.remove();
-            createdProvider.value = null;
-          }
-          if (createdSecret.value) {
-            await createdSecret.value.remove();
-            createdSecret.value = null;
-          }
-
-          testError.value = errorMsg || t('harvester.addons.forklift.configureProvider.testTimeout');
-          buttonCb(false);
+          errorMsg = connectionCondition.message || 'Connection failed';
+          break;
         }
-      } catch (err) {
-        if (createdProvider.value) {
-          try {
-            await createdProvider.value.remove();
-          } catch (e) {}
-          createdProvider.value = null;
-        }
-        if (createdSecret.value) {
-          try {
-            await createdSecret.value.remove();
-          } catch (e) {}
-          createdSecret.value = null;
-        }
-
-        testError.value = err.message || t('harvester.addons.forklift.configureProvider.testFailed');
-        buttonCb(false);
       }
-    };
 
-    const saveProvider = async(buttonCb) => {
-      const inStore = store.getters['currentProduct'].inStore;
-
-      errors.value = [];
-
-      try {
-        if (createdProvider.value) {
-          router.push({
-            name:   `${ PRODUCT_NAME }-c-cluster-forklift-select-vms`,
-            params: {
-              product: route.params.product,
-              cluster: route.params.cluster,
-            },
-            query: {
-              provider:  providerName.value,
-              namespace: createdProvider.value.metadata.namespace,
-            }
-          });
-
-          return;
+      if (readyCondition) {
+        if (readyCondition.status === 'True') {
+          connected = true;
+          break;
+        } else if (readyCondition.status === 'False') {
+          errorMsg = readyCondition.message || 'Provider not ready';
+          break;
         }
+      }
+    }
 
-        const namespace = 'default';
-        const secretName = `${ providerName.value }-creds-${ randomStr(4).toLowerCase() }`;
+    if (connected) {
+      testPassed.value = true;
+      testResult.value = t('harvester.addons.forklift.configureProvider.testSuccess');
+      buttonCb(true);
+    } else {
+      if (createdProvider.value) {
+        await createdProvider.value.remove();
+        createdProvider.value = null;
+        createdSecret.value = null;
+      } else if (createdSecret.value) {
+        await createdSecret.value.remove();
+        createdSecret.value = null;
+      }
 
-        const newSecret = await store.dispatch(`${ inStore }/create`, {
-          type:     SECRET,
-          metadata: {
-            name:   secretName,
-            namespace,
-            labels: {
-              createdForProviderType: 'vsphere',
-              createdForResourceType: 'providers',
-            }
-          }
-        });
+      testError.value = errorMsg || t('harvester.addons.forklift.configureProvider.testTimeout');
+      buttonCb(false);
+    }
+  } catch (err) {
+    if (createdProvider.value) {
+      try {
+        await createdProvider.value.remove();
+      } catch (e) {}
+      createdProvider.value = null;
+    }
+    if (createdSecret.value) {
+      try {
+        await createdSecret.value.remove();
+      } catch (e) {}
+      createdSecret.value = null;
+    }
 
-        newSecret['_type'] = 'Opaque';
-        newSecret['data'] = {
-          user:               btoa(username.value),
-          password:           btoa(password.value),
-          insecureSkipVerify: btoa(String(skipTlsVerify.value)),
-          url:                btoa(url.value),
-        };
+    testError.value = err.message || t('harvester.addons.forklift.configureProvider.testFailed');
+    buttonCb(false);
+  }
+};
 
-        await newSecret.save();
+const saveProvider = async(buttonCb) => {
+  errors.value = [];
 
-        const provider = await store.dispatch(`${ inStore }/create`, {
-          type:     HCI.FORKLIFT_PROVIDER,
-          metadata: {
-            name: providerName.value,
-            namespace,
-          },
-          spec: {
-            type:   'vsphere',
-            url:    url.value,
-            secret: {
-              name: secretName,
-              namespace,
-            },
-          }
-        });
-
-        await provider.save();
-
+  if (!testPassed.value) {
+    // Test hasn't passed yet — run it first
+    await testConnection((success) => {
+      if (success) {
         router.push({
           name:   `${ PRODUCT_NAME }-c-cluster-forklift-select-vms`,
           params: {
             product: route.params.product,
             cluster: route.params.cluster,
           },
-          query: {
-            provider: providerName.value,
-            namespace,
-          }
+          query: { provider: providerName.value }
         });
-      } catch (err) {
-        errors.value = [err.message || err];
+      } else {
         buttonCb(false);
       }
-    };
+    });
 
-    const init = async() => {
-      const inStore = store.getters['currentProduct'].inStore;
+    return;
+  }
 
-      allSecrets.value = await store.dispatch(`${ inStore }/findAll`, { type: SECRET });
-      loading.value = false;
-    };
+  router.push({
+    name:   `${ PRODUCT_NAME }-c-cluster-forklift-select-vms`,
+    params: {
+      product: route.params.product,
+      cluster: route.params.cluster,
+    },
+    query: { provider: providerName.value }
+  });
+};
 
-    init();
+const init = async() => {
+  const inStore = store.getters['currentProduct'].inStore;
 
-    return {
-      schema,
-      allSecrets,
-      providerName,
-      url,
-      username,
-      password,
-      skipTlsVerify,
-      testResult,
-      testError,
-      errors,
-      loading,
-      isFormValid,
-      t,
-      cancel,
-      testConnection,
-      saveProvider,
-    };
-  },
-});
+  allSecrets.value = await store.dispatch(`${ inStore }/findAll`, { type: SECRET });
+  loading.value = false;
+};
+
+init();
 </script>
 
 <template>
@@ -402,8 +348,17 @@ export default defineComponent({
     </div>
 
     <div class="mb-20">
+      <button
+        v-if="testPassed"
+        class="btn role-secondary test-passed-btn"
+        disabled
+      >
+        <i class="icon icon-checkmark mr-10" /> {{ t('harvester.addons.forklift.configureProvider.testConnection') }}
+      </button>
       <AsyncButton
+        v-else
         mode="test"
+        :disabled="!isFormValid"
         :action-label="t('harvester.addons.forklift.configureProvider.testConnection')"
         :waiting-label="t('harvester.addons.forklift.configureProvider.testConnection')"
         :success-label="t('harvester.addons.forklift.configureProvider.testConnection')"
@@ -473,5 +428,10 @@ export default defineComponent({
     justify-content: flex-end;
     gap: 10px;
     margin-top: 30px;
+  }
+
+  .test-passed-btn {
+    color: var(--success) !important;
+    border-color: var(--success) !important;
   }
 </style>
