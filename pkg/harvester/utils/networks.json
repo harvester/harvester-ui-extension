@@ -1,0 +1,332 @@
+[
+  {
+    "id": "dvs-5001",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/Production-VDS",
+    "revision": 1,
+    "name": "Production-VDS",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/dvs-5001",
+    "variant": "DvSwitch",
+    "vlanId": "",
+    "host": [
+      {
+        "Host": {
+          "kind": "Host",
+          "id": "host-1010"
+        },
+        "PNIC": [
+          "vmnic2"
+        ]
+      },
+      {
+        "Host": {
+          "kind": "Host",
+          "id": "host-1012"
+        },
+        "PNIC": [
+          "vmnic2"
+        ]
+      },
+      {
+        "Host": {
+          "kind": "Host",
+          "id": "host-2003"
+        },
+        "PNIC": [
+          "vmnic2"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dvs-13021",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/DSwitch",
+    "revision": 1,
+    "name": "DSwitch",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/dvs-13021",
+    "variant": "DvSwitch",
+    "vlanId": "",
+    "host": [
+      {
+        "Host": {
+          "kind": "Host",
+          "id": "host-1010"
+        },
+        "PNIC": [
+          "vmnic0"
+        ]
+      },
+      {
+        "Host": {
+          "kind": "Host",
+          "id": "host-1012"
+        },
+        "PNIC": [
+          "vmnic0"
+        ]
+      },
+      {
+        "Host": {
+          "kind": "Host",
+          "id": "host-2003"
+        },
+        "PNIC": [
+          "vmnic0"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "dvportgroup-13026",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/DSwitch-vMotion",
+    "revision": 1,
+    "name": "DSwitch-vMotion",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/dvportgroup-13026",
+    "variant": "DvPortGroup",
+    "dvSwitch": {
+      "kind": "Network",
+      "id": "dvs-13021"
+    },
+    "vlanId": "",
+    "host": null,
+    "key": "dvportgroup-13026"
+  },
+  {
+    "id": "dvportgroup-13027",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/DSwitch-vSAN",
+    "revision": 1,
+    "name": "DSwitch-vSAN",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/dvportgroup-13027",
+    "variant": "DvPortGroup",
+    "dvSwitch": {
+      "kind": "Network",
+      "id": "dvs-13021"
+    },
+    "vlanId": "",
+    "host": null,
+    "key": "dvportgroup-13027"
+  },
+  {
+    "id": "dvportgroup-13023",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/DSwitch-vCenter-HA-Management",
+    "revision": 1,
+    "name": "DSwitch-vCenter-HA-Management",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/dvportgroup-13023",
+    "variant": "DvPortGroup",
+    "dvSwitch": {
+      "kind": "Network",
+      "id": "dvs-13021"
+    },
+    "vlanId": "",
+    "host": null,
+    "key": "dvportgroup-13023"
+  },
+  {
+    "id": "dvportgroup-13025",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/DSwitch-vCenter-HA-VM-Network",
+    "revision": 1,
+    "name": "DSwitch-vCenter-HA-VM-Network",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/dvportgroup-13025",
+    "variant": "DvPortGroup",
+    "dvSwitch": {
+      "kind": "Network",
+      "id": "dvs-13021"
+    },
+    "vlanId": "",
+    "host": null,
+    "key": "dvportgroup-13025"
+  },
+  {
+    "id": "dvportgroup-13024",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/DSwitch-vCenter-HA-Witness",
+    "revision": 1,
+    "name": "DSwitch-vCenter-HA-Witness",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/dvportgroup-13024",
+    "variant": "DvPortGroup",
+    "dvSwitch": {
+      "kind": "Network",
+      "id": "dvs-13021"
+    },
+    "vlanId": "",
+    "host": null,
+    "key": "dvportgroup-13024"
+  },
+  {
+    "id": "dvportgroup-5002",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/Production-VDS-DVUplinks-5001",
+    "revision": 1,
+    "name": "Production-VDS-DVUplinks-5001",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/dvportgroup-5002",
+    "variant": "DvPortGroup",
+    "dvSwitch": {
+      "kind": "Network",
+      "id": "dvs-5001"
+    },
+    "vlanId": "0-4094",
+    "host": null,
+    "key": "dvportgroup-5002"
+  },
+  {
+    "id": "dvportgroup-5003",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/VM-Network",
+    "revision": 1,
+    "name": "VM-Network",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/dvportgroup-5003",
+    "variant": "DvPortGroup",
+    "dvSwitch": {
+      "kind": "Network",
+      "id": "dvs-5001"
+    },
+    "vlanId": "",
+    "host": null,
+    "key": "dvportgroup-5003"
+  },
+  {
+    "id": "dvportgroup-5005",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/mgmt",
+    "revision": 1,
+    "name": "mgmt",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/dvportgroup-5005",
+    "variant": "DvPortGroup",
+    "dvSwitch": {
+      "kind": "Network",
+      "id": "dvs-5001"
+    },
+    "vlanId": "",
+    "host": null,
+    "key": "dvportgroup-5005"
+  },
+  {
+    "id": "dvportgroup-6001",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/vCenter-HA",
+    "revision": 1,
+    "name": "vCenter-HA",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/dvportgroup-6001",
+    "variant": "DvPortGroup",
+    "dvSwitch": {
+      "kind": "Network",
+      "id": "dvs-5001"
+    },
+    "vlanId": "",
+    "host": null,
+    "key": "dvportgroup-6001"
+  },
+  {
+    "id": "dvportgroup-13022",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/DSwitch-DVUplinks-13021",
+    "revision": 1,
+    "name": "DSwitch-DVUplinks-13021",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/dvportgroup-13022",
+    "variant": "DvPortGroup",
+    "dvSwitch": {
+      "kind": "Network",
+      "id": "dvs-13021"
+    },
+    "vlanId": "0-4094",
+    "host": null,
+    "key": "dvportgroup-13022"
+  },
+  {
+    "id": "network-12023",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/vCenter-HA-Witness",
+    "revision": 1,
+    "name": "vCenter-HA-Witness",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/network-12023",
+    "variant": "Standard",
+    "vlanId": "",
+    "host": null
+  },
+  {
+    "id": "network-12022",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/vCenter-HA-Management",
+    "revision": 1,
+    "name": "vCenter-HA-Management",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/network-12022",
+    "variant": "Standard",
+    "vlanId": "",
+    "host": null
+  },
+  {
+    "id": "network-12021",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/vCenter-HA-VM-Network",
+    "revision": 1,
+    "name": "vCenter-HA-VM-Network",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/network-12021",
+    "variant": "Standard",
+    "vlanId": "",
+    "host": null
+  },
+  {
+    "id": "network-1017",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-n1005"
+    },
+    "path": "/PG Devlab/network/VM Network",
+    "revision": 1,
+    "name": "VM Network",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/networks/network-1017",
+    "variant": "Standard",
+    "vlanId": "",
+    "host": null
+  }
+]

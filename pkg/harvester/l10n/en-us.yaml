@@ -1809,86 +1809,94 @@ harvester:
 
     forklift:
       labels:
+        dashboard: Create
         provider: Providers
         networkMap: Network Maps
         storageMap: Storage Maps
         plan: Migration Plans
         migration: Migrations
-      titles:
-        basic: Basic
-        auth: Authentication
-        providers: Providers
-        networkMappings: Network Mappings
-        storageMappings: Storage Mappings
-        mappings: Mappings
-        vms: Virtual Machines
       fields:
-        providerType: Provider Type
-        providerTypeVsphere: vSphere
-        providerTypeOpenstack: OpenStack
-        providerTypeOpenshift: OpenShift / Harvester (Local)
-        url: URL
         username: Username
         password: Password
-        caCert: CA Certificate (PEM)
-        insecureSkipVerify: Skip TLS Certificate Verification
-        selectSecret: Select Secret
-        createSecret: Create New Credentials
-        useSecret: Use Existing Secret
-        sourceProvider: Source Provider
-        destProvider: Destination Provider
-        sourceNetworkId: Source Network ID
-        destNetworkType: Destination Network Type
-        destNetworkPod: Pod Network
-        destNetworkMultus: Multus
-        sourceDatastoreId: Source Datastore ID
-        destStorageClass: Destination Storage Class
-        networkMap: Network Map
-        storageMap: Storage Map
+      configureProvider:
+        title: Configure Provider
+        description: Connect to your VMware vCenter or ESXi host to discover virtual machines for migration
+        connectionDetails: Connection Details
+        requirementsTitle: Requirements
+        requirementsText: "To migrate virtual machines from VMWare, you will need a vCenter Server running version 6.5 or higher with a user account that has at least read permissions, and the source environment must be network-accessible from Rancher."
+        name: Name
+        urlLabel: vCenter/ESXi URL
+        urlPlaceholder: "https://vcenter.example.com/sdk"
+        urlHint: Enter the full URL including https://
+        skipSsl: Skip SSL certificate verification
+        skipSslHint: Not recommended for production environments
+        testConnection: Test Connection
+        testSuccess: Connection test passed
+        testFailed: Connection test failed
+        testMissingFields: Please fill in all required fields before testing
+        testTimeout: Connection test timed out — the provider did not report a status in time
+        save: Save Provider and Continue
+      selectVms:
+        title: Select Virtual Machines
+        discovered: "{count} VMs discovered from"
+        lastSynced: Last synced 5 minutes ago
+        availableVms: Available Virtual Machines
+        selected: selected
+        saveSelection: Save Selection and Continue
+        manualEntry:
+          title: Add Virtual Machines
+          description: No VMs were discovered from the provider inventory. Add VMs manually by entering their IDs and names.
+          vmId: VM ID
+          vmIdPlaceholder: "e.g. vm-60527"
+          add: Add
+          added: VMs added
+        columns:
+          vmName: VM Name
+          vmId: VM ID
+          os: Operating System
+          resources: Resources
+          powerState: Power State
+          network: Network
+          datastore: Datastore
+      dashboard:
+        title: VMware to Harvester Migration
+        description: Migrate virtual machines from VMware vSphere to Harvester using cold migration for data consistency. Create a migration plan to select VMs, map networks and storage, and prepare a migration to Harvester.
+        createPlan: Create Migration Plan
+        tableTitle: Migration Plans
+        columns:
+          status: Status
+          plan: Migration Plan
+          progress: Progress
+          mappings: Mappings
+      configureMappings:
+        title: Set Mappings
+        description: Map VMware networks and datastores to Harvester and Longhorn target resources
+        save: Save Mappings and Continue
+        networkMapping:
+          title: Network Mapping
+          description: Map VMware port groups to Harvester networks
+          placeholder: Choose a Harvester network...
+        storageMapping:
+          title: Storage Mapping
+          description: Map VMware datastores to Harvester storage classes
+          placeholder: Choose a Longhorn Storage Volume
+      reviewMigration:
+        title: Review Migration Plan
+        description: Confirm your migration settings before starting the transfer of VMs to the target cluster.
+        migrationDetails: Migration Details
+        totalVms: Total VMs
+        vcpu: vCPU
+        memory: Memory
+        storage: Storage
+        source: Source
         targetNamespace: Target Namespace
-        migrateSharedDisks: Migrate Shared Disks
-        vmId: VM ID
-        vmName: VM Name
-        plan: Migration Plan
-      placeholders:
-        url: "e.g. https://vcenter/sdk"
-        caCert: "-----BEGIN CERTIFICATE----- ..."
-        sourceNetworkId: "e.g. dvportgroup-13025"
-        sourceDatastoreId: "e.g. datastore-2040"
-        vmId: "e.g. vm-13007"
-        vmName: "e.g. my-vm"
-      actions:
-        addMapping: Add Mapping
-        addVm: Add VM
-        remove: Remove
-      detail:
-        plan: Plan
-        planNamespace: Plan Namespace
-        started: Started
-        completed: Completed
-        vmId: VM ID
-        vmPhase: Phase
-        vmStarted: Started
-        vmCompleted: Completed
-        vmCount: VMs in Plan
-        overallProgress: Overall Progress
-        pipelineSteps: Pipeline Steps
-        migrationName: Migration
-        migrationRun: "Migration #{idx}"
-        noCurrentMigration: No migration is currently running for this plan.
-        noHistory: No migration history available.
-        status:
-          label: Status
-          succeeded: Succeeded
-          failed: Failed
-          running: Running
-          executing: Executing
-          pending: Pending
-          ready: Ready
-          unknown: Unknown
-        tabs:
-          currentMigration: Current Migration
-          history: Migration History
+        migrationMode: Migration Mode
+        coldMigration: Cold Migration
+        vmsWillShutDown: VMs will shut down
+        virtualMachines: Virtual Machines
+        warningTitle: "Cold Migration Warning"
+        warningMessage: "All source VMs will be powered off, and downtime will occur during migration. Plan your maintenance window accordingly and notify relevant stakeholders"
+        startMigration: Start Migration Plan
 
     vmImport:
       titles:

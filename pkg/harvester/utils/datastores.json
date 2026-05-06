@@ -1,0 +1,272 @@
+[
+  {
+    "id": "datastore-16879",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-s1004"
+    },
+    "path": "/PG Devlab/datastore/Content Library Datastore",
+    "revision": 646,
+    "name": "Content Library Datastore",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-16879",
+    "type": "NFS41",
+    "capacity": 65542688866304,
+    "free": 65166035648512,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-2036",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-s1004"
+    },
+    "path": "/PG Devlab/datastore/Mako14-Spinner1",
+    "revision": 460,
+    "name": "Mako14-Spinner1",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-2036",
+    "type": "VMFS",
+    "capacity": 0,
+    "free": 0,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-16880",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-s1004"
+    },
+    "path": "/PG Devlab/datastore/VCSA Services",
+    "revision": 631,
+    "name": "VCSA Services",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-16880",
+    "type": "NFS41",
+    "capacity": 1545487384576,
+    "free": 1545007792128,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-12038",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-s1004"
+    },
+    "path": "/PG Devlab/datastore/Mako13-Spinner1",
+    "revision": 1,
+    "name": "Mako13-Spinner1",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-12038",
+    "type": "VMFS",
+    "capacity": 8001524072448,
+    "free": 7993813893120,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-2045",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-s1004"
+    },
+    "path": "/PG Devlab/datastore/Mako15-Spinner1",
+    "revision": 10,
+    "name": "Mako15-Spinner1",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-2045",
+    "type": "VMFS",
+    "capacity": 8001524072448,
+    "free": 7883079024640,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-2043",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-s1004"
+    },
+    "path": "/PG Devlab/datastore/Mako13-Local",
+    "revision": 107,
+    "name": "Mako13-Local",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-2043",
+    "type": "VMFS",
+    "capacity": 8001524072448,
+    "free": 7444761673728,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-2044",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-s1004"
+    },
+    "path": "/PG Devlab/datastore/Mako14-Local",
+    "revision": 411,
+    "name": "Mako14-Local",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-2044",
+    "type": "VMFS",
+    "capacity": 8001524072448,
+    "free": 7953250779136,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-27001",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-s1004"
+    },
+    "path": "/PG Devlab/datastore/Heartbeat-01",
+    "revision": 644,
+    "name": "Heartbeat-01",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-27001",
+    "type": "NFS41",
+    "capacity": 1545227599872,
+    "free": 1545007792128,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-27002",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-s1004"
+    },
+    "path": "/PG Devlab/datastore/Heartbeat-02",
+    "revision": 642,
+    "name": "Heartbeat-02",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-27002",
+    "type": "NFS41",
+    "capacity": 1545007972352,
+    "free": 1545007792128,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-60001",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-s1004"
+    },
+    "path": "/PG Devlab/datastore/NFS VM Datastore",
+    "revision": 460,
+    "name": "NFS VM Datastore",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-60001",
+    "type": "NFS41",
+    "capacity": 65169610178560,
+    "free": 65166043054080,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-14753",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-s1004"
+    },
+    "path": "/PG Devlab/datastore/Content Library Datastore-DEAD",
+    "revision": 1,
+    "name": "Content Library Datastore-DEAD",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-14753",
+    "type": "NFS41",
+    "capacity": 76523271618560,
+    "free": 76438520856576,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-2039",
+    "parent": {
+      "kind": "Folder",
+      "id": "group-s1004"
+    },
+    "path": "/PG Devlab/datastore/Mako15-Local",
+    "revision": 263,
+    "name": "Mako15-Local",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-2039",
+    "type": "VMFS",
+    "capacity": 8001524072448,
+    "free": 7828817313792,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-2035",
+    "parent": {
+      "kind": "StoragePod",
+      "id": "group-p2042"
+    },
+    "path": "/Mako13-NVMe2",
+    "revision": 855,
+    "name": "Mako13-NVMe2",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-2035",
+    "type": "VMFS",
+    "capacity": 1600143753216,
+    "free": 443096760320,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-2034",
+    "parent": {
+      "kind": "StoragePod",
+      "id": "group-p2042"
+    },
+    "path": "/Mako13-NVMe1",
+    "revision": 44,
+    "name": "Mako13-NVMe1",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-2034",
+    "type": "VMFS",
+    "capacity": 1600143753216,
+    "free": 350873452544,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-2037",
+    "parent": {
+      "kind": "StoragePod",
+      "id": "group-p2042"
+    },
+    "path": "/Mako14-NVMe1",
+    "revision": 450,
+    "name": "Mako14-NVMe1",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-2037",
+    "type": "VMFS",
+    "capacity": 1600143753216,
+    "free": 466680283136,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-2040",
+    "parent": {
+      "kind": "StoragePod",
+      "id": "group-p2042"
+    },
+    "path": "/Mako15-NVMe1",
+    "revision": 648,
+    "name": "Mako15-NVMe1",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-2040",
+    "type": "VMFS",
+    "capacity": 1600143753216,
+    "free": 380083634176,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-2038",
+    "parent": {
+      "kind": "StoragePod",
+      "id": "group-p2042"
+    },
+    "path": "/Mako14-NVMe2",
+    "revision": 623,
+    "name": "Mako14-NVMe2",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-2038",
+    "type": "VMFS",
+    "capacity": 1600143753216,
+    "free": 685895581696,
+    "maintenance": "normal"
+  },
+  {
+    "id": "datastore-2041",
+    "parent": {
+      "kind": "StoragePod",
+      "id": "group-p2042"
+    },
+    "path": "/Mako15-NVMe2",
+    "revision": 642,
+    "name": "Mako15-NVMe2",
+    "selfLink": "providers/vsphere/eaac340a-8953-479d-9463-85a1a100ab9d/datastores/datastore-2041",
+    "type": "VMFS",
+    "capacity": 1600143753216,
+    "free": 383375114240,
+    "maintenance": "normal"
+  }
+]
