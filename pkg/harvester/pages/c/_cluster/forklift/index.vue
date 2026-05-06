@@ -1,5 +1,5 @@
-<script>
-import { defineComponent, ref, computed } from 'vue';
+<script setup>
+import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
 import { useRoute } from 'vue-router';
 import Loading from '@shell/components/Loading';
@@ -24,135 +24,122 @@ const schema = {
   metadata: { name: HCI.FORKLIFT_PLAN },
 };
 
-export default defineComponent({
-  name: 'ForkliftMigrationDashboard',
+const store = useStore();
+const route = useRoute();
+const { t } = useI18n(store);
 
-  components: {
-    Loading,
-    Masthead,
-    MappingsCell,
-    PercentageBar,
-    ResourceTable,
-  },
+const loading = ref(true);
 
-  setup() {
-    const store = useStore();
-    const route = useRoute();
-    const { t } = useI18n(store);
+const inStore = computed(() => store.getters['currentProduct'].inStore);
 
-    const loading = ref(true);
+const allPlans = computed(() => store.getters[`${ inStore.value }/all`](HCI.FORKLIFT_PLAN));
+const allNetworkMaps = computed(() => store.getters[`${ inStore.value }/all`](HCI.FORKLIFT_NETWORK_MAP));
+const allStorageMaps = computed(() => store.getters[`${ inStore.value }/all`](HCI.FORKLIFT_STORAGE_MAP));
 
-    const inStore = computed(() => store.getters['currentProduct'].inStore);
+const rows = computed(() => {
+  return allPlans.value.map((plan) => {
+    const netMapName = plan.spec?.map?.network?.name;
+    const netMapNs = plan.spec?.map?.network?.namespace || plan.metadata.namespace;
+    const storMapName = plan.spec?.map?.storage?.name;
+    const storMapNs = plan.spec?.map?.storage?.namespace || plan.metadata.namespace;
 
-    const allPlans = computed(() => store.getters[`${ inStore.value }/all`](HCI.FORKLIFT_PLAN));
-    const allNetworkMaps = computed(() => store.getters[`${ inStore.value }/all`](HCI.FORKLIFT_NETWORK_MAP));
-    const allStorageMaps = computed(() => store.getters[`${ inStore.value }/all`](HCI.FORKLIFT_STORAGE_MAP));
+    const netMap = allNetworkMaps.value.find((m) => m.metadata.name === netMapName && m.metadata.namespace === netMapNs);
+    const storMap = allStorageMaps.value.find((m) => m.metadata.name === storMapName && m.metadata.namespace === storMapNs);
 
-    const rows = computed(() => {
-      return allPlans.value.map((plan) => {
-        const netMapName = plan.spec?.map?.network?.name;
-        const netMapNs = plan.spec?.map?.network?.namespace || plan.metadata.namespace;
-        const storMapName = plan.spec?.map?.storage?.name;
-        const storMapNs = plan.spec?.map?.storage?.namespace || plan.metadata.namespace;
+    plan.networkEntries = (netMap?.spec?.map || []).map((e) => `${ e.source?.id || '-' } → ${ e.destination?.type === 'pod' ? 'Pod Network' : (e.destination?.name || '-') }`);
+    plan.storageEntries = (storMap?.spec?.map || []).map((e) => `${ e.source?.id || '-' } → ${ e.destination?.storageClass || '-' }`);
+    plan.networkDisplay = plan.networkEntries.join(', ') || '-';
+    plan.storageDisplay = plan.storageEntries.join(', ') || '-';
 
-        const netMap = allNetworkMaps.value.find((m) => m.metadata.name === netMapName && m.metadata.namespace === netMapNs);
-        const storMap = allStorageMaps.value.find((m) => m.metadata.name === storMapName && m.metadata.namespace === storMapNs);
+    plan.vmIdsDisplay = (plan.spec?.vms || []).map((vm) => vm.id || vm.name || '').filter(Boolean).join(', ') || '-';
 
-        plan.networkEntries = (netMap?.spec?.map || []).map((e) => `${ e.source?.id || '-' } → ${ e.destination?.type === 'pod' ? 'Pod Network' : (e.destination?.name || '-') }`);
-        plan.storageEntries = (storMap?.spec?.map || []).map((e) => `${ e.source?.id || '-' } → ${ e.destination?.storageClass || '-' }`);
-        plan.networkDisplay = plan.networkEntries.join(', ') || '-';
-        plan.storageDisplay = plan.storageEntries.join(', ') || '-';
+    const vms = plan.status?.migration?.vms || [];
 
-        plan.vmIdsDisplay = (plan.spec?.vms || []).map((vm) => vm.id || vm.name || '').filter(Boolean).join(', ') || '-';
+    plan.vmProgress = vms.map((vm) => {
+      const pipeline = vm.pipeline || [];
+      const totalSteps = pipeline.length || 1;
+      let overallProgress = 0;
+      let currentStep = '';
+      let errorMsg = '';
 
-        const vms = plan.status?.migration?.vms || [];
+      pipeline.forEach((step, idx) => {
+        const stepWeight = 100 / totalSteps;
 
-        plan.vmProgress = vms.map((vm) => {
-          const pipeline = vm.pipeline || [];
-          const totalSteps = pipeline.length;
-          const completedSteps = pipeline.filter((s) => s.phase === 'Completed').length;
+        if (step.phase === 'Completed') {
+          overallProgress += stepWeight;
+        } else {
+          const stepPct = (step.progress?.completed && step.progress?.total) ? (step.progress.completed / step.progress.total) * 100 : 0;
 
-          return {
-            name:     vm.id || vm.name || 'Unknown',
-            steps:    pipeline.map((step) => ({
-              name:     step.name || 'Unknown',
-              progress: step.phase === 'Completed' ? 100 : (step.progress?.completed && step.progress?.total ? Math.round((step.progress.completed / step.progress.total) * 100) : 0),
-              hasError: !!step.error,
-              reason:   (step.error?.reasons || []).join('; ') || '',
-            })),
-            progress: totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0,
-          };
-        });
+          overallProgress += (stepPct / 100) * stepWeight;
 
-        let totalSteps = 0;
-        let completedSteps = 0;
+          if (!currentStep) {
+            currentStep = step.name || `Step ${ idx + 1 }`;
+          }
 
-        vms.forEach((vm) => {
-          const pipeline = vm.pipeline || [];
-
-          totalSteps += pipeline.length;
-          completedSteps += pipeline.filter((s) => s.phase === 'Completed').length;
-        });
-
-        plan.progress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
-
-        return plan;
+          if (step.error) {
+            errorMsg = (step.error.reasons || []).join('; ') || 'Error';
+          }
+        }
       });
+
+      overallProgress = Math.round(overallProgress);
+
+      return {
+        vmName:   vm.name || vm.id || 'Unknown',
+        vmId:     vm.id || '',
+        progress: overallProgress,
+        currentStep,
+        errorMsg,
+      };
     });
 
-    const createLocation = computed(() => ({
-      name:   `${ PRODUCT_NAME }-c-cluster-forklift-configure-provider`,
-      params: {
-        product: route.params.product,
-        cluster: route.params.cluster,
-      }
-    }));
+    plan.progress = plan.vmProgress.length > 0 ? Math.round(plan.vmProgress.reduce((sum, vm) => sum + vm.progress, 0) / plan.vmProgress.length) : 0;
 
-    const headers = [
-      { ...STATE, labelKey: 'harvester.addons.forklift.dashboard.columns.status' },
-      {
-        ...NAME_COL,
-        labelKey: 'harvester.addons.forklift.dashboard.columns.plan',
-        subLabel: 'VM IDs',
-      },
-      { ...FORKLIFT_PLAN_VM_COUNT, width: 105 },
-      {
-        name:     'progress',
-        labelKey: 'harvester.addons.forklift.dashboard.columns.progress',
-        value:    'progress',
-        width:    299,
-      },
-      {
-        name:     'mappings',
-        labelKey: 'harvester.addons.forklift.dashboard.columns.mappings',
-        value:    'mappingsDisplay',
-        width:    387,
-      },
-      { ...AGE },
-    ];
-
-    const init = async() => {
-      await Promise.all([
-        store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_PLAN }),
-        store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_NETWORK_MAP }),
-        store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_STORAGE_MAP }),
-      ]);
-
-      loading.value = false;
-    };
-
-    init();
-
-    return {
-      schema,
-      loading,
-      rows,
-      createLocation,
-      headers,
-      t,
-    };
-  },
+    return plan;
+  });
 });
+
+const createLocation = computed(() => ({
+  name:   `${ PRODUCT_NAME }-c-cluster-forklift-configure-provider`,
+  params: {
+    product: route.params.product,
+    cluster: route.params.cluster,
+  }
+}));
+
+const headers = [
+  { ...STATE, labelKey: 'harvester.addons.forklift.dashboard.columns.status' },
+  {
+    ...NAME_COL,
+    labelKey: 'harvester.addons.forklift.dashboard.columns.plan',
+    subLabel: 'VM IDs',
+  },
+  { ...FORKLIFT_PLAN_VM_COUNT, width: 105 },
+  {
+    name:     'progress',
+    labelKey: 'harvester.addons.forklift.dashboard.columns.progress',
+    value:    'progress',
+    width:    500,
+  },
+  {
+    name:     'mappings',
+    labelKey: 'harvester.addons.forklift.dashboard.columns.mappings',
+    value:    'mappingsDisplay',
+  },
+  { ...AGE },
+];
+
+const init = async() => {
+  await Promise.all([
+    store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_PLAN }),
+    store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_NETWORK_MAP }),
+    store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_STORAGE_MAP }),
+  ]);
+
+  loading.value = false;
+};
+
+init();
 </script>
 
 <template>
@@ -210,41 +197,43 @@ export default defineComponent({
       <template #cell:progress="{ row }">
         <div
           v-if="row.vmProgress && row.vmProgress.length"
-          class="progress-steps"
+          class="progress-cells"
         >
           <div
             v-for="vm in row.vmProgress"
-            :key="vm.name"
+            :key="vm.vmId"
             class="vm-progress"
           >
-            <div class="vm-name">
-              {{ vm.name }}
+            <div class="vm-progress-header">
+              <div class="vm-name-block">
+                <span class="vm-name">{{ vm.vmName }}</span>
+                <span class="text-muted vm-id">id: {{ vm.vmId }}</span>
+              </div>
+              <span class="vm-pct">{{ vm.progress }}%</span>
+            </div>
+            <PercentageBar
+              :model-value="vm.progress"
+              :color-stops="vm.errorMsg ? { 0: '--error' } : { 99: '--primary', 100: '--success' }"
+              preferred-direction="MORE"
+              class="vm-bar"
+            />
+            <div
+              v-if="vm.progress === 100"
+              class="step-label text-muted"
+            >
+              Finished Successfully
             </div>
             <div
-              v-for="step in vm.steps"
-              :key="step.name"
-              class="progress-step"
+              v-else-if="vm.errorMsg"
+              class="step-label text-error"
             >
-              <span
-                class="step-name"
-                :class="{ 'text-error': step.hasError }"
-              >
-                {{ step.name }}
-              </span>
-              <PercentageBar
-                :model-value="step.progress"
-                :color-stops="step.hasError ? { 0: '--error' } : { 99: '--primary', 100: '--success' }"
-                preferred-direction="MORE"
-                class="step-bar"
-              />
-              <span class="step-pct">{{ step.progress }}%</span>
+              {{ vm.errorMsg }}
             </div>
             <div
-              v-for="step in vm.steps.filter(s => s.hasError)"
-              :key="`error-${step.name}`"
-              class="step-error-msg"
+              v-else-if="vm.currentStep"
+              class="step-label text-muted"
             >
-              <span class="text-error">{{ step.reason }}</span>
+              {{ vm.currentStep }}
             </div>
           </div>
         </div>
@@ -274,66 +263,59 @@ export default defineComponent({
     }
   }
 
-  .progress-steps {
+  .progress-cells {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   .vm-progress {
     &:not(:last-child) {
-      padding-bottom: 6px;
+      padding-bottom: 8px;
       border-bottom: 1px solid var(--border);
     }
+  }
+
+  .vm-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
   }
 
   .vm-name {
     font-weight: 600;
     font-size: 12px;
-    margin-bottom: 4px;
   }
 
-  .progress-step {
+  .vm-name-block {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 4px;
-    padding-right: 13px;
+    flex-direction: row;
+    gap: 8px;
   }
 
-  .step-error-msg {
+  .vm-id {
+    font-size: 11px;
+  }
+
+  .vm-pct {
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .vm-bar {
+    width: 100%;
+  }
+
+  .step-label {
+    font-size: 12px;
     margin-top: 4px;
-    font-size: 12px;
-
-    .text-error {
-      color: var(--error);
-    }
-  }
-
-  .step-name {
-    font-size: 12px;
-    width: 110px;
-    min-width: 110px;
-    max-width: 110px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 20px;
 
     &.text-error {
       color: var(--error);
       font-weight: 600;
     }
-  }
-
-  .step-bar {
-    flex: 1;
-    min-width: 80px;
-  }
-
-  .step-pct {
-    font-size: 12px;
-    min-width: 35px;
-    text-align: left;
   }
 
   .table-title {
