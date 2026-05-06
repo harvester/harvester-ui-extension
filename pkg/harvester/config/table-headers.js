@@ -286,7 +286,7 @@ export const FORKLIFT_PLAN_VM_COUNT = {
   labelKey: 'harvester.tableHeaders.forkliftPlanVmCount',
   value:    'spec.vms.length',
   sort:     'spec.vms.length',
-  align:    'center',
+  align:    'left',
 };
 
 // Plan reference column in forklift.konveyor.io.migration list page

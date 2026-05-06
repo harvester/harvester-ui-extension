@@ -1184,10 +1184,8 @@ export function init($plugin, store) {
     AGE
   ]);
   configureType(HCI.FORKLIFT_PROVIDER, {
-    resource:       HCI.FORKLIFT_PROVIDER,
-    resourceDetail: HCI.FORKLIFT_PROVIDER,
-    resourceEdit:   HCI.FORKLIFT_PROVIDER,
-    location:       {
+    resource:  HCI.FORKLIFT_PROVIDER,
+    location:  {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.FORKLIFT_PROVIDER }
     }
@@ -1195,7 +1193,7 @@ export function init($plugin, store) {
   virtualType({
     name:       HCI.FORKLIFT_PROVIDER,
     labelKey:   'harvester.addons.forklift.labels.provider',
-    group:      'forklift',
+    group:      'forklift::Advanced',
     namespaced: true,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
@@ -1213,10 +1211,8 @@ export function init($plugin, store) {
     AGE
   ]);
   configureType(HCI.FORKLIFT_NETWORK_MAP, {
-    resource:       HCI.FORKLIFT_NETWORK_MAP,
-    resourceDetail: HCI.FORKLIFT_NETWORK_MAP,
-    resourceEdit:   HCI.FORKLIFT_NETWORK_MAP,
-    location:       {
+    resource:  HCI.FORKLIFT_NETWORK_MAP,
+    location:  {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.FORKLIFT_NETWORK_MAP }
     }
@@ -1224,7 +1220,7 @@ export function init($plugin, store) {
   virtualType({
     name:       HCI.FORKLIFT_NETWORK_MAP,
     labelKey:   'harvester.addons.forklift.labels.networkMap',
-    group:      'forklift',
+    group:      'forklift::Advanced',
     namespaced: true,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
@@ -1242,10 +1238,8 @@ export function init($plugin, store) {
     AGE
   ]);
   configureType(HCI.FORKLIFT_STORAGE_MAP, {
-    resource:       HCI.FORKLIFT_STORAGE_MAP,
-    resourceDetail: HCI.FORKLIFT_STORAGE_MAP,
-    resourceEdit:   HCI.FORKLIFT_STORAGE_MAP,
-    location:       {
+    resource:  HCI.FORKLIFT_STORAGE_MAP,
+    location:  {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.FORKLIFT_STORAGE_MAP }
     }
@@ -1253,7 +1247,7 @@ export function init($plugin, store) {
   virtualType({
     name:       HCI.FORKLIFT_STORAGE_MAP,
     labelKey:   'harvester.addons.forklift.labels.storageMap',
-    group:      'forklift',
+    group:      'forklift::Advanced',
     namespaced: true,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
@@ -1272,10 +1266,8 @@ export function init($plugin, store) {
     AGE
   ]);
   configureType(HCI.FORKLIFT_PLAN, {
-    resource:       HCI.FORKLIFT_PLAN,
-    resourceDetail: HCI.FORKLIFT_PLAN,
-    resourceEdit:   HCI.FORKLIFT_PLAN,
-    location:       {
+    resource:  HCI.FORKLIFT_PLAN,
+    location:  {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.FORKLIFT_PLAN }
     }
@@ -1283,7 +1275,7 @@ export function init($plugin, store) {
   virtualType({
     name:       HCI.FORKLIFT_PLAN,
     labelKey:   'harvester.addons.forklift.labels.plan',
-    group:      'forklift',
+    group:      'forklift::Advanced',
     namespaced: true,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
@@ -1300,10 +1292,8 @@ export function init($plugin, store) {
     AGE
   ]);
   configureType(HCI.FORKLIFT_MIGRATION, {
-    resource:       HCI.FORKLIFT_MIGRATION,
-    resourceDetail: HCI.FORKLIFT_MIGRATION,
-    resourceEdit:   HCI.FORKLIFT_MIGRATION,
-    location:       {
+    resource:  HCI.FORKLIFT_MIGRATION,
+    location:  {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.FORKLIFT_MIGRATION }
     }
@@ -1311,11 +1301,22 @@ export function init($plugin, store) {
   virtualType({
     name:       HCI.FORKLIFT_MIGRATION,
     labelKey:   'harvester.addons.forklift.labels.migration',
-    group:      'forklift',
+    group:      'forklift::Advanced',
     namespaced: true,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.FORKLIFT_MIGRATION }
+    }
+  });
+  configureType('forklift-create', { subTypes: [HCI.FORKLIFT_PLAN] });
+  virtualType({
+    name:       'forklift-create',
+    labelKey:   'harvester.addons.forklift.labels.plan',
+    group:      'forklift',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
+      params: {}
     }
   });
 
@@ -1324,6 +1325,14 @@ export function init($plugin, store) {
     addonName:    ADD_ONS.FORKLIFT_OPERATOR,
     resourceType: HCI.ADD_ONS,
     navGroup:     'forklift',
+    types:        [
+      'forklift-create',
+    ]
+  });
+  registerAddonSideNav(store, PRODUCT_NAME, {
+    addonName:    ADD_ONS.FORKLIFT_OPERATOR,
+    resourceType: HCI.ADD_ONS,
+    navGroup:     'forklift::Advanced',
     types:        [
       HCI.FORKLIFT_PROVIDER,
       HCI.FORKLIFT_NETWORK_MAP,

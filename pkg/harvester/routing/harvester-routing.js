@@ -16,6 +16,11 @@ import HarvesterMembers from '../pages/c/_cluster/members/index.vue';
 import ProjectNamespaces from '../pages/c/_cluster/projectsnamespaces.vue';
 import HarvesterAlertmanagerReceiver from '../pages/c/_cluster/alertmanagerconfig/_alertmanagerconfigid/receiver.vue';
 import HarvesterUnsupported from '../pages/c/_cluster/unsupported/index.vue';
+import ForkliftDashboard from '../pages/c/_cluster/forklift/index.vue';
+import ForkliftConfigureProvider from '../pages/c/_cluster/forklift/configure-provider.vue';
+import ForkliftSelectVms from '../pages/c/_cluster/forklift/select-vms.vue';
+import ForkliftConfigureMappings from '../pages/c/_cluster/forklift/configure-mappings.vue';
+import ForkliftReviewMigration from '../pages/c/_cluster/forklift/review-migration.vue';
 
 const routes = [
   {
@@ -83,6 +88,26 @@ const routes = [
     name:      `${ PRODUCT_NAME }-c-cluster-projectsnamespaces`,
     path:      `/:product/c/:cluster/projectsnamespaces`,
     component: ProjectNamespaces,
+  }, {
+    name:      `${ PRODUCT_NAME }-c-cluster-forklift`,
+    path:      `/:product/c/:cluster/forklift`,
+    component: ForkliftDashboard,
+  }, {
+    name:      `${ PRODUCT_NAME }-c-cluster-forklift-configure-provider`,
+    path:      `/:product/c/:cluster/forklift/configure-provider`,
+    component: ForkliftConfigureProvider,
+  }, {
+    name:      `${ PRODUCT_NAME }-c-cluster-forklift-select-vms`,
+    path:      `/:product/c/:cluster/forklift/select-vms`,
+    component: ForkliftSelectVms,
+  }, {
+    name:      `${ PRODUCT_NAME }-c-cluster-forklift-configure-mappings`,
+    path:      `/:product/c/:cluster/forklift/configure-mappings`,
+    component: ForkliftConfigureMappings,
+  }, {
+    name:      `${ PRODUCT_NAME }-c-cluster-forklift-review-migration`,
+    path:      `/:product/c/:cluster/forklift/review-migration`,
+    component: ForkliftReviewMigration,
   }, {
     name:      `${ PRODUCT_NAME }-c-cluster-resource`,
     path:      `/:product/c/:cluster/:resource`,
