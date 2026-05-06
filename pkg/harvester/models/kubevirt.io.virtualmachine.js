@@ -130,7 +130,7 @@ export default class VirtVm extends HarvesterResource {
       clone.action = 'goToCloneVM';
     }
 
-    const canCreateVMSSchedule = !!this.$getters?.['schemaFor']?.(HCI.SCHEDULE_VM_BACKUP)?.collectionMethods?.includes('POST');
+    const canCreateVMSSchedule = !!this.$getters?.['schemaFor']?.(HCI.SCHEDULE_VM_BACKUP)?.collectionMethods?.find((x) => ['post'].includes(x.toLowerCase()));
 
     return [
       {

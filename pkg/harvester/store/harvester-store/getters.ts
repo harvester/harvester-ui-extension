@@ -129,20 +129,20 @@ export default {
   // Check in config/harvester-cluster.js for more details.
   // We need to look up the schema by resource name, and fallback to find using real resource name
   schemaFor: (state, getters, rootState, rootGetters) => (type, fuzzy = false, allowThrow = true) => {
-  // follow the same logic as type-map/schemaFor in /dashboard/shell/plugins/dashboard-store/getters.js
-  const normalizedType = getters.normalizeType(type);
-  const schemas = state.types['schema'];
-  const out = schemas?.map?.get(normalizedType);
+    // follow the same logic as type-map/schemaFor in /dashboard/shell/plugins/dashboard-store/getters.js
+    const normalizedType = getters.normalizeType(type);
+    const schemas = state.types['schema'];
+    const out = schemas?.map?.get(normalizedType);
 
-  if (out) return out;
+    if (out) return out;
 
-  // if not found, use the resource mapping in configureType for a second try
-  const resourceType = rootGetters['type-map/optionsFor'](type)?.resource;
-  if (resourceType && resourceType !== type) {
-    const normalizedResource = getters.normalizeType(resourceType);
-    return schemas?.map?.get(normalizedResource) || null;
-  }
+    // if not found, use the resource mapping in configureType for a second try
+    const resourceType = rootGetters['type-map/optionsFor'](type)?.resource;
+    if (resourceType && resourceType !== type) {
+      const normalizedResource = getters.normalizeType(resourceType);
+      return schemas?.map?.get(normalizedResource) || null;
+    }
 
-  return null;
-},
+    return null;
+  },
 };
