@@ -128,7 +128,7 @@ export default {
   // Few harvester resources name and REAL resource are different. E.g. HCI.NETWORK_ATTACHMENT page resource is NETWORK_ATTACHMENT.
   // Check in config/harvester-cluster.js for more details.
   // We need to look up the schema by resource name, and fallback to find using real resource name
-  schemaFor: (state, getters, rootState, rootGetters) => (type, fuzzy = false, allowThrow = true) => {
+  schemaFor: (state, getters, rootState, rootGetters) => (type, _fuzzy = false, _allowThrow = true) => {
     // follow the same logic as type-map/schemaFor in /dashboard/shell/plugins/dashboard-store/getters.js
     const normalizedType = getters.normalizeType(type);
     const schemas = state.types['schema'];

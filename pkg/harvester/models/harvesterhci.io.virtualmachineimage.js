@@ -52,7 +52,7 @@ export default class HciVmImage extends HarvesterResource {
       canCreateVM = false;
     }
 
-    const canCreateImage = !!this.$getters?.['schemaFor']?.(HCI.IMAGE)?.collectionMethods?.includes('POST');
+    const canCreateImage = !!this.$getters?.['schemaFor']?.(HCI.IMAGE)?.collectionMethods?.some((method) => method.toLowerCase() === 'post');
     const customActions = this.isReady ? [
       {
         action:  'createFromImage',
