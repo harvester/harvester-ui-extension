@@ -122,7 +122,7 @@ export default {
       return this.$store.getters['currentCluster'].isLocal;
     },
     canEditClusterMembers() {
-      return this.normanClusterRTBSchema?.collectionMethods.find((x) => x.toLowerCase() === 'post');
+      return this.schema?.collectionMethods.find((x) => x.toLowerCase() === 'post');
     },
   },
 };
