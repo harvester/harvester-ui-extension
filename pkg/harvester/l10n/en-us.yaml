@@ -1792,7 +1792,6 @@ harvester:
         targetNamespace: Target Namespace
         migrationMode: Migration Mode
         coldMigration: Cold Migration
-        vmsWillShutDown: VMs will shut down
         virtualMachines: Virtual Machines
         warningTitle: "Cold Migration Warning"
         warningMessage: "All source VMs will be powered off, and downtime will occur during migration. Plan your maintenance window accordingly and notify relevant stakeholders"
