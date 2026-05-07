@@ -48,8 +48,6 @@ const rows = computed(() => {
 
     plan.networkEntries = (netMap?.spec?.map || []).map((e) => `${ e.source?.id || '-' } → ${ e.destination?.type === 'pod' ? 'Pod Network' : (e.destination?.name || '-') }`);
     plan.storageEntries = (storMap?.spec?.map || []).map((e) => `${ e.source?.id || '-' } → ${ e.destination?.storageClass || '-' }`);
-    plan.networkDisplay = plan.networkEntries.join(', ') || '-';
-    plan.storageDisplay = plan.storageEntries.join(', ') || '-';
 
     plan.vmIdsDisplay = (plan.spec?.vms || []).map((vm) => vm.id || vm.name || '').filter(Boolean).join(', ') || '-';
 
@@ -76,13 +74,31 @@ const rows = computed(() => {
             currentStep = step.name || `Step ${ idx + 1 }`;
           }
 
-          if (step.error) {
-            errorMsg = (step.error.reasons || []).join('; ') || 'Error';
+          if (step.error && !errorMsg) {
+            const reasons = (step.error.reasons || []).join('; ') || 'Error';
+
+            errorMsg = `${ step.name || `Step ${ idx + 1 }` }: ${ reasons }`;
+          }
+
+          if (step.phase === 'Failed' && !errorMsg) {
+            errorMsg = `${ step.name || `Step ${ idx + 1 }` }: Failed`;
           }
         }
       });
 
-      overallProgress = Math.round(overallProgress);
+      // Fallback to VM-level error if no step-level error found
+      if (!errorMsg && vm.error) {
+        const reasons = (vm.error.reasons || []).join('; ') || 'Failed';
+
+        errorMsg = `${ currentStep || vm.error.phase || 'Migration' }: ${ reasons }`;
+      }
+
+      overallProgress = Math.round(overallProgress * 10) / 10;
+
+      // If no step-level error but the plan itself is failed, surface it
+      if (!errorMsg && plan.planFailed) {
+        errorMsg = `${ currentStep || 'Migration' }: Failed`;
+      }
 
       return {
         vmName:   vm.name || vm.id || 'Unknown',
@@ -90,10 +106,11 @@ const rows = computed(() => {
         progress: overallProgress,
         currentStep,
         errorMsg,
+        canceled: plan.planCanceled,
       };
     });
 
-    plan.progress = plan.vmProgress.length > 0 ? Math.round(plan.vmProgress.reduce((sum, vm) => sum + vm.progress, 0) / plan.vmProgress.length) : 0;
+    plan.progress = plan.vmProgress.length > 0 ? Math.round(plan.vmProgress.reduce((sum, vm) => sum + vm.progress, 0) / plan.vmProgress.length * 10) / 10 : 0;
 
     return plan;
   });
@@ -209,16 +226,18 @@ init();
                 <span class="vm-name">{{ vm.vmName }}</span>
                 <span class="text-muted vm-id">id: {{ vm.vmId }}</span>
               </div>
-              <span class="vm-pct">{{ vm.progress }}%</span>
             </div>
-            <PercentageBar
-              :model-value="vm.progress"
-              :color-stops="vm.errorMsg ? { 0: '--error' } : { 99: '--primary', 100: '--success' }"
-              preferred-direction="MORE"
-              class="vm-bar"
-            />
+            <div class="vm-pct-block">
+              <PercentageBar
+                :model-value="vm.progress"
+                :color-stops="vm.errorMsg ? { 100: '--error' } : vm.canceled ? { 100: '--darker' } : vm.progress >= 100 ? { 100: '--success' } : { 100: '--primary' }"
+                preferred-direction="MORE"
+                class="vm-bar"
+              />
+              <span class="vm-pct text-muted mr-10">{{ vm.progress }}%</span>
+            </div>
             <div
-              v-if="vm.progress === 100"
+              v-if="vm.progress >= 100"
               class="step-label text-muted"
             >
               Finished Successfully
@@ -228,6 +247,12 @@ init();
               class="step-label text-error"
             >
               {{ vm.errorMsg }}
+            </div>
+            <div
+              v-else-if="vm.canceled"
+              class="step-label text-muted"
+            >
+              Canceled
             </div>
             <div
               v-else-if="vm.currentStep"
@@ -252,7 +277,7 @@ init();
 <style lang="scss" scoped>
   .plan-name-cell {
     .plan-name {
-      font-weight: 600;
+      font-weight: 500;
       line-height: 20px;
     }
 
@@ -266,14 +291,7 @@ init();
   .progress-cells {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-  }
-
-  .vm-progress {
-    &:not(:last-child) {
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border);
-    }
+    gap: 16px;
   }
 
   .vm-progress-header {
@@ -284,8 +302,7 @@ init();
   }
 
   .vm-name {
-    font-weight: 600;
-    font-size: 12px;
+    font-size: 14px;
   }
 
   .vm-name-block {
@@ -299,8 +316,16 @@ init();
   }
 
   .vm-pct {
-    font-size: 12px;
-    font-weight: 600;
+    font-size: 14px;
+    min-width: 40px;
+    text-align: left;
+  }
+
+  .vm-pct-block {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    justify-content: space-between;
   }
 
   .vm-bar {
@@ -308,13 +333,12 @@ init();
   }
 
   .step-label {
-    font-size: 12px;
+    font-size: 13px;
     margin-top: 4px;
     line-height: 20px;
 
     &.text-error {
       color: var(--error);
-      font-weight: 600;
     }
   }
 

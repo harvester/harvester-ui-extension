@@ -41,6 +41,7 @@ const createdProvider = ref(null);
 const createdSecret = ref(null);
 const loading = ref(true);
 const testPassed = ref(false);
+const testing = ref(false);
 
 const isFormValid = computed(() => !!providerName.value && !!url.value && !!username.value && !!password.value);
 
@@ -71,6 +72,7 @@ const cancel = async() => {
 const testConnection = async(buttonCb) => {
   testResult.value = null;
   testError.value = null;
+  testing.value = true;
 
   if (!providerName.value || !url.value || !username.value || !password.value) {
     testError.value = t('harvester.addons.forklift.configureProvider.testMissingFields');
@@ -191,6 +193,7 @@ const testConnection = async(buttonCb) => {
     if (connected) {
       testPassed.value = true;
       testResult.value = t('harvester.addons.forklift.configureProvider.testSuccess');
+      testing.value = false;
       buttonCb(true);
     } else {
       if (createdProvider.value) {
@@ -203,6 +206,7 @@ const testConnection = async(buttonCb) => {
       }
 
       testError.value = errorMsg || t('harvester.addons.forklift.configureProvider.testTimeout');
+      testing.value = false;
       buttonCb(false);
     }
   } catch (err) {
@@ -220,6 +224,7 @@ const testConnection = async(buttonCb) => {
     }
 
     testError.value = err.message || t('harvester.addons.forklift.configureProvider.testFailed');
+    testing.value = false;
     buttonCb(false);
   }
 };
@@ -399,7 +404,7 @@ init();
         {{ t('generic.cancel') }}
       </button>
       <AsyncButton
-        :disabled="!isFormValid"
+        :disabled="!isFormValid || testing"
         :action-label="t('harvester.addons.forklift.configureProvider.save')"
         :waiting-label="t('harvester.addons.forklift.configureProvider.save')"
         :success-label="t('harvester.addons.forklift.configureProvider.save')"
