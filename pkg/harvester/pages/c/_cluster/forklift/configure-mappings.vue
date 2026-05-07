@@ -11,7 +11,6 @@ import { SCHEMA, STORAGE_CLASS, NETWORK_ATTACHMENT } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
 import { HCI } from '../../../../types';
 import { PRODUCT_NAME } from '../../../../config/harvester';
-import vmData from '../../../../utils/vms.json';
 
 const schema = {
   id:         HCI.FORKLIFT_NETWORK_MAP,
@@ -335,11 +334,54 @@ const init = async() => {
   if (vmsParam) {
     try {
       const vmIds = JSON.parse(vmsParam);
+      const baseUrl = `https://forklift-apir.13.48.147.135.sslip.io/providers/vsphere/67e67481-48f1-4d9b-8fb6-b4c5c58d3232`;
+
+      const [allVms, networksData, datastoresData] = await Promise.all([
+        fetch(`${ baseUrl }/vms`).then((r) => r.json()).catch(() => []),
+        fetch(`${ baseUrl }/networks`).then((r) => r.json()).catch(() => []),
+        fetch(`${ baseUrl }/datastores`).then((r) => r.json()).catch(() => []),
+      ]);
+
+      const networkNameMap = (Array.isArray(networksData) ? networksData : []).reduce((map, n) => {
+        map[n.id] = n.name;
+
+        return map;
+      }, {});
+      const datastoreNameMap = (Array.isArray(datastoresData) ? datastoresData : []).reduce((map, d) => {
+        map[d.id] = d.name;
+
+        return map;
+      }, {});
+
+      const vmList = Array.isArray(allVms) ? allVms : (allVms?.data || []);
 
       vms.value = vmIds.map((id) => {
-        const found = vmData.find((vm) => vm.id === id);
+        const found = vmList.find((vm) => vm.id === id);
 
-        return found || {
+        if (found) {
+          // Resolve network names
+          if (found.networks) {
+            found.networks = found.networks.map((n) => ({
+              ...n,
+              name: n.name || networkNameMap[n.id] || n.id,
+            }));
+          }
+
+          // Resolve datastore names
+          if (found.disks) {
+            found.disks = found.disks.map((d) => ({
+              ...d,
+              datastore: d.datastore ? {
+                ...d.datastore,
+                name: d.datastore.name || datastoreNameMap[d.datastore.id] || d.datastore.id,
+              } : d.datastore,
+            }));
+          }
+
+          return found;
+        }
+
+        return {
           id, name: id, networks: [], disks: []
         };
       });

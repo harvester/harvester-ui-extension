@@ -10,7 +10,6 @@ import { SCHEMA } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
 import { HCI } from '../../../../types';
 import { PRODUCT_NAME } from '../../../../config/harvester';
-import vmData from '../../../../utils/vms.json';
 
 const schema = {
   id:         HCI.FORKLIFT_PROVIDER,
@@ -33,6 +32,8 @@ const discoveredVMs = ref([]);
 const selectedVMs = ref([]);
 const tableRows = ref([]);
 const loading = ref(true);
+const networkMap = ref({});
+const datastoreMap = ref({});
 
 const providerName = computed(() => provider.value?.metadata?.name || route.query.provider || '');
 const vmCount = computed(() => discoveredVMs.value.length);
@@ -100,7 +101,7 @@ const buildTableRows = () => {
 
     if (vm.networks && vm.networks.length > 0) {
       networks = vm.networks.map((n) => ({
-        name:   n.name || n.id || n,
+        name:   n.name || networkMap.value[n.id] || n.id || n,
         id:     n.id || '',
         vlanId: n.vlanId || '',
       }));
@@ -117,7 +118,7 @@ const buildTableRows = () => {
         if (dsId && !seen.has(dsId)) {
           seen.add(dsId);
           datastores.push({
-            name:     d.datastore?.name || dsId,
+            name:     d.datastore?.name || datastoreMap.value[dsId] || dsId,
             id:       d.datastore?.id || '',
             type:     d.datastore?.type || '',
             capacity: d.capacity || 0,
@@ -197,16 +198,36 @@ const init = async() => {
 
   if (provider.value) {
     try {
-      const inventoryType = 'forklift-inventory.konveyor.io.vspherevm';
+      const baseUrl = `https://forklift-apir.13.48.147.135.sslip.io/providers/vsphere/67e67481-48f1-4d9b-8fb6-b4c5c58d3232`;
 
-      discoveredVMs.value = await store.dispatch(`${ inStore }/findAll`, { type: inventoryType });
+      const [vmsResp, networksResp, datastoresResp] = await Promise.all([
+        fetch(`${ baseUrl }/vms`).then((r) => r.json()),
+        fetch(`${ baseUrl }/networks`).then((r) => r.json()).catch(() => []),
+        fetch(`${ baseUrl }/datastores`).then((r) => r.json()).catch(() => []),
+      ]);
+
+      if (Array.isArray(vmsResp)) {
+        discoveredVMs.value = vmsResp;
+      } else if (vmsResp?.data && Array.isArray(vmsResp.data)) {
+        discoveredVMs.value = vmsResp.data;
+      }
+
+      const networks = Array.isArray(networksResp) ? networksResp : (networksResp?.data || []);
+      const datastores = Array.isArray(datastoresResp) ? datastoresResp : (datastoresResp?.data || []);
+
+      networkMap.value = networks.reduce((map, n) => {
+        map[n.id] = n.name;
+
+        return map;
+      }, {});
+      datastoreMap.value = datastores.reduce((map, d) => {
+        map[d.id] = d.name;
+
+        return map;
+      }, {});
     } catch (e) {
       discoveredVMs.value = [];
     }
-  }
-
-  if (discoveredVMs.value.length === 0) {
-    discoveredVMs.value = vmData;
   }
 
   tableRows.value = buildTableRows();
