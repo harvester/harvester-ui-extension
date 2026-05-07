@@ -21,9 +21,10 @@ export default class HciAddonConfig extends HarvesterResource {
       out.push(rancherDashboard);
     }
 
+    const canUpdate = !!this.linkFor('update');
     const toggleAddon = {
       action:  'toggleAddon',
-      enabled: true,
+      enabled: canUpdate,
       icon:    this.spec.enabled ? 'icon icon-pause' : 'icon icon-play',
       label:   this.spec.enabled ? this.t('generic.disable') : this.t('generic.enable'),
     };

@@ -3,7 +3,6 @@ import { Banner } from '@components/Banner';
 import Loading from '@shell/components/Loading';
 import ResourceTable from '@shell/components/ResourceTable';
 import BadgeState from '@shell/components/formatter/BadgeStateFormatter';
-
 import { NAME, AGE, NAMESPACE, STATE } from '@shell/config/table-headers';
 import { NETWORK_ATTACHMENT, SCHEMA } from '@shell/config/types';
 import { allHash } from '@shell/utils/promise';

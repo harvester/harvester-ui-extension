@@ -57,7 +57,11 @@ export default class HciVlanConfig extends HarvesterResource {
   get _availableActions() {
     const out = super._availableActions;
 
-    insertAt(out, 0, this.migrateAction);
+    const canMigrate = !!this.$getters?.['schemaFor']?.(HCI.VLAN_CONFIG)?.collectionMethods?.find((x) => ['post'].includes(x.toLowerCase()));
+
+    if (canMigrate) {
+      insertAt(out, 0, this.migrateAction);
+    }
 
     return out;
   }

@@ -30,11 +30,12 @@ const STATUS_DISPLAY = {
 export default class PCIDevice extends SteveModel {
   get _availableActions() {
     const out = super._availableActions;
+    const canUpdate = !!this.linkFor('update');
 
     out.push(
       {
         action:     'enablePassthroughBulk',
-        enabled:    !this.isEnabling && !this.isvGPUDevice,
+        enabled:    !this.isEnabling && !this.isvGPUDevice && canUpdate,
         icon:       'icon icon-fw icon-dot',
         label:      'Enable Passthrough',
         bulkable:   true,
@@ -43,7 +44,7 @@ export default class PCIDevice extends SteveModel {
       },
       {
         action:   'disablePassthrough',
-        enabled:  this.isEnabling && this.claimedByMe && !this.isvGPUDevice,
+        enabled:  this.isEnabling && this.claimedByMe && !this.isvGPUDevice && canUpdate,
         icon:     'icon icon-fw icon-dot-open',
         label:    'Disable Passthrough',
         bulkable: true,
