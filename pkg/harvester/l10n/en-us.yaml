@@ -1286,6 +1286,13 @@ harvester:
     rancherCluster:
       kubeConfig: Rancher KubeConfig
       removeUpstreamClusterWhenNamespaceIsDeleted: Remove Upstream Cluster When Namespace Is Deleted
+    clusterPodSecurityStandard:
+      whitelistedNamespaces:
+        label: 'Whitelisted Namespaces'
+      privilegedNamespaces:
+        label: 'Privileged Namespaces'
+      restrictedNamespaces:
+        label: 'Restricted Namespaces'
     storageNetwork:
       range:
         placeholder: e.g. 172.16.0.0/24
@@ -2043,6 +2050,7 @@ advancedSettings:
     'harv-max-hotplug-ratio': 'The ratio for kubevirt to limit the maximum CPU and memory that can be hotplugged to a VM. The value could be an integer between 1 and 20, default to 4.'
     'harv-kubevirt-migration': 'Configure cluster-wide KubeVirt live migration parameters.'
     'harv-instance-manager-resources': 'Configure resource percentage reservations for Longhorn instance manager V1 and V2. Valid instance manager CPU range between 0 - 40.'
+    'harv-cluster-pod-security-standard': 'Enforce Kubernetes Pod Security Standards (PSS) at the cluster level.'
 
 typeLabel:
   kubevirt.io.virtualmachine: |-

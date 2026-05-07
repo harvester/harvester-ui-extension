@@ -65,7 +65,8 @@ const FEATURE_FLAGS = {
     'vGPUAsPCIDevice',
     'instanceManagerResourcesSetting',
     'rwxNetworkSetting',
-    'createPVCWithDataVolume'
+    'createPVCWithDataVolume',
+    'clusterPodSecurityStandardSetting'
   ],
   'v1.8.1': [],
   'v1.9.0': [],
