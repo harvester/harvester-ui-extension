@@ -27,6 +27,12 @@ export default class ForkliftPlan extends HarvesterResource {
     return conditions.some((c) => c.type === 'Canceled' && c.status === 'True');
   }
 
+  get planSucceeded() {
+    const migration = this.status?.migration;
+
+    return !!migration?.completed && !this.planFailed && !this.planCanceled;
+  }
+
   get stateDisplay() {
     if (this.planFailed) {
       return 'Error';
@@ -61,7 +67,7 @@ export default class ForkliftPlan extends HarvesterResource {
 
   get _availableActions() {
     const canStop = this.isMigrating && !this.planCanceled;
-    const canStart = !this.isMigrating || this.planFailed || this.planCanceled;
+    const canStart = !this.planSucceeded && (!this.isMigrating || this.planFailed || this.planCanceled);
 
     const out = super._availableActions;
 
