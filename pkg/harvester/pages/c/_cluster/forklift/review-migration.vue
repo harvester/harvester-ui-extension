@@ -12,7 +12,6 @@ import { SCHEMA } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
 import { HCI } from '../../../../types';
 import { PRODUCT_NAME } from '../../../../config/harvester';
-import vmData from '../../../../utils/vms.json';
 
 const schema = {
   id:         HCI.FORKLIFT_PLAN,
@@ -228,9 +227,13 @@ const init = async() => {
   if (vmsParam) {
     try {
       const vmIds = JSON.parse(vmsParam);
+      const baseUrl = `https://forklift-apir.13.48.147.135.sslip.io/providers/vsphere/67e67481-48f1-4d9b-8fb6-b4c5c58d3232`;
+
+      const allVms = await fetch(`${ baseUrl }/vms`).then((r) => r.json()).catch(() => []);
+      const vmList = Array.isArray(allVms) ? allVms : (allVms?.data || []);
 
       vms.value = vmIds.map((id) => {
-        const found = vmData.find((vm) => vm.id === id);
+        const found = vmList.find((vm) => vm.id === id);
 
         return found || {
           id, name: id, networks: [], disks: [], cpuCount: 0, memoryMB: 0, guestName: ''
