@@ -143,7 +143,11 @@ harvester:
           placeholder: Select a storage class
     migration:
       failedMessage: Latest migration failed!
-      title: Migration
+      title: "Migrating {count} VM(s)"
+      selectedVMs: "The following virtual machine(s) will be migrated to the target node"
+      currentNode: node
+      unknownNode: (unknown node)
+      alreadyOnTarget: Already on Target
       fields:
         nodeName:
           label: Target Node
@@ -248,6 +252,7 @@ harvester:
     suspendSchedule: Suspend
     restoreExistingVM: Replace Existing
     migrate: Migrate
+    vmMigrate: Virtual Machine Migration
     cpuAndMemoryHotplug: Edit CPU and Memory
     abortMigration: Abort Migration
     storageMigration: Storage Migration

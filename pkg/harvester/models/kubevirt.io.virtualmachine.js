@@ -226,10 +226,12 @@ export default class VirtVm extends HarvesterResource {
         label:   this.t('harvester.action.ejectCDROM')
       },
       {
-        action:  'migrateVM',
-        enabled: !!this.actions?.migrate,
-        icon:    'icon icon-copy',
-        label:   this.t('harvester.action.migrate')
+        action:     'migrateVM',
+        enabled:    !!this.actions?.migrate,
+        icon:       'icon icon-copy',
+        label:      this.t('harvester.action.vmMigrate'),
+        bulkable:   true,
+        bulkAction: 'migrateVM'
       },
       {
         action:  'abortMigrationVM',
