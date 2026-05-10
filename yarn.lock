@@ -3308,17 +3308,7 @@
   resolved "https://registry.yarnpkg.com/@types/estree/-/estree-1.0.8.tgz#958b91c991b1867ced318bedea0e215ee050726e"
   integrity sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==
 
-"@types/express-serve-static-core@*":
-  version "5.1.1"
-  resolved "https://registry.yarnpkg.com/@types/express-serve-static-core/-/express-serve-static-core-5.1.1.tgz#1a77faffee9572d39124933259be2523837d7eaa"
-  integrity sha512-v4zIMr/cX7/d2BpAEX3KNKL/JrT1s43s96lLvvdTmza1oEvDudCqK9aF/djc/SWgy8Yh0h30TZx5VpzqFCxk5A==
-  dependencies:
-    "@types/node" "*"
-    "@types/qs" "*"
-    "@types/range-parser" "*"
-    "@types/send" "*"
-
-"@types/express-serve-static-core@^4.17.33":
+"@types/express-serve-static-core@*", "@types/express-serve-static-core@^4.17.33":
   version "4.19.8"
   resolved "https://registry.yarnpkg.com/@types/express-serve-static-core/-/express-serve-static-core-4.19.8.tgz#99b960322a4d576b239a640ab52ef191989b036f"
   integrity sha512-02S5fmqeoKzVZCHPZid4b8JH2eM5HzQLZWN2FohQEy/0eXTq8VXZfSN6Pcr3F6N9R/vNrj7cpgbhjie6m/1tCA==
@@ -4073,15 +4063,10 @@
     "@vue/compiler-ssr" "3.5.29"
     "@vue/shared" "3.5.29"
 
-"@vue/shared@3.5.29":
+"@vue/shared@3.5.29", "@vue/shared@^3.5.18":
   version "3.5.29"
   resolved "https://registry.yarnpkg.com/@vue/shared/-/shared-3.5.29.tgz#0fe0d7637b05599d56ca58d83a77c637a1774110"
   integrity sha512-w7SR0A5zyRByL9XUkCfdLs7t9XOHUyJ67qPGQjOou3p6GvBeBW+AVjUUmlxtZ4PIYaRvE+1LmK44O4uajlZwcg==
-
-"@vue/shared@^3.5.18":
-  version "3.5.32"
-  resolved "https://registry.yarnpkg.com/@vue/shared/-/shared-3.5.32.tgz#dd8ba0d709bf3f758c324a81c8897bad5e1540cf"
-  integrity sha512-ksNyrmRQzWJJ8n3cRDuSF7zNNontuJg1YHnmWRJd2AMu8Ij2bqwiiri2lH5rHtYPZjj4STkNcgcmiQqlOjiYGg==
 
 "@vue/test-utils@2.4.6":
   version "2.4.6"
@@ -13853,9 +13838,9 @@ yaml@^1.10.0, yaml@^1.10.2, yaml@^1.7.2:
   integrity sha512-vIYeF1u3CjlhAFekPPAk2h/Kv4T3mAkMox5OymRiJQB0spDP10LHvt+K7G9Ny6NuuMAb25/6n1qyUjAcGNf/AA==
 
 yaml@^2.5.1:
-  version "2.8.3"
-  resolved "https://registry.yarnpkg.com/yaml/-/yaml-2.8.3.tgz#a0d6bd2efb3dd03c59370223701834e60409bd7d"
-  integrity sha512-AvbaCLOO2Otw/lW5bmh9d/WEdcDFdQp2Z2ZUH3pX9U2ihyUY0nvLv7J6TrWowklRGPYbB/IuIMfYgxaCPg5Bpg==
+  version "2.8.4"
+  resolved "https://registry.yarnpkg.com/yaml/-/yaml-2.8.4.tgz#4b5f411dd25f9544914d8673d4da7f29248e5e2e"
+  integrity sha512-ml/JPOj9fOQK8RNnWojA67GbZ0ApXAUlN2UQclwv2eVgTgn7O9gg9o7paZWKMp4g0H3nTLtS9LVzhkpOFIKzog==
 
 yargs-parser@^18.1.2:
   version "18.1.3"
