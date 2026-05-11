@@ -333,12 +333,17 @@ const init = async() => {
     // Provider may already be in store from previous step
   }
 
+  const allProviders = store.getters[`${ inStore }/all`](HCI.FORKLIFT_PROVIDER) || [];
+  const provider = allProviders.find((p) => p.metadata.name === providerName.value && p.metadata.namespace === NAMESPACE);
+
   const vmsParam = route.query.vms;
 
   if (vmsParam) {
     try {
       const vmIds = JSON.parse(vmsParam);
-      const baseUrl = `https://forklift-apir.13.48.147.135.sslip.io/providers/vsphere/67e67481-48f1-4d9b-8fb6-b4c5c58d3232`;
+      const providerUid = provider?.metadata?.uid;
+      const providerType = provider?.spec?.type || 'vsphere';
+      const baseUrl = `https://forklift-apir.13.48.147.135.sslip.io/providers/${ providerType }/${ providerUid }`;
 
       const [allVms, networksData, datastoresData] = await Promise.all([
         fetch(`${ baseUrl }/vms`).then((r) => r.json()).catch(() => []),
