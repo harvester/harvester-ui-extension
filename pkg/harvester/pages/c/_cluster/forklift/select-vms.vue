@@ -198,7 +198,9 @@ const init = async() => {
 
   if (provider.value) {
     try {
-      const baseUrl = `https://forklift-apir.13.48.147.135.sslip.io/providers/vsphere/67e67481-48f1-4d9b-8fb6-b4c5c58d3232`;
+      const providerUid = provider.value.metadata.uid;
+      const providerType = provider.value.spec?.type || 'vsphere';
+      const baseUrl = `https://forklift-apir.13.48.147.135.sslip.io/providers/${ providerType }/${ providerUid }`;
 
       const [vmsResp, networksResp, datastoresResp] = await Promise.all([
         fetch(`${ baseUrl }/vms`).then((r) => r.json()),
