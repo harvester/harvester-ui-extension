@@ -252,6 +252,13 @@ export default {
         :label="t('harvester.backup.restore.deletePreviousVolumes')"
         :options="deletionPolicyOption"
       />
+
+      <Checkbox
+        v-model:value="restoreResource.spec.haltAfterRestore"
+        type="checkbox"
+        class="check mb-20"
+        :label="t('harvester.backup.restore.haltAfterRestore')"
+      />
     </div>
 
     <Footer

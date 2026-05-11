@@ -1112,6 +1112,7 @@ harvester:
       replaceExisting: Replace existing
       virtualMachineName: Virtual Machine Name
       keepMacAddress: Keep MAC Address
+      haltAfterRestore: Remain halted
     matchTarget: The current backup target does not match the existing one.
     progress:
       details: Volume details
