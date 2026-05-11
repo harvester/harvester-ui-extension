@@ -262,7 +262,7 @@ init();
             </div>
           </div>
         </div>
-        <span v-else>-</span>
+        <span v-if="!row.vmProgress.length">-</span>
       </template>
       <template #cell:mappings="{ row }">
         <MappingsCell

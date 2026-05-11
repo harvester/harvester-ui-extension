@@ -8,6 +8,36 @@ export default class ForkliftPlan extends HarvesterResource {
     return conditions.some((c) => c.type === 'Failed' && c.status === 'True');
   }
 
+  get planCritical() {
+    const conditions = this.status?.conditions || [];
+
+    return conditions.some((c) => c.category === 'Critical' && c.status === 'True');
+  }
+
+  get criticalMessages() {
+    const conditions = this.status?.conditions || [];
+
+    return conditions
+      .filter((c) => c.category === 'Critical' && c.status === 'True')
+      .map((c) => c.message);
+  }
+
+  get stateDescription() {
+    if (this.planCritical) {
+      return this.criticalMessages.join('; ');
+    }
+
+    return null;
+  }
+
+  get stateObj() {
+    return {
+      error:         this.planFailed || this.planCritical,
+      transitioning: this.isMigrating,
+      message:       this.stateDescription,
+    };
+  }
+
   get isMigrating() {
     const migration = this.status?.migration;
 
@@ -38,6 +68,10 @@ export default class ForkliftPlan extends HarvesterResource {
       return 'Error';
     }
 
+    if (this.planCritical) {
+      return 'Error';
+    }
+
     if (this.planCanceled) {
       return 'Canceled';
     }
@@ -54,6 +88,10 @@ export default class ForkliftPlan extends HarvesterResource {
       return 'bg-error';
     }
 
+    if (this.planCritical) {
+      return 'bg-error';
+    }
+
     if (this.planCanceled) {
       return 'bg-warning';
     }
@@ -67,7 +105,7 @@ export default class ForkliftPlan extends HarvesterResource {
 
   get _availableActions() {
     const canStop = this.isMigrating && !this.planCanceled;
-    const canStart = !this.planSucceeded && (!this.isMigrating || this.planFailed || this.planCanceled);
+    const canStart = !this.planSucceeded && (!this.isMigrating || this.planFailed || this.planCanceled || this.planCritical);
 
     const out = super._availableActions;
 
