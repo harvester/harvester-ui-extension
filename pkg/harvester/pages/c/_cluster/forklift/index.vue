@@ -110,6 +110,18 @@ const rows = computed(() => {
       };
     });
 
+    // If no migration progress but we have VMs in the spec, show them at 0%
+    if (plan.vmProgress.length === 0 && plan.spec?.vms?.length > 0) {
+      plan.vmProgress = plan.spec.vms.map((vm) => ({
+        vmName:      vm.name || vm.id || 'Unknown',
+        vmId:        vm.id || '',
+        progress:    0,
+        currentStep: 'Initializing migration',
+        errorMsg:    '',
+        canceled:    false,
+      }));
+    }
+
     plan.progress = plan.vmProgress.length > 0 ? Math.round(plan.vmProgress.reduce((sum, vm) => sum + vm.progress, 0) / plan.vmProgress.length * 10) / 10 : 0;
 
     return plan;
@@ -129,7 +141,6 @@ const headers = [
   {
     ...NAME_COL,
     labelKey: 'harvester.addons.forklift.dashboard.columns.plan',
-    subLabel: 'VM IDs',
   },
   { ...FORKLIFT_PLAN_VM_COUNT, width: 105 },
   {
@@ -202,9 +213,6 @@ init();
         <div class="plan-name-cell">
           <div class="plan-name">
             {{ row.metadata.name }}
-          </div>
-          <div class="plan-vms text-muted">
-            {{ row.vmIdsDisplay }}
           </div>
         </div>
       </template>
@@ -309,6 +317,7 @@ init();
     display: flex;
     flex-direction: row;
     gap: 8px;
+    align-items: center;
   }
 
   .vm-id {

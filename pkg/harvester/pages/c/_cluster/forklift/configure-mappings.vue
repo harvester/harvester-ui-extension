@@ -448,7 +448,7 @@ init();
                   <span class="source-detail text-muted">VLAN {{ entry.vlanId || '0' }}</span>
                 </div>
                 <div :class="['mapping-arrow', entry.target ? 'text-success' : 'text-muted']">
-                  <i class="icon icon-upgrade-alt" />
+                  <i class="icon icon-right-arrow-alt" />
                 </div>
                 <div class="mapping-target">
                   <LabeledSelect
@@ -498,7 +498,7 @@ init();
                   >{{ formatStorageDetail(entry) }}</span>
                 </div>
                 <div :class="['mapping-arrow', entry.target ? 'text-success' : 'text-muted']">
-                  <i class="icon icon-upgrade-alt" />
+                  <i class="icon icon-right-arrow-alt" />
                 </div>
                 <div class="mapping-target">
                   <LabeledSelect
@@ -546,7 +546,7 @@ init();
 
   .mappings-columns {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 64px;
   }
 
@@ -602,7 +602,6 @@ init();
   .mapping-arrow {
     font-size: 22px;
     flex-shrink: 0;
-    transform: rotate(90deg);
   }
 
   .mapping-target {
