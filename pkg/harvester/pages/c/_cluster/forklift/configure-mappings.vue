@@ -215,12 +215,16 @@ const saveMappings = async(buttonCb) => {
           };
         }
 
+        const parts = entry.target.split('/');
+        const netName = parts.length > 1 ? parts[1] : parts[0];
+        const netNamespace = parts.length > 1 ? parts[0] : NAMESPACE;
+
         return {
           source:      { name: entry.name, id: entry.id },
           destination: {
             type:      'multus',
-            name:      entry.target,
-            namespace: NAMESPACE,
+            name:      netName,
+            namespace: netNamespace,
           },
         };
       }),
