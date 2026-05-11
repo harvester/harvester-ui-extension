@@ -18,7 +18,7 @@ defineProps({
       :key="'net-' + idx"
       class="mapping-entry"
     >
-      <i class="icon icon-cluster" />
+      <i class="icon icon-network" />
       <span>{{ entry }}</span>
     </div>
     <div
@@ -26,7 +26,7 @@ defineProps({
       :key="'stor-' + idx"
       class="mapping-entry"
     >
-      <i class="icon icon-storage" />
+      <i class="icon icon-datastore" />
       <span>{{ entry }}</span>
     </div>
   </div>

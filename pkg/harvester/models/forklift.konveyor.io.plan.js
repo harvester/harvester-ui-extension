@@ -1,7 +1,18 @@
 import HarvesterResource from './harvester';
 import { HCI } from '../types';
+import { PRODUCT_NAME } from '../config/harvester';
 
 export default class ForkliftPlan extends HarvesterResource {
+  get listLocation() {
+    return {
+      name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
+      params: {
+        product: this.$rootGetters['productId'],
+        cluster: this.$rootGetters['clusterId'],
+      },
+    };
+  }
+
   get planFailed() {
     const conditions = this.status?.conditions || [];
 
@@ -23,11 +34,22 @@ export default class ForkliftPlan extends HarvesterResource {
   }
 
   get stateDescription() {
-    if (this.planCritical) {
-      return this.criticalMessages.join('; ');
+    const messages = [];
+    const conditions = this.status?.conditions || [];
+
+    if (this.planFailed) {
+      const failedMsg = conditions.find((c) => c.type === 'Failed' && c.status === 'True')?.message;
+
+      if (failedMsg) {
+        messages.push(failedMsg);
+      }
     }
 
-    return null;
+    if (this.planCritical) {
+      messages.push(...this.criticalMessages);
+    }
+
+    return messages.length > 0 ? messages.join(' ') : null;
   }
 
   get stateObj() {
@@ -103,31 +125,51 @@ export default class ForkliftPlan extends HarvesterResource {
     return 'bg-success';
   }
 
+  get isForkliftDashboard() {
+    const route = this.currentRouter()?.currentRoute?.value;
+
+    return route?.name?.endsWith('-forklift');
+  }
+
   get _availableActions() {
-    const canStop = this.isMigrating && !this.planCanceled;
-    const canStart = !this.planSucceeded && (!this.isMigrating || this.planFailed || this.planCanceled || this.planCritical);
+    if (this.isForkliftDashboard) {
+      const canStop = this.isMigrating && !this.planCanceled;
+      const canStart = !this.planSucceeded && (!this.isMigrating || this.planFailed || this.planCanceled || this.planCritical);
+      const out = [];
 
-    const out = super._availableActions;
+      if (canStart) {
+        out.push({
+          action:  'startMigration',
+          enabled: true,
+          icon:    'icon icon-play',
+          label:   'Start',
+        });
+      }
 
-    if (canStop) {
-      out.unshift({
-        action:  'stopMigration',
-        enabled: true,
-        icon:    'icon icon-pause',
-        label:   'Stop',
+      if (canStop) {
+        out.push({
+          action:  'stopMigration',
+          enabled: true,
+          icon:    'icon icon-pause',
+          label:   'Stop',
+        });
+      }
+
+      out.push({
+        action:     'promptRemove',
+        altAction:  'remove',
+        label:      this.t('action.remove'),
+        icon:       'icon icon-trash',
+        bulkable:   true,
+        enabled:    this.canDelete,
+        bulkAction: 'promptRemove',
+        weight:     -10,
       });
+
+      return out;
     }
 
-    if (canStart) {
-      out.unshift({
-        action:  'startMigration',
-        enabled: true,
-        icon:    'icon icon-play',
-        label:   'Start',
-      });
-    }
-
-    return out;
+    return super._availableActions;
   }
 
   async stopMigration() {

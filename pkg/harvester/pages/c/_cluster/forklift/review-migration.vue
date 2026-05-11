@@ -113,7 +113,7 @@ const startMigration = async(buttonCb) => {
   const inStore = store.getters['currentProduct'].inStore;
 
   try {
-    const planName = `${ providerName.value }-plan-${ Math.random().toString(36).substring(2, 7) }`;
+    const planName = `${ providerName.value }`;
 
     const planSpec = {
       provider: {
@@ -363,7 +363,7 @@ init();
               <div class="vm-card-specs">
                 <span class="vm-os text-muted">{{ vm.os }}</span>
                 <span class="vm-resources">
-                  <i class="icon icon-dock" />
+                  <i class="icon icon-disk" />
                   {{ vm.cpus }} vCPU &bull; {{ vm.memGB }} &bull; {{ vm.diskDisplay }}
                 </span>
               </div>
@@ -433,7 +433,7 @@ init();
   .details-grid {
     display: grid;
     grid-template-columns: minmax(230px, 1fr) 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
     gap: 12px 128px;
     width: 747px;
     line-height: 20px;
