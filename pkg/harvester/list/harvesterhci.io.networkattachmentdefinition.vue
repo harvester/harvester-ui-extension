@@ -112,6 +112,7 @@ export default {
           value:         'connectivity',
           labelKey:      'tableHeaders.routeConnectivity',
           formatter:     'NetworkRouteConnectivity',
+          tooltip:       'harvester.tableHeaders.routeConnectivityTooltip',
           formatterOpts: { arbitrary: true },
           width:         130,
         },

@@ -298,6 +298,7 @@ harvester:
     phase: Phase
     attachedVM: Attached Virtual Machine
     cpuManager: CPU Manager
+    routeConnectivityTooltip: Connectivity between the VM network and the management network, which the Harvester nodes are connected to.
     fingerprint: Fingerprint
     value: Value
     actions: Actions
