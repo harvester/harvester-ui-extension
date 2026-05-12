@@ -271,6 +271,8 @@ init();
       :table-actions="true"
       :row-actions="false"
       :groupable="false"
+      :paging="true"
+      :rows-per-page="20"
       key-field="_key"
       @selection="onSelect"
     >
