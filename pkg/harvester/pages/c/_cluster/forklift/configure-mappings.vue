@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
-import { useRoute, useRouter } from 'vue-router';
 import Loading from '@shell/components/Loading';
 import Masthead from '@shell/components/ResourceList/Masthead';
 import AsyncButton from '@shell/components/AsyncButton';
@@ -11,6 +10,7 @@ import { SCHEMA, STORAGE_CLASS, NETWORK_ATTACHMENT } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
 import { HCI } from '../../../../types';
 import { PRODUCT_NAME } from '../../../../config/harvester';
+import { currentRouter, currentRoute } from '../../../../utils/router';
 
 const schema = {
   id:         HCI.FORKLIFT_NETWORK_MAP,
@@ -23,8 +23,6 @@ const schema = {
 };
 
 const store = useStore();
-const route = useRoute();
-const router = useRouter();
 const { t } = useI18n(store);
 
 const vms = ref([]);
@@ -36,7 +34,7 @@ const errors = ref([]);
 const loading = ref(true);
 
 const NAMESPACE = 'forklift';
-const providerName = computed(() => route.query.provider || 'vsphere');
+const providerName = computed(() => currentRoute().query.provider || 'vsphere');
 
 const harvesterNetworkOptions = computed(() => {
   const options = [
@@ -170,7 +168,7 @@ const cancel = async() => {
     await provider.remove();
   }
 
-  router.push({
+  currentRouter().push({
     name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
     params: {
       product: store.getters['productId'],
@@ -289,7 +287,7 @@ const saveMappings = async(buttonCb) => {
       usedBy: entry.usedBy,
     }));
 
-    router.push({
+    currentRouter().push({
       name:   `${ PRODUCT_NAME }-c-cluster-forklift-review-migration`,
       params: {
         product: store.getters['productId'],
@@ -297,7 +295,7 @@ const saveMappings = async(buttonCb) => {
       },
       query: {
         provider:        providerName.value,
-        vms:             route.query.vms,
+        vms:             currentRoute().query.vms,
         networkMap:      networkMap.metadata.name,
         storageMap:      storageMap.metadata.name,
         networkMappings: JSON.stringify(networkMappingsData),
@@ -336,7 +334,7 @@ const init = async() => {
   const allProviders = store.getters[`${ inStore }/all`](HCI.FORKLIFT_PROVIDER) || [];
   const provider = allProviders.find((p) => p.metadata.name === providerName.value && p.metadata.namespace === NAMESPACE);
 
-  const vmsParam = route.query.vms;
+  const vmsParam = currentRoute().query.vms;
 
   if (vmsParam) {
     try {

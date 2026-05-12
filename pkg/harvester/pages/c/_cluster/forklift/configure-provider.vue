@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
-import { useRouter } from 'vue-router';
+
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { Checkbox } from '@components/Form/Checkbox';
 import { Banner } from '@components/Banner';
@@ -12,6 +12,7 @@ import { randomStr } from '@shell/utils/string';
 import { useI18n } from '@shell/composables/useI18n';
 import { HCI } from '../../../../types';
 import { PRODUCT_NAME } from '../../../../config/harvester';
+import { currentRouter } from '../../../../utils/router';
 
 const schema = {
   id:         HCI.FORKLIFT_PROVIDER,
@@ -24,7 +25,6 @@ const schema = {
 };
 
 const store = useStore();
-const router = useRouter();
 const { t } = useI18n(store);
 
 const allSecrets = ref([]);
@@ -59,7 +59,7 @@ const cancel = async() => {
     createdSecret.value = null;
   }
 
-  router.push({
+  currentRouter().push({
     name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
     params: {
       product: store.getters['productId'],
@@ -235,7 +235,7 @@ const saveProvider = async(buttonCb) => {
     // Test hasn't passed yet — run it first
     await testConnection((success) => {
       if (success) {
-        router.push({
+        currentRouter().push({
           name:   `${ PRODUCT_NAME }-c-cluster-forklift-select-vms`,
           params: {
             product: store.getters['productId'],
@@ -251,7 +251,7 @@ const saveProvider = async(buttonCb) => {
     return;
   }
 
-  router.push({
+  currentRouter().push({
     name:   `${ PRODUCT_NAME }-c-cluster-forklift-select-vms`,
     params: {
       product: store.getters['productId'],

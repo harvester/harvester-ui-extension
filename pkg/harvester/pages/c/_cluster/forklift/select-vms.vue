@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
-import { useRoute, useRouter } from 'vue-router';
 import Loading from '@shell/components/Loading';
 import Masthead from '@shell/components/ResourceList/Masthead';
 import SortableTable from '@shell/components/SortableTable';
@@ -10,6 +9,7 @@ import { SCHEMA } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
 import { HCI } from '../../../../types';
 import { PRODUCT_NAME } from '../../../../config/harvester';
+import { currentRouter, currentRoute } from '../../../../utils/router';
 
 const schema = {
   id:         HCI.FORKLIFT_PROVIDER,
@@ -22,8 +22,6 @@ const schema = {
 };
 
 const store = useStore();
-const route = useRoute();
-const router = useRouter();
 const { t } = useI18n(store);
 
 const allProviders = ref([]);
@@ -35,7 +33,7 @@ const loading = ref(true);
 const networkMap = ref({});
 const datastoreMap = ref({});
 
-const providerName = computed(() => provider.value?.metadata?.name || route.query.provider || '');
+const providerName = computed(() => provider.value?.metadata?.name || currentRoute().query.provider || '');
 const vmCount = computed(() => discoveredVMs.value.length);
 const selectedCount = computed(() => selectedVMs.value.length);
 
@@ -158,7 +156,7 @@ const cancel = async() => {
     await found.remove();
   }
 
-  router.push({
+  currentRouter().push({
     name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
     params: {
       product: store.getters['productId'],
@@ -170,7 +168,7 @@ const cancel = async() => {
 const saveSelection = () => {
   const vmIds = selectedVMs.value.map((vm) => vm.id || vm.vmId || vm.metadata?.name);
 
-  router.push({
+  currentRouter().push({
     name:   `${ PRODUCT_NAME }-c-cluster-forklift-configure-mappings`,
     params: {
       product: store.getters['productId'],
@@ -188,7 +186,7 @@ const init = async() => {
 
   allProviders.value = await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_PROVIDER });
 
-  const queryProvider = route.query.provider;
+  const queryProvider = currentRoute().query.provider;
 
   if (queryProvider) {
     provider.value = allProviders.value.find(
