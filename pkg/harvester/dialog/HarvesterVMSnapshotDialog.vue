@@ -5,6 +5,7 @@ import { Card } from '@components/Card';
 import { Banner } from '@components/Banner';
 import AsyncButton from '@shell/components/AsyncButton';
 import { LabeledInput } from '@components/Form/LabeledInput';
+import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { HCI } from '../types';
 import { BACKUP_TYPE } from '../config/types';
 
@@ -17,6 +18,7 @@ export default {
     AsyncButton,
     Card,
     LabeledInput,
+    LabeledSelect,
     Banner
   },
 
@@ -29,9 +31,40 @@ export default {
 
   data() {
     return {
-      snapshotName:      '',
-      snapshotNamespace: '',
-      errors:            []
+      snapshotName:            '',
+      snapshotNamespace:       '',
+      errors:                  [],
+      fsFreezeDeadline:        '10s',
+      fsFreezeDeadlineOptions: [
+        {
+          label: this.t('generic.duration.infinite'),
+          value: '0s'
+        },
+        {
+          label: this.t('generic.duration.5s'),
+          value: '5s'
+        },
+        {
+          label: this.t('generic.duration.10s'),
+          value: '10s'
+        },
+        {
+          label: this.t('generic.duration.30s'),
+          value: '30s'
+        },
+        {
+          label: this.t('generic.duration.1m'),
+          value: '1m'
+        },
+        {
+          label: this.t('generic.duration.3m'),
+          value: '3m'
+        },
+        {
+          label: this.t('generic.duration.5m'),
+          value: '5m'
+        }
+      ]
     };
   },
 
@@ -45,6 +78,7 @@ export default {
 
   methods: {
     close() {
+      this.fsFreezeDeadline = '';
       this.snapshotNamespace = '';
       this.snapshotName = '';
       this.$emit('close');
@@ -60,7 +94,8 @@ export default {
               ownerReferences: this.getOwnerReferencesFromVM(this.actionResource)
             },
             spec: {
-              source: {
+              fsFreezeDeadline: this.fsFreezeDeadline,
+              source:           {
                 apiGroup: 'kubevirt.io',
                 kind:     'VirtualMachine',
                 name:     this.actionResource.metadata.name
@@ -130,6 +165,13 @@ export default {
         v-model:value="snapshotName"
         class="mt-20"
         :label="t('generic.name')"
+        required
+      />
+      <LabeledSelect
+        v-model:value="fsFreezeDeadline"
+        class="mt-20"
+        :options="fsFreezeDeadlineOptions"
+        :label="t('harvester.modal.vmSnapshot.fsFreezeDeadline')"
         required
       />
       <Banner

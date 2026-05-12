@@ -8,6 +8,14 @@ generic:
   basic: Basic
   loading: Loading...
   none: None
+  duration:
+    infinite: Infinite
+    5s: 5 seconds
+    10s: 10 seconds
+    30s: 30 seconds
+    1m: 1 minute
+    3m: 3 minutes
+    5m: 5 minutes
 
 unsupported:
   serverVersion: 'Current version: <code>{serverVersion}</code>'
@@ -75,6 +83,7 @@ harvester:
     backup:
       success: 'Backup { backUpName } has been initiated.'
       addBackup: Add Backup
+      fsFreezeDeadline: 'File system freeze deadline'
     quota:
       editVMQuota: Edit VM Quota
       editQuota: Edit Quota
@@ -214,6 +223,7 @@ harvester:
       title: Take Virtual Machine Snapshot
       name: Name
       success: 'Take virtual machine Snapshot { name } successfully.'
+      fsFreezeDeadline: 'File system freeze deadline'
     restart:
       title: Restart Virtual Machine
       tip: Restart the virtual machine for configuration changes to take effect.
