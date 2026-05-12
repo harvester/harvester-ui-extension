@@ -83,6 +83,14 @@ export default {
       return this.t('harvester.virtualMachine.cpuPinning.migrationMessage');
     },
 
+    allVmsOnTargetNode() {
+      if (!this.nodeName) {
+        return false;
+      }
+
+      return this.resources.every((r) => r.nodeName === this.nodeName);
+    },
+
     nodeNameList() {
       const nodes = this.$store.getters['harvester/all'](NODE);
 
@@ -136,7 +144,7 @@ export default {
         // Filter out VMs already running on the selected node
         const toMigrate = this.resources.filter((r) => r.nodeName !== this.nodeName);
 
-        await Promise.all(toMigrate.map((r) => r.doAction('migrate', { nodeName: this.nodeName }, {}, false)));
+        await Promise.allSettled(toMigrate.map((r) => r.doAction('migrate', { nodeName: this.nodeName }, {}, false)));
 
         buttonDone(true);
         this.close();
@@ -156,7 +164,7 @@ export default {
 <template>
   <Card :show-highlight-border="false">
     <template #title>
-      {{ t('harvester.modal.migration.title', { count: resources.length }) }}
+      {{ t('harvester.modal.migration.vmMigrationTitle', { count: resources.length }) }}
     </template>
 
     <template #body>
@@ -211,7 +219,7 @@ export default {
 
         <AsyncButton
           mode="apply"
-          :disabled="!nodeName"
+          :disabled="!nodeName || allVmsOnTargetNode"
           @click="apply"
         />
       </div>
