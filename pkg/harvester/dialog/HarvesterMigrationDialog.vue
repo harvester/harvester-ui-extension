@@ -144,7 +144,26 @@ export default {
         // Filter out VMs already running on the selected node
         const toMigrate = this.resources.filter((r) => r.nodeName !== this.nodeName);
 
-        await Promise.allSettled(toMigrate.map((r) => r.doAction('migrate', { nodeName: this.nodeName }, {}, false)));
+        // await Promise.allSettled(toMigrate.map((r) => r.doAction('migrate', { nodeName: this.nodeName }, {}, false)));
+        // We want to show all migration errors if there are multiple VMs, so we use allSettled here and handle the results accordingly.
+        const results = await Promise.allSettled(toMigrate.map((r) => r.doAction('migrate', { nodeName: this.nodeName }, {}, false)));
+
+        const failedMigrations = results
+          .map((result, index) => ({ resource: toMigrate[index], result }))
+          .filter(({ result }) => result.status === 'rejected');
+
+        if (failedMigrations.length) {
+          this['errors'] = failedMigrations.flatMap(({ resource, result }) => {
+            const vmName = resource?.nameDisplay || resource?.name || resource?.metadata?.name || this.$store.getters['i18n/t']('generic.unknown');
+            const error = result.reason?.data || result.reason;
+            const messages = exceptionToErrorsArray(error);
+
+            return messages.map((message) => `${ vmName }: ${ message }`);
+          });
+          buttonDone(false);
+
+          return;
+        }
 
         buttonDone(true);
         this.close();

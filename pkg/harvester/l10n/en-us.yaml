@@ -146,7 +146,6 @@ harvester:
       title: Migration
       vmMigrationTitle: '{count, plural, one {Migrating # VM} other {Migrating # VMs}}'
       selectedVMs: "The following virtual machine(s) will be migrated to the target node"
-      currentNode: node
       unknownNode: (unknown node)
       alreadyOnTarget: Already on Target
       fields:
