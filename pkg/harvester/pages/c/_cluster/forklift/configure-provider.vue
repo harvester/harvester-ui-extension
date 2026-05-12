@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
-import { useRoute, useRouter } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { Checkbox } from '@components/Form/Checkbox';
 import { Banner } from '@components/Banner';
@@ -24,7 +24,6 @@ const schema = {
 };
 
 const store = useStore();
-const route = useRoute();
 const router = useRouter();
 const { t } = useI18n(store);
 
@@ -63,8 +62,8 @@ const cancel = async() => {
   router.push({
     name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
     params: {
-      product: route.params.product,
-      cluster: route.params.cluster,
+      product: store.getters['productId'],
+      cluster: store.getters['clusterId'],
     }
   });
 };
@@ -239,8 +238,8 @@ const saveProvider = async(buttonCb) => {
         router.push({
           name:   `${ PRODUCT_NAME }-c-cluster-forklift-select-vms`,
           params: {
-            product: route.params.product,
-            cluster: route.params.cluster,
+            product: store.getters['productId'],
+            cluster: store.getters['clusterId'],
           },
           query: { provider: providerName.value }
         });
@@ -255,8 +254,8 @@ const saveProvider = async(buttonCb) => {
   router.push({
     name:   `${ PRODUCT_NAME }-c-cluster-forklift-select-vms`,
     params: {
-      product: route.params.product,
-      cluster: route.params.cluster,
+      product: store.getters['productId'],
+      cluster: store.getters['clusterId'],
     },
     query: { provider: providerName.value }
   });

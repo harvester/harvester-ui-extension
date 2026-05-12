@@ -161,8 +161,8 @@ const cancel = async() => {
   router.push({
     name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
     params: {
-      product: route.params.product,
-      cluster: route.params.cluster,
+      product: store.getters['productId'],
+      cluster: store.getters['clusterId'],
     }
   });
 };
@@ -173,8 +173,8 @@ const saveSelection = () => {
   router.push({
     name:   `${ PRODUCT_NAME }-c-cluster-forklift-configure-mappings`,
     params: {
-      product: route.params.product,
-      cluster: route.params.cluster,
+      product: store.getters['productId'],
+      cluster: store.getters['clusterId'],
     },
     query: {
       provider: providerName.value,

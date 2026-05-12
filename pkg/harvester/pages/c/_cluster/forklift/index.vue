@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useStore } from 'vuex';
-import { useRoute } from 'vue-router';
 import Loading from '@shell/components/Loading';
 import Masthead from '@shell/components/ResourceList/Masthead';
 import ResourceTable from '@shell/components/ResourceTable';
@@ -25,7 +24,6 @@ const schema = {
 };
 
 const store = useStore();
-const route = useRoute();
 const { t } = useI18n(store);
 
 const loading = ref(true);
@@ -131,8 +129,8 @@ const rows = computed(() => {
 const createLocation = computed(() => ({
   name:   `${ PRODUCT_NAME }-c-cluster-forklift-configure-provider`,
   params: {
-    product: route.params.product,
-    cluster: route.params.cluster,
+    product: store.getters['productId'],
+    cluster: store.getters['clusterId'],
   }
 }));
 
