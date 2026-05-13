@@ -41,6 +41,7 @@ const createdSecret = ref(null);
 const loading = ref(true);
 const testPassed = ref(false);
 const testing = ref(false);
+const saving = ref(false);
 
 const isFormValid = computed(() => !!providerName.value && !!url.value && !!username.value && !!password.value);
 
@@ -75,6 +76,7 @@ const testConnection = async(buttonCb) => {
 
   if (!providerName.value || !url.value || !username.value || !password.value) {
     testError.value = t('harvester.addons.forklift.configureProvider.testMissingFields');
+    testing.value = false;
     buttonCb(false);
 
     return;
@@ -230,6 +232,7 @@ const testConnection = async(buttonCb) => {
 
 const saveProvider = async(buttonCb) => {
   errors.value = [];
+  saving.value = true;
 
   if (!testPassed.value) {
     // Test hasn't passed yet — run it first
@@ -244,6 +247,7 @@ const saveProvider = async(buttonCb) => {
           query: { provider: providerName.value }
         });
       } else {
+        saving.value = false;
         buttonCb(false);
       }
     });
@@ -350,7 +354,9 @@ init();
         {{ t('harvester.addons.forklift.configureProvider.skipSslHint') }}
       </p>
     </div>
-
+    {{ isFormValid }}
+    {{ testing }}
+    {{ saving }}
     <div class="mb-20">
       <button
         v-if="testPassed"
@@ -362,7 +368,7 @@ init();
       <AsyncButton
         v-else
         mode="test"
-        :disabled="!isFormValid"
+        :disabled="!isFormValid || testing || saving"
         :action-label="t('harvester.addons.forklift.configureProvider.testConnection')"
         :waiting-label="t('harvester.addons.forklift.configureProvider.testConnection')"
         :success-label="t('harvester.addons.forklift.configureProvider.testConnection')"
@@ -403,7 +409,7 @@ init();
         {{ t('generic.cancel') }}
       </button>
       <AsyncButton
-        :disabled="!isFormValid || testing"
+        :disabled="!isFormValid || testing || saving"
         :action-label="t('harvester.addons.forklift.configureProvider.save')"
         :waiting-label="t('harvester.addons.forklift.configureProvider.save')"
         :success-label="t('harvester.addons.forklift.configureProvider.save')"
