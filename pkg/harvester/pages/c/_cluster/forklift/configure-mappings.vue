@@ -609,6 +609,7 @@ init();
 
   .mapping-target {
     flex: 1;
+    overflow: hidden;
   }
 
   .actions-footer {
