@@ -174,9 +174,9 @@ export default class VirtVm extends HarvesterResource {
       {
         action:     'softrebootVM',
         altAction:  'doSoftReboot',
-        enabled:   !!this.actions?.softreboot,
-        icon:      'icon icon-pipeline',
-        label:     this.t('harvester.action.softreboot')
+        enabled:    !!this.actions?.softreboot,
+        icon:       'icon icon-pipeline',
+        label:      this.t('harvester.action.softreboot')
       },
       {
         action:   'startVM',
