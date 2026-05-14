@@ -354,9 +354,6 @@ init();
         {{ t('harvester.addons.forklift.configureProvider.skipSslHint') }}
       </p>
     </div>
-    {{ isFormValid }}
-    {{ testing }}
-    {{ saving }}
     <div class="mb-20">
       <button
         v-if="testPassed"
