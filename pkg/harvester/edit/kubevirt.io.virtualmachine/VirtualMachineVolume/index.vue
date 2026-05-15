@@ -475,7 +475,6 @@ export default {
       <button
         type="button"
         class="btn btn-sm bg-primary mr-15 mb-10"
-        :disabled="rows.length === 0"
         @click="addVolume(SOURCE_TYPE.NEW)"
       >
         {{ t('harvester.virtualMachine.volume.addVolume') }}
