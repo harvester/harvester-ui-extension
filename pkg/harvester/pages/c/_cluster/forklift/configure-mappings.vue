@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import Loading from '@shell/components/Loading';
 import Masthead from '@shell/components/ResourceList/Masthead';
@@ -25,11 +25,17 @@ const schema = {
 const store = useStore();
 const { t } = useI18n(store);
 
+const NO_TEMPLATE = '__none__';
+
 const vms = ref([]);
 const harvesterNetworks = ref([]);
 const storageClasses = ref([]);
 const networkEntries = ref([]);
 const storageEntries = ref([]);
+const allNetworkMaps = ref([]);
+const allStorageMaps = ref([]);
+const selectedNetworkTemplate = ref(NO_TEMPLATE);
+const selectedStorageTemplate = ref(NO_TEMPLATE);
 const errors = ref([]);
 const loading = ref(true);
 
@@ -64,6 +70,118 @@ const storageClassOptions = computed(() => {
   }
 
   return options;
+});
+
+const networkTemplateOptions = computed(() => {
+  const options = [
+    { label: t('harvester.addons.forklift.configureMappings.noTemplate'), value: NO_TEMPLATE }
+  ];
+
+  const currentIds = new Set(networkEntries.value.map((e) => e.id).filter(Boolean));
+
+  const sorted = [...allNetworkMaps.value].sort(
+    (a, b) => new Date(b.metadata.creationTimestamp) - new Date(a.metadata.creationTimestamp)
+  );
+
+  sorted.forEach((nm) => {
+    const mapSources = (nm.spec?.map || []).map((m) => m.source?.id).filter(Boolean);
+    const hasOverlap = mapSources.some((id) => currentIds.has(id));
+
+    if (hasOverlap) {
+      options.push({
+        label: nm.metadata.name,
+        value: nm.metadata.name,
+      });
+    }
+  });
+
+  return options;
+});
+
+const storageTemplateOptions = computed(() => {
+  const options = [
+    { label: t('harvester.addons.forklift.configureMappings.noTemplate'), value: NO_TEMPLATE }
+  ];
+
+  const currentIds = new Set(storageEntries.value.map((e) => e.id).filter(Boolean));
+
+  const sorted = [...allStorageMaps.value].sort(
+    (a, b) => new Date(b.metadata.creationTimestamp) - new Date(a.metadata.creationTimestamp)
+  );
+
+  sorted.forEach((sm) => {
+    const mapSources = (sm.spec?.map || []).map((m) => m.source?.id).filter(Boolean);
+    const hasOverlap = mapSources.some((id) => currentIds.has(id));
+
+    if (hasOverlap) {
+      options.push({
+        label: sm.metadata.name,
+        value: sm.metadata.name,
+      });
+    }
+  });
+
+  return options;
+});
+
+watch(selectedNetworkTemplate, (val) => {
+  if (val === NO_TEMPLATE) {
+    networkEntries.value.forEach((e) => {
+      e.target = '';
+    });
+
+    return;
+  }
+
+  const template = allNetworkMaps.value.find((nm) => nm.metadata.name === val);
+
+  if (!template?.spec?.map) {
+    return;
+  }
+
+  networkEntries.value.forEach((entry) => {
+    const match = template.spec.map.find(
+      (m) => m.source?.id === entry.id || m.source?.name === entry.name
+    );
+
+    if (match?.destination) {
+      const dest = match.destination;
+
+      if (dest.type === 'pod') {
+        entry.target = 'pod';
+      } else if (dest.type === 'ignored') {
+        entry.target = 'ignored';
+      } else if (dest.type === 'multus' && dest.name) {
+        entry.target = dest.namespace ? `${ dest.namespace }/${ dest.name }` : dest.name;
+      }
+    }
+  });
+});
+
+watch(selectedStorageTemplate, (val) => {
+  if (val === NO_TEMPLATE) {
+    storageEntries.value.forEach((e) => {
+      e.target = '';
+    });
+
+    return;
+  }
+
+  const template = allStorageMaps.value.find((sm) => sm.metadata.name === val);
+
+  if (!template?.spec?.map) {
+    return;
+  }
+
+  storageEntries.value.forEach((entry) => {
+    const match = template.spec.map.find(
+      (m) => m.source?.id === entry.id || m.source?.name === entry.name
+    );
+
+    if (match?.destination?.storageClass) {
+      entry.target = match.destination.storageClass;
+    }
+  });
 });
 
 const allNetworksMapped = computed(() => networkEntries.value.length > 0 && networkEntries.value.every((e) => !!e.target));
@@ -159,15 +277,7 @@ const formatStorageDetail = (entry) => {
   return parts.join(' \u2022 ');
 };
 
-const cancel = async() => {
-  const inStore = store.getters['currentProduct'].inStore;
-  const allProviders = store.getters[`${ inStore }/all`](HCI.FORKLIFT_PROVIDER) || [];
-  const provider = allProviders.find((p) => p.metadata.name === providerName.value && p.metadata.namespace === NAMESPACE);
-
-  if (provider) {
-    await provider.remove();
-  }
-
+const cancel = () => {
   currentRouter().push({
     name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
     params: {
@@ -274,19 +384,7 @@ const saveMappings = async(buttonCb) => {
 
     await storageMap.save();
 
-    // Navigate to review page with all mapping data
-    const networkMappingsData = networkEntries.value.map((entry) => ({
-      source: entry.name,
-      target: entry.target === 'pod' ? 'Pod Networking' : entry.target === 'ignored' ? 'Ignored' : entry.target,
-      usedBy: entry.usedBy,
-    }));
-
-    const storageMappingsData = storageEntries.value.map((entry) => ({
-      source: entry.name,
-      target: entry.target,
-      usedBy: entry.usedBy,
-    }));
-
+    // Navigate to review page
     currentRouter().push({
       name:   `${ PRODUCT_NAME }-c-cluster-forklift-review-migration`,
       params: {
@@ -294,12 +392,10 @@ const saveMappings = async(buttonCb) => {
         cluster: store.getters['clusterId'],
       },
       query: {
-        provider:        providerName.value,
-        vms:             currentRoute().query.vms,
-        networkMap:      networkMap.metadata.name,
-        storageMap:      storageMap.metadata.name,
-        networkMappings: JSON.stringify(networkMappingsData),
-        storageMappings: JSON.stringify(storageMappingsData),
+        provider:   providerName.value,
+        vms:        currentRoute().query.vms,
+        networkMap: networkMap.metadata.name,
+        storageMap: storageMap.metadata.name,
       }
     });
 
@@ -323,6 +419,18 @@ const init = async() => {
     storageClasses.value = await store.dispatch(`${ inStore }/findAll`, { type: STORAGE_CLASS });
   } catch (e) {
     storageClasses.value = [];
+  }
+
+  try {
+    allNetworkMaps.value = await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_NETWORK_MAP });
+  } catch (e) {
+    allNetworkMaps.value = [];
+  }
+
+  try {
+    allStorageMaps.value = await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_STORAGE_MAP });
+  } catch (e) {
+    allStorageMaps.value = [];
   }
 
   try {
@@ -436,6 +544,14 @@ init();
           </p>
         </div>
 
+        <LabeledSelect
+          v-model:value="selectedNetworkTemplate"
+          :label="t('harvester.addons.forklift.configureMappings.networkMapping.template')"
+          :options="networkTemplateOptions"
+          :reduce="(opt) => opt.value"
+          class="mb-10"
+        />
+
         <RcItemCard
           v-for="entry in networkEntries"
           :id="entry._key"
@@ -482,6 +598,14 @@ init();
             {{ t('harvester.addons.forklift.configureMappings.storageMapping.description') }}
           </p>
         </div>
+
+        <LabeledSelect
+          v-model:value="selectedStorageTemplate"
+          :label="t('harvester.addons.forklift.configureMappings.storageMapping.template')"
+          :options="storageTemplateOptions"
+          :reduce="(opt) => opt.value"
+          class="mb-10"
+        />
 
         <RcItemCard
           v-for="entry in storageEntries"

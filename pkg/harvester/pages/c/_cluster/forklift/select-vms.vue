@@ -147,15 +147,7 @@ const onSelect = (rows) => {
   selectedVMs.value = rows.map((r) => r._original);
 };
 
-const cancel = async() => {
-  const inStore = store.getters['currentProduct'].inStore;
-  const providers = store.getters[`${ inStore }/all`](HCI.FORKLIFT_PROVIDER) || [];
-  const found = providers.find((p) => p.metadata.name === providerName.value && p.metadata.namespace === 'forklift');
-
-  if (found) {
-    await found.remove();
-  }
-
+const cancel = () => {
   currentRouter().push({
     name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
     params: {

@@ -7,6 +7,7 @@ import { Checkbox } from '@components/Form/Checkbox';
 import { Banner } from '@components/Banner';
 import Masthead from '@shell/components/ResourceList/Masthead';
 import AsyncButton from '@shell/components/AsyncButton';
+import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { SCHEMA, SECRET } from '@shell/config/types';
 import { randomStr } from '@shell/utils/string';
 import { useI18n } from '@shell/composables/useI18n';
@@ -24,10 +25,14 @@ const schema = {
   metadata: { name: HCI.FORKLIFT_PROVIDER },
 };
 
+const CREATE_NEW = '__create_new__';
+
 const store = useStore();
 const { t } = useI18n(store);
 
+const allProviders = ref([]);
 const allSecrets = ref([]);
+const selectedProvider = ref(CREATE_NEW);
 const providerName = ref('');
 const url = ref('');
 const username = ref('');
@@ -43,23 +48,75 @@ const testPassed = ref(false);
 const testing = ref(false);
 const saving = ref(false);
 
+const isExistingProvider = computed(() => selectedProvider.value !== CREATE_NEW);
 const isFormValid = computed(() => !!providerName.value && !!url.value && !!username.value && !!password.value);
 
-// Reset test state when any field changes
-watch([providerName, url, username, password], () => {
-  testPassed.value = false;
-  testResult.value = null;
+const providerOptions = computed(() => {
+  const options = [
+    { label: t('harvester.addons.forklift.configureProvider.createNew'), value: CREATE_NEW }
+  ];
+
+  allProviders.value.forEach((p) => {
+    options.push({
+      label: p.metadata.name,
+      value: p.metadata.name,
+    });
+  });
+
+  return options;
 });
 
-const cancel = async() => {
-  if (createdProvider.value) {
-    await createdProvider.value.remove();
-    createdProvider.value = null;
-  } else if (createdSecret.value) {
-    await createdSecret.value.remove();
-    createdSecret.value = null;
-  }
+// When the provider selection changes, populate or clear the fields
+watch(selectedProvider, (val) => {
+  testPassed.value = false;
+  testResult.value = null;
+  testError.value = null;
 
+  if (val === CREATE_NEW) {
+    providerName.value = '';
+    url.value = '';
+    username.value = '';
+    password.value = '';
+    skipTlsVerify.value = false;
+    createdProvider.value = null;
+    createdSecret.value = null;
+  } else {
+    const provider = allProviders.value.find(
+      (p) => p.metadata.name === val && p.metadata.namespace === 'forklift'
+    );
+
+    if (provider) {
+      providerName.value = provider.metadata.name;
+      url.value = provider.spec?.url || '';
+
+      const secretRef = provider.spec?.secret;
+
+      if (secretRef) {
+        const secret = allSecrets.value.find(
+          (s) => s.metadata.name === secretRef.name && s.metadata.namespace === secretRef.namespace
+        );
+
+        if (secret?.data) {
+          username.value = atob(secret.data.user || '');
+          password.value = atob(secret.data.password || '');
+          skipTlsVerify.value = atob(secret.data.insecureSkipVerify || '') === 'true';
+        }
+      }
+
+      createdProvider.value = provider;
+    }
+  }
+});
+
+// Reset test state when any field changes (only for create new)
+watch([providerName, url, username, password], () => {
+  if (!isExistingProvider.value) {
+    testPassed.value = false;
+    testResult.value = null;
+  }
+});
+
+const cancel = () => {
   currentRouter().push({
     name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
     params: {
@@ -84,6 +141,70 @@ const testConnection = async(buttonCb) => {
 
   const inStore = store.getters['currentProduct'].inStore;
 
+  // For existing providers, just poll for Ready/ConnectionTestSucceeded status
+  if (isExistingProvider.value) {
+    try {
+      const namespace = 'forklift';
+      const maxAttempts = 15;
+      let attempts = 0;
+      let connected = false;
+      let errorMsg = '';
+
+      while (attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        attempts++;
+
+        const refreshed = await store.dispatch(`${ inStore }/find`, {
+          type: HCI.FORKLIFT_PROVIDER,
+          id:   `${ namespace }/${ providerName.value }`,
+          opt:  { force: true }
+        });
+
+        const conditions = refreshed?.status?.conditions || [];
+        const readyCondition = conditions.find((c) => c.type === 'Ready');
+        const connectionCondition = conditions.find((c) => c.type === 'ConnectionTestSucceeded');
+
+        if (connectionCondition) {
+          if (connectionCondition.status === 'True') {
+            connected = true;
+            break;
+          } else {
+            errorMsg = connectionCondition.message || 'Connection failed';
+            break;
+          }
+        }
+
+        if (readyCondition) {
+          if (readyCondition.status === 'True') {
+            connected = true;
+            break;
+          } else if (readyCondition.status === 'False') {
+            errorMsg = readyCondition.message || 'Provider not ready';
+            break;
+          }
+        }
+      }
+
+      if (connected) {
+        testPassed.value = true;
+        testResult.value = t('harvester.addons.forklift.configureProvider.testSuccess');
+        testing.value = false;
+        buttonCb(true);
+      } else {
+        testError.value = errorMsg || t('harvester.addons.forklift.configureProvider.testTimeout');
+        testing.value = false;
+        buttonCb(false);
+      }
+    } catch (err) {
+      testError.value = err.message || t('harvester.addons.forklift.configureProvider.testFailed');
+      testing.value = false;
+      buttonCb(false);
+    }
+
+    return;
+  }
+
+  // For new providers, create provider + secret then poll
   try {
     // Delete previous provider (cascades to secret via ownerReferences)
     if (createdProvider.value) {
@@ -124,10 +245,7 @@ const testConnection = async(buttonCb) => {
       metadata: {
         name:            secretName,
         namespace,
-        labels:          {
-          createdForProviderType: 'vsphere',
-          createdForResourceType: 'providers',
-        },
+        labels:          { 'ui.forklift/created-for-resource-type': 'forklift.konveyor.io.provider' },
         ownerReferences: [
           {
             apiVersion:         'forklift.konveyor.io/v1beta1',
@@ -268,7 +386,12 @@ const saveProvider = async(buttonCb) => {
 const init = async() => {
   const inStore = store.getters['currentProduct'].inStore;
 
-  allSecrets.value = await store.dispatch(`${ inStore }/findAll`, { type: SECRET });
+  allProviders.value = await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_PROVIDER });
+
+  allSecrets.value = await store.dispatch(`${ inStore }/findAll`, {
+    type: SECRET,
+    opt:  { labelSelector: `ui.forklift/created-for-resource-type=${ HCI.FORKLIFT_PROVIDER }` }
+  });
   loading.value = false;
 };
 
@@ -308,6 +431,18 @@ init();
     </Banner>
 
     <div class="mb-20">
+      <LabeledSelect
+        v-model:value="selectedProvider"
+        :label="t('harvester.addons.forklift.configureProvider.providerSelect')"
+        :options="providerOptions"
+        :reduce="(opt) => opt.value"
+      />
+    </div>
+
+    <div
+      v-if="!isExistingProvider"
+      class="mb-20"
+    >
       <LabeledInput
         v-model:value="providerName"
         :label="t('harvester.addons.forklift.configureProvider.name')"
@@ -320,6 +455,7 @@ init();
         v-model:value="url"
         :label="t('harvester.addons.forklift.configureProvider.urlLabel')"
         :placeholder="t('harvester.addons.forklift.configureProvider.urlPlaceholder')"
+        :disabled="isExistingProvider"
         required
       />
       <p class="text-muted mt-5">
@@ -332,6 +468,7 @@ init();
         <LabeledInput
           v-model:value="username"
           :label="t('harvester.addons.forklift.fields.username')"
+          :disabled="isExistingProvider"
           required
         />
       </div>
@@ -340,6 +477,7 @@ init();
           v-model:value="password"
           type="password"
           :label="t('harvester.addons.forklift.fields.password')"
+          :disabled="isExistingProvider"
           required
         />
       </div>
@@ -349,6 +487,7 @@ init();
       <Checkbox
         v-model:value="skipTlsVerify"
         :label="t('harvester.addons.forklift.configureProvider.skipSsl')"
+        :disabled="isExistingProvider"
       />
       <p class="text-muted ml-20">
         {{ t('harvester.addons.forklift.configureProvider.skipSslHint') }}
@@ -407,10 +546,10 @@ init();
       </button>
       <AsyncButton
         :disabled="!isFormValid || testing || saving"
-        :action-label="t('harvester.addons.forklift.configureProvider.save')"
-        :waiting-label="t('harvester.addons.forklift.configureProvider.save')"
-        :success-label="t('harvester.addons.forklift.configureProvider.save')"
-        :error-label="t('harvester.addons.forklift.configureProvider.save')"
+        :action-label="isExistingProvider ? t('harvester.addons.forklift.configureProvider.saveExisting') : t('harvester.addons.forklift.configureProvider.save')"
+        :waiting-label="isExistingProvider ? t('harvester.addons.forklift.configureProvider.saveExisting') : t('harvester.addons.forklift.configureProvider.save')"
+        :success-label="isExistingProvider ? t('harvester.addons.forklift.configureProvider.saveExisting') : t('harvester.addons.forklift.configureProvider.save')"
+        :error-label="isExistingProvider ? t('harvester.addons.forklift.configureProvider.saveExisting') : t('harvester.addons.forklift.configureProvider.save')"
         @click="saveProvider"
       />
     </div>

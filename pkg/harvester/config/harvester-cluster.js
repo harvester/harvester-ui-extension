@@ -1468,7 +1468,7 @@ export function init($plugin, store) {
   configureType('forklift-create', { subTypes: [HCI.FORKLIFT_PLAN] });
   virtualType({
     name:       'forklift-create',
-    labelKey:   'harvester.addons.forklift.labels.plan',
+    labelKey:   'harvester.addons.forklift.labels.dashboard',
     group:      'forklift',
     namespaced: true,
     route:      {

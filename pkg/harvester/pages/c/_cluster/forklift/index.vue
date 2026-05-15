@@ -200,6 +200,8 @@ init();
       :groupable="false"
       :table-actions="false"
       :search="false"
+      default-sort-by="state"
+      :default-sort-descending="true"
       key-field="_key"
     >
       <template #header-left>
