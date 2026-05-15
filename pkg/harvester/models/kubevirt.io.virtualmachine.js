@@ -164,6 +164,7 @@ export default class VirtVm extends HarvesterResource {
       },
       {
         action:     'restartVM',
+        altAction:  'altRestartVM',
         enabled:    !!this.actions?.restart,
         icon:       'icon icon-refresh',
         label:      this.t('harvester.action.restart'),
@@ -171,10 +172,11 @@ export default class VirtVm extends HarvesterResource {
         bulkAction: 'restartVM'
       },
       {
-        action:  'softrebootVM',
-        enabled: !!this.actions?.softreboot,
-        icon:    'icon icon-pipeline',
-        label:   this.t('harvester.action.softreboot')
+        action:     'softrebootVM',
+        altAction:  'doSoftReboot',
+        enabled:    !!this.actions?.softreboot,
+        icon:       'icon icon-pipeline',
+        label:      this.t('harvester.action.softreboot')
       },
       {
         action:   'startVM',
@@ -369,6 +371,10 @@ export default class VirtVm extends HarvesterResource {
     });
 
     this.metadata.annotations[HCI_ANNOTATIONS.VOLUME_CLAIM_TEMPLATE] = JSON.stringify(deleteDataSource);
+  }
+
+  altRestartVM() {
+    this.doActionGrowl('restart', {});
   }
 
   restartVM(resources = this) {
