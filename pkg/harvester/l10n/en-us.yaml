@@ -1864,8 +1864,8 @@ harvester:
       dashboard:
         title: VMware to Harvester Migration
         description: Migrate virtual machines from VMware vSphere to Harvester using cold migration for data consistency. Create a migration plan to select VMs, map networks and storage, and prepare a migration to Harvester.
-        createPlan: Create Migration Plan
-        tableTitle: Migration Plans
+        createPlan: Create Migration
+        tableTitle: Migrations
         columns:
           status: Status
           plan: Migration Plan
