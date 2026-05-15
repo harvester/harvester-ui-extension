@@ -6,6 +6,7 @@ import Masthead from '@shell/components/ResourceList/Masthead';
 import AsyncButton from '@shell/components/AsyncButton';
 import { Banner } from '@components/Banner';
 import { RcItemCard } from '@components/RcItemCard';
+import { LabeledInput } from '@components/Form/LabeledInput';
 import MappingsCell from '../../../../components/MappingsCell';
 import { SCHEMA } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
@@ -29,6 +30,7 @@ const { t } = useI18n(store);
 const vms = ref([]);
 const networkMappings = ref([]);
 const storageMappings = ref([]);
+const planName = ref('');
 const errors = ref([]);
 const loading = ref(true);
 
@@ -89,15 +91,7 @@ const vmCards = computed(() => {
   });
 });
 
-const cancel = async() => {
-  const inStore = store.getters['currentProduct'].inStore;
-  const allProviders = store.getters[`${ inStore }/all`](HCI.FORKLIFT_PROVIDER) || [];
-  const provider = allProviders.find((p) => p.metadata.name === providerName.value && p.metadata.namespace === NAMESPACE);
-
-  if (provider) {
-    await provider.remove();
-  }
-
+const cancel = () => {
   currentRouter().push({
     name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
     params: {
@@ -111,7 +105,51 @@ const startMigration = async(buttonCb) => {
   const inStore = store.getters['currentProduct'].inStore;
 
   try {
-    const planName = `${ providerName.value }`;
+    // Rename NetworkMap and StorageMap to use the plan name
+    const allNetworkMaps = store.getters[`${ inStore }/all`](HCI.FORKLIFT_NETWORK_MAP) || [];
+    const allStorageMaps = store.getters[`${ inStore }/all`](HCI.FORKLIFT_STORAGE_MAP) || [];
+
+    const currentNetworkMap = allNetworkMaps.find((nm) => nm.metadata.name === networkMapName.value && nm.metadata.namespace === NAMESPACE);
+    const currentStorageMap = allStorageMaps.find((sm) => sm.metadata.name === storageMapName.value && sm.metadata.namespace === NAMESPACE);
+
+    const newNetworkMapName = `${ planName.value }-network-map`;
+    const newStorageMapName = `${ planName.value }-storage-map`;
+
+    // Recreate NetworkMap with new name
+    let finalNetworkMapName = networkMapName.value;
+
+    if (currentNetworkMap) {
+      const networkMapData = await store.dispatch(`${ inStore }/create`, {
+        type:     HCI.FORKLIFT_NETWORK_MAP,
+        metadata: {
+          name:      newNetworkMapName,
+          namespace: NAMESPACE,
+        },
+        spec: currentNetworkMap.spec,
+      });
+
+      await networkMapData.save();
+      await currentNetworkMap.remove();
+      finalNetworkMapName = newNetworkMapName;
+    }
+
+    // Recreate StorageMap with new name
+    let finalStorageMapName = storageMapName.value;
+
+    if (currentStorageMap) {
+      const storageMapData = await store.dispatch(`${ inStore }/create`, {
+        type:     HCI.FORKLIFT_STORAGE_MAP,
+        metadata: {
+          name:      newStorageMapName,
+          namespace: NAMESPACE,
+        },
+        spec: currentStorageMap.spec,
+      });
+
+      await storageMapData.save();
+      await currentStorageMap.remove();
+      finalStorageMapName = newStorageMapName;
+    }
 
     const planSpec = {
       provider: {
@@ -132,13 +170,13 @@ const startMigration = async(buttonCb) => {
         network: {
           apiVersion: 'forklift.konveyor.io/v1beta1',
           kind:       'NetworkMap',
-          name:       networkMapName.value,
+          name:       finalNetworkMapName,
           namespace:  NAMESPACE,
         },
         storage: {
           apiVersion: 'forklift.konveyor.io/v1beta1',
           kind:       'StorageMap',
-          name:       storageMapName.value,
+          name:       finalStorageMapName,
           namespace:  NAMESPACE,
         },
       },
@@ -153,7 +191,7 @@ const startMigration = async(buttonCb) => {
     const plan = await store.dispatch(`${ inStore }/create`, {
       type:     HCI.FORKLIFT_PLAN,
       metadata: {
-        name:      planName,
+        name:      planName.value,
         namespace: NAMESPACE,
       },
       spec: planSpec,
@@ -171,7 +209,7 @@ const startMigration = async(buttonCb) => {
     };
 
     // Create Migration owned by Plan
-    const migrationName = `${ planName }-migration-${ Math.random().toString(36).substring(2, 7) }`;
+    const migrationName = `${ planName.value }-migration-${ Math.random().toString(36).substring(2, 7) }`;
 
     const migration = await store.dispatch(`${ inStore }/create`, {
       type:     HCI.FORKLIFT_MIGRATION,
@@ -184,7 +222,7 @@ const startMigration = async(buttonCb) => {
         plan: {
           apiVersion: 'forklift.konveyor.io/v1beta1',
           kind:       'Plan',
-          name:       planName,
+          name:       planName.value,
           namespace:  NAMESPACE,
         },
       },
@@ -192,16 +230,21 @@ const startMigration = async(buttonCb) => {
 
     await migration.save();
 
-    // Set Plan as owner of Provider (Provider already owns NetworkMap, StorageMap, Secret)
-    const allProviders = store.getters[`${ inStore }/all`](HCI.FORKLIFT_PROVIDER) || [];
-    const provider = allProviders.find((p) => p.metadata.name === providerName.value && p.metadata.namespace === NAMESPACE);
+    // Set Plan as owner of the newly created NetworkMap and StorageMap
+    const updatedNetworkMaps = store.getters[`${ inStore }/all`](HCI.FORKLIFT_NETWORK_MAP) || [];
+    const updatedStorageMaps = store.getters[`${ inStore }/all`](HCI.FORKLIFT_STORAGE_MAP) || [];
 
-    if (provider) {
-      provider.metadata.ownerReferences = [
-        ...(provider.metadata.ownerReferences || []),
-        planOwnerRef,
-      ];
-      await provider.save();
+    const newNetworkMap = updatedNetworkMaps.find((nm) => nm.metadata.name === finalNetworkMapName && nm.metadata.namespace === NAMESPACE);
+    const newStorageMap = updatedStorageMaps.find((sm) => sm.metadata.name === finalStorageMapName && sm.metadata.namespace === NAMESPACE);
+
+    if (newNetworkMap) {
+      newNetworkMap.metadata.ownerReferences = [planOwnerRef];
+      await newNetworkMap.save();
+    }
+
+    if (newStorageMap) {
+      newStorageMap.metadata.ownerReferences = [planOwnerRef];
+      await newStorageMap.save();
     }
 
     currentRouter().push({
@@ -223,6 +266,8 @@ const init = async() => {
   const inStore = store.getters['currentProduct'].inStore;
 
   await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_PROVIDER }).catch(() => {});
+  await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_NETWORK_MAP }).catch(() => {});
+  await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_STORAGE_MAP }).catch(() => {});
 
   const allProviders = store.getters[`${ inStore }/all`](HCI.FORKLIFT_PROVIDER) || [];
   const provider = allProviders.find((p) => p.metadata.name === providerName.value && p.metadata.namespace === NAMESPACE);
@@ -250,24 +295,53 @@ const init = async() => {
     }
   }
 
-  const networkMappingsParam = currentRoute().query.networkMappings;
+  // Build mapping display data from the actual NetworkMap/StorageMap resources
+  const allNetworkMaps = store.getters[`${ inStore }/all`](HCI.FORKLIFT_NETWORK_MAP) || [];
+  const allStorageMaps = store.getters[`${ inStore }/all`](HCI.FORKLIFT_STORAGE_MAP) || [];
 
-  if (networkMappingsParam) {
-    try {
-      networkMappings.value = JSON.parse(networkMappingsParam);
-    } catch (e) {
-      networkMappings.value = [];
-    }
+  const networkMap = allNetworkMaps.find((nm) => nm.metadata.name === networkMapName.value && nm.metadata.namespace === NAMESPACE);
+  const storageMap = allStorageMaps.find((sm) => sm.metadata.name === storageMapName.value && sm.metadata.namespace === NAMESPACE);
+
+  if (networkMap?.spec?.map) {
+    networkMappings.value = networkMap.spec.map.map((m) => {
+      const source = m.source?.name || m.source?.id || 'Unknown';
+      let target = '';
+
+      if (m.destination?.type === 'pod') {
+        target = 'Pod Networking';
+      } else if (m.destination?.type === 'ignored') {
+        target = 'Ignored';
+      } else if (m.destination?.type === 'multus' && m.destination?.name) {
+        target = m.destination.namespace ? `${ m.destination.namespace }/${ m.destination.name }` : m.destination.name;
+      }
+
+      // Find which VMs use this network
+      const sourceId = m.source?.id;
+      const usedBy = vms.value
+        .filter((vm) => vm.networks?.some((n) => n.id === sourceId || n.name === m.source?.name))
+        .map((vm) => vm.name || vm.id);
+
+      return {
+        source, target, usedBy
+      };
+    });
   }
 
-  const storageMappingsParam = currentRoute().query.storageMappings;
+  if (storageMap?.spec?.map) {
+    storageMappings.value = storageMap.spec.map.map((m) => {
+      const source = m.source?.name || m.source?.id || 'Unknown';
+      const target = m.destination?.storageClass || '';
 
-  if (storageMappingsParam) {
-    try {
-      storageMappings.value = JSON.parse(storageMappingsParam);
-    } catch (e) {
-      storageMappings.value = [];
-    }
+      // Find which VMs use this datastore
+      const sourceId = m.source?.id;
+      const usedBy = vms.value
+        .filter((vm) => vm.disks?.some((d) => d.datastore?.id === sourceId || d.datastore?.name === m.source?.name))
+        .map((vm) => vm.name || vm.id);
+
+      return {
+        source, target, usedBy
+      };
+    });
   }
 
   loading.value = false;
@@ -294,6 +368,15 @@ init();
         </p>
       </template>
     </Masthead>
+
+    <div class="mb-20">
+      <LabeledInput
+        v-model:value="planName"
+        :label="t('harvester.addons.forklift.reviewMigration.planName')"
+        :placeholder="t('harvester.addons.forklift.reviewMigration.planNamePlaceholder')"
+        required
+      />
+    </div>
 
     <!-- Migration Details Summary -->
     <div class="migration-details">
@@ -412,6 +495,7 @@ init();
         {{ t('generic.cancel') }}
       </button>
       <AsyncButton
+        :disabled="!planName"
         :action-label="t('harvester.addons.forklift.reviewMigration.startMigration')"
         :waiting-label="t('harvester.addons.forklift.reviewMigration.startMigration')"
         :success-label="t('harvester.addons.forklift.reviewMigration.startMigration')"

@@ -1709,7 +1709,7 @@ harvester:
 
     forklift:
       labels:
-        dashboard: Create
+        dashboard: Migrations
         provider: Providers
         networkMap: Network Maps
         storageMap: Storage Maps
@@ -1722,6 +1722,8 @@ harvester:
         title: Configure Provider
         description: Connect to your VMware vCenter or ESXi host to discover virtual machines for migration
         connectionDetails: Connection Details
+        providerSelect: Provider
+        createNew: Create new provider
         requirementsTitle: Requirements
         requirementsText: "To migrate virtual machines from VMWare, you will need a vCenter Server running version 6.5 or higher with a user account that has at least read permissions, and the source environment must be network-accessible from Rancher."
         name: Name
@@ -1736,6 +1738,7 @@ harvester:
         testMissingFields: Please fill in all required fields before testing
         testTimeout: Connection test timed out — the provider did not report a status in time
         save: Save Provider and Continue
+        saveExisting: Check Provider and Continue
       selectVms:
         title: Select Virtual Machines
         discovered: "{count} VMs discovered from"
@@ -1772,17 +1775,22 @@ harvester:
         title: Set Mappings
         description: Map VMware networks and datastores to Harvester and Longhorn target resources
         save: Save Mappings and Continue
+        noTemplate: Start from scratch
         networkMapping:
           title: Network Mapping
           description: Map VMware port groups to Harvester networks
           placeholder: Choose a Harvester network...
+          template: Use existing network mapping as template
         storageMapping:
           title: Storage Mapping
           description: Map VMware datastores to Harvester storage classes
           placeholder: Choose a Longhorn Storage Volume
+          template: Use existing storage mapping as template
       reviewMigration:
         title: Review Migration Plan
         description: Confirm your migration settings before starting the transfer of VMs to the target cluster.
+        planName: Name
+        planNamePlaceholder: "e.g. my-migration-plan"
         migrationDetails: Migration Details
         totalVms: Total VMs
         vcpu: vCPU
