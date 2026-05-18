@@ -14,20 +14,6 @@ export default {
       type:     Object,
       required: true
     },
-
-    allNodeNetwork: {
-      type:    Array,
-      default: () => {
-        return [];
-      }
-    },
-
-    allClusterNetwork: {
-      type:    Array,
-      default: () => {
-        return [];
-      }
-    }
   },
 
   data() {

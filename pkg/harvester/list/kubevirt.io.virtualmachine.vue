@@ -98,19 +98,9 @@ export default {
       this.hasNode = true;
     }
 
-    if (this.$store.getters[`${ inStore }/schemaFor`](HCI.NODE_NETWORK)) {
-      _hash.nodeNetworks = this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.NODE_NETWORK });
-    }
-
-    if (this.$store.getters[`${ inStore }/schemaFor`](HCI.CLUSTER_NETWORK)) {
-      _hash.clusterNetworks = this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.CLUSTER_NETWORK });
-    }
-
     const hash = await allHash(_hash);
 
     this.allVMs = hash.vms;
-    this.allNodeNetworks = hash.nodeNetworks || [];
-    this.allClusterNetworks = hash.clusterNetworks || [];
   },
 
   data() {
@@ -118,8 +108,6 @@ export default {
       hasNode:                      false,
       allVMs:                       [],
       allVMIs:                      [],
-      allNodeNetworks:              [],
-      allClusterNetworks:           [],
       restartNotificationDisplayed: false,
       HCI
     };
@@ -246,8 +234,6 @@ export default {
           <HarvesterVmState
             class="vmstate"
             :row="scope.row"
-            :all-node-network="allNodeNetworks"
-            :all-cluster-network="allClusterNetworks"
           />
         </div>
       </template>
