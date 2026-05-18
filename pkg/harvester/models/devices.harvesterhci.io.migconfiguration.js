@@ -9,6 +9,7 @@ import HarvesterResource from './harvester';
 export default class MIGCONFIGURATION extends HarvesterResource {
   get _availableActions() {
     let out = super._availableActions;
+    const canUpdate = !!this.linkFor('update');
 
     out = out.map((action) => {
       if (action.action === 'showConfiguration') {
@@ -26,13 +27,13 @@ export default class MIGCONFIGURATION extends HarvesterResource {
     out.push(
       {
         action:  'enableConfig',
-        enabled: !this.isEnabled,
+        enabled: !this.isEnabled && canUpdate,
         icon:    'icon icon-fw icon-dot',
         label:   'Enable',
       },
       {
         action:  'disableConfig',
-        enabled: this.isEnabled,
+        enabled: this.isEnabled && canUpdate,
         icon:    'icon icon-fw icon-dot-open',
         label:   'Disable',
       },

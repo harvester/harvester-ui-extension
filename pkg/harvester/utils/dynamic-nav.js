@@ -34,11 +34,22 @@ export function registerAddonSideNav(store, productName, {
   // Adds or removes the resource IDs from the product visibility whitelist.
   const setMenuVisibility = (visible) => {
     if (visible) {
-      store.commit('type-map/basicType', {
-        product: productName,
-        group:   navGroup,
-        types
+      // Only include types whose schema is accessible (e.g. hidden from read-only users).
+      const availableTypes = types.filter((t) => {
+        try {
+          return !!store.getters[`${ productName }/schemaFor`]?.(t);
+        } catch (e) {
+          return false;
+        }
       });
+
+      if (availableTypes.length > 0) {
+        store.commit('type-map/basicType', {
+          product: productName,
+          group:   navGroup,
+          types:   availableTypes
+        });
+      }
     } else {
       // Manually delete the keys from the state object to hide them.
       const basicTypes = store.state['type-map'].basicTypes[productName];
