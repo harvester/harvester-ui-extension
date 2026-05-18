@@ -192,7 +192,7 @@ export default {
   </ResourceTable>
 </template>
 
-<style lang="scss">
+<style lang="scss" scoped>
 .group-actions  {
   display: inline;
   width: fit-content;
