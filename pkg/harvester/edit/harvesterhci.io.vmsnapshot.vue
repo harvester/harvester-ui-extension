@@ -2,6 +2,7 @@
 import Footer from '@shell/components/form/Footer';
 import { RadioGroup } from '@components/Form/Radio';
 import { LabeledInput } from '@components/Form/LabeledInput';
+import Checkbox from '@components/Form/Checkbox/Checkbox';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { allHash } from '@shell/utils/promise';
@@ -32,6 +33,7 @@ const createObject = {
 export default {
   name:       'CreateRestore',
   components: {
+    Checkbox,
     Footer,
     RadioGroup,
     LabeledInput,
@@ -249,8 +251,16 @@ export default {
       <LabeledSelect
         v-if="!restoreNewVm"
         v-model:value="deletionPolicy"
+        class="mb-20"
         :label="t('harvester.backup.restore.deletePreviousVolumes')"
         :options="deletionPolicyOption"
+      />
+
+      <Checkbox
+        v-model:value="restoreResource.spec.haltAfterRestore"
+        type="checkbox"
+        class="check mb-20"
+        :label="t('harvester.backup.restore.haltAfterRestore')"
       />
     </div>
 

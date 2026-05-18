@@ -1118,6 +1118,7 @@ harvester:
       replaceExisting: Replace existing
       virtualMachineName: Virtual Machine Name
       keepMacAddress: Keep MAC Address
+      haltAfterRestore: Keep powered off after restore
     matchTarget: The current backup target does not match the existing one.
     progress:
       details: Volume details
@@ -1522,6 +1523,7 @@ harvester:
   vmSnapshot:
     label: Virtual Machine Snapshots
     createText: Restore Snapshot
+    title: Restore Virtual Machine
     snapshot: Snapshot
 
   storage:

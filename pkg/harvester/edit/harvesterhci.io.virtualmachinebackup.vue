@@ -254,14 +254,23 @@ export default {
         v-if="restoreNewVm"
         v-model:value="restoreResource.spec.keepMacAddress"
         type="checkbox"
+        class="check mb-20"
         :label="t('harvester.backup.restore.keepMacAddress')"
       />
 
       <LabeledSelect
         v-if="!restoreNewVm"
         v-model:value="deletionPolicy"
+        class="mb-20"
         :label="t('harvester.backup.restore.deletePreviousVolumes')"
         :options="deletionPolicyOption"
+      />
+
+      <Checkbox
+        v-model:value="restoreResource.spec.haltAfterRestore"
+        type="checkbox"
+        class="check mb-20"
+        :label="t('harvester.backup.restore.haltAfterRestore')"
       />
     </div>
 
