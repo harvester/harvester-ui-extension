@@ -20,12 +20,7 @@ export default {
 
   computed: {
     vmiResource() {
-      const vmiList = this.$store.getters['harvester/all'](HCI.VMI) || [];
-      const vmi = vmiList.find( (VMI) => {
-        return VMI?.metadata?.ownerReferences?.[0]?.uid === this.vmResource?.metadata?.uid;
-      });
-
-      return vmi;
+      return this.$store.getters['harvester/byId'](HCI.VMI, this.vmResource?.id) || null;
     },
     migrationState() {
       return this.vmiResource?.migrationState?.status || '';

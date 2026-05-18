@@ -27,15 +27,11 @@ export default {
     await allHash({
       vms:               this.$store.dispatch('harvester/findAll', { type: HCI.VM }),
       vmis:              this.$store.dispatch('harvester/findAll', { type: HCI.VMI }),
-      allClusterNetwork: this.$store.dispatch('harvester/findAll', { type: HCI.CLUSTER_NETWORK }),
+      vmims:             this.$store.dispatch('harvester/findAll', { type: HCI.VMIM }),
     });
   },
 
   computed: {
-    allClusterNetwork() {
-      return this.$store.getters['harvester/all'](HCI.CLUSTER_NETWORK);
-    },
-
     rows() {
       const vms = this.$store.getters['harvester/all'](HCI.VM);
 
@@ -108,7 +104,6 @@ export default {
             <HarvesterVmState
               class="vmstate"
               :row="scope.row"
-              :all-cluster-network="allClusterNetwork"
             />
           </div>
         </template>
