@@ -245,6 +245,5 @@ export default {
 <style lang="scss" scoped>
 .group-actions  {
   display: inline;
-  width: fit-content;
 }
 </style>
