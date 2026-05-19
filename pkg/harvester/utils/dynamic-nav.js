@@ -59,12 +59,12 @@ export function registerAddonSideNav(store, productName, {
   const setMenuVisibility = (visible) => {
     const accessibleTypes = visible ? types.filter(hasAccessibleSchema) : [];
 
-    // When visible=true but no types have an accessible schema (e.g. permission change),
-    // treat it as hidden to clear any stale nav entries.
+    // Always clear first to remove any previously-registered types that are
+    // no longer accessible (e.g. partial permission changes like types=[A,B] where B is dropped).
+    hideTypes();
+
     if (accessibleTypes.length > 0) {
       showTypes(accessibleTypes);
-    } else {
-      hideTypes();
     }
 
     kickSideNav();

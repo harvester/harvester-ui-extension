@@ -488,7 +488,7 @@ export function init($plugin, store) {
   });
 
   virtualType({
-    ifHaveType: LOGGING.CLUSTER_OUTPUT,
+    ifHaveType: LOGGING.CLUSTER_FLOW,
     labelKey:   'harvester.logging.clusterFlow.label',
     name:       HCI.CLUSTER_FLOW,
     namespaced: true,
