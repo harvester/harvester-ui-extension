@@ -57,6 +57,24 @@ const providerOptions = computed(() => {
   ];
 
   allProviders.value.forEach((p) => {
+    if (!p.spec?.url) {
+      return;
+    }
+
+    const secretRef = p.spec?.secret;
+
+    if (secretRef) {
+      const secret = allSecrets.value.find(
+        (s) => s.metadata.name === secretRef.name && s.metadata.namespace === secretRef.namespace
+      );
+
+      if (!secret?.data?.user || !secret?.data?.password) {
+        return;
+      }
+    } else {
+      return;
+    }
+
     options.push({
       label: p.metadata.name,
       value: p.metadata.name,
@@ -574,10 +592,5 @@ init();
     justify-content: flex-end;
     gap: 10px;
     margin-top: 30px;
-  }
-
-  .test-passed-btn {
-    color: var(--success) !important;
-    border-color: var(--success) !important;
   }
 </style>

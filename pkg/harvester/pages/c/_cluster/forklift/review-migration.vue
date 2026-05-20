@@ -356,136 +356,138 @@ init();
     v-else
     class="review-migration"
   >
-    <Masthead
-      :schema="schema"
-      :resource="schema.id"
-      :type-display="t('harvester.addons.forklift.reviewMigration.title')"
-      :is-creatable="false"
+    <div
+      class="review-migration-content"
     >
-      <template #subHeader>
-        <p class="text-muted mt-5">
-          {{ t('harvester.addons.forklift.reviewMigration.description') }}
-        </p>
-      </template>
-    </Masthead>
+      <Masthead
+        :schema="schema"
+        :resource="schema.id"
+        :type-display="t('harvester.addons.forklift.reviewMigration.title')"
+        :is-creatable="false"
+        class="line-height-32"
+      >
+        <template #subHeader>
+          <p class="text-muted mt-5">
+            {{ t('harvester.addons.forklift.reviewMigration.description') }}
+          </p>
+        </template>
+      </Masthead>
 
-    <div class="mb-20">
-      <LabeledInput
-        v-model:value="planName"
-        :label="t('harvester.addons.forklift.reviewMigration.planName')"
-        :placeholder="t('harvester.addons.forklift.reviewMigration.planNamePlaceholder')"
-        required
+      <!-- Migration Details Summary -->
+      <div class="migration-details">
+        <h3 class="section-title m-0">
+          {{ t('harvester.addons.forklift.reviewMigration.migrationDetails') }}
+        </h3>
+        <div class="span-9">
+          <LabeledInput
+            v-model:value="planName"
+            :label="t('harvester.addons.forklift.reviewMigration.planName')"
+            :placeholder="t('harvester.addons.forklift.reviewMigration.planNamePlaceholder')"
+            required
+          />
+        </div>
+        <div class="details-grid span-9">
+          <div class="detail-column">
+            <div class="detail-item">
+              <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.totalVms') }}</span>
+              <span class="detail-value detail-value-large">{{ vms.length }}</span>
+            </div>
+          </div>
+          <div class="detail-column">
+            <div class="detail-item">
+              <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.source') }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-value">{{ providerName }}</span>
+            </div>
+          </div>
+          <div class="detail-column">
+            <div class="detail-item">
+              <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.targetNamespace') }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-value">{{ TARGET_NAMESPACE }}</span>
+            </div>
+          </div>
+          <div class="detail-column">
+            <div class="detail-item">
+              <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.vcpu') }}</span>
+              <span class="detail-value">{{ totalVCpu }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.memory') }}</span>
+              <span class="detail-value">{{ totalMemoryGB }} GB</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.storage') }}</span>
+              <span class="detail-value">{{ totalStorageGB }} GB</span>
+            </div>
+          </div>
+          <div class="detail-column grid-column-2">
+            <div class="detail-item">
+              <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.migrationMode') }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-value">
+                {{ t('harvester.addons.forklift.reviewMigration.coldMigration') }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Virtual Machines -->
+      <div class="vm-section">
+        <h3 class="section-title m-0">
+          {{ t('harvester.addons.forklift.reviewMigration.virtualMachines') }} ({{ vms.length }})
+        </h3>
+
+        <div class="vm-cards-grid">
+          <RcItemCard
+            v-for="vm in vmCards"
+            :id="vm.id"
+            :key="vm.id"
+            :variant="'small'"
+            :header="{ title: { text: vm.name }, statuses: [{ icon: 'icon-notify-tick', color: 'text-success' }] }"
+          >
+            <template #item-card-content>
+              <div class="vm-card-content">
+                <div class="vm-card-specs">
+                  <span class="vm-os text-muted">{{ vm.os }}</span>
+                  <span class="vm-resources">
+                    <i class="icon icon-disk" />
+                    {{ vm.cpus }} vCPU &bull; {{ vm.memGB }} &bull; {{ vm.diskDisplay }}
+                  </span>
+                </div>
+                <MappingsCell
+                  :network-entries="vm.networkMappings.map(m => `${m.source} → ${m.target}`)"
+                  :storage-entries="vm.storageMappings.map(m => `${m.source} → ${m.target}`)"
+                />
+              </div>
+            </template>
+          </RcItemCard>
+        </div>
+      </div>
+
+      <!-- Cold Migration Warning -->
+      <Banner
+        color="warning"
+        class="m-0"
+      >
+        <div>
+          <span class="banner-title">{{ t('harvester.addons.forklift.reviewMigration.warningTitle') }}</span><br>
+          {{ t('harvester.addons.forklift.reviewMigration.warningMessage') }}
+        </div>
+      </Banner>
+
+      <!-- Error banner -->
+      <Banner
+        v-for="(err, i) in errors"
+        :key="i"
+        color="error"
+        :label="err"
       />
     </div>
-
-    <!-- Migration Details Summary -->
-    <div class="migration-details">
-      <h3 class="section-title">
-        {{ t('harvester.addons.forklift.reviewMigration.migrationDetails') }}
-      </h3>
-      <div class="details-grid">
-        <div class="detail-column">
-          <div class="detail-item">
-            <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.totalVms') }}</span>
-            <span class="detail-value detail-value-large">{{ vms.length }}</span>
-          </div>
-        </div>
-        <div class="detail-column">
-          <div class="detail-item">
-            <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.source') }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-value">{{ providerName }}</span>
-          </div>
-        </div>
-        <div class="detail-column">
-          <div class="detail-item">
-            <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.targetNamespace') }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-value">{{ TARGET_NAMESPACE }}</span>
-          </div>
-        </div>
-        <div class="detail-column">
-          <div class="detail-item">
-            <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.vcpu') }}</span>
-            <span class="detail-value">{{ totalVCpu }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.memory') }}</span>
-            <span class="detail-value">{{ totalMemoryGB }} GB</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.storage') }}</span>
-            <span class="detail-value">{{ totalStorageGB }} GB</span>
-          </div>
-        </div>
-        <div class="detail-column grid-column-2">
-          <div class="detail-item">
-            <span class="detail-label">{{ t('harvester.addons.forklift.reviewMigration.migrationMode') }}</span>
-          </div>
-          <div class="detail-item">
-            <span class="detail-value">
-              {{ t('harvester.addons.forklift.reviewMigration.coldMigration') }}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Virtual Machines -->
-    <div class="vm-section">
-      <h3 class="section-title">
-        {{ t('harvester.addons.forklift.reviewMigration.virtualMachines') }} ({{ vms.length }})
-      </h3>
-
-      <div class="vm-cards-grid">
-        <RcItemCard
-          v-for="vm in vmCards"
-          :id="vm.id"
-          :key="vm.id"
-          :variant="'small'"
-          :header="{ title: { text: vm.name }, statuses: [{ icon: 'icon-notify-tick', color: 'text-success' }] }"
-        >
-          <template #item-card-content>
-            <div class="vm-card-content">
-              <div class="vm-card-specs">
-                <span class="vm-os text-muted">{{ vm.os }}</span>
-                <span class="vm-resources">
-                  <i class="icon icon-disk" />
-                  {{ vm.cpus }} vCPU &bull; {{ vm.memGB }} &bull; {{ vm.diskDisplay }}
-                </span>
-              </div>
-              <MappingsCell
-                :network-entries="vm.networkMappings.map(m => `${m.source} → ${m.target}`)"
-                :storage-entries="vm.storageMappings.map(m => `${m.source} → ${m.target}`)"
-              />
-            </div>
-          </template>
-        </RcItemCard>
-      </div>
-    </div>
-
-    <!-- Cold Migration Warning -->
-    <Banner
-      color="warning"
-      class="mt-20"
-    >
-      <div>
-        <span class="banner-title">{{ t('harvester.addons.forklift.reviewMigration.warningTitle') }}</span><br>
-        {{ t('harvester.addons.forklift.reviewMigration.warningMessage') }}
-      </div>
-    </Banner>
-
-    <!-- Error banner -->
-    <Banner
-      v-for="(err, i) in errors"
-      :key="i"
-      color="error"
-      :label="err"
-      class="mt-10"
-    />
-
     <!-- Actions -->
     <div class="actions-footer">
       <button
@@ -509,15 +511,17 @@ init();
 <style lang="scss" scoped>
   .review-migration {
     padding: 20px;
+    gap: 36px;
+  }
+
+  .review-migration-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
   }
 
   .section-title {
     font-weight: 600;
-    margin: 0 0 15px 0;
-  }
-
-  .migration-details {
-    margin-bottom: 30px;
   }
 
   .details-grid {
@@ -557,10 +561,6 @@ init();
         font-size: 24px;
       }
     }
-  }
-
-  .vm-section {
-    margin-top: 30px;
   }
 
   .vm-cards-grid {
@@ -625,11 +625,30 @@ init();
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    margin-top: 30px;
   }
 
   .banner-title {
     font-weight: 600;
+  }
+
+  .migration-details {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  header {
+    margin: 0;
+  }
+
+  .vm-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .line-height-32 {
+    line-height: 32px;
   }
 
 </style>

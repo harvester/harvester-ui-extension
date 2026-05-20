@@ -1746,6 +1746,11 @@ harvester:
         availableVms: Available Virtual Machines
         selected: selected
         saveSelection: Save Selection and Continue
+        selectAllBanner:
+          pageOnly: "Your current selection includes only VMs currently shown on the page."
+          selectAll: "Select all {count} VMs from this provider"
+          allSelected: "Your current selection includes all VMs."
+          clearSelection: "Clear Selection"
         manualEntry:
           title: Add Virtual Machines
           description: No VMs were discovered from the provider inventory. Add VMs manually by entering their IDs and names.

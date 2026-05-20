@@ -558,6 +558,7 @@ init();
           :key="entry._key"
           :variant="'small'"
           :header="{}"
+          class="bg-light-gray"
         >
           <template #item-card-content>
             <div class="card-content-column">
@@ -613,6 +614,7 @@ init();
           :key="entry._key"
           :variant="'small'"
           :header="{}"
+          class="bg-light-gray"
         >
           <template #item-card-content>
             <div class="card-content-column">
@@ -745,6 +747,11 @@ init();
 
   .line-height-20 {
     line-height: 20px;
+  }
+
+  .bg-light-gray {
+    background-color: var(--category-active) !important;
+    border: 0;
   }
 
 </style>
