@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { useStore } from 'vuex';
 import Loading from '@shell/components/Loading';
 import Masthead from '@shell/components/ResourceList/Masthead';
@@ -32,10 +32,32 @@ const tableRows = ref([]);
 const loading = ref(true);
 const networkMap = ref({});
 const datastoreMap = ref({});
+const sortableTableRef = ref(null);
+const allVMsSelected = ref(false);
+const selectedVMIds = ref(new Set());
+let skipNextSelectionEvent = false;
 
 const providerName = computed(() => provider.value?.metadata?.name || currentRoute().query.provider || '');
 const vmCount = computed(() => discoveredVMs.value.length);
 const selectedCount = computed(() => selectedVMs.value.length);
+
+const showSelectAllBanner = computed(() => {
+  if (allVMsSelected.value) {
+    return true;
+  }
+
+  const pagedRows = sortableTableRef.value?.pagedRows || [];
+
+  if (pagedRows.length === 0) {
+    return false;
+  }
+
+  const allPageSelected = pagedRows.every((row) => selectedVMIds.value.has(row._original?.id));
+
+  return allPageSelected && tableRows.value.length > pagedRows.length;
+});
+
+const theadElement = computed(() => sortableTableRef.value?.$el?.querySelector('thead'));
 
 const headers = [
   {
@@ -144,8 +166,69 @@ const buildTableRows = () => {
 };
 
 const onSelect = (rows) => {
-  selectedVMs.value = rows.map((r) => r._original);
+  if (skipNextSelectionEvent) {
+    return;
+  }
+
+  const currentPageRows = sortableTableRef.value?.pagedRows || [];
+  const selectedKeys = new Set(rows.map((r) => r._key));
+
+  currentPageRows.forEach((row) => {
+    const vmId = row._original?.id;
+
+    if (selectedKeys.has(row._key)) {
+      selectedVMIds.value.add(vmId);
+    } else {
+      selectedVMIds.value.delete(vmId);
+    }
+  });
+
+  allVMsSelected.value = selectedVMIds.value.size === discoveredVMs.value.length;
+  selectedVMs.value = discoveredVMs.value.filter((vm) => selectedVMIds.value.has(vm.id));
 };
+
+const clearSelection = () => {
+  allVMsSelected.value = false;
+  selectedVMIds.value = new Set();
+  selectedVMs.value = [];
+
+  nextTick(() => {
+    const table = sortableTableRef.value;
+
+    if (table) {
+      table.clearSelection();
+    }
+  });
+};
+
+const selectAllVMs = () => {
+  allVMsSelected.value = true;
+  selectedVMIds.value = new Set(discoveredVMs.value.map((vm) => vm.id));
+  selectedVMs.value = discoveredVMs.value.slice();
+};
+
+watch(
+  () => sortableTableRef.value?.page,
+  () => {
+    skipNextSelectionEvent = true;
+
+    nextTick(() => {
+      const table = sortableTableRef.value;
+
+      if (!table) {
+        return;
+      }
+
+      const rowsToReselect = (table.pagedRows || []).filter((row) => selectedVMIds.value.has(row._original?.id));
+
+      if (rowsToReselect.length > 0) {
+        table.update(rowsToReselect, []);
+      }
+
+      skipNextSelectionEvent = false;
+    });
+  }
+);
 
 const cancel = () => {
   currentRouter().push({
@@ -255,6 +338,7 @@ init();
 
     <!-- Discovered VMs table -->
     <SortableTable
+      ref="sortableTableRef"
       :rows="tableRows"
       :headers="headers"
       :search="true"
@@ -316,6 +400,37 @@ init();
       </template>
     </SortableTable>
 
+    <Teleport
+      v-if="showSelectAllBanner && theadElement"
+      :to="theadElement"
+    >
+      <tr class="select-all-banner-row">
+        <td
+          :colspan="headers.length + 1"
+          class="select-all-banner-cell"
+        >
+          <template v-if="allVMsSelected">
+            <span>{{ t('harvester.addons.forklift.selectVms.selectAllBanner.allSelected') }}</span>
+            <a
+              role="button"
+              @click.prevent="clearSelection"
+            >
+              {{ t('harvester.addons.forklift.selectVms.selectAllBanner.clearSelection') }}
+            </a>
+          </template>
+          <template v-else>
+            <span>{{ t('harvester.addons.forklift.selectVms.selectAllBanner.pageOnly') }}</span>
+            <a
+              role="button"
+              @click.prevent="selectAllVMs"
+            >
+              {{ t('harvester.addons.forklift.selectVms.selectAllBanner.selectAll', { count: vmCount }) }}
+            </a>
+          </template>
+        </td>
+      </tr>
+    </Teleport>
+
     <div class="actions-footer">
       <button
         class="btn role-secondary"
@@ -362,6 +477,27 @@ init();
 
     .vm-id {
       line-height: 20px;
+    }
+  }
+
+  :deep(.select-all-banner-row) {
+    .select-all-banner-cell {
+      text-align: center;
+      padding: 8px 16px;
+      background-color: var(--sortable-table-header-bg);
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+
+      a {
+        color: var(--primary);
+        cursor: pointer;
+        font-weight: 600;
+        margin-left: 5px;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
     }
   }
 
