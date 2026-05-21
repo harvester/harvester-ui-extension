@@ -1,43 +1,45 @@
 <script setup>
 import { reactive, ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
+import { useRoute } from 'vue-router';
 import CruResource from '@shell/components/CruResource';
+import { SECRET } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
 import ConfigureProviderStep from '../../../../components/vm-migration/ConfigureProviderStep';
-import SelectVmsStep from '../../../../components/vm-migration/SelectVmsStep';
 import ConfigureMappingsStep from '../../../../components/vm-migration/ConfigureMappingsStep';
-import ReviewMigrationStep from '../../../../components/vm-migration/ReviewMigrationStep';
 import { PRODUCT_NAME } from '../../../../config/harvester';
 import { currentRouter } from '../../../../utils/router';
+import { HCI } from '../../../../types';
 
 const store = useStore();
+const route = useRoute();
 const { t } = useI18n(store);
 
 const cruRef = ref(null);
 const providerStepRef = ref(null);
 const mappingsStepRef = ref(null);
-const reviewStepRef = ref(null);
 
 const providerName = ref('');
 const provider = ref(null);
-const selectedVMs = ref([]);
-const networkMapName = ref('');
-const storageMapName = ref('');
 const errors = ref([]);
 
 const providerReady = ref(false);
 const providerFormValid = ref(false);
 const providerTesting = ref(false);
-const vmsReady = ref(false);
-const vmsLoading = ref(true);
 const mappingsReady = ref(false);
-const reviewReady = ref(false);
+
+const existingNetworkMap = ref(null);
+const existingStorageMap = ref(null);
+const initialLoading = ref(true);
 
 const dummyResource = ref({ save: () => Promise.resolve() });
 
+const providerId = route.query?.providerId || null;
+const isEditMode = !!providerId;
+
 const stepData = reactive({
   provider: {
-    selectedProvider: '__create_new__',
+    selectedProvider: isEditMode ? '' : '__create_new__',
     providerName:     '',
     url:              '',
     username:         '',
@@ -49,16 +51,10 @@ const stepData = reactive({
     createdProvider:  null,
     createdSecret:    null,
   },
-  vms: {
-    discoveredVMs: [],
-    selectedVMIds: new Set(),
-    tableRows:     [],
-  },
   mappings: {
     networkEntries:  [],
     storageEntries:  [],
   },
-  review: { planName: '' },
 });
 
 const steps = reactive([
@@ -69,19 +65,7 @@ const steps = reactive([
     ready:   false,
   },
   {
-    name:    'select-vms',
-    label:   '',
-    subtext: '',
-    ready:   false,
-  },
-  {
     name:    'configure-mappings',
-    label:   '',
-    subtext: '',
-    ready:   false,
-  },
-  {
-    name:    'review-migration',
     label:   '',
     subtext: '',
     ready:   false,
@@ -90,24 +74,14 @@ const steps = reactive([
 
 steps[0].label = t('harvester.addons.vmMigration.wizard.steps.configureProvider.label');
 steps[0].subtext = t('harvester.addons.vmMigration.wizard.steps.configureProvider.description');
-steps[1].label = t('harvester.addons.vmMigration.wizard.steps.selectVms.label');
-steps[1].subtext = t('harvester.addons.vmMigration.wizard.steps.selectVms.description');
-steps[2].label = t('harvester.addons.vmMigration.wizard.steps.configureMappings.label');
-steps[2].subtext = t('harvester.addons.vmMigration.wizard.steps.configureMappings.description');
-steps[3].label = t('harvester.addons.vmMigration.wizard.steps.reviewMigration.label');
-steps[3].subtext = t('harvester.addons.vmMigration.wizard.steps.reviewMigration.description');
+steps[1].label = t('harvester.addons.vmMigration.wizard.steps.configureMappings.label');
+steps[1].subtext = t('harvester.addons.vmMigration.wizard.steps.configureMappings.description');
 
 watch([providerFormValid, providerTesting], () => {
   steps[0].ready = providerFormValid.value && !providerTesting.value;
 }, { immediate: true });
-watch([vmsReady, vmsLoading], () => {
-  steps[1].ready = vmsReady.value && !vmsLoading.value;
-});
 watch(mappingsReady, (val) => {
-  steps[2].ready = val;
-});
-watch(reviewReady, (val) => {
-  steps[3].ready = val;
+  steps[1].ready = val;
 });
 
 const wizardComponent = computed(() => cruRef.value?.$refs?.Wizard);
@@ -133,6 +107,10 @@ watch(providerReady, (val) => {
   }
 });
 
+const wizardTitle = computed(() => {
+  return isEditMode ? t('harvester.addons.vmMigration.providerWizard.editTitle') : t('harvester.addons.vmMigration.providerWizard.title');
+});
+
 const onProviderComplete = (data) => {
   providerName.value = data.providerName;
   provider.value = data.provider;
@@ -151,65 +129,33 @@ const onProviderReady = (ready) => {
   providerReady.value = ready;
 };
 
-const onVmsComplete = (data) => {
-  selectedVMs.value = data.selectedVMs;
-  vmsReady.value = data.selectedVMs.length > 0;
-};
-
-const onVmsLoading = (val) => {
-  vmsLoading.value = val;
-};
-
 const onMappingsReady = (ready) => {
   mappingsReady.value = ready;
 };
 
-const onReviewReady = (ready) => {
-  reviewReady.value = ready;
-};
-
-// Clear downstream data when provider changes
+// Clear mappings when provider changes
 watch(() => stepData.provider.providerName, (newVal, oldVal) => {
   if (oldVal && newVal !== oldVal) {
-    stepData.vms.discoveredVMs = [];
-    stepData.vms.selectedVMIds = new Set();
-    stepData.vms.tableRows = [];
-    selectedVMs.value = [];
-    vmsReady.value = false;
-
     stepData.mappings.networkEntries = [];
     stepData.mappings.storageEntries = [];
     mappingsReady.value = false;
-
-    stepData.review.planName = '';
-    reviewReady.value = false;
   }
 });
 
-// Clear mappings and review when VM selection changes
-watch(selectedVMs, (newVal, oldVal) => {
-  if (oldVal.length > 0 && JSON.stringify(newVal.map((v) => v.id).sort()) !== JSON.stringify(oldVal.map((v) => v.id).sort())) {
-    stepData.mappings.networkEntries = [];
-    stepData.mappings.storageEntries = [];
-    mappingsReady.value = false;
-
-    stepData.review.planName = '';
-    reviewReady.value = false;
+const providerListLocation = {
+  name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+  params: {
+    product:  store.getters['productId'],
+    cluster:  store.getters['clusterId'],
+    resource: HCI.FORKLIFT_PROVIDER,
   }
-});
+};
 
 const onFinish = async(buttonCb) => {
   try {
-    await reviewStepRef.value.startMigration();
+    await mappingsStepRef.value.saveMappings();
     buttonCb(true);
-
-    currentRouter().push({
-      name:   `${ PRODUCT_NAME }-c-cluster-vm-migration`,
-      params: {
-        product: store.getters['productId'],
-        cluster: store.getters['clusterId'],
-      }
-    });
+    currentRouter().push(providerListLocation);
   } catch (err) {
     errors.value = [err instanceof Error ? err.message : String(err)];
     buttonCb(false);
@@ -217,26 +163,91 @@ const onFinish = async(buttonCb) => {
 };
 
 const onCancel = () => {
-  currentRouter().push({
-    name:   `${ PRODUCT_NAME }-c-cluster-vm-migration`,
-    params: {
-      product: store.getters['productId'],
-      cluster: store.getters['clusterId'],
-    }
-  });
+  currentRouter().push(providerListLocation);
 };
+
+const init = async() => {
+  if (!isEditMode) {
+    initialLoading.value = false;
+
+    return;
+  }
+
+  const inStore = store.getters['currentProduct'].inStore;
+
+  try {
+    const fetchedProvider = await store.dispatch(`${ inStore }/find`, {
+      type: HCI.FORKLIFT_PROVIDER,
+      id:   providerId,
+      opt:  { force: true },
+    });
+
+    provider.value = fetchedProvider;
+    providerName.value = fetchedProvider.metadata.name;
+
+    stepData.provider.selectedProvider = fetchedProvider.metadata.name;
+    stepData.provider.providerName = fetchedProvider.metadata.name;
+    stepData.provider.url = fetchedProvider.spec?.url || '';
+    stepData.provider.createdProvider = fetchedProvider;
+
+    const secretRef = fetchedProvider.spec?.secret;
+
+    if (secretRef) {
+      const allSecrets = await store.dispatch(`${ inStore }/findAll`, {
+        type: SECRET,
+        opt:  { labelSelector: `ui.forklift/created-for-resource-type=${ HCI.FORKLIFT_PROVIDER }` },
+      });
+
+      const secret = allSecrets.find(
+        (s) => s.metadata.name === secretRef.name && s.metadata.namespace === secretRef.namespace
+      );
+
+      if (secret?.data) {
+        stepData.provider.username = atob(secret.data.user || '');
+        stepData.provider.password = atob(secret.data.password || '');
+        stepData.provider.skipTlsVerify = atob(secret.data.insecureSkipVerify || '') === 'true';
+        stepData.provider.createdSecret = secret;
+      }
+    }
+
+    // Fetch existing default maps for this provider
+    try {
+      const allNetworkMaps = await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_NETWORK_MAP });
+      const allStorageMaps = await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_STORAGE_MAP });
+
+      existingNetworkMap.value = allNetworkMaps.find(
+        (nm) => nm.metadata.name === `${ fetchedProvider.metadata.name }-network-map-default`
+      ) || null;
+
+      existingStorageMap.value = allStorageMaps.find(
+        (sm) => sm.metadata.name === `${ fetchedProvider.metadata.name }-storage-map-default`
+      ) || null;
+    } catch (e) {
+      // Maps may not exist yet
+    }
+  } catch (err) {
+    errors.value = [`Failed to load provider: ${ err.message || err }`];
+  }
+
+  initialLoading.value = false;
+};
+
+init();
 </script>
 
 <template>
+  <div v-if="initialLoading" />
   <CruResource
+    v-else
     ref="cruRef"
     :resource="dummyResource"
-    :mode="'create'"
+    :mode="isEditMode ? 'edit' : 'create'"
     :steps="steps"
     :errors="errors"
     :validation-passed="true"
     :can-yaml="false"
     :cancel-event="true"
+    :title="wizardTitle"
     finish-mode="finish"
     class="wizard"
     @cancel="onCancel"
@@ -246,19 +257,12 @@ const onCancel = () => {
       <ConfigureProviderStep
         ref="providerStepRef"
         :step-data="stepData.provider"
+        :create-only="true"
+        :edit-mode="isEditMode"
         @complete="onProviderComplete"
         @ready="onProviderReady"
         @form-valid="onProviderFormValid"
         @testing="onProviderTesting"
-      />
-    </template>
-    <template #select-vms>
-      <SelectVmsStep
-        :provider-name="providerName"
-        :provider="provider"
-        :step-data="stepData.vms"
-        @complete="onVmsComplete"
-        @loading="onVmsLoading"
       />
     </template>
     <template #configure-mappings>
@@ -266,22 +270,11 @@ const onCancel = () => {
         ref="mappingsStepRef"
         :provider-name="providerName"
         :provider="provider"
-        :selected-vms="selectedVMs"
         :step-data="stepData.mappings"
+        :use-all-provider-data="true"
+        :existing-network-map="existingNetworkMap"
+        :existing-storage-map="existingStorageMap"
         @ready="onMappingsReady"
-      />
-    </template>
-    <template #review-migration>
-      <ReviewMigrationStep
-        ref="reviewStepRef"
-        :provider-name="providerName"
-        :provider="provider"
-        :selected-vms="selectedVMs"
-        :network-map-name="networkMapName"
-        :storage-map-name="storageMapName"
-        :mapping-entries="stepData.mappings"
-        :step-data="stepData.review"
-        @ready="onReviewReady"
       />
     </template>
   </CruResource>

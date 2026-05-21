@@ -1,5 +1,5 @@
 wizard:
-  create: Create Migration
+  create: Create
   next: Proceed
   previous: Back
 
@@ -1720,6 +1720,9 @@ harvester:
         storageMap: Storage Maps
         plan: Migration Plans
         migration: Migrations
+      providerWizard:
+        title: Create Provider
+        editTitle: Edit Provider
       wizard:
         title: VM Migration
         steps:

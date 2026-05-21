@@ -1193,8 +1193,9 @@ export function init($plugin, store) {
   virtualType({
     name:       HCI.FORKLIFT_PROVIDER,
     labelKey:   'harvester.addons.vmMigration.labels.provider',
-    group:      'vmMigration::Advanced',
+    group:      'vmMigration',
     namespaced: true,
+    weight:     100,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.FORKLIFT_PROVIDER }
@@ -1314,6 +1315,7 @@ export function init($plugin, store) {
     labelKey:   'harvester.addons.vmMigration.labels.dashboard',
     group:      'vmMigration',
     namespaced: true,
+    weight:     200,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-vm-migration`,
       params: {}
@@ -1327,6 +1329,7 @@ export function init($plugin, store) {
     navGroup:     'vmMigration',
     types:        [
       'forklift-create',
+      HCI.FORKLIFT_PROVIDER,
     ]
   });
   registerAddonSideNav(store, PRODUCT_NAME, {
@@ -1334,7 +1337,6 @@ export function init($plugin, store) {
     resourceType: HCI.ADD_ONS,
     navGroup:     'vmMigration::Advanced',
     types:        [
-      HCI.FORKLIFT_PROVIDER,
       HCI.FORKLIFT_NETWORK_MAP,
       HCI.FORKLIFT_STORAGE_MAP,
       HCI.FORKLIFT_PLAN,

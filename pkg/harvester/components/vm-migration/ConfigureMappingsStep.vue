@@ -9,18 +9,19 @@ import { useI18n } from '@shell/composables/useI18n';
 import { HCI } from '../../types';
 
 const props = defineProps({
-  providerName: { type: String, default: '' },
-  provider:     { type: Object, default: null },
-  selectedVms:  { type: Array, default: () => [] },
-  stepData:     { type: Object, required: true },
+  providerName:       { type: String, default: '' },
+  provider:           { type: Object, default: null },
+  selectedVms:        { type: Array, default: () => [] },
+  stepData:           { type: Object, required: true },
+  useAllProviderData: { type: Boolean, default: false },
+  existingNetworkMap: { type: Object, default: null },
+  existingStorageMap: { type: Object, default: null },
 });
 
 const emit = defineEmits(['ready']);
 
 const store = useStore();
 const { t } = useI18n(store);
-
-const NO_TEMPLATE = '__none__';
 
 const vms = ref([]);
 const harvesterNetworks = ref([]);
@@ -29,8 +30,6 @@ const networkEntries = ref([]);
 const storageEntries = ref([]);
 const allNetworkMaps = ref([]);
 const allStorageMaps = ref([]);
-const selectedNetworkTemplate = ref(NO_TEMPLATE);
-const selectedStorageTemplate = ref(NO_TEMPLATE);
 const loading = ref(true);
 
 // Restore from stepData
@@ -40,8 +39,6 @@ if (props.stepData.networkEntries.length > 0) {
 if (props.stepData.storageEntries.length > 0) {
   storageEntries.value = props.stepData.storageEntries;
 }
-selectedNetworkTemplate.value = props.stepData.selectedNetworkTemplate;
-selectedStorageTemplate.value = props.stepData.selectedStorageTemplate;
 
 const NAMESPACE = 'forklift';
 
@@ -75,75 +72,13 @@ const storageClassOptions = computed(() => {
   return options;
 });
 
-const networkTemplateOptions = computed(() => {
-  const options = [
-    { label: t('harvester.addons.vmMigration.configureMappings.noTemplate'), value: NO_TEMPLATE }
-  ];
-
-  const currentIds = new Set(networkEntries.value.map((e) => e.id).filter(Boolean));
-
-  const sorted = [...allNetworkMaps.value].sort(
-    (a, b) => new Date(b.metadata.creationTimestamp) - new Date(a.metadata.creationTimestamp)
-  );
-
-  sorted.forEach((nm) => {
-    const mapSources = (nm.spec?.map || []).map((m) => m.source?.id).filter(Boolean);
-    const hasOverlap = mapSources.some((id) => currentIds.has(id));
-
-    if (hasOverlap) {
-      options.push({
-        label: nm.metadata.name,
-        value: nm.metadata.name,
-      });
-    }
-  });
-
-  return options;
-});
-
-const storageTemplateOptions = computed(() => {
-  const options = [
-    { label: t('harvester.addons.vmMigration.configureMappings.noTemplate'), value: NO_TEMPLATE }
-  ];
-
-  const currentIds = new Set(storageEntries.value.map((e) => e.id).filter(Boolean));
-
-  const sorted = [...allStorageMaps.value].sort(
-    (a, b) => new Date(b.metadata.creationTimestamp) - new Date(a.metadata.creationTimestamp)
-  );
-
-  sorted.forEach((sm) => {
-    const mapSources = (sm.spec?.map || []).map((m) => m.source?.id).filter(Boolean);
-    const hasOverlap = mapSources.some((id) => currentIds.has(id));
-
-    if (hasOverlap) {
-      options.push({
-        label: sm.metadata.name,
-        value: sm.metadata.name,
-      });
-    }
-  });
-
-  return options;
-});
-
-watch(selectedNetworkTemplate, (val) => {
-  if (val === NO_TEMPLATE) {
-    networkEntries.value.forEach((e) => {
-      e.target = '';
-    });
-
-    return;
-  }
-
-  const template = allNetworkMaps.value.find((nm) => nm.metadata.name === val);
-
-  if (!template?.spec?.map) {
+const applyNetworkMapTargets = (mapSpec) => {
+  if (!mapSpec) {
     return;
   }
 
   networkEntries.value.forEach((entry) => {
-    const match = template.spec.map.find(
+    const match = mapSpec.find(
       (m) => m.source?.id === entry.id || m.source?.name === entry.name
     );
 
@@ -159,25 +94,15 @@ watch(selectedNetworkTemplate, (val) => {
       }
     }
   });
-});
+};
 
-watch(selectedStorageTemplate, (val) => {
-  if (val === NO_TEMPLATE) {
-    storageEntries.value.forEach((e) => {
-      e.target = '';
-    });
-
-    return;
-  }
-
-  const template = allStorageMaps.value.find((sm) => sm.metadata.name === val);
-
-  if (!template?.spec?.map) {
+const applyStorageMapTargets = (mapSpec) => {
+  if (!mapSpec) {
     return;
   }
 
   storageEntries.value.forEach((entry) => {
-    const match = template.spec.map.find(
+    const match = mapSpec.find(
       (m) => m.source?.id === entry.id || m.source?.name === entry.name
     );
 
@@ -185,12 +110,32 @@ watch(selectedStorageTemplate, (val) => {
       entry.target = match.destination.storageClass;
     }
   });
-});
+};
+
+const applyDefaultNetworkMap = () => {
+  const defaultMap = allNetworkMaps.value.find(
+    (nm) => nm.metadata.name === `${ props.providerName }-network-map-default`
+  );
+
+  applyNetworkMapTargets(defaultMap?.spec?.map);
+};
+
+const applyDefaultStorageMap = () => {
+  const defaultMap = allStorageMaps.value.find(
+    (sm) => sm.metadata.name === `${ props.providerName }-storage-map-default`
+  );
+
+  applyStorageMapTargets(defaultMap?.spec?.map);
+};
 
 const allNetworksMapped = computed(() => networkEntries.value.length > 0 && networkEntries.value.every((e) => !!e.target));
 const allStorageMapped = computed(() => storageEntries.value.length > 0 && storageEntries.value.every((e) => !!e.target));
 
 const canSave = computed(() => {
+  if (props.useAllProviderData) {
+    return true;
+  }
+
   return networkEntries.value.length > 0 && storageEntries.value.length > 0 &&
     allNetworksMapped.value && allStorageMapped.value;
 });
@@ -211,13 +156,6 @@ watch(networkEntries, (val) => {
 watch(storageEntries, (val) => {
   props.stepData.storageEntries = val;
 }, { deep: true });
-watch(selectedNetworkTemplate, (val) => {
-  props.stepData.selectedNetworkTemplate = val;
-});
-watch(selectedStorageTemplate, (val) => {
-  props.stepData.selectedStorageTemplate = val;
-});
-
 const buildNetworkEntries = () => {
   const networkMap = {};
 
@@ -285,6 +223,29 @@ const buildStorageEntries = () => {
   storageEntries.value = Object.values(datastoreMap);
 };
 
+const buildNetworkEntriesFromProvider = (networksData) => {
+  networkEntries.value = (Array.isArray(networksData) ? networksData : []).map((net) => ({
+    name:   net.name || net.id,
+    id:     net.id || '',
+    vlanId: net.vlanId || '',
+    target: '',
+    usedBy: [],
+    _key:   `net-${ net.id || net.name }`,
+  }));
+};
+
+const buildStorageEntriesFromProvider = (datastoresData) => {
+  storageEntries.value = (Array.isArray(datastoresData) ? datastoresData : []).map((ds) => ({
+    name:     ds.name || ds.id,
+    id:       ds.id || '',
+    type:     ds.type || '',
+    capacity: ds.capacity || 0,
+    target:   '',
+    usedBy:   [],
+    _key:     `stor-${ ds.id || ds.name }`,
+  }));
+};
+
 const formatStorageDetail = (entry) => {
   const parts = [];
 
@@ -305,26 +266,8 @@ const formatStorageDetail = (entry) => {
   return parts.join(' • ');
 };
 
-const saveAndReturn = async() => {
-  const inStore = store.getters['currentProduct'].inStore;
-
-  const providerRef = {
-    source: {
-      apiVersion: 'forklift.konveyor.io/v1beta1',
-      kind:       'Provider',
-      name:       props.providerName,
-      namespace:  NAMESPACE,
-    },
-    destination: {
-      apiVersion: 'forklift.konveyor.io/v1beta1',
-      kind:       'Provider',
-      name:       'host',
-      namespace:  NAMESPACE,
-    },
-  };
-
-  // Create NetworkMap
-  const networkMapSpec = {
+const buildNetworkMapSpec = (providerRef) => {
+  return {
     map: networkEntries.value.map((entry) => {
       if (entry.target === 'pod') {
         return {
@@ -355,6 +298,49 @@ const saveAndReturn = async() => {
     }),
     provider: providerRef,
   };
+};
+
+const buildStorageMapSpec = (providerRef) => {
+  return {
+    map: storageEntries.value.map((entry) => ({
+      source:      { name: entry.name, id: entry.id },
+      destination: { storageClass: entry.target },
+    })),
+    provider: providerRef,
+  };
+};
+
+const saveAndReturn = async() => {
+  const inStore = store.getters['currentProduct'].inStore;
+
+  const providerRef = {
+    source: {
+      apiVersion: 'forklift.konveyor.io/v1beta1',
+      kind:       'Provider',
+      name:       props.providerName,
+      namespace:  NAMESPACE,
+    },
+    destination: {
+      apiVersion: 'forklift.konveyor.io/v1beta1',
+      kind:       'Provider',
+      name:       'host',
+      namespace:  NAMESPACE,
+    },
+  };
+
+  // Update existing maps in place (edit mode)
+  if (props.existingNetworkMap && props.existingStorageMap) {
+    props.existingNetworkMap.spec = buildNetworkMapSpec(providerRef);
+    await props.existingNetworkMap.save();
+
+    props.existingStorageMap.spec = buildStorageMapSpec(providerRef);
+    await props.existingStorageMap.save();
+
+    return {
+      networkMapName: props.existingNetworkMap.metadata.name,
+      storageMapName: props.existingStorageMap.metadata.name,
+    };
+  }
 
   const providerOwnerRef = props.provider ? [{
     apiVersion:         'forklift.konveyor.io/v1beta1',
@@ -367,32 +353,23 @@ const saveAndReturn = async() => {
   const networkMap = await store.dispatch(`${ inStore }/create`, {
     type:     HCI.FORKLIFT_NETWORK_MAP,
     metadata: {
-      name:            `${ props.providerName }-network-map-${ Math.random().toString(36).substring(2, 7) }`,
+      name:            `${ props.providerName }-network-map-${ props.useAllProviderData ? 'default' : Math.random().toString(36).substring(2, 7) }`,
       namespace:       NAMESPACE,
       ownerReferences: providerOwnerRef,
     },
-    spec: networkMapSpec,
+    spec: buildNetworkMapSpec(providerRef),
   });
 
   await networkMap.save();
 
-  // Create StorageMap
-  const storageMapSpec = {
-    map: storageEntries.value.map((entry) => ({
-      source:      { name: entry.name, id: entry.id },
-      destination: { storageClass: entry.target },
-    })),
-    provider: providerRef,
-  };
-
   const storageMap = await store.dispatch(`${ inStore }/create`, {
     type:     HCI.FORKLIFT_STORAGE_MAP,
     metadata: {
-      name:            `${ props.providerName }-storage-map-${ Math.random().toString(36).substring(2, 7) }`,
+      name:            `${ props.providerName }-storage-map-${ props.useAllProviderData ? 'default' : Math.random().toString(36).substring(2, 7) }`,
       namespace:       NAMESPACE,
       ownerReferences: providerOwnerRef,
     },
-    spec: storageMapSpec,
+    spec: buildStorageMapSpec(providerRef),
   });
 
   await storageMap.save();
@@ -429,9 +406,7 @@ const init = async() => {
     allStorageMaps.value = [];
   }
 
-  vms.value = props.selectedVms;
-
-  if (networkEntries.value.length === 0) {
+  if (networkEntries.value.length === 0 || storageEntries.value.length === 0) {
     try {
       const providerUid = props.provider?.metadata?.uid;
       const providerType = props.provider?.spec?.type || 'vsphere';
@@ -442,53 +417,79 @@ const init = async() => {
         fetch(`${ baseUrl }/datastores?detail=1`).then((r) => r.json()).catch(() => []),
       ]);
 
-      const networkNameMap = (Array.isArray(networksData) ? networksData : []).reduce((map, n) => {
-        map[n.id] = n.name;
-
-        return map;
-      }, {});
-      const datastoreInfoMap = (Array.isArray(datastoresData) ? datastoresData : []).reduce((map, d) => {
-        map[d.id] = { name: d.name, type: d.type || '' };
-
-        return map;
-      }, {});
-
-      vms.value = vms.value.map((vm) => {
-        const resolved = { ...vm };
-
-        if (resolved.networks) {
-          resolved.networks = resolved.networks.map((n) => ({
-            ...n,
-            name: n.name || networkNameMap[n.id] || n.id,
-          }));
+      if (props.useAllProviderData) {
+        if (networkEntries.value.length === 0) {
+          buildNetworkEntriesFromProvider(networksData);
         }
-
-        if (resolved.disks) {
-          resolved.disks = resolved.disks.map((d) => {
-            const dsInfo = d.datastore ? datastoreInfoMap[d.datastore.id] : null;
-
-            return {
-              ...d,
-              datastore: d.datastore ? {
-                ...d.datastore,
-                name: d.datastore.name || dsInfo?.name || d.datastore.id,
-                type: dsInfo?.type || '',
-              } : d.datastore,
-            };
-          });
+        if (storageEntries.value.length === 0) {
+          buildStorageEntriesFromProvider(datastoresData);
         }
+      } else {
+        vms.value = props.selectedVms;
 
-        return resolved;
-      });
+        const networkNameMap = (Array.isArray(networksData) ? networksData : []).reduce((map, n) => {
+          map[n.id] = n.name;
+
+          return map;
+        }, {});
+        const datastoreInfoMap = (Array.isArray(datastoresData) ? datastoresData : []).reduce((map, d) => {
+          map[d.id] = { name: d.name, type: d.type || '' };
+
+          return map;
+        }, {});
+
+        vms.value = vms.value.map((vm) => {
+          const resolved = { ...vm };
+
+          if (resolved.networks) {
+            resolved.networks = resolved.networks.map((n) => ({
+              ...n,
+              name: n.name || networkNameMap[n.id] || n.id,
+            }));
+          }
+
+          if (resolved.disks) {
+            resolved.disks = resolved.disks.map((d) => {
+              const dsInfo = d.datastore ? datastoreInfoMap[d.datastore.id] : null;
+
+              return {
+                ...d,
+                datastore: d.datastore ? {
+                  ...d.datastore,
+                  name: d.datastore.name || dsInfo?.name || d.datastore.id,
+                  type: dsInfo?.type || '',
+                } : d.datastore,
+              };
+            });
+          }
+
+          return resolved;
+        });
+
+        if (networkEntries.value.length === 0) {
+          buildNetworkEntries();
+        }
+        if (storageEntries.value.length === 0) {
+          buildStorageEntries();
+        }
+      }
     } catch (e) {
-      // Name resolution failed — entries will use IDs as fallback
+      // Data resolution failed — entries will use IDs as fallback
     }
+  }
 
-    buildNetworkEntries();
+  if (props.existingNetworkMap?.spec?.map) {
+    applyNetworkMapTargets(props.existingNetworkMap.spec.map);
+  } else {
+    applyDefaultNetworkMap();
   }
-  if (storageEntries.value.length === 0) {
-    buildStorageEntries();
+
+  if (props.existingStorageMap?.spec?.map) {
+    applyStorageMapTargets(props.existingStorageMap.spec.map);
+  } else {
+    applyDefaultStorageMap();
   }
+
   loading.value = false;
 };
 
@@ -515,14 +516,6 @@ init();
             {{ t('harvester.addons.vmMigration.configureMappings.networkMapping.description') }}
           </p>
         </div>
-
-        <LabeledSelect
-          v-model:value="selectedNetworkTemplate"
-          :label="t('harvester.addons.vmMigration.configureMappings.networkMapping.template')"
-          :options="networkTemplateOptions"
-          :reduce="(opt) => opt.value"
-          class="mb-10"
-        />
 
         <RcItemCard
           v-for="entry in networkEntries"
@@ -551,7 +544,7 @@ init();
                   />
                 </div>
               </div>
-              <div>
+              <div v-if="!useAllProviderData && entry.usedBy.length">
                 <span class="used-by">
                   Used by: <b>{{ entry.usedBy.join(', ') }}</b>
                 </span>
@@ -571,14 +564,6 @@ init();
             {{ t('harvester.addons.vmMigration.configureMappings.storageMapping.description') }}
           </p>
         </div>
-
-        <LabeledSelect
-          v-model:value="selectedStorageTemplate"
-          :label="t('harvester.addons.vmMigration.configureMappings.storageMapping.template')"
-          :options="storageTemplateOptions"
-          :reduce="(opt) => opt.value"
-          class="mb-10"
-        />
 
         <RcItemCard
           v-for="entry in storageEntries"
@@ -610,7 +595,7 @@ init();
                   />
                 </div>
               </div>
-              <div>
+              <div v-if="!useAllProviderData && entry.usedBy.length">
                 <span class="used-by">
                   Used by: <b>{{ entry.usedBy.join(', ') }}</b>
                 </span>
@@ -626,9 +611,22 @@ init();
 <style lang="scss" scoped>
 
   .mappings-columns {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+
+    @media only screen and (min-width: map-get($breakpoints, '--viewport-7')) {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    @media only screen and (min-width: map-get($breakpoints, '--viewport-9')) {
+      gap: 48px;
+    }
+
+    @media only screen and (min-width: map-get($breakpoints, '--viewport-12')) {
+      gap: 64px;
+    }
   }
 
   .mapping-column {
@@ -650,7 +648,7 @@ init();
   .card-content-row {
     display: flex;
     align-items: center;
-    gap: 40px;
+    gap: 16px;
     width: 100%;
   }
 
@@ -664,13 +662,23 @@ init();
   .mapping-source {
     display: flex;
     flex-direction: column;
-    min-width: 160px;
+    flex: 1;
+    min-width: 100px;
     font-size: 14px;
     line-height: 20px;
 
     .source-name {
       font-weight: 600;
       font-size: 16px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .source-detail {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .used-by {
@@ -686,7 +694,8 @@ init();
   }
 
   .mapping-target {
-    flex: 1;
+    flex: 3;
+    min-width: 0;
     overflow: hidden;
   }
 

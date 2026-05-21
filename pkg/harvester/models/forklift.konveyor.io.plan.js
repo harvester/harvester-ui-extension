@@ -128,7 +128,7 @@ export default class ForkliftPlan extends HarvesterResource {
   get isForkliftDashboard() {
     const route = this.currentRouter()?.currentRoute?.value;
 
-    return route?.name?.endsWith('-forklift');
+    return route?.name?.endsWith('-vm-migration');
   }
 
   get _availableActions() {
