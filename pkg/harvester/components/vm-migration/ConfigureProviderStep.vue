@@ -14,7 +14,11 @@ import { HCI } from '../../types';
 
 const CREATE_NEW = '__create_new__';
 
-const props = defineProps({ stepData: { type: Object, required: true } });
+const props = defineProps({
+  stepData:   { type: Object, required: true },
+  createOnly: { type: Boolean, default: false },
+  editMode:   { type: Boolean, default: false },
+});
 
 const emit = defineEmits(['complete', 'ready', 'form-valid', 'testing']);
 
@@ -204,6 +208,85 @@ const testConnection = async(buttonCb) => {
   }
 
   const inStore = store.getters['currentProduct'].inStore;
+
+  // Edit mode: update existing provider URL + secret, then poll
+  if (props.editMode && createdProvider.value) {
+    try {
+      const namespace = 'forklift';
+
+      createdProvider.value.spec.url = url.value;
+      await createdProvider.value.save();
+
+      const secretRef = createdProvider.value.spec?.secret;
+
+      if (secretRef && createdSecret.value) {
+        createdSecret.value.data = {
+          user:               btoa(username.value),
+          password:           btoa(password.value),
+          insecureSkipVerify: btoa(String(skipTlsVerify.value)),
+          url:                btoa(url.value),
+        };
+        await createdSecret.value.save();
+      }
+
+      const maxAttempts = 15;
+      let attempts = 0;
+      let connected = false;
+      let errorMsg = '';
+
+      while (attempts < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        attempts++;
+
+        const refreshed = await store.dispatch(`${ inStore }/find`, {
+          type: HCI.FORKLIFT_PROVIDER,
+          id:   `${ namespace }/${ providerName.value }`,
+          opt:  { force: true }
+        });
+
+        const conditions = refreshed?.status?.conditions || [];
+        const readyCondition = conditions.find((c) => c.type === 'Ready');
+        const connectionCondition = conditions.find((c) => c.type === 'ConnectionTestSucceeded');
+
+        if (connectionCondition) {
+          if (connectionCondition.status === 'True') {
+            connected = true;
+            break;
+          } else {
+            errorMsg = connectionCondition.message || 'Connection failed';
+            break;
+          }
+        }
+
+        if (readyCondition) {
+          if (readyCondition.status === 'True') {
+            connected = true;
+            break;
+          } else if (readyCondition.status === 'False') {
+            errorMsg = readyCondition.message || 'Provider not ready';
+            break;
+          }
+        }
+      }
+
+      if (connected) {
+        testPassed.value = true;
+        testResult.value = t('harvester.addons.vmMigration.configureProvider.testSuccess');
+        testing.value = false;
+        buttonCb(true);
+      } else {
+        testError.value = errorMsg || t('harvester.addons.vmMigration.configureProvider.testTimeout');
+        testing.value = false;
+        buttonCb(false);
+      }
+    } catch (err) {
+      testError.value = err.message || t('harvester.addons.vmMigration.configureProvider.testFailed');
+      testing.value = false;
+      buttonCb(false);
+    }
+
+    return;
+  }
 
   // For existing providers, just poll for Ready/ConnectionTestSucceeded status
   if (isExistingProvider.value) {
@@ -456,7 +539,7 @@ defineExpose({ testConnection, clickTestButton });
       </Banner>
 
       <div class="configure-provider-step-form">
-        <div>
+        <div v-if="!createOnly && !editMode">
           <LabeledSelect
             v-model:value="selectedProvider"
             :label="t('harvester.addons.vmMigration.configureProvider.providerSelect')"
@@ -466,11 +549,12 @@ defineExpose({ testConnection, clickTestButton });
         </div>
 
         <div
-          v-if="!isExistingProvider"
+          v-if="!isExistingProvider || editMode"
         >
           <LabeledInput
             v-model:value="providerName"
             :label="t('harvester.addons.vmMigration.configureProvider.name')"
+            :disabled="editMode"
             required
           />
         </div>
@@ -480,7 +564,7 @@ defineExpose({ testConnection, clickTestButton });
             v-model:value="url"
             :label="t('harvester.addons.vmMigration.configureProvider.urlLabel')"
             :placeholder="t('harvester.addons.vmMigration.configureProvider.urlPlaceholder')"
-            :disabled="isExistingProvider"
+            :disabled="isExistingProvider && !editMode"
             required
           />
           <p class="text-muted mt-5">
@@ -493,7 +577,7 @@ defineExpose({ testConnection, clickTestButton });
             <LabeledInput
               v-model:value="username"
               :label="t('harvester.addons.vmMigration.fields.username')"
-              :disabled="isExistingProvider"
+              :disabled="isExistingProvider && !editMode"
               required
             />
           </div>
@@ -502,7 +586,7 @@ defineExpose({ testConnection, clickTestButton });
               v-model:value="password"
               type="password"
               :label="t('harvester.addons.vmMigration.fields.password')"
-              :disabled="isExistingProvider"
+              :disabled="isExistingProvider && !editMode"
               required
             />
           </div>
@@ -512,7 +596,7 @@ defineExpose({ testConnection, clickTestButton });
           <Checkbox
             v-model:value="skipTlsVerify"
             :label="t('harvester.addons.vmMigration.configureProvider.skipSsl')"
-            :disabled="isExistingProvider"
+            :disabled="isExistingProvider && !editMode"
           />
           <p class="text-muted ml-20">
             {{ t('harvester.addons.vmMigration.configureProvider.skipSslHint') }}

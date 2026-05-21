@@ -395,8 +395,7 @@ defineExpose({ startMigration: startMigrationAction });
     display: grid;
     grid-template-columns: minmax(230px, 1fr) 1fr 1fr;
     grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 12px 128px;
-    width: 747px;
+    gap: 12px clamp(64px, 8vw, 128px);
     line-height: 20px;
   }
 
