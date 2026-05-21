@@ -1,31 +1,24 @@
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import {
+  ref, computed, watch, nextTick, onBeforeUnmount
+} from 'vue';
 import { useStore } from 'vuex';
 import Loading from '@shell/components/Loading';
-import Masthead from '@shell/components/ResourceList/Masthead';
 import SortableTable from '@shell/components/SortableTable';
 import { BadgeState } from '@components/BadgeState';
-import { SCHEMA } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
-import { HCI } from '../../../../types';
-import { PRODUCT_NAME } from '../../../../config/harvester';
-import { currentRouter, currentRoute } from '../../../../utils/router';
 
-const schema = {
-  id:         HCI.FORKLIFT_PROVIDER,
-  type:       SCHEMA,
-  attributes: {
-    kind:       HCI.FORKLIFT_PROVIDER,
-    namespaced: true
-  },
-  metadata: { name: HCI.FORKLIFT_PROVIDER },
-};
+const props = defineProps({
+  providerName: { type: String, default: '' },
+  provider:     { type: Object, default: null },
+  stepData:     { type: Object, required: true },
+});
+
+const emit = defineEmits(['complete', 'loading']);
 
 const store = useStore();
 const { t } = useI18n(store);
 
-const allProviders = ref([]);
-const provider = ref(null);
 const discoveredVMs = ref([]);
 const selectedVMs = ref([]);
 const tableRows = ref([]);
@@ -37,7 +30,65 @@ const allVMsSelected = ref(false);
 const selectedVMIds = ref(new Set());
 let skipNextSelectionEvent = false;
 
-const providerName = computed(() => provider.value?.metadata?.name || currentRoute().query.provider || '');
+const lastFetchedAt = ref(null);
+const now = ref(Date.now());
+
+const formatElapsed = (ms) => {
+  const totalMinutes = Math.floor(ms / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours > 0 && minutes > 0) {
+    return `${ hours } ${ hours === 1 ? 'hour' : 'hours' } and ${ minutes } ${ minutes === 1 ? 'minute' : 'minutes' }`;
+  }
+
+  if (hours > 0) {
+    return `${ hours } ${ hours === 1 ? 'hour' : 'hours' }`;
+  }
+
+  return `${ Math.max(1, minutes) } ${ minutes <= 1 ? 'minute' : 'minutes' }`;
+};
+
+const lastSyncedTime = computed(() => {
+  if (!lastFetchedAt.value) {
+    return '';
+  }
+
+  return formatElapsed(now.value - lastFetchedAt.value);
+});
+
+const nowTimer = setInterval(() => {
+  now.value = Date.now();
+}, 30000);
+
+onBeforeUnmount(() => {
+  clearInterval(nowTimer);
+});
+
+// Restore from stepData
+if (props.stepData.discoveredVMs.length > 0) {
+  discoveredVMs.value = props.stepData.discoveredVMs;
+}
+if (props.stepData.selectedVMIds.size > 0) {
+  selectedVMIds.value = props.stepData.selectedVMIds;
+  selectedVMs.value = discoveredVMs.value.filter((vm) => selectedVMIds.value.has(vm.id));
+  allVMsSelected.value = selectedVMIds.value.size === discoveredVMs.value.length;
+}
+if (props.stepData.tableRows.length > 0) {
+  tableRows.value = props.stepData.tableRows;
+}
+
+// Sync back to stepData
+watch(discoveredVMs, (val) => {
+  props.stepData.discoveredVMs = val;
+}, { deep: true });
+watch(selectedVMIds, (val) => {
+  props.stepData.selectedVMIds = val;
+}, { deep: true });
+watch(tableRows, (val) => {
+  props.stepData.tableRows = val;
+}, { deep: true });
+
 const vmCount = computed(() => discoveredVMs.value.length);
 const selectedCount = computed(() => selectedVMs.value.length);
 
@@ -62,39 +113,39 @@ const theadElement = computed(() => sortableTableRef.value?.$el?.querySelector('
 const headers = [
   {
     name:     'vmName',
-    labelKey: 'harvester.addons.forklift.selectVms.columns.vmName',
+    labelKey: 'harvester.addons.vmMigration.selectVms.columns.vmName',
     value:    'vmName',
     sort:     ['vmName'],
     subLabel: 'Identifier',
   },
   {
     name:     'os',
-    labelKey: 'harvester.addons.forklift.selectVms.columns.os',
+    labelKey: 'harvester.addons.vmMigration.selectVms.columns.os',
     value:    'os',
     sort:     ['os'],
   },
   {
     name:     'resources',
-    labelKey: 'harvester.addons.forklift.selectVms.columns.resources',
+    labelKey: 'harvester.addons.vmMigration.selectVms.columns.resources',
     value:    'resources',
     sort:     false,
   },
   {
     name:     'powerState',
-    labelKey: 'harvester.addons.forklift.selectVms.columns.powerState',
+    labelKey: 'harvester.addons.vmMigration.selectVms.columns.powerState',
     value:    'powerState',
     sort:     ['powerState'],
   },
   {
     name:     'network',
-    labelKey: 'harvester.addons.forklift.selectVms.columns.network',
+    labelKey: 'harvester.addons.vmMigration.selectVms.columns.network',
     value:    'network',
     sort:     ['network'],
     subLabel: 'Identifier',
   },
   {
     name:     'datastore',
-    labelKey: 'harvester.addons.forklift.selectVms.columns.datastore',
+    labelKey: 'harvester.addons.vmMigration.selectVms.columns.datastore',
     value:    'datastore',
     sort:     ['datastore'],
     subLabel: 'Identifier',
@@ -185,6 +236,8 @@ const onSelect = (rows) => {
 
   allVMsSelected.value = selectedVMIds.value.size === discoveredVMs.value.length;
   selectedVMs.value = discoveredVMs.value.filter((vm) => selectedVMIds.value.has(vm.id));
+
+  emit('complete', { selectedVMs: selectedVMs.value });
 };
 
 const clearSelection = () => {
@@ -230,112 +283,150 @@ watch(
   }
 );
 
-const cancel = () => {
-  currentRouter().push({
-    name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
-    params: {
-      product: store.getters['productId'],
-      cluster: store.getters['clusterId'],
-    }
-  });
+const refreshing = ref(false);
+
+const isLoading = computed(() => loading.value || refreshing.value);
+
+watch(isLoading, (val) => {
+  emit('loading', val);
+}, { immediate: true });
+
+const fetchVMs = async() => {
+  if (!props.provider) {
+    return;
+  }
+
+  const providerUid = props.provider.metadata.uid;
+  const providerType = props.provider.spec?.type || 'vsphere';
+  const baseUrl = `https://forklift-apir.13.48.147.135.sslip.io/providers/${ providerType }/${ providerUid }`;
+
+  const [vmsResp, networksResp, datastoresResp] = await Promise.all([
+    fetch(`${ baseUrl }/vms`).then((r) => r.json()),
+    fetch(`${ baseUrl }/networks`).then((r) => r.json()).catch(() => []),
+    fetch(`${ baseUrl }/datastores`).then((r) => r.json()).catch(() => []),
+  ]);
+
+  if (Array.isArray(vmsResp)) {
+    discoveredVMs.value = vmsResp;
+  } else if (vmsResp?.data && Array.isArray(vmsResp.data)) {
+    discoveredVMs.value = vmsResp.data;
+  }
+
+  const networks = Array.isArray(networksResp) ? networksResp : (networksResp?.data || []);
+  const datastores = Array.isArray(datastoresResp) ? datastoresResp : (datastoresResp?.data || []);
+
+  networkMap.value = networks.reduce((map, n) => {
+    map[n.id] = n.name;
+
+    return map;
+  }, {});
+  datastoreMap.value = datastores.reduce((map, d) => {
+    map[d.id] = d.name;
+
+    return map;
+  }, {});
+
+  lastFetchedAt.value = Date.now();
+  tableRows.value = buildTableRows();
 };
 
-const saveSelection = () => {
-  const vmIds = selectedVMs.value.map((vm) => vm.id || vm.vmId || vm.metadata?.name);
+const refreshVMs = async() => {
+  refreshing.value = true;
+  skipNextSelectionEvent = true;
 
-  currentRouter().push({
-    name:   `${ PRODUCT_NAME }-c-cluster-forklift-configure-mappings`,
-    params: {
-      product: store.getters['productId'],
-      cluster: store.getters['clusterId'],
-    },
-    query: {
-      provider: providerName.value,
-      vms:      JSON.stringify(vmIds),
+  const previousSelectedIds = new Set(selectedVMIds.value);
+
+  try {
+    await fetchVMs();
+  } catch (e) {
+    discoveredVMs.value = [];
+    tableRows.value = [];
+  }
+
+  selectedVMIds.value = new Set(
+    discoveredVMs.value
+      .filter((vm) => previousSelectedIds.has(vm.id))
+      .map((vm) => vm.id)
+  );
+  selectedVMs.value = discoveredVMs.value.filter((vm) => selectedVMIds.value.has(vm.id));
+  allVMsSelected.value = selectedVMIds.value.size > 0 && selectedVMIds.value.size === discoveredVMs.value.length;
+
+  props.stepData.discoveredVMs = discoveredVMs.value;
+  props.stepData.selectedVMIds = selectedVMIds.value;
+  props.stepData.tableRows = tableRows.value;
+  emit('complete', { selectedVMs: selectedVMs.value });
+  refreshing.value = false;
+
+  const table = sortableTableRef.value;
+
+  if (table) {
+    const rowsToReselect = (table.pagedRows || []).filter((row) => selectedVMIds.value.has(row._original?.id));
+
+    if (rowsToReselect.length > 0) {
+      table.update(rowsToReselect, []);
     }
-  });
+  }
 };
 
 const init = async() => {
-  const inStore = store.getters['currentProduct'].inStore;
-
-  allProviders.value = await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_PROVIDER });
-
-  const queryProvider = currentRoute().query.provider;
-
-  if (queryProvider) {
-    provider.value = allProviders.value.find(
-      (p) => p.metadata.name === queryProvider && p.metadata.namespace === 'forklift'
-    );
-  }
-
-  if (provider.value) {
-    try {
-      const providerUid = provider.value.metadata.uid;
-      const providerType = provider.value.spec?.type || 'vsphere';
-      const baseUrl = `https://forklift-apir.13.48.147.135.sslip.io/providers/${ providerType }/${ providerUid }`;
-
-      const [vmsResp, networksResp, datastoresResp] = await Promise.all([
-        fetch(`${ baseUrl }/vms`).then((r) => r.json()),
-        fetch(`${ baseUrl }/networks`).then((r) => r.json()).catch(() => []),
-        fetch(`${ baseUrl }/datastores`).then((r) => r.json()).catch(() => []),
-      ]);
-
-      if (Array.isArray(vmsResp)) {
-        discoveredVMs.value = vmsResp;
-      } else if (vmsResp?.data && Array.isArray(vmsResp.data)) {
-        discoveredVMs.value = vmsResp.data;
-      }
-
-      const networks = Array.isArray(networksResp) ? networksResp : (networksResp?.data || []);
-      const datastores = Array.isArray(datastoresResp) ? datastoresResp : (datastoresResp?.data || []);
-
-      networkMap.value = networks.reduce((map, n) => {
-        map[n.id] = n.name;
-
-        return map;
-      }, {});
-      datastoreMap.value = datastores.reduce((map, d) => {
-        map[d.id] = d.name;
-
-        return map;
-      }, {});
-    } catch (e) {
-      discoveredVMs.value = [];
+  if (discoveredVMs.value.length > 0) {
+    if (!lastFetchedAt.value) {
+      lastFetchedAt.value = Date.now();
     }
+    tableRows.value = buildTableRows();
+    loading.value = false;
+
+    return;
   }
 
-  tableRows.value = buildTableRows();
+  try {
+    await fetchVMs();
+  } catch (e) {
+    discoveredVMs.value = [];
+  }
+
   loading.value = false;
 };
+
+// Emit initial complete if VMs are already selected (restored from stepData)
+if (selectedVMs.value.length > 0) {
+  emit('complete', { selectedVMs: selectedVMs.value });
+}
 
 init();
 </script>
 
 <template>
+  <Loading v-if="refreshing" />
   <Loading v-if="loading" />
   <div
     v-else
+    class="select-vms-step"
   >
-    <Masthead
-      :schema="schema"
-      :resource="schema.id"
-      :type-display="t('harvester.addons.forklift.selectVms.title')"
-      :is-creatable="false"
-    >
-      <template #subHeader>
-        <p class="text-muted mmt-5">
-          {{ t('harvester.addons.forklift.selectVms.discovered', { count: vmCount }) }}
-          <a
-            v-if="providerName"
-            class="provider-link"
-          >{{ providerName }}</a>
-          <br>
-          <span class="text-small">{{ t('harvester.addons.forklift.selectVms.lastSynced') }}</span>
-        </p>
-      </template>
-    </Masthead>
-
+    <p class="text-muted line-height-20">
+      {{ t('harvester.addons.vmMigration.selectVms.discovered', { count: vmCount }) }}
+      <router-link
+        v-if="provider"
+        class="provider-link"
+        :to="provider._detailLocation"
+      >
+        {{ providerName }}
+      </router-link>
+      <br>
+      <span
+        v-if="lastSyncedTime"
+      >
+        {{ t('harvester.addons.vmMigration.selectVms.lastSynced', { time: lastSyncedTime }) }}
+        <a
+          role="button"
+          class="text-bold"
+          :class="{ disabled: refreshing }"
+          @click.prevent="refreshVMs"
+        >
+          {{ t('harvester.addons.vmMigration.selectVms.refreshNow') }}
+        </a>
+      </span>
+    </p>
     <!-- Discovered VMs table -->
     <SortableTable
       ref="sortableTableRef"
@@ -353,9 +444,9 @@ init();
       <template #header-left>
         <div class="vm-table-title">
           <h3 class="m-0">
-            {{ t('harvester.addons.forklift.selectVms.availableVms') }}
+            {{ t('harvester.addons.vmMigration.selectVms.availableVms') }}
           </h3>
-          <span class="text-muted">{{ selectedCount }} {{ t('harvester.addons.forklift.selectVms.selected') }}</span>
+          <span class="text-muted">{{ selectedCount }} {{ t('harvester.addons.vmMigration.selectVms.selected') }}</span>
         </div>
       </template>
       <template #cell:vmName="{ row }">
@@ -410,51 +501,30 @@ init();
           class="select-all-banner-cell"
         >
           <template v-if="allVMsSelected">
-            <span>{{ t('harvester.addons.forklift.selectVms.selectAllBanner.allSelected') }}</span>
+            <span>{{ t('harvester.addons.vmMigration.selectVms.selectAllBanner.allSelected') }}</span>
             <a
               role="button"
               @click.prevent="clearSelection"
             >
-              {{ t('harvester.addons.forklift.selectVms.selectAllBanner.clearSelection') }}
+              {{ t('harvester.addons.vmMigration.selectVms.selectAllBanner.clearSelection') }}
             </a>
           </template>
           <template v-else>
-            <span>{{ t('harvester.addons.forklift.selectVms.selectAllBanner.pageOnly') }}</span>
+            <span>{{ t('harvester.addons.vmMigration.selectVms.selectAllBanner.pageOnly') }}</span>
             <a
               role="button"
               @click.prevent="selectAllVMs"
             >
-              {{ t('harvester.addons.forklift.selectVms.selectAllBanner.selectAll', { count: vmCount }) }}
+              {{ t('harvester.addons.vmMigration.selectVms.selectAllBanner.selectAll', { count: vmCount }) }}
             </a>
           </template>
         </td>
       </tr>
     </Teleport>
-
-    <div class="actions-footer">
-      <button
-        class="btn role-secondary"
-        @click="cancel"
-      >
-        {{ t('generic.cancel') }}
-      </button>
-      <button
-        class="btn role-primary"
-        :disabled="selectedCount === 0"
-        @click="saveSelection"
-      >
-        {{ t('harvester.addons.forklift.selectVms.saveSelection') }}
-      </button>
-    </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
-  .provider-link {
-    color: var(--primary);
-    font-weight: 600;
-  }
-
   .vm-table-title {
     h4 {
       margin: 0;
@@ -480,6 +550,17 @@ init();
     }
   }
 
+  .select-vms-step {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    .line-height-20 {
+      line-height: 20px;
+    }
+  }
+
   :deep(.select-all-banner-row) {
     .select-all-banner-cell {
       text-align: center;
@@ -499,12 +580,5 @@ init();
         }
       }
     }
-  }
-
-  .actions-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 30px;
   }
 </style>

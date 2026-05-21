@@ -16,11 +16,8 @@ import HarvesterMembers from '../pages/c/_cluster/members/index.vue';
 import ProjectNamespaces from '../pages/c/_cluster/projectsnamespaces.vue';
 import HarvesterAlertmanagerReceiver from '../pages/c/_cluster/alertmanagerconfig/_alertmanagerconfigid/receiver.vue';
 import HarvesterUnsupported from '../pages/c/_cluster/unsupported/index.vue';
-import ForkliftDashboard from '../pages/c/_cluster/forklift/index.vue';
-import ForkliftConfigureProvider from '../pages/c/_cluster/forklift/configure-provider.vue';
-import ForkliftSelectVms from '../pages/c/_cluster/forklift/select-vms.vue';
-import ForkliftConfigureMappings from '../pages/c/_cluster/forklift/configure-mappings.vue';
-import ForkliftReviewMigration from '../pages/c/_cluster/forklift/review-migration.vue';
+import ForkliftDashboard from '../pages/c/_cluster/vm-migration/index.vue';
+import ForkliftVmMigrationWizard from '../pages/c/_cluster/vm-migration/vm-migration-wizard.vue';
 
 const routes = [
   {
@@ -89,25 +86,13 @@ const routes = [
     path:      `/:product/c/:cluster/projectsnamespaces`,
     component: ProjectNamespaces,
   }, {
-    name:      `${ PRODUCT_NAME }-c-cluster-forklift`,
-    path:      `/:product/c/:cluster/forklift`,
+    name:      `${ PRODUCT_NAME }-c-cluster-vm-migration`,
+    path:      `/:product/c/:cluster/vm-migration`,
     component: ForkliftDashboard,
   }, {
-    name:      `${ PRODUCT_NAME }-c-cluster-forklift-configure-provider`,
-    path:      `/:product/c/:cluster/forklift/configure-provider`,
-    component: ForkliftConfigureProvider,
-  }, {
-    name:      `${ PRODUCT_NAME }-c-cluster-forklift-select-vms`,
-    path:      `/:product/c/:cluster/forklift/select-vms`,
-    component: ForkliftSelectVms,
-  }, {
-    name:      `${ PRODUCT_NAME }-c-cluster-forklift-configure-mappings`,
-    path:      `/:product/c/:cluster/forklift/configure-mappings`,
-    component: ForkliftConfigureMappings,
-  }, {
-    name:      `${ PRODUCT_NAME }-c-cluster-forklift-review-migration`,
-    path:      `/:product/c/:cluster/forklift/review-migration`,
-    component: ForkliftReviewMigration,
+    name:      `${ PRODUCT_NAME }-c-cluster-vm-migration-wizard`,
+    path:      `/:product/c/:cluster/vm-migration/wizard`,
+    component: ForkliftVmMigrationWizard,
   }, {
     name:      `${ PRODUCT_NAME }-c-cluster-resource`,
     path:      `/:product/c/:cluster/:resource`,
