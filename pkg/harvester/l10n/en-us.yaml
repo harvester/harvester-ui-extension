@@ -1,3 +1,8 @@
+wizard:
+  create: Create Migration
+  next: Proceed
+  previous: Back
+
 generic:
   tip: Tip
   resourceExternalLinkTips: 'External Link'
@@ -22,7 +27,7 @@ nav:
     Logging: Logging
     'Monitoring and Logging': Monitoring and Logging
     vmimport: Virtual Machine Imports
-    forklift: Forklift Migration
+    vmMigration: VM Migration
 
 resourceTable:
   groupBy:
@@ -353,13 +358,13 @@ harvester:
     v4ip: V4 IP
     v6ip: V6 IP
     eipName: EIP Name
-    forkliftProviderType: Type
-    forkliftProviderUrl: URL
-    forkliftMapSourceProvider: Source Provider
-    forkliftMapDestProvider: Destination Provider
-    forkliftPlanTargetNs: Target Namespace
-    forkliftPlanVmCount: VMs
-    forkliftMigrationPlan: Plan
+    vmMigrationProviderType: Type
+    vmMigrationProviderUrl: URL
+    vmMigrationMapSourceProvider: Source Provider
+    vmMigrationMapDestProvider: Destination Provider
+    vmMigrationPlanTargetNs: Target Namespace
+    vmMigrationPlanVmCount: VMs
+    vmMigrationMigrationPlan: Plan
   tab:
     volume: Volumes
     network: Networks
@@ -1807,7 +1812,7 @@ harvester:
       'harvester-csi-driver-lvm': harvester-csi-driver-lvm is an add-on allowing users to create PVC through the LVM with local devices.
       'descheduler': 'The virtual machine auto balance optimizes workload scheduling by evicting pods that are not optimally placed according to administrator-defined policies.'
 
-    forklift:
+    vmMigration:
       labels:
         dashboard: Migrations
         provider: Providers
@@ -1815,6 +1820,21 @@ harvester:
         storageMap: Storage Maps
         plan: Migration Plans
         migration: Migrations
+      wizard:
+        title: VM Migration
+        steps:
+          configureProvider: 
+            label: Provider
+            description: Configure Provider
+          selectVms: 
+            label: VMs
+            description: Select VMs
+          configureMappings: 
+            label: Mappings
+            description: Define Mappings
+          reviewMigration:
+            label: Migration Plan
+            description: Review Migration Plan
       fields:
         username: Username
         password: Password
@@ -1832,7 +1852,11 @@ harvester:
         urlHint: Enter the full URL including https://
         skipSsl: Skip SSL certificate verification
         skipSslHint: Not recommended for production environments
-        testConnection: Test Connection
+        testConnection: 
+          action: Test Connection
+          success: Connection successful
+          error: Connection failed
+          waiting: Testing connection...
         testSuccess: Connection test passed
         testFailed: Connection test failed
         testMissingFields: Please fill in all required fields before testing
@@ -1841,8 +1865,10 @@ harvester:
         saveExisting: Check Provider and Continue
       selectVms:
         title: Select Virtual Machines
+        description: Select the virtual machines you want to migrate from the source provider
         discovered: "{count} VMs discovered from"
-        lastSynced: Last synced 5 minutes ago
+        lastSynced: "Last synced {time} ago • "
+        refreshNow: Refresh now
         availableVms: Available Virtual Machines
         selected: selected
         saveSelection: Save Selection and Continue

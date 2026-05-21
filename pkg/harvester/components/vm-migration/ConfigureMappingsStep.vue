@@ -2,25 +2,20 @@
 import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import Loading from '@shell/components/Loading';
-import Masthead from '@shell/components/ResourceList/Masthead';
-import AsyncButton from '@shell/components/AsyncButton';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { RcItemCard } from '@components/RcItemCard';
-import { SCHEMA, STORAGE_CLASS, NETWORK_ATTACHMENT } from '@shell/config/types';
+import { STORAGE_CLASS, NETWORK_ATTACHMENT } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
-import { HCI } from '../../../../types';
-import { PRODUCT_NAME } from '../../../../config/harvester';
-import { currentRouter, currentRoute } from '../../../../utils/router';
+import { HCI } from '../../types';
 
-const schema = {
-  id:         HCI.FORKLIFT_NETWORK_MAP,
-  type:       SCHEMA,
-  attributes: {
-    kind:       HCI.FORKLIFT_NETWORK_MAP,
-    namespaced: true
-  },
-  metadata: { name: HCI.FORKLIFT_NETWORK_MAP },
-};
+const props = defineProps({
+  providerName: { type: String, default: '' },
+  provider:     { type: Object, default: null },
+  selectedVms:  { type: Array, default: () => [] },
+  stepData:     { type: Object, required: true },
+});
+
+const emit = defineEmits(['ready']);
 
 const store = useStore();
 const { t } = useI18n(store);
@@ -36,11 +31,19 @@ const allNetworkMaps = ref([]);
 const allStorageMaps = ref([]);
 const selectedNetworkTemplate = ref(NO_TEMPLATE);
 const selectedStorageTemplate = ref(NO_TEMPLATE);
-const errors = ref([]);
 const loading = ref(true);
 
+// Restore from stepData
+if (props.stepData.networkEntries.length > 0) {
+  networkEntries.value = props.stepData.networkEntries;
+}
+if (props.stepData.storageEntries.length > 0) {
+  storageEntries.value = props.stepData.storageEntries;
+}
+selectedNetworkTemplate.value = props.stepData.selectedNetworkTemplate;
+selectedStorageTemplate.value = props.stepData.selectedStorageTemplate;
+
 const NAMESPACE = 'forklift';
-const providerName = computed(() => currentRoute().query.provider || 'vsphere');
 
 const harvesterNetworkOptions = computed(() => {
   const options = [
@@ -74,7 +77,7 @@ const storageClassOptions = computed(() => {
 
 const networkTemplateOptions = computed(() => {
   const options = [
-    { label: t('harvester.addons.forklift.configureMappings.noTemplate'), value: NO_TEMPLATE }
+    { label: t('harvester.addons.vmMigration.configureMappings.noTemplate'), value: NO_TEMPLATE }
   ];
 
   const currentIds = new Set(networkEntries.value.map((e) => e.id).filter(Boolean));
@@ -100,7 +103,7 @@ const networkTemplateOptions = computed(() => {
 
 const storageTemplateOptions = computed(() => {
   const options = [
-    { label: t('harvester.addons.forklift.configureMappings.noTemplate'), value: NO_TEMPLATE }
+    { label: t('harvester.addons.vmMigration.configureMappings.noTemplate'), value: NO_TEMPLATE }
   ];
 
   const currentIds = new Set(storageEntries.value.map((e) => e.id).filter(Boolean));
@@ -192,6 +195,29 @@ const canSave = computed(() => {
     allNetworksMapped.value && allStorageMapped.value;
 });
 
+watch(canSave, (val) => {
+  emit('ready', val);
+});
+
+// After restore, check if ready
+if (canSave.value) {
+  emit('ready', true);
+}
+
+// Sync state back to stepData
+watch(networkEntries, (val) => {
+  props.stepData.networkEntries = val;
+}, { deep: true });
+watch(storageEntries, (val) => {
+  props.stepData.storageEntries = val;
+}, { deep: true });
+watch(selectedNetworkTemplate, (val) => {
+  props.stepData.selectedNetworkTemplate = val;
+});
+watch(selectedStorageTemplate, (val) => {
+  props.stepData.selectedStorageTemplate = val;
+});
+
 const buildNetworkEntries = () => {
   const networkMap = {};
 
@@ -239,12 +265,14 @@ const buildStorageEntries = () => {
               name:     ds.name || 'Unknown',
               id:       ds.id,
               type:     ds.type || '',
-              capacity: ds.capacity || 0,
+              capacity: 0,
               target:   '',
               usedBy:   [],
               _key:     `stor-${ ds.id }`,
             };
           }
+
+          datastoreMap[ds.id].capacity += disk.capacity || 0;
 
           if (!datastoreMap[ds.id].usedBy.includes(vmName)) {
             datastoreMap[ds.id].usedBy.push(vmName);
@@ -274,27 +302,17 @@ const formatStorageDetail = (entry) => {
     }
   }
 
-  return parts.join(' \u2022 ');
+  return parts.join(' • ');
 };
 
-const cancel = () => {
-  currentRouter().push({
-    name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
-    params: {
-      product: store.getters['productId'],
-      cluster: store.getters['clusterId'],
-    }
-  });
-};
-
-const saveMappings = async(buttonCb) => {
+const saveAndReturn = async() => {
   const inStore = store.getters['currentProduct'].inStore;
 
   const providerRef = {
     source: {
       apiVersion: 'forklift.konveyor.io/v1beta1',
       kind:       'Provider',
-      name:       providerName.value,
+      name:       props.providerName,
       namespace:  NAMESPACE,
     },
     destination: {
@@ -305,106 +323,84 @@ const saveMappings = async(buttonCb) => {
     },
   };
 
-  try {
-    // Create NetworkMap
-    const networkMapSpec = {
-      map: networkEntries.value.map((entry) => {
-        if (entry.target === 'pod') {
-          return {
-            source:      { name: entry.name, id: entry.id },
-            destination: { type: 'pod' },
-          };
-        }
-
-        if (entry.target === 'ignored') {
-          return {
-            source:      { name: entry.name, id: entry.id },
-            destination: { type: 'ignored' },
-          };
-        }
-
-        const parts = entry.target.split('/');
-        const netName = parts.length > 1 ? parts[1] : parts[0];
-        const netNamespace = parts.length > 1 ? parts[0] : NAMESPACE;
-
+  // Create NetworkMap
+  const networkMapSpec = {
+    map: networkEntries.value.map((entry) => {
+      if (entry.target === 'pod') {
         return {
           source:      { name: entry.name, id: entry.id },
-          destination: {
-            type:      'multus',
-            name:      netName,
-            namespace: netNamespace,
-          },
+          destination: { type: 'pod' },
         };
-      }),
-      provider: providerRef,
-    };
-
-    // Fetch the Provider to build ownerReference
-    const allProviders = store.getters[`${ inStore }/all`](HCI.FORKLIFT_PROVIDER) || [];
-    const provider = allProviders.find((p) => p.metadata.name === providerName.value && p.metadata.namespace === NAMESPACE);
-
-    const providerOwnerRef = provider ? [{
-      apiVersion:         'forklift.konveyor.io/v1beta1',
-      kind:               'Provider',
-      name:               provider.metadata.name,
-      uid:                provider.metadata.uid,
-      blockOwnerDeletion: true,
-    }] : [];
-
-    const networkMap = await store.dispatch(`${ inStore }/create`, {
-      type:     HCI.FORKLIFT_NETWORK_MAP,
-      metadata: {
-        name:            `${ providerName.value }-network-map-${ Math.random().toString(36).substring(2, 7) }`,
-        namespace:       NAMESPACE,
-        ownerReferences: providerOwnerRef,
-      },
-      spec: networkMapSpec,
-    });
-
-    await networkMap.save();
-
-    // Create StorageMap
-    const storageMapSpec = {
-      map: storageEntries.value.map((entry) => ({
-        source:      { name: entry.name, id: entry.id },
-        destination: { storageClass: entry.target },
-      })),
-      provider: providerRef,
-    };
-
-    const storageMap = await store.dispatch(`${ inStore }/create`, {
-      type:     HCI.FORKLIFT_STORAGE_MAP,
-      metadata: {
-        name:            `${ providerName.value }-storage-map-${ Math.random().toString(36).substring(2, 7) }`,
-        namespace:       NAMESPACE,
-        ownerReferences: providerOwnerRef,
-      },
-      spec: storageMapSpec,
-    });
-
-    await storageMap.save();
-
-    // Navigate to review page
-    currentRouter().push({
-      name:   `${ PRODUCT_NAME }-c-cluster-forklift-review-migration`,
-      params: {
-        product: store.getters['productId'],
-        cluster: store.getters['clusterId'],
-      },
-      query: {
-        provider:   providerName.value,
-        vms:        currentRoute().query.vms,
-        networkMap: networkMap.metadata.name,
-        storageMap: storageMap.metadata.name,
       }
-    });
 
-    buttonCb(true);
-  } catch (err) {
-    errors.value = [err.message || err];
-    buttonCb(false);
-  }
+      if (entry.target === 'ignored') {
+        return {
+          source:      { name: entry.name, id: entry.id },
+          destination: { type: 'ignored' },
+        };
+      }
+
+      const parts = entry.target.split('/');
+      const netName = parts.length > 1 ? parts[1] : parts[0];
+      const netNamespace = parts.length > 1 ? parts[0] : NAMESPACE;
+
+      return {
+        source:      { name: entry.name, id: entry.id },
+        destination: {
+          type:      'multus',
+          name:      netName,
+          namespace: netNamespace,
+        },
+      };
+    }),
+    provider: providerRef,
+  };
+
+  const providerOwnerRef = props.provider ? [{
+    apiVersion:         'forklift.konveyor.io/v1beta1',
+    kind:               'Provider',
+    name:               props.provider.metadata.name,
+    uid:                props.provider.metadata.uid,
+    blockOwnerDeletion: true,
+  }] : [];
+
+  const networkMap = await store.dispatch(`${ inStore }/create`, {
+    type:     HCI.FORKLIFT_NETWORK_MAP,
+    metadata: {
+      name:            `${ props.providerName }-network-map-${ Math.random().toString(36).substring(2, 7) }`,
+      namespace:       NAMESPACE,
+      ownerReferences: providerOwnerRef,
+    },
+    spec: networkMapSpec,
+  });
+
+  await networkMap.save();
+
+  // Create StorageMap
+  const storageMapSpec = {
+    map: storageEntries.value.map((entry) => ({
+      source:      { name: entry.name, id: entry.id },
+      destination: { storageClass: entry.target },
+    })),
+    provider: providerRef,
+  };
+
+  const storageMap = await store.dispatch(`${ inStore }/create`, {
+    type:     HCI.FORKLIFT_STORAGE_MAP,
+    metadata: {
+      name:            `${ props.providerName }-storage-map-${ Math.random().toString(36).substring(2, 7) }`,
+      namespace:       NAMESPACE,
+      ownerReferences: providerOwnerRef,
+    },
+    spec: storageMapSpec,
+  });
+
+  await storageMap.save();
+
+  return { networkMapName: networkMap.metadata.name, storageMapName: storageMap.metadata.name };
 };
+
+defineExpose({ saveMappings: saveAndReturn });
 
 const init = async() => {
   const inStore = store.getters['currentProduct'].inStore;
@@ -433,28 +429,17 @@ const init = async() => {
     allStorageMaps.value = [];
   }
 
-  try {
-    await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_PROVIDER });
-  } catch (e) {
-    // Provider may already be in store from previous step
-  }
+  vms.value = props.selectedVms;
 
-  const allProviders = store.getters[`${ inStore }/all`](HCI.FORKLIFT_PROVIDER) || [];
-  const provider = allProviders.find((p) => p.metadata.name === providerName.value && p.metadata.namespace === NAMESPACE);
-
-  const vmsParam = currentRoute().query.vms;
-
-  if (vmsParam) {
+  if (networkEntries.value.length === 0) {
     try {
-      const vmIds = JSON.parse(vmsParam);
-      const providerUid = provider?.metadata?.uid;
-      const providerType = provider?.spec?.type || 'vsphere';
+      const providerUid = props.provider?.metadata?.uid;
+      const providerType = props.provider?.spec?.type || 'vsphere';
       const baseUrl = `https://forklift-apir.13.48.147.135.sslip.io/providers/${ providerType }/${ providerUid }`;
 
-      const [allVms, networksData, datastoresData] = await Promise.all([
-        fetch(`${ baseUrl }/vms`).then((r) => r.json()).catch(() => []),
+      const [networksData, datastoresData] = await Promise.all([
         fetch(`${ baseUrl }/networks`).then((r) => r.json()).catch(() => []),
-        fetch(`${ baseUrl }/datastores`).then((r) => r.json()).catch(() => []),
+        fetch(`${ baseUrl }/datastores?detail=1`).then((r) => r.json()).catch(() => []),
       ]);
 
       const networkNameMap = (Array.isArray(networksData) ? networksData : []).reduce((map, n) => {
@@ -462,51 +447,48 @@ const init = async() => {
 
         return map;
       }, {});
-      const datastoreNameMap = (Array.isArray(datastoresData) ? datastoresData : []).reduce((map, d) => {
-        map[d.id] = d.name;
+      const datastoreInfoMap = (Array.isArray(datastoresData) ? datastoresData : []).reduce((map, d) => {
+        map[d.id] = { name: d.name, type: d.type || '' };
 
         return map;
       }, {});
 
-      const vmList = Array.isArray(allVms) ? allVms : (allVms?.data || []);
+      vms.value = vms.value.map((vm) => {
+        const resolved = { ...vm };
 
-      vms.value = vmIds.map((id) => {
-        const found = vmList.find((vm) => vm.id === id);
+        if (resolved.networks) {
+          resolved.networks = resolved.networks.map((n) => ({
+            ...n,
+            name: n.name || networkNameMap[n.id] || n.id,
+          }));
+        }
 
-        if (found) {
-          // Resolve network names
-          if (found.networks) {
-            found.networks = found.networks.map((n) => ({
-              ...n,
-              name: n.name || networkNameMap[n.id] || n.id,
-            }));
-          }
+        if (resolved.disks) {
+          resolved.disks = resolved.disks.map((d) => {
+            const dsInfo = d.datastore ? datastoreInfoMap[d.datastore.id] : null;
 
-          // Resolve datastore names
-          if (found.disks) {
-            found.disks = found.disks.map((d) => ({
+            return {
               ...d,
               datastore: d.datastore ? {
                 ...d.datastore,
-                name: d.datastore.name || datastoreNameMap[d.datastore.id] || d.datastore.id,
+                name: d.datastore.name || dsInfo?.name || d.datastore.id,
+                type: dsInfo?.type || '',
               } : d.datastore,
-            }));
-          }
-
-          return found;
+            };
+          });
         }
 
-        return {
-          id, name: id, networks: [], disks: []
-        };
+        return resolved;
       });
     } catch (e) {
-      vms.value = [];
+      // Name resolution failed — entries will use IDs as fallback
     }
-  }
 
-  buildNetworkEntries();
-  buildStorageEntries();
+    buildNetworkEntries();
+  }
+  if (storageEntries.value.length === 0) {
+    buildStorageEntries();
+  }
   loading.value = false;
 };
 
@@ -519,34 +501,24 @@ init();
     v-else
     class="configure-mappings"
   >
-    <Masthead
-      :schema="schema"
-      :resource="schema.id"
-      :type-display="t('harvester.addons.forklift.configureMappings.title')"
-      :is-creatable="false"
-    >
-      <template #subHeader>
-        <p class="text-muted line-height-20 mmt-5">
-          {{ t('harvester.addons.forklift.configureMappings.description') }}
-        </p>
-      </template>
-    </Masthead>
-
+    <p class="text-muted line-height-20">
+      {{ t('harvester.addons.vmMigration.configureMappings.description') }}
+    </p>
     <div class="mappings-columns">
       <!-- Network Mapping -->
       <div class="mapping-column">
         <div>
           <h3 class="mapping-section-title">
-            {{ t('harvester.addons.forklift.configureMappings.networkMapping.title') }}
+            {{ t('harvester.addons.vmMigration.configureMappings.networkMapping.title') }}
           </h3>
           <p class="text-muted line-height-20">
-            {{ t('harvester.addons.forklift.configureMappings.networkMapping.description') }}
+            {{ t('harvester.addons.vmMigration.configureMappings.networkMapping.description') }}
           </p>
         </div>
 
         <LabeledSelect
           v-model:value="selectedNetworkTemplate"
-          :label="t('harvester.addons.forklift.configureMappings.networkMapping.template')"
+          :label="t('harvester.addons.vmMigration.configureMappings.networkMapping.template')"
           :options="networkTemplateOptions"
           :reduce="(opt) => opt.value"
           class="mb-10"
@@ -574,7 +546,7 @@ init();
                   <LabeledSelect
                     v-model:value="entry.target"
                     :options="harvesterNetworkOptions"
-                    :placeholder="t('harvester.addons.forklift.configureMappings.networkMapping.placeholder')"
+                    :placeholder="t('harvester.addons.vmMigration.configureMappings.networkMapping.placeholder')"
                     :searchable="true"
                   />
                 </div>
@@ -593,16 +565,16 @@ init();
       <div class="mapping-column">
         <div>
           <h3 class="mapping-section-title">
-            {{ t('harvester.addons.forklift.configureMappings.storageMapping.title') }}
+            {{ t('harvester.addons.vmMigration.configureMappings.storageMapping.title') }}
           </h3>
           <p class="text-muted">
-            {{ t('harvester.addons.forklift.configureMappings.storageMapping.description') }}
+            {{ t('harvester.addons.vmMigration.configureMappings.storageMapping.description') }}
           </p>
         </div>
 
         <LabeledSelect
           v-model:value="selectedStorageTemplate"
-          :label="t('harvester.addons.forklift.configureMappings.storageMapping.template')"
+          :label="t('harvester.addons.vmMigration.configureMappings.storageMapping.template')"
           :options="storageTemplateOptions"
           :reduce="(opt) => opt.value"
           class="mb-10"
@@ -633,7 +605,7 @@ init();
                   <LabeledSelect
                     v-model:value="entry.target"
                     :options="storageClassOptions"
-                    :placeholder="t('harvester.addons.forklift.configureMappings.storageMapping.placeholder')"
+                    :placeholder="t('harvester.addons.vmMigration.configureMappings.storageMapping.placeholder')"
                     :searchable="true"
                   />
                 </div>
@@ -648,30 +620,10 @@ init();
         </RcItemCard>
       </div>
     </div>
-
-    <div class="actions-footer">
-      <button
-        class="btn role-secondary"
-        @click="cancel"
-      >
-        {{ t('generic.cancel') }}
-      </button>
-      <AsyncButton
-        :disabled="!canSave"
-        :action-label="t('harvester.addons.forklift.configureMappings.save')"
-        :waiting-label="t('harvester.addons.forklift.configureMappings.save')"
-        :success-label="t('harvester.addons.forklift.configureMappings.save')"
-        :error-label="t('harvester.addons.forklift.configureMappings.save')"
-        @click="saveMappings"
-      />
-    </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
-  .configure-mappings {
-    padding: 20px;
-  }
 
   .mappings-columns {
     display: grid;
@@ -738,13 +690,6 @@ init();
     overflow: hidden;
   }
 
-  .actions-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 30px;
-  }
-
   .line-height-20 {
     line-height: 20px;
   }
@@ -752,6 +697,16 @@ init();
   .bg-light-gray {
     background-color: var(--category-active) !important;
     border: 0;
+  }
+
+  .configure-mappings {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+
+    .line-height-20 {
+      line-height: 20px;
+    }
   }
 
 </style>

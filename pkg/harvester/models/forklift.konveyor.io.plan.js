@@ -5,7 +5,7 @@ import { PRODUCT_NAME } from '../config/harvester';
 export default class ForkliftPlan extends HarvesterResource {
   get listLocation() {
     return {
-      name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
+      name:   `${ PRODUCT_NAME }-c-cluster-vm-migration`,
       params: {
         product: this.$rootGetters['productId'],
         cluster: this.$rootGetters['clusterId'],

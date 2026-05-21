@@ -127,7 +127,7 @@ const rows = computed(() => {
 });
 
 const createLocation = computed(() => ({
-  name:   `${ PRODUCT_NAME }-c-cluster-forklift-configure-provider`,
+  name:   `${ PRODUCT_NAME }-c-cluster-vm-migration-wizard`,
   params: {
     product: store.getters['productId'],
     cluster: store.getters['clusterId'],
@@ -135,21 +135,21 @@ const createLocation = computed(() => ({
 }));
 
 const headers = [
-  { ...STATE, labelKey: 'harvester.addons.forklift.dashboard.columns.status' },
+  { ...STATE, labelKey: 'harvester.addons.vmMigration.dashboard.columns.status' },
   {
     ...NAME_COL,
-    labelKey: 'harvester.addons.forklift.dashboard.columns.plan',
+    labelKey: 'harvester.addons.vmMigration.dashboard.columns.plan',
   },
   { ...FORKLIFT_PLAN_VM_COUNT, width: 105 },
   {
     name:     'progress',
-    labelKey: 'harvester.addons.forklift.dashboard.columns.progress',
+    labelKey: 'harvester.addons.vmMigration.dashboard.columns.progress',
     value:    'progress',
     width:    500,
   },
   {
     name:     'mappings',
-    labelKey: 'harvester.addons.forklift.dashboard.columns.mappings',
+    labelKey: 'harvester.addons.vmMigration.dashboard.columns.mappings',
     value:    'mappingsDisplay',
   },
   { ...AGE },
@@ -174,12 +174,12 @@ init();
     <Masthead
       :schema="schema"
       :resource="schema.id"
-      :type-display="t('harvester.addons.forklift.dashboard.title')"
+      :type-display="t('harvester.addons.vmMigration.dashboard.title')"
     >
       <template #subHeader>
         <div class="mmt-5">
           <p class="text-muted">
-            {{ t('harvester.addons.forklift.dashboard.description') }}
+            {{ t('harvester.addons.vmMigration.dashboard.description') }}
           </p>
         </div>
       </template>
@@ -188,7 +188,7 @@ init();
           :to="createLocation"
           class="btn role-primary"
         >
-          {{ t('harvester.addons.forklift.dashboard.createPlan') }}
+          {{ t('harvester.addons.vmMigration.dashboard.createPlan') }}
         </router-link>
       </template>
     </Masthead>
@@ -200,13 +200,11 @@ init();
       :groupable="false"
       :table-actions="false"
       :search="false"
-      default-sort-by="state"
-      :default-sort-descending="true"
       key-field="_key"
     >
       <template #header-left>
         <h3 class="table-title m-0">
-          {{ t('harvester.addons.forklift.dashboard.tableTitle') }}
+          {{ t('harvester.addons.vmMigration.dashboard.tableTitle') }}
         </h3>
       </template>
       <template #cell:name="{ row }">

@@ -5,27 +5,18 @@ import { useStore } from 'vuex';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { Checkbox } from '@components/Form/Checkbox';
 import { Banner } from '@components/Banner';
-import Masthead from '@shell/components/ResourceList/Masthead';
 import AsyncButton from '@shell/components/AsyncButton';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
-import { SCHEMA, SECRET } from '@shell/config/types';
+import { SECRET } from '@shell/config/types';
 import { randomStr } from '@shell/utils/string';
 import { useI18n } from '@shell/composables/useI18n';
-import { HCI } from '../../../../types';
-import { PRODUCT_NAME } from '../../../../config/harvester';
-import { currentRouter } from '../../../../utils/router';
-
-const schema = {
-  id:         HCI.FORKLIFT_PROVIDER,
-  type:       SCHEMA,
-  attributes: {
-    kind:       HCI.FORKLIFT_PROVIDER,
-    namespaced: true
-  },
-  metadata: { name: HCI.FORKLIFT_PROVIDER },
-};
+import { HCI } from '../../types';
 
 const CREATE_NEW = '__create_new__';
+
+const props = defineProps({ stepData: { type: Object, required: true } });
+
+const emit = defineEmits(['complete', 'ready', 'form-valid', 'testing']);
 
 const store = useStore();
 const { t } = useI18n(store);
@@ -41,19 +32,67 @@ const skipTlsVerify = ref(false);
 const testResult = ref(null);
 const testError = ref(null);
 const errors = ref([]);
+const testBtnRef = ref(null);
 const createdProvider = ref(null);
 const createdSecret = ref(null);
 const loading = ref(true);
 const testPassed = ref(false);
 const testing = ref(false);
-const saving = ref(false);
+
+// Restore state from stepData on mount
+selectedProvider.value = props.stepData.selectedProvider;
+providerName.value = props.stepData.providerName;
+url.value = props.stepData.url;
+username.value = props.stepData.username;
+password.value = props.stepData.password;
+skipTlsVerify.value = props.stepData.skipTlsVerify;
+testPassed.value = props.stepData.testPassed;
+testResult.value = props.stepData.testResult;
+testError.value = props.stepData.testError;
+createdProvider.value = props.stepData.createdProvider;
+createdSecret.value = props.stepData.createdSecret;
+
+// Sync state back to stepData
+watch(selectedProvider, (val) => {
+  props.stepData.selectedProvider = val;
+});
+watch(providerName, (val) => {
+  props.stepData.providerName = val;
+});
+watch(url, (val) => {
+  props.stepData.url = val;
+});
+watch(username, (val) => {
+  props.stepData.username = val;
+});
+watch(password, (val) => {
+  props.stepData.password = val;
+});
+watch(skipTlsVerify, (val) => {
+  props.stepData.skipTlsVerify = val;
+});
+watch(testPassed, (val) => {
+  props.stepData.testPassed = val;
+});
+watch(testResult, (val) => {
+  props.stepData.testResult = val;
+});
+watch(testError, (val) => {
+  props.stepData.testError = val;
+});
+watch(createdProvider, (val) => {
+  props.stepData.createdProvider = val;
+});
+watch(createdSecret, (val) => {
+  props.stepData.createdSecret = val;
+});
 
 const isExistingProvider = computed(() => selectedProvider.value !== CREATE_NEW);
 const isFormValid = computed(() => !!providerName.value && !!url.value && !!username.value && !!password.value);
 
 const providerOptions = computed(() => {
   const options = [
-    { label: t('harvester.addons.forklift.configureProvider.createNew'), value: CREATE_NEW }
+    { label: t('harvester.addons.vmMigration.configureProvider.createNew'), value: CREATE_NEW }
   ];
 
   allProviders.value.forEach((p) => {
@@ -134,15 +173,22 @@ watch([providerName, url, username, password], () => {
   }
 });
 
-const cancel = () => {
-  currentRouter().push({
-    name:   `${ PRODUCT_NAME }-c-cluster-forklift`,
-    params: {
-      product: store.getters['productId'],
-      cluster: store.getters['clusterId'],
-    }
-  });
-};
+// Emit ready/complete when testPassed changes
+watch(testPassed, (val) => {
+  emit('ready', val);
+  if (val) {
+    emit('complete', { providerName: providerName.value, provider: createdProvider.value });
+  }
+}, { immediate: true });
+
+// Emit form-valid when form validity changes
+watch(isFormValid, (val) => {
+  emit('form-valid', val);
+}, { immediate: true });
+
+watch(testing, (val) => {
+  emit('testing', val);
+}, { immediate: true });
 
 const testConnection = async(buttonCb) => {
   testResult.value = null;
@@ -150,7 +196,7 @@ const testConnection = async(buttonCb) => {
   testing.value = true;
 
   if (!providerName.value || !url.value || !username.value || !password.value) {
-    testError.value = t('harvester.addons.forklift.configureProvider.testMissingFields');
+    testError.value = t('harvester.addons.vmMigration.configureProvider.testMissingFields');
     testing.value = false;
     buttonCb(false);
 
@@ -205,16 +251,16 @@ const testConnection = async(buttonCb) => {
 
       if (connected) {
         testPassed.value = true;
-        testResult.value = t('harvester.addons.forklift.configureProvider.testSuccess');
+        testResult.value = t('harvester.addons.vmMigration.configureProvider.testSuccess');
         testing.value = false;
         buttonCb(true);
       } else {
-        testError.value = errorMsg || t('harvester.addons.forklift.configureProvider.testTimeout');
+        testError.value = errorMsg || t('harvester.addons.vmMigration.configureProvider.testTimeout');
         testing.value = false;
         buttonCb(false);
       }
     } catch (err) {
-      testError.value = err.message || t('harvester.addons.forklift.configureProvider.testFailed');
+      testError.value = err.message || t('harvester.addons.vmMigration.configureProvider.testFailed');
       testing.value = false;
       buttonCb(false);
     }
@@ -329,7 +375,7 @@ const testConnection = async(buttonCb) => {
 
     if (connected) {
       testPassed.value = true;
-      testResult.value = t('harvester.addons.forklift.configureProvider.testSuccess');
+      testResult.value = t('harvester.addons.vmMigration.configureProvider.testSuccess');
       testing.value = false;
       buttonCb(true);
     } else {
@@ -342,7 +388,7 @@ const testConnection = async(buttonCb) => {
         createdSecret.value = null;
       }
 
-      testError.value = errorMsg || t('harvester.addons.forklift.configureProvider.testTimeout');
+      testError.value = errorMsg || t('harvester.addons.vmMigration.configureProvider.testTimeout');
       testing.value = false;
       buttonCb(false);
     }
@@ -360,45 +406,10 @@ const testConnection = async(buttonCb) => {
       createdSecret.value = null;
     }
 
-    testError.value = err.message || t('harvester.addons.forklift.configureProvider.testFailed');
+    testError.value = err.message || t('harvester.addons.vmMigration.configureProvider.testFailed');
     testing.value = false;
     buttonCb(false);
   }
-};
-
-const saveProvider = async(buttonCb) => {
-  errors.value = [];
-  saving.value = true;
-
-  if (!testPassed.value) {
-    // Test hasn't passed yet — run it first
-    await testConnection((success) => {
-      if (success) {
-        currentRouter().push({
-          name:   `${ PRODUCT_NAME }-c-cluster-forklift-select-vms`,
-          params: {
-            product: store.getters['productId'],
-            cluster: store.getters['clusterId'],
-          },
-          query: { provider: providerName.value }
-        });
-      } else {
-        saving.value = false;
-        buttonCb(false);
-      }
-    });
-
-    return;
-  }
-
-  currentRouter().push({
-    name:   `${ PRODUCT_NAME }-c-cluster-forklift-select-vms`,
-    params: {
-      product: store.getters['productId'],
-      cluster: store.getters['clusterId'],
-    },
-    query: { provider: providerName.value }
-  });
 };
 
 const init = async() => {
@@ -414,171 +425,139 @@ const init = async() => {
 };
 
 init();
+
+const clickTestButton = () => {
+  testBtnRef.value?.$el?.click();
+};
+
+defineExpose({ testConnection, clickTestButton });
 </script>
 
 <template>
-  <div class="configure-provider">
-    <Masthead
-      :schema="schema"
-      :resource="schema.id"
-      :type-display="t('harvester.addons.forklift.configureProvider.title')"
-      :is-creatable="false"
-    >
-      <template #subHeader>
-        <div class="mmt-5">
-          <p class="text-muted">
-            {{ t('harvester.addons.forklift.configureProvider.description') }}
+  <div class="configure-provider-step">
+    <p class="text-muted line-height-20">
+      {{ t('harvester.addons.vmMigration.configureProvider.description') }}
+    </p>
+
+    <div class="configure-provider-step-content">
+      <h3 class="table-title m-0">
+        <b>{{ t('harvester.addons.vmMigration.configureProvider.connectionDetails') }}</b>
+      </h3>
+
+      <Banner
+        class="requirements-banner m-0"
+        color="info"
+      >
+        <div class="requirements-banner-content">
+          <span class="requirements-banner-title">{{ t('harvester.addons.vmMigration.configureProvider.requirementsTitle') }}</span>
+          <br>
+          <span>{{ t('harvester.addons.vmMigration.configureProvider.requirementsText') }}</span>
+        </div>
+      </Banner>
+
+      <div class="configure-provider-step-form">
+        <div>
+          <LabeledSelect
+            v-model:value="selectedProvider"
+            :label="t('harvester.addons.vmMigration.configureProvider.providerSelect')"
+            :options="providerOptions"
+            :reduce="(opt) => opt.value"
+          />
+        </div>
+
+        <div
+          v-if="!isExistingProvider"
+        >
+          <LabeledInput
+            v-model:value="providerName"
+            :label="t('harvester.addons.vmMigration.configureProvider.name')"
+            required
+          />
+        </div>
+
+        <div>
+          <LabeledInput
+            v-model:value="url"
+            :label="t('harvester.addons.vmMigration.configureProvider.urlLabel')"
+            :placeholder="t('harvester.addons.vmMigration.configureProvider.urlPlaceholder')"
+            :disabled="isExistingProvider"
+            required
+          />
+          <p class="text-muted mt-5">
+            {{ t('harvester.addons.vmMigration.configureProvider.urlHint') }}
           </p>
         </div>
-      </template>
-    </Masthead>
 
-    <h3 class="mmt-3 mmb-3 table-title">
-      <b>{{ t('harvester.addons.forklift.configureProvider.connectionDetails') }}</b>
-    </h3>
+        <div class="row">
+          <div class="col span-6">
+            <LabeledInput
+              v-model:value="username"
+              :label="t('harvester.addons.vmMigration.fields.username')"
+              :disabled="isExistingProvider"
+              required
+            />
+          </div>
+          <div class="col span-6">
+            <LabeledInput
+              v-model:value="password"
+              type="password"
+              :label="t('harvester.addons.vmMigration.fields.password')"
+              :disabled="isExistingProvider"
+              required
+            />
+          </div>
+        </div>
 
-    <Banner
-      class="requirements-banner mt-0 mmb-3"
-      color="info"
-    >
-      <div class="requirements-banner-content">
-        <span class="requirements-banner-title">{{ t('harvester.addons.forklift.configureProvider.requirementsTitle') }}</span>
-        <br>
-        <span>{{ t('harvester.addons.forklift.configureProvider.requirementsText') }}</span>
+        <div>
+          <Checkbox
+            v-model:value="skipTlsVerify"
+            :label="t('harvester.addons.vmMigration.configureProvider.skipSsl')"
+            :disabled="isExistingProvider"
+          />
+          <p class="text-muted ml-20">
+            {{ t('harvester.addons.vmMigration.configureProvider.skipSslHint') }}
+          </p>
+        </div>
+        <div>
+          <AsyncButton
+            ref="testBtnRef"
+            mode="test"
+            :disabled="!isFormValid"
+            :action-label="t('harvester.addons.vmMigration.configureProvider.testConnection.action')"
+            :waiting-label="t('harvester.addons.vmMigration.configureProvider.testConnection.waiting')"
+            :success-label="t('harvester.addons.vmMigration.configureProvider.testConnection.success')"
+            :error-label="t('harvester.addons.vmMigration.configureProvider.testConnection.error')"
+            :action-color="'role-secondary'"
+            :waiting-color="'role-disabled'"
+            @click="testConnection"
+          />
+        </div>
+
+        <Banner
+          v-if="testResult"
+          color="success"
+        >
+          {{ testResult }}
+        </Banner>
+        <Banner
+          v-if="testError"
+          color="error"
+        >
+          {{ testError }}
+        </Banner>
+        <Banner
+          v-for="(err, i) in errors"
+          :key="i"
+          color="error"
+        >
+          {{ err }}
+        </Banner>
       </div>
-    </Banner>
-
-    <div class="mb-20">
-      <LabeledSelect
-        v-model:value="selectedProvider"
-        :label="t('harvester.addons.forklift.configureProvider.providerSelect')"
-        :options="providerOptions"
-        :reduce="(opt) => opt.value"
-      />
-    </div>
-
-    <div
-      v-if="!isExistingProvider"
-      class="mb-20"
-    >
-      <LabeledInput
-        v-model:value="providerName"
-        :label="t('harvester.addons.forklift.configureProvider.name')"
-        required
-      />
-    </div>
-
-    <div class="mb-20">
-      <LabeledInput
-        v-model:value="url"
-        :label="t('harvester.addons.forklift.configureProvider.urlLabel')"
-        :placeholder="t('harvester.addons.forklift.configureProvider.urlPlaceholder')"
-        :disabled="isExistingProvider"
-        required
-      />
-      <p class="text-muted mt-5">
-        {{ t('harvester.addons.forklift.configureProvider.urlHint') }}
-      </p>
-    </div>
-
-    <div class="row mb-20">
-      <div class="col span-6">
-        <LabeledInput
-          v-model:value="username"
-          :label="t('harvester.addons.forklift.fields.username')"
-          :disabled="isExistingProvider"
-          required
-        />
-      </div>
-      <div class="col span-6">
-        <LabeledInput
-          v-model:value="password"
-          type="password"
-          :label="t('harvester.addons.forklift.fields.password')"
-          :disabled="isExistingProvider"
-          required
-        />
-      </div>
-    </div>
-
-    <div class="mb-20">
-      <Checkbox
-        v-model:value="skipTlsVerify"
-        :label="t('harvester.addons.forklift.configureProvider.skipSsl')"
-        :disabled="isExistingProvider"
-      />
-      <p class="text-muted ml-20">
-        {{ t('harvester.addons.forklift.configureProvider.skipSslHint') }}
-      </p>
-    </div>
-    <div class="mb-20">
-      <button
-        v-if="testPassed"
-        class="btn role-secondary test-passed-btn"
-        disabled
-      >
-        <i class="icon icon-checkmark mr-10" /> {{ t('harvester.addons.forklift.configureProvider.testConnection') }}
-      </button>
-      <AsyncButton
-        v-else
-        mode="test"
-        :disabled="!isFormValid || testing || saving"
-        :action-label="t('harvester.addons.forklift.configureProvider.testConnection')"
-        :waiting-label="t('harvester.addons.forklift.configureProvider.testConnection')"
-        :success-label="t('harvester.addons.forklift.configureProvider.testConnection')"
-        :error-label="t('harvester.addons.forklift.configureProvider.testConnection')"
-        class="btn role-secondary"
-        @click="testConnection"
-      />
-    </div>
-
-    <Banner
-      v-if="testResult"
-      color="success"
-      class="mb-10"
-    >
-      {{ testResult }}
-    </Banner>
-    <Banner
-      v-if="testError"
-      color="error"
-      class="mb-10"
-    >
-      {{ testError }}
-    </Banner>
-    <Banner
-      v-for="(err, i) in errors"
-      :key="i"
-      color="error"
-      class="mb-10"
-    >
-      {{ err }}
-    </Banner>
-
-    <div class="provider-actions">
-      <button
-        class="btn role-secondary"
-        @click="cancel"
-      >
-        {{ t('generic.cancel') }}
-      </button>
-      <AsyncButton
-        :disabled="!isFormValid || testing || saving"
-        :action-label="isExistingProvider ? t('harvester.addons.forklift.configureProvider.saveExisting') : t('harvester.addons.forklift.configureProvider.save')"
-        :waiting-label="isExistingProvider ? t('harvester.addons.forklift.configureProvider.saveExisting') : t('harvester.addons.forklift.configureProvider.save')"
-        :success-label="isExistingProvider ? t('harvester.addons.forklift.configureProvider.saveExisting') : t('harvester.addons.forklift.configureProvider.save')"
-        :error-label="isExistingProvider ? t('harvester.addons.forklift.configureProvider.saveExisting') : t('harvester.addons.forklift.configureProvider.save')"
-        @click="saveProvider"
-      />
     </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
-  .configure-provider {
-    padding: 20px;
-  }
-
   .requirements-banner {
     font-weight: 400;
 
@@ -587,10 +566,25 @@ init();
     }
   }
 
-  .provider-actions {
+  .configure-provider-step {
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 30px;
+    flex-direction: column;
+    gap: 24px;
+
+    .line-height-20 {
+      line-height: 20px;
+    }
+
+    .configure-provider-step-content {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+
+      .configure-provider-step-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+    }
   }
 </style>
