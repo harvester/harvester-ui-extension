@@ -54,7 +54,6 @@ export default {
       excludeIps:   [],
       private:      false,
       enableDHCP,
-      gatewayType:  '',
       natOutgoing:  false,
       acls:         []
     });
@@ -142,7 +141,7 @@ export default {
           set(this.value, 'spec.gatewayType', 'distributed');
           set(this.value, 'spec.natOutgoing', true);
         } else {
-          set(this.value, 'spec.gatewayType', '');
+          delete this.value.spec.gatewayType;
           set(this.value, 'spec.natOutgoing', false);
         }
       }
