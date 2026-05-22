@@ -23,17 +23,17 @@ export default class HciVmTemplateVersion extends HarvesterResource {
     });
 
     const schema = this.$getters['schemaFor'](HCI.VM);
-    let canCreateVM = true;
+    let canCreateVM = false;
 
-    if ( schema && !schema?.collectionMethods.find((x) => ['post'].includes(x.toLowerCase())) ) {
-      canCreateVM = false;
+    if (schema?.collectionMethods.find((x) => ['post'].includes(x.toLowerCase())) ) {
+      canCreateVM = true;
     }
 
     return [
       {
         action:   'launchFromTemplate',
         icon:     'icon icon-spinner',
-        disabled: !canCreateVM || !this.isReady,
+        enabled:  canCreateVM && this.isReady,
         label:    this.t('harvester.action.launchFormTemplate'),
       },
       {

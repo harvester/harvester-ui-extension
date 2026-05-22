@@ -27,17 +27,18 @@ const STATUS_DISPLAY = {
 export default class VGpuDevice extends SteveModel {
   get _availableActions() {
     const out = super._availableActions;
+    const canUpdate = !!this.linkFor('update');
 
     out.push(
       {
         action:  'enableVGpu',
-        enabled: !this.isEnabled,
+        enabled: !this.isEnabled && canUpdate,
         icon:    'icon icon-fw icon-dot',
         label:   'Enable',
       },
       {
         action:   'disableVGpu',
-        enabled:  this.isEnabled,
+        enabled:  this.isEnabled && canUpdate,
         icon:     'icon icon-fw icon-dot-open',
         label:    'Disable',
         bulkable: true,

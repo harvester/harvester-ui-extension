@@ -237,6 +237,7 @@ export function init($plugin, store) {
     labelKey:   'harvester.addons.vmImport.labels.vmimport',
     group:      'vmimport',
     namespaced: true,
+    ifHaveType: HCI.VMIMPORT,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.VMIMPORT }
@@ -266,6 +267,7 @@ export function init($plugin, store) {
     labelKey:   'harvester.addons.vmImport.labels.vmimportSourceVMWare',
     group:      'vmimport',
     namespaced: true,
+    ifHaveType: HCI.VMIMPORT_SOURCE_V,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.VMIMPORT_SOURCE_V }
@@ -295,6 +297,7 @@ export function init($plugin, store) {
     labelKey:   'harvester.addons.vmImport.labels.vmimportSourceOpenStack',
     group:      'vmimport',
     namespaced: true,
+    ifHaveType: HCI.VMIMPORT_SOURCE_O,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.VMIMPORT_SOURCE_O }
@@ -323,6 +326,7 @@ export function init($plugin, store) {
     labelKey:   'harvester.addons.vmImport.labels.vmimportSourceOVA',
     group:      'vmimport',
     namespaced: true,
+    ifHaveType: HCI.VMIMPORT_SOURCE_OVA,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.VMIMPORT_SOURCE_OVA }
@@ -484,6 +488,7 @@ export function init($plugin, store) {
   });
 
   virtualType({
+    ifHaveType: LOGGING.CLUSTER_FLOW,
     labelKey:   'harvester.logging.clusterFlow.label',
     name:       HCI.CLUSTER_FLOW,
     namespaced: true,
@@ -507,6 +512,7 @@ export function init($plugin, store) {
   });
 
   virtualType({
+    ifHaveType: LOGGING.CLUSTER_OUTPUT,
     labelKey:   'harvester.logging.clusterOutput.label',
     name:       HCI.CLUSTER_OUTPUT,
     namespaced: true,
@@ -530,6 +536,7 @@ export function init($plugin, store) {
   });
 
   virtualType({
+    ifHaveType: LOGGING.FLOW,
     labelKey:   'harvester.logging.flow.label',
     name:       HCI.FLOW,
     namespaced: true,
@@ -553,6 +560,7 @@ export function init($plugin, store) {
   });
 
   virtualType({
+    ifHaveType: LOGGING.OUTPUT,
     labelKey:   'harvester.logging.output.label',
     name:       HCI.OUTPUT,
     namespaced: true,

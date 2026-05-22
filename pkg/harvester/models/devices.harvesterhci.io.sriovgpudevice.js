@@ -16,19 +16,23 @@ export default class SRIOVDevice extends SteveModel {
     out.push(
       {
         action:  'enableDevice',
-        enabled: !this.isEnabled,
+        enabled: !this.isEnabled && this.canUpdate,
         icon:    'icon icon-fw icon-dot',
         label:   'Enable',
       },
       {
         action:  'disableDevice',
-        enabled: this.isEnabled,
+        enabled: this.isEnabled && this.canUpdate,
         icon:    'icon icon-fw icon-dot-open',
         label:   'Disable',
       },
     );
 
     return out;
+  }
+
+  get canUpdate() {
+    return !!this.linkFor('update');
   }
 
   get canYaml() {

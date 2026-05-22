@@ -152,6 +152,10 @@ export default {
       return !rows.find((device) => !device.passthroughClaim);
     },
 
+    canManageGroup(rows = []) {
+      return rows.length > 0 && rows.every((row) => row.canUpdate === true);
+    },
+
     changeRows(filterRows, parentSriov) {
       this['filterRows'] = filterRows;
       this['parentSriov'] = parentSriov;
@@ -185,22 +189,27 @@ export default {
         v-trim-whitespace
         class="group-tab"
       >
-        <button
-          v-if="groupIsAllEnabled(group.rows)"
-          type="button"
-          class="btn btn-sm role-secondary mr-5"
-          @click="e=>{disableGroup(group.rows); e.target.blur()}"
+        <div
+          v-if="canManageGroup(group.rows)"
+          class="group-actions"
         >
-          {{ t('harvester.pci.disableGroup') }}
-        </button>
-        <button
-          v-else
-          type="button"
-          class="btn btn-sm role-secondary mr-5"
-          @click="e=>{enableGroup(group.rows); e.target.blur()}"
-        >
-          {{ t('harvester.pci.enableGroup') }}
-        </button>
+          <button
+            v-if="groupIsAllEnabled(group.rows)"
+            type="button"
+            class="btn btn-sm role-secondary mr-5"
+            @click="e=>{disableGroup(group.rows); e.target.blur()}"
+          >
+            {{ t('harvester.pci.disableGroup') }}
+          </button>
+          <button
+            v-else
+            type="button"
+            class="btn btn-sm role-secondary mr-5"
+            @click="e=>{enableGroup(group.rows); e.target.blur()}"
+          >
+            {{ t('harvester.pci.enableGroup') }}
+          </button>
+        </div>
         <span v-clean-html="group.key" />
       </div>
     </template>
@@ -232,3 +241,9 @@ export default {
     </template>
   </ResourceTable>
 </template>
+
+<style lang="scss" scoped>
+.group-actions  {
+  display: inline;
+}
+</style>

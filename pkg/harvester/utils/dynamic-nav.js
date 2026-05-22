@@ -31,22 +31,42 @@ export function registerAddonSideNav(store, productName, {
     }, 600);
   };
 
+  const hasAccessibleSchema = (t) => {
+    try {
+      return !!store.getters[`${ productName }/schemaFor`]?.(t);
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const showTypes = (visibleTypes) => {
+    store.commit('type-map/basicType', {
+      product: productName,
+      group:   navGroup,
+      types:   visibleTypes
+    });
+  };
+
+  const hideTypes = () => {
+    const basicTypes = store.state['type-map'].basicTypes[productName];
+
+    if (basicTypes) {
+      types.forEach((t) => delete basicTypes[t]);
+    }
+  };
+
   // Adds or removes the resource IDs from the product visibility whitelist.
   const setMenuVisibility = (visible) => {
-    if (visible) {
-      store.commit('type-map/basicType', {
-        product: productName,
-        group:   navGroup,
-        types
-      });
-    } else {
-      // Manually delete the keys from the state object to hide them.
-      const basicTypes = store.state['type-map'].basicTypes[productName];
+    const accessibleTypes = visible ? types.filter(hasAccessibleSchema) : [];
 
-      if (basicTypes) {
-        types.forEach((t) => delete basicTypes[t]);
-      }
+    // Always clear first to remove any previously-registered types that are
+    // no longer accessible (e.g. partial permission changes like types=[A,B] where B is dropped).
+    hideTypes();
+
+    if (accessibleTypes.length > 0) {
+      showTypes(accessibleTypes);
     }
+
     kickSideNav();
   };
 

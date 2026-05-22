@@ -113,6 +113,11 @@ export default {
         }
       });
     },
+
+    canManageGroup(rows = []) {
+      return rows.every((row) => row.canUpdate === true);
+    },
+
     groupIsAllEnabled(rows = []) {
       return !rows.find((device) => !device.passthroughClaim);
     },
@@ -153,22 +158,27 @@ export default {
         v-trim-whitespace
         class="group-tab"
       >
-        <button
-          v-if="groupIsAllEnabled(group.rows)"
-          type="button"
-          class="btn btn-sm role-secondary mr-5"
-          @click="e=>{disableGroup(group.rows); e.target.blur()}"
+        <div
+          v-if="canManageGroup(group.rows)"
+          class="group-actions"
         >
-          {{ t('harvester.usb.disableGroup') }}
-        </button>
-        <button
-          v-else
-          type="button"
-          class="btn btn-sm role-secondary mr-5"
-          @click="e=>{enableGroup(group.rows); e.target.blur()}"
-        >
-          {{ t('harvester.usb.enableGroup') }}
-        </button>
+          <button
+            v-if="groupIsAllEnabled(group.rows)"
+            type="button"
+            class="btn btn-sm role-secondary mr-5"
+            @click="e=>{disableGroup(group.rows); e.target.blur()}"
+          >
+            {{ t('harvester.usb.disableGroup') }}
+          </button>
+          <button
+            v-else
+            type="button"
+            class="btn btn-sm role-secondary mr-5"
+            @click="e=>{enableGroup(group.rows); e.target.blur()}"
+          >
+            {{ t('harvester.usb.enableGroup') }}
+          </button>
+        </div>
         <span v-clean-html="group.key" />
       </div>
     </template>
@@ -181,3 +191,9 @@ export default {
     </template>
   </ResourceTable>
 </template>
+
+<style lang="scss" scoped>
+.group-actions  {
+  display: inline;
+}
+</style>

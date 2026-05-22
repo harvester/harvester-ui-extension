@@ -33,7 +33,7 @@ export default class USBDevice extends SteveModel {
     out.push(
       {
         action:     'enablePassthroughBulk',
-        enabled:    !this.passthroughClaim && !this.status.enabled,
+        enabled:    !this.passthroughClaim && !this.status.enabled && this.canUpdate,
         icon:       'icon icon-fw icon-dot',
         label:      'Enable Passthrough',
         bulkable:   true,
@@ -42,7 +42,7 @@ export default class USBDevice extends SteveModel {
       },
       {
         action:   'disablePassthrough',
-        enabled:  this.status.enabled,
+        enabled:  this.status.enabled && this.canUpdate,
         icon:     'icon icon-fw icon-dot-open',
         label:    'Disable Passthrough',
         bulkable: true,
@@ -51,6 +51,10 @@ export default class USBDevice extends SteveModel {
     );
 
     return out;
+  }
+
+  get canUpdate() {
+    return !!this.linkFor('update');
   }
 
   get canYaml() {
