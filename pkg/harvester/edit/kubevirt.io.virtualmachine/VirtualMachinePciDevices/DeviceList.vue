@@ -153,7 +153,7 @@ export default {
     },
 
     canManageGroup(rows = []) {
-      return rows.every((row) => row.canUpdate === true);
+      return rows.length > 0 && rows.every((row) => row.canUpdate === true);
     },
 
     changeRows(filterRows, parentSriov) {
