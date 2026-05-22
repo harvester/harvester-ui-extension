@@ -46,15 +46,17 @@ export default {
 
     set(this.value.spec, 'enableDHCP', enableDHCP);
     set(this.value, 'spec', this.value.spec || {
-      cidrBlock:  '',
-      protocol:   NETWORK_PROTOCOL.IPv4,
-      provider:   '',
+      cidrBlock:    '',
+      protocol:     NETWORK_PROTOCOL.IPv4,
+      provider:     '',
       vpc,
-      gatewayIP:  '',
-      excludeIps: [],
-      private:    false,
+      gatewayIP:    '',
+      excludeIps:   [],
+      private:      false,
       enableDHCP,
-      acls:       []
+      gatewayType:  '',
+      natOutgoing:  false,
+      acls:         []
     });
   },
 
@@ -129,6 +131,21 @@ export default {
         label: n.id,
         value: n.id,
       }));
+    },
+
+    enableExternalConnectivity: {
+      get() {
+        return this.value.spec.gatewayType === 'distributed' && this.value.spec.natOutgoing === true;
+      },
+      set(value) {
+        if (value) {
+          set(this.value, 'spec.gatewayType', 'distributed');
+          set(this.value, 'spec.natOutgoing', true);
+        } else {
+          set(this.value, 'spec.gatewayType', '');
+          set(this.value, 'spec.natOutgoing', false);
+        }
+      }
     }
   },
 
@@ -302,6 +319,19 @@ export default {
                 :raw="true"
               />
             </Banner>
+          </div>
+        </div>
+        <div class="row mt-20">
+          <div class="col span-6">
+            <RadioGroup
+              v-model:value="enableExternalConnectivity"
+              name="enableExternalConnectivity"
+              :options="[true, false]"
+              :label="t('harvester.subnet.externalConnectivity.label')"
+              :labels="[t('generic.enabled'), t('generic.disabled')]"
+              :mode="mode"
+              :tooltip="t('harvester.subnet.externalConnectivity.tooltip')"
+            />
           </div>
         </div>
         <div class="row mt-20">
