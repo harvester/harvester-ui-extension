@@ -131,20 +131,9 @@ export default {
         value: n.id,
       }));
     },
-
-    enableExternalConnectivity: {
-      get() {
-        return this.value.spec.gatewayType === 'distributed' && this.value.spec.natOutgoing === true;
-      },
-      set(value) {
-        if (value) {
-          set(this.value, 'spec.gatewayType', 'distributed');
-          set(this.value, 'spec.natOutgoing', true);
-        } else {
-          delete this.value.spec.gatewayType;
-          set(this.value, 'spec.natOutgoing', false);
-        }
-      }
+    natOutgoingDisabled() {
+      // disabled NAT Outgoing option when the subnet belongs to ovn-cluster VPC and its name is join or ovn-default.
+      return this.value?.spec?.vpc === 'ovn-cluster' && ['join', 'ovn-default'].includes(this.value?.metadata?.name);
     }
   },
 
@@ -323,8 +312,9 @@ export default {
         <div class="row mt-20">
           <div class="col span-6">
             <RadioGroup
-              v-model:value="enableExternalConnectivity"
+              v-model:value="value.spec.natOutgoing"
               name="enableExternalConnectivity"
+              :disabled="natOutgoingDisabled"
               :options="[true, false]"
               :label="t('harvester.subnet.externalConnectivity.label')"
               :labels="[t('generic.enabled'), t('generic.disabled')]"
