@@ -64,7 +64,7 @@ export default class MIGCONFIGURATION extends HarvesterResource {
 
   get stateDisplay() {
     if (this.configStatus === 'out-of-sync') {
-      return 'Out of Sync';
+      return this.t('harvester.migconfiguration.status.outOfSync');
     }
 
     return this.actualState;
