@@ -43,6 +43,7 @@ export default {
   created() {
     const vpc = this.$route.query.vpc || '';
     const enableDHCP = this.value?.spec?.enableDHCP || false;
+    const natOutgoing = this.value?.spec?.natOutgoing || false;
 
     set(this.value.spec, 'enableDHCP', enableDHCP);
     set(this.value, 'spec', this.value.spec || {
@@ -50,11 +51,11 @@ export default {
       protocol:     NETWORK_PROTOCOL.IPv4,
       provider:     '',
       vpc,
-      gatewayIP:    '',
+      gateway:      '',
       excludeIps:   [],
       private:      false,
       enableDHCP,
-      natOutgoing:  false,
+      natOutgoing,
       acls:         []
     });
   },
@@ -132,7 +133,7 @@ export default {
       }));
     },
     natOutgoingDisabled() {
-      // disabled NAT Outgoing option when the subnet belongs to ovn-cluster VPC and its name is join or ovn-default.
+      // Disable the NAT Outgoing option when the subnet belongs to the ovn-cluster VPC and its name is join or ovn-default.
       return this.value?.spec?.vpc === 'ovn-cluster' && ['join', 'ovn-default'].includes(this.value?.metadata?.name);
     }
   },
