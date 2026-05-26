@@ -1158,7 +1158,7 @@ harvester:
       tooltip: Enable DHCP server for this subnet. When enabled, VMs can automatically obtain IP addresses from this subnet.
     externalConnectivity:
       label: NAT Outgoing
-      tooltip: Enable NAT to allow external connectivity for VMs using this subnet to access external networks.
+      tooltip: Enable NAT for VMs using this subnet to access external networks.
     private:
       label: Private Subnet
       tooltip: Enable network isolation for this Subnet. When enabled, VMs can only communicate within this subnet, even if other subnets exist under the same VPC.
