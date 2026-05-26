@@ -1914,6 +1914,8 @@ harvester:
 
   migconfiguration:
     label: vGPU MIG Configurations
+    status:
+      outOfSync: Out of Sync
     infoBanner: To configure the MIG configuration, please disable it first and re-enable after editing the configuration.
     profileSpec: Profile Specs
     profileStatus: Profile Status
