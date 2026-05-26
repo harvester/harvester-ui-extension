@@ -43,18 +43,20 @@ export default {
   created() {
     const vpc = this.$route.query.vpc || '';
     const enableDHCP = this.value?.spec?.enableDHCP || false;
+    const natOutgoing = this.value?.spec?.natOutgoing || false;
 
     set(this.value.spec, 'enableDHCP', enableDHCP);
     set(this.value, 'spec', this.value.spec || {
-      cidrBlock:  '',
-      protocol:   NETWORK_PROTOCOL.IPv4,
-      provider:   '',
+      cidrBlock:    '',
+      protocol:     NETWORK_PROTOCOL.IPv4,
+      provider:     '',
       vpc,
-      gatewayIP:  '',
-      excludeIps: [],
-      private:    false,
+      gateway:      '',
+      excludeIps:   [],
+      private:      false,
       enableDHCP,
-      acls:       []
+      natOutgoing,
+      acls:         []
     });
   },
 
@@ -129,6 +131,10 @@ export default {
         label: n.id,
         value: n.id,
       }));
+    },
+    natOutgoingDisabled() {
+      // Disable the NAT Outgoing option when the subnet belongs to the ovn-cluster VPC and its name is join or ovn-default.
+      return this.value?.spec?.vpc === 'ovn-cluster' && ['join', 'ovn-default'].includes(this.value?.metadata?.name);
     }
   },
 
@@ -302,6 +308,20 @@ export default {
                 :raw="true"
               />
             </Banner>
+          </div>
+        </div>
+        <div class="row mt-20">
+          <div class="col span-6">
+            <RadioGroup
+              v-model:value="value.spec.natOutgoing"
+              name="enableExternalConnectivity"
+              :disabled="natOutgoingDisabled"
+              :options="[true, false]"
+              :label="t('harvester.subnet.externalConnectivity.label')"
+              :labels="[t('generic.enabled'), t('generic.disabled')]"
+              :mode="mode"
+              :tooltip="t('harvester.subnet.externalConnectivity.tooltip')"
+            />
           </div>
         </div>
         <div class="row mt-20">
