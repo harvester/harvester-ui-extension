@@ -907,14 +907,22 @@ export default {
       const specInterfaces = this.spec?.template?.spec?.domain?.devices?.interfaces;
       const mergedInterfaces = this.mergeInterfaceList(specInterfaces, interfaces);
 
+      const devices = {
+        ...this.spec.template.spec.domain.devices,
+        interfaces: mergedInterfaces,
+      };
+
+      if (this.isEdit && networkRow.length === 0) {
+        devices.autoattachPodInterface = false;
+      } else {
+        delete devices.autoattachPodInterface;
+      }
+
       const spec = {
         ...this.spec.template.spec,
         domain: {
           ...this.spec.template.spec.domain,
-          devices: {
-            ...this.spec.template.spec.domain.devices,
-            interfaces: mergedInterfaces,
-          },
+          devices,
         },
         networks
       };

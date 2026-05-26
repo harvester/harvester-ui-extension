@@ -5,7 +5,7 @@ import { sortBy } from '@shell/utils/sort';
 import { clone } from '@shell/utils/object';
 import { randomStr } from '@shell/utils/string';
 import { removeObject } from '@shell/utils/array';
-import { _VIEW } from '@shell/config/query-params';
+import { _VIEW, _EDIT } from '@shell/config/query-params';
 import { HCI as HCI_ANNOTATIONS } from '../../../config/labels-annotations';
 import Base from './base';
 
@@ -51,6 +51,9 @@ export default {
   },
 
   computed: {
+    isEdit() {
+      return this.mode === _EDIT;
+    },
     isView() {
       return this.mode === _VIEW;
     },
