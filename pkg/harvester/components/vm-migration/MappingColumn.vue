@@ -140,7 +140,7 @@ const selectOptions = computed(() => {
 
     .source-name {
       font-weight: 600;
-      font-size: 16px;
+      font-size: 14px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
