@@ -14,9 +14,9 @@
     "@vue-flow/minimap": "^1.4.0",
     "cache-loader": "^4.1.0",
     "color": "4.2.3",
-    "elkjs": "^0.11.0",
     "ip": "2.0.1",
     "node-polyfill-webpack-plugin": "^3.0.0",
+    "elkjs": "^0.11.0",
     "vue-draggable-next": "^2.2.1",
     "yaml": "^2.5.1"
   },
@@ -53,9 +53,9 @@
     "agents:generate": "./scripts/generate-agent-and-persona-mds.sh"
   },
   "devDependencies": {
+    "@commitlint/load": "^19.8.1",
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
-    "@commitlint/load": "^19.8.1",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^7.1.0",
     "husky": "^9.1.7"
