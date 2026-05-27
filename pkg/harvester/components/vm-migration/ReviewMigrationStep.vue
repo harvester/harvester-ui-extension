@@ -338,7 +338,7 @@ defineExpose({ startMigration: startMigrationAction });
             <template #item-card-content>
               <div class="vm-card-content">
                 <div class="vm-card-specs">
-                  <span class="vm-os text-muted">{{ vm.os }}</span>
+                  <span class="vm-os text-deemphasized">{{ vm.os }}</span>
                   <span class="vm-resources">
                     <i class="icon icon-disk" />
                     {{ vm.cpus }} vCPU &bull; {{ vm.memGB }} &bull; {{ vm.diskDisplay }}

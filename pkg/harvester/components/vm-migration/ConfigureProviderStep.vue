@@ -518,7 +518,7 @@ defineExpose({ testConnection, clickTestButton });
 
 <template>
   <div class="configure-provider-step">
-    <p class="text-muted line-height-20">
+    <p class="text-deemphasized line-height-20">
       {{ t('harvester.addons.vmMigration.configureProvider.description') }}
     </p>
 
@@ -567,7 +567,7 @@ defineExpose({ testConnection, clickTestButton });
             :disabled="isExistingProvider && !editMode"
             required
           />
-          <p class="text-muted mt-5">
+          <p class="text-deemphasized mt-5">
             {{ t('harvester.addons.vmMigration.configureProvider.urlHint') }}
           </p>
         </div>
@@ -598,7 +598,7 @@ defineExpose({ testConnection, clickTestButton });
             :label="t('harvester.addons.vmMigration.configureProvider.skipSsl')"
             :disabled="isExistingProvider && !editMode"
           />
-          <p class="text-muted ml-20">
+          <p class="text-deemphasized ml-20">
             {{ t('harvester.addons.vmMigration.configureProvider.skipSslHint') }}
           </p>
         </div>
@@ -669,6 +669,10 @@ defineExpose({ testConnection, clickTestButton });
         flex-direction: column;
         gap: 20px;
       }
+    }
+
+    :deep(.checkbox-label) {
+      color: var(--body-text);
     }
   }
 </style>

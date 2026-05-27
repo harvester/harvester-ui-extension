@@ -2,11 +2,10 @@
 import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import Loading from '@shell/components/Loading';
-import LabeledSelect from '@shell/components/form/LabeledSelect';
-import { RcItemCard } from '@components/RcItemCard';
 import { STORAGE_CLASS, NETWORK_ATTACHMENT } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
 import { HCI } from '../../types';
+import MappingColumn from './MappingColumn.vue';
 
 const props = defineProps({
   providerName:       { type: String, default: '' },
@@ -268,7 +267,7 @@ const formatStorageDetail = (entry) => {
 
 const buildNetworkMapSpec = (providerRef) => {
   return {
-    map: networkEntries.value.map((entry) => {
+    map: networkEntries.value.filter((entry) => !!entry.target).map((entry) => {
       if (entry.target === 'pod') {
         return {
           source:      { name: entry.name, id: entry.id },
@@ -302,7 +301,7 @@ const buildNetworkMapSpec = (providerRef) => {
 
 const buildStorageMapSpec = (providerRef) => {
   return {
-    map: storageEntries.value.map((entry) => ({
+    map: storageEntries.value.filter((entry) => !!entry.target).map((entry) => ({
       source:      { name: entry.name, id: entry.id },
       destination: { storageClass: entry.target },
     })),
@@ -478,16 +477,23 @@ const init = async() => {
     }
   }
 
-  if (props.existingNetworkMap?.spec?.map) {
-    applyNetworkMapTargets(props.existingNetworkMap.spec.map);
-  } else {
-    applyDefaultNetworkMap();
+  const hasExistingNetworkTargets = networkEntries.value.some((e) => !!e.target);
+  const hasExistingStorageTargets = storageEntries.value.some((e) => !!e.target);
+
+  if (!hasExistingNetworkTargets) {
+    if (props.existingNetworkMap?.spec?.map) {
+      applyNetworkMapTargets(props.existingNetworkMap.spec.map);
+    } else {
+      applyDefaultNetworkMap();
+    }
   }
 
-  if (props.existingStorageMap?.spec?.map) {
-    applyStorageMapTargets(props.existingStorageMap.spec.map);
-  } else {
-    applyDefaultStorageMap();
+  if (!hasExistingStorageTargets) {
+    if (props.existingStorageMap?.spec?.map) {
+      applyStorageMapTargets(props.existingStorageMap.spec.map);
+    } else {
+      applyDefaultStorageMap();
+    }
   }
 
   loading.value = false;
@@ -502,114 +508,45 @@ init();
     v-else
     class="configure-mappings"
   >
-    <p class="text-muted line-height-20">
+    <p class="text-deemphasized line-height-20">
       {{ t('harvester.addons.vmMigration.configureMappings.description') }}
     </p>
     <div class="mappings-columns">
-      <!-- Network Mapping -->
-      <div class="mapping-column">
-        <div>
-          <h3 class="mapping-section-title">
-            {{ t('harvester.addons.vmMigration.configureMappings.networkMapping.title') }}
-          </h3>
-          <p class="text-muted line-height-20">
-            {{ t('harvester.addons.vmMigration.configureMappings.networkMapping.description') }}
-          </p>
-        </div>
+      <MappingColumn
+        :title="t('harvester.addons.vmMigration.configureMappings.networkMapping.title')"
+        :description="t('harvester.addons.vmMigration.configureMappings.networkMapping.description')"
+        :entries="networkEntries"
+        :options="harvesterNetworkOptions"
+        :placeholder="t('harvester.addons.vmMigration.configureMappings.networkMapping.placeholder')"
+        :show-used-by="!useAllProviderData"
+        :clearable="useAllProviderData"
+      >
+        <template #source-detail="{ entry }">
+          <span class="source-detail text-deemphasized">VLAN {{ entry.vlanId || '0' }}</span>
+        </template>
+      </MappingColumn>
 
-        <RcItemCard
-          v-for="entry in networkEntries"
-          :id="entry._key"
-          :key="entry._key"
-          :variant="'small'"
-          :header="{}"
-          class="bg-light-gray"
-        >
-          <template #item-card-content>
-            <div class="card-content-column">
-              <div class="card-content-row">
-                <div class="mapping-source">
-                  <span class="source-name">{{ entry.name }}</span>
-                  <span class="source-detail text-muted">VLAN {{ entry.vlanId || '0' }}</span>
-                </div>
-                <div :class="['mapping-arrow', entry.target ? 'text-success' : 'text-muted']">
-                  <i class="icon icon-right-arrow-alt" />
-                </div>
-                <div class="mapping-target">
-                  <LabeledSelect
-                    v-model:value="entry.target"
-                    :options="harvesterNetworkOptions"
-                    :placeholder="t('harvester.addons.vmMigration.configureMappings.networkMapping.placeholder')"
-                    :searchable="true"
-                  />
-                </div>
-              </div>
-              <div v-if="!useAllProviderData && entry.usedBy.length">
-                <span class="used-by">
-                  Used by: <b>{{ entry.usedBy.join(', ') }}</b>
-                </span>
-              </div>
-            </div>
-          </template>
-        </RcItemCard>
-      </div>
-
-      <!-- Storage Mapping -->
-      <div class="mapping-column">
-        <div>
-          <h3 class="mapping-section-title">
-            {{ t('harvester.addons.vmMigration.configureMappings.storageMapping.title') }}
-          </h3>
-          <p class="text-muted">
-            {{ t('harvester.addons.vmMigration.configureMappings.storageMapping.description') }}
-          </p>
-        </div>
-
-        <RcItemCard
-          v-for="entry in storageEntries"
-          :id="entry._key"
-          :key="entry._key"
-          :variant="'small'"
-          :header="{}"
-          class="bg-light-gray"
-        >
-          <template #item-card-content>
-            <div class="card-content-column">
-              <div class="card-content-row">
-                <div class="mapping-source">
-                  <span class="source-name">{{ entry.name }}</span>
-                  <span
-                    v-if="entry.type || entry.capacity"
-                    class="source-detail text-muted"
-                  >{{ formatStorageDetail(entry) }}</span>
-                </div>
-                <div :class="['mapping-arrow', entry.target ? 'text-success' : 'text-muted']">
-                  <i class="icon icon-right-arrow-alt" />
-                </div>
-                <div class="mapping-target">
-                  <LabeledSelect
-                    v-model:value="entry.target"
-                    :options="storageClassOptions"
-                    :placeholder="t('harvester.addons.vmMigration.configureMappings.storageMapping.placeholder')"
-                    :searchable="true"
-                  />
-                </div>
-              </div>
-              <div v-if="!useAllProviderData && entry.usedBy.length">
-                <span class="used-by">
-                  Used by: <b>{{ entry.usedBy.join(', ') }}</b>
-                </span>
-              </div>
-            </div>
-          </template>
-        </RcItemCard>
-      </div>
+      <MappingColumn
+        :title="t('harvester.addons.vmMigration.configureMappings.storageMapping.title')"
+        :description="t('harvester.addons.vmMigration.configureMappings.storageMapping.description')"
+        :entries="storageEntries"
+        :options="storageClassOptions"
+        :placeholder="t('harvester.addons.vmMigration.configureMappings.storageMapping.placeholder')"
+        :show-used-by="!useAllProviderData"
+        :clearable="useAllProviderData"
+      >
+        <template #source-detail="{ entry }">
+          <span
+            v-if="entry.type || entry.capacity"
+            class="source-detail text-deemphasized"
+          >{{ formatStorageDetail(entry) }}</span>
+        </template>
+      </MappingColumn>
     </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
-
   .mappings-columns {
     display: flex;
     flex-direction: column;
@@ -629,85 +566,6 @@ init();
     }
   }
 
-  .mapping-column {
-    display: flex;
-    gap: 12px;
-    flex-direction: column;
-
-    :deep(.item-card-header) {
-      display: none;
-    }
-  }
-
-  .mapping-section-title {
-    font-weight: 600;
-    margin: 0 0 5px 0;
-    line-height: 28px;
-  }
-
-  .card-content-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    width: 100%;
-  }
-
-  .card-content-column {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    width: 100%;
-  }
-
-  .mapping-source {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-width: 100px;
-    font-size: 14px;
-    line-height: 20px;
-
-    .source-name {
-      font-weight: 600;
-      font-size: 16px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .source-detail {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .used-by {
-      margin-top: 4px;
-      font-size: 14px;
-      line-height: 24px;
-    }
-  }
-
-  .mapping-arrow {
-    font-size: 22px;
-    flex-shrink: 0;
-  }
-
-  .mapping-target {
-    flex: 3;
-    min-width: 0;
-    overflow: hidden;
-  }
-
-  .line-height-20 {
-    line-height: 20px;
-  }
-
-  .bg-light-gray {
-    background-color: var(--category-active) !important;
-    border: 0;
-  }
-
   .configure-mappings {
     display: flex;
     flex-direction: column;
@@ -718,4 +576,9 @@ init();
     }
   }
 
+  .source-detail {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 </style>
