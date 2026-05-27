@@ -1810,10 +1810,11 @@ harvester:
         description: Map VMware networks and datastores to Harvester and Longhorn target resources
         save: Save Mappings and Continue
         noTemplate: Start from scratch
+        removeMap: Remove Map
         networkMapping:
           title: Network Mapping
           description: Map VMware port groups to Harvester networks
-          placeholder: Choose a Harvester network...
+          placeholder: Choose a Harvester network
           template: Use existing network mapping as template
         storageMapping:
           title: Storage Mapping

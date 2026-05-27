@@ -357,6 +357,8 @@ const refreshVMs = async() => {
   emit('complete', { selectedVMs: selectedVMs.value });
   refreshing.value = false;
 
+  await nextTick();
+
   const table = sortableTableRef.value;
 
   if (table) {
@@ -366,6 +368,8 @@ const refreshVMs = async() => {
       table.update(rowsToReselect, []);
     }
   }
+
+  skipNextSelectionEvent = false;
 };
 
 const init = async() => {
@@ -403,7 +407,7 @@ init();
     v-else
     class="select-vms-step"
   >
-    <p class="text-muted line-height-20">
+    <p class="text-deemphasized line-height-20">
       {{ t('harvester.addons.vmMigration.selectVms.discovered', { count: vmCount }) }}
       <router-link
         v-if="provider"
@@ -446,18 +450,18 @@ init();
           <h3 class="m-0">
             {{ t('harvester.addons.vmMigration.selectVms.availableVms') }}
           </h3>
-          <span class="text-muted">{{ selectedCount }} {{ t('harvester.addons.vmMigration.selectVms.selected') }}</span>
+          <span class="text-deemphasized">{{ selectedCount }} {{ t('harvester.addons.vmMigration.selectVms.selected') }}</span>
         </div>
       </template>
       <template #cell:vmName="{ row }">
         <div class="vm-name-cell">
           <span class="vm-name">{{ row.vmName }}</span>
-          <span class="vm-id text-muted">{{ row.vmId }}</span>
+          <span class="vm-id text-deemphasized">{{ row.vmId }}</span>
         </div>
       </template>
       <template #cell:resources="{ row }">
         <span>{{ row.resourcesDisplay }}</span><br>
-        <span class="text-muted">{{ row.resourcesSub }}</span>
+        <span class="text-deemphasized">{{ row.resourcesSub }}</span>
       </template>
       <template #cell:powerState="{ row }">
         <BadgeState
@@ -473,7 +477,7 @@ init();
             :class="{ 'mt-4': i > 0 }"
           >
             <span>{{ net.name }}</span><br>
-            <span class="text-muted">{{ net.id }}</span>
+            <span class="text-deemphasized">{{ net.id }}</span>
           </div>
         </div>
       </template>
@@ -485,7 +489,7 @@ init();
             :class="{ 'mt-4': i > 0 }"
           >
             <span>{{ ds.name }}</span><br>
-            <span class="text-muted">{{ ds.id }}</span>
+            <span class="text-deemphasized">{{ ds.id }}</span>
           </div>
         </div>
       </template>
@@ -531,7 +535,7 @@ init();
       font-weight: 600;
     }
 
-    .text-muted {
+    .text-deemphasized {
       font-size: 13px;
     }
   }

@@ -132,29 +132,29 @@ export default class ForkliftPlan extends HarvesterResource {
   }
 
   get _availableActions() {
+    const canStop = this.isMigrating && !this.planCanceled;
+    const canStart = !this.planSucceeded && (!this.isMigrating || this.planFailed || this.planCanceled || this.planCritical);
+    const out = [];
+
+    if (canStart) {
+      out.push({
+        action:  'startMigration',
+        enabled: true,
+        icon:    'icon icon-play',
+        label:   this.isForkliftDashboard ? 'Restart' : 'Start',
+      });
+    }
+
+    if (canStop) {
+      out.push({
+        action:  'stopMigration',
+        enabled: true,
+        icon:    'icon icon-pause',
+        label:   'Stop',
+      });
+    }
+
     if (this.isForkliftDashboard) {
-      const canStop = this.isMigrating && !this.planCanceled;
-      const canStart = !this.planSucceeded && (!this.isMigrating || this.planFailed || this.planCanceled || this.planCritical);
-      const out = [];
-
-      if (canStart) {
-        out.push({
-          action:  'startMigration',
-          enabled: true,
-          icon:    'icon icon-play',
-          label:   'Start',
-        });
-      }
-
-      if (canStop) {
-        out.push({
-          action:  'stopMigration',
-          enabled: true,
-          icon:    'icon icon-pause',
-          label:   'Stop',
-        });
-      }
-
       out.push({
         action:     'promptRemove',
         altAction:  'remove',
@@ -167,9 +167,11 @@ export default class ForkliftPlan extends HarvesterResource {
       });
 
       return out;
-    }
+    } else {
+      out.push(...super._availableActions);
 
-    return super._availableActions;
+      return out;
+    }
   }
 
   async stopMigration() {
