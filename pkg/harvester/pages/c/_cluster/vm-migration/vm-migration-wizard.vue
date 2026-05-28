@@ -15,14 +15,11 @@ const { t } = useI18n(store);
 
 const cruRef = ref(null);
 const providerStepRef = ref(null);
-const mappingsStepRef = ref(null);
 const reviewStepRef = ref(null);
 
 const providerName = ref('');
 const provider = ref(null);
 const selectedVMs = ref([]);
-const networkMapName = ref('');
-const storageMapName = ref('');
 const errors = ref([]);
 
 const providerReady = ref(false);
@@ -263,7 +260,6 @@ const onCancel = () => {
     </template>
     <template #configure-mappings>
       <ConfigureMappingsStep
-        ref="mappingsStepRef"
         :provider-name="providerName"
         :provider="provider"
         :selected-vms="selectedVMs"
@@ -277,8 +273,6 @@ const onCancel = () => {
         :provider-name="providerName"
         :provider="provider"
         :selected-vms="selectedVMs"
-        :network-map-name="networkMapName"
-        :storage-map-name="storageMapName"
         :mapping-entries="stepData.mappings"
         :step-data="stepData.review"
         @ready="onReviewReady"
