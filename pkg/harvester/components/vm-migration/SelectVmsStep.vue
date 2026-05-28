@@ -41,14 +41,14 @@ const formatElapsed = (ms) => {
   const minutes = totalMinutes % 60;
 
   if (hours > 0 && minutes > 0) {
-    return `${ hours } ${ hours === 1 ? 'hour' : 'hours' } and ${ minutes } ${ minutes === 1 ? 'minute' : 'minutes' }`;
+    return t('harvester.addons.vmMigration.generic.elapsed.hoursAndMinutes', { hours, minutes });
   }
 
   if (hours > 0) {
-    return `${ hours } ${ hours === 1 ? 'hour' : 'hours' }`;
+    return t('harvester.addons.vmMigration.generic.elapsed.hours', { hours });
   }
 
-  return `${ Math.max(1, minutes) } ${ minutes <= 1 ? 'minute' : 'minutes' }`;
+  return t('harvester.addons.vmMigration.generic.elapsed.minutes', { minutes: Math.max(1, minutes) });
 };
 
 const lastSyncedTime = computed(() => {
@@ -158,7 +158,7 @@ const buildTableRows = () => {
   return discoveredVMs.value.map((vm) => {
     const cpus = vm.cpuCount || vm.numCPU || '-';
     const memMB = vm.memoryMB || vm.memory || 0;
-    const memGB = memMB ? `${ Math.round(memMB / 1024) } GB` : '-';
+    const memGB = memMB ? t('harvester.addons.vmMigration.generic.memoryGb', { value: Math.round(memMB / 1024) }) : '-';
 
     let totalDiskBytes = 0;
 
@@ -166,7 +166,7 @@ const buildTableRows = () => {
       totalDiskBytes = vm.disks.reduce((sum, d) => sum + (d.capacity || 0), 0);
     }
 
-    const diskDisplay = totalDiskBytes ? `${ Math.round(totalDiskBytes / (1024 * 1024 * 1024)) } GB` : '-';
+    const diskDisplay = totalDiskBytes ? t('harvester.addons.vmMigration.generic.memoryGb', { value: Math.round(totalDiskBytes / (1024 * 1024 * 1024)) }) : '-';
     const rawPowerState = vm.powerState || vm.status?.phase || '-';
     const powerState = rawPowerState.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
 
@@ -206,7 +206,7 @@ const buildTableRows = () => {
       vmName:           vm.name || vm.metadata?.name || '-',
       vmId:             vm.id || vm.vmId || vm.metadata?.name || '-',
       os:               vm.guestName || vm.guestOS || vm.os || '-',
-      resourcesDisplay: `${ cpus } vCPU`,
+      resourcesDisplay: t('harvester.addons.vmMigration.generic.vCpu', { count: cpus }),
       resourcesSub:     `${ memGB } • ${ diskDisplay }`,
       powerState,
       powerStateClass:  powerState.toLowerCase().includes('on') || powerState.toLowerCase().includes('running') ? 'power-on' : 'power-off',

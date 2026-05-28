@@ -66,7 +66,7 @@ const vmCards = computed(() => {
   return vms.value.map((vm) => {
     const cpus = vm.cpuCount || vm.numCPU || 0;
     const memMB = vm.memoryMB || vm.memory || 0;
-    const memGB = memMB ? `${ Math.round(memMB / 1024) } GB` : '-';
+    const memGB = memMB ? t('harvester.addons.vmMigration.generic.memoryGb', { value: Math.round(memMB / 1024) }) : '-';
 
     let totalDiskBytes = 0;
 
@@ -74,7 +74,7 @@ const vmCards = computed(() => {
       totalDiskBytes = vm.disks.reduce((sum, d) => sum + (d.capacity || 0), 0);
     }
 
-    const diskDisplay = totalDiskBytes ? `${ Math.round(totalDiskBytes / (1024 * 1024 * 1024)) } GB` : '-';
+    const diskDisplay = totalDiskBytes ? t('harvester.addons.vmMigration.generic.memoryGb', { value: Math.round(totalDiskBytes / (1024 * 1024 * 1024)) }) : '-';
     const os = vm.guestName || vm.guestOS || vm.os || '-';
 
     const vmNetworkMappings = networkMappings.value.filter((m) => m.usedBy && m.usedBy.includes(vm.name || vm.id));
@@ -301,11 +301,11 @@ defineExpose({ startMigration: startMigrationAction });
             </div>
             <div class="detail-item">
               <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.memory') }}</span>
-              <span class="detail-value">{{ totalMemoryGB }} GB</span>
+              <span class="detail-value">{{ t('harvester.addons.vmMigration.generic.memoryGb', { value: totalMemoryGB }) }}</span>
             </div>
             <div class="detail-item">
               <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.storage') }}</span>
-              <span class="detail-value">{{ totalStorageGB }} GB</span>
+              <span class="detail-value">{{ t('harvester.addons.vmMigration.generic.memoryGb', { value: totalStorageGB }) }}</span>
             </div>
           </div>
           <div class="detail-column grid-column-2">
@@ -344,7 +344,7 @@ defineExpose({ startMigration: startMigrationAction });
                       class="icon icon-disk"
                       aria-hidden="true"
                     />
-                    {{ vm.cpus }} vCPU &bull; {{ vm.memGB }} &bull; {{ vm.diskDisplay }}
+                    {{ t('harvester.addons.vmMigration.generic.vCpu', { count: vm.cpus }) }} &bull; {{ vm.memGB }} &bull; {{ vm.diskDisplay }}
                   </span>
                 </div>
                 <MappingsCell

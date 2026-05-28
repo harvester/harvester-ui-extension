@@ -1717,6 +1717,15 @@ harvester:
         unknown: Unknown
         identifier: Identifier
         podNetwork: Pod Network
+        usedBy: "Used by:"
+        vlan: "VLAN {id}"
+        vCpu: "{count} vCPU"
+        memoryGb: "{value} GB"
+        memoryTb: "{value} TB"
+        elapsed:
+          hoursAndMinutes: "{hours} {hours, plural, one {hour} other {hours}} and {minutes} {minutes, plural, one {minute} other {minutes}}"
+          hours: "{hours} {hours, plural, one {hour} other {hours}}"
+          minutes: "{minutes} {minutes, plural, one {minute} other {minutes}}"
       errors:
         failedLoadVms: Failed to load virtual machines
         failedRefreshVms: Failed to refresh virtual machines
