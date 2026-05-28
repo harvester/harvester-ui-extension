@@ -5,6 +5,7 @@ import {
 import { useStore } from 'vuex';
 import Loading from '@shell/components/Loading';
 import SortableTable from '@shell/components/SortableTable';
+import { Banner } from '@components/Banner';
 import { BadgeState } from '@components/BadgeState';
 import { useI18n } from '@shell/composables/useI18n';
 
@@ -28,6 +29,7 @@ const datastoreMap = ref({});
 const sortableTableRef = ref(null);
 const allVMsSelected = ref(false);
 const selectedVMIds = ref(new Set());
+const errors = ref([]);
 let skipNextSelectionEvent = false;
 
 const lastFetchedAt = ref(null);
@@ -81,13 +83,13 @@ if (props.stepData.tableRows.length > 0) {
 // Sync back to stepData
 watch(discoveredVMs, (val) => {
   props.stepData.discoveredVMs = val;
-}, { deep: true });
+});
 watch(selectedVMIds, (val) => {
   props.stepData.selectedVMIds = val;
-}, { deep: true });
+});
 watch(tableRows, (val) => {
   props.stepData.tableRows = val;
-}, { deep: true });
+});
 
 const vmCount = computed(() => discoveredVMs.value.length);
 const selectedCount = computed(() => selectedVMs.value.length);
@@ -116,7 +118,7 @@ const headers = [
     labelKey: 'harvester.addons.vmMigration.selectVms.columns.vmName',
     value:    'vmName',
     sort:     ['vmName'],
-    subLabel: 'Identifier',
+    subLabel: t('harvester.addons.vmMigration.generic.identifier'),
   },
   {
     name:     'os',
@@ -141,14 +143,14 @@ const headers = [
     labelKey: 'harvester.addons.vmMigration.selectVms.columns.network',
     value:    'network',
     sort:     ['network'],
-    subLabel: 'Identifier',
+    subLabel: t('harvester.addons.vmMigration.generic.identifier'),
   },
   {
     name:     'datastore',
     labelKey: 'harvester.addons.vmMigration.selectVms.columns.datastore',
     value:    'datastore',
     sort:     ['datastore'],
-    subLabel: 'Identifier',
+    subLabel: t('harvester.addons.vmMigration.generic.identifier'),
   },
 ];
 
@@ -337,10 +339,12 @@ const refreshVMs = async() => {
   const previousSelectedIds = new Set(selectedVMIds.value);
 
   try {
+    errors.value = [];
     await fetchVMs();
   } catch (e) {
     discoveredVMs.value = [];
     tableRows.value = [];
+    errors.value = [e?.message || t('harvester.addons.vmMigration.errors.failedRefreshVms')];
   }
 
   selectedVMIds.value = new Set(
@@ -387,6 +391,7 @@ const init = async() => {
     await fetchVMs();
   } catch (e) {
     discoveredVMs.value = [];
+    errors.value = [e?.message || t('harvester.addons.vmMigration.errors.failedLoadVms')];
   }
 
   loading.value = false;
@@ -407,6 +412,12 @@ init();
     v-else
     class="select-vms-step"
   >
+    <Banner
+      v-for="(err, i) in errors"
+      :key="i"
+      color="error"
+      :label="err"
+    />
     <p class="text-deemphasized line-height-20">
       {{ t('harvester.addons.vmMigration.selectVms.discovered', { count: vmCount }) }}
       <router-link

@@ -2,9 +2,12 @@
 import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import Loading from '@shell/components/Loading';
+import { Banner } from '@components/Banner';
 import { STORAGE_CLASS, NETWORK_ATTACHMENT } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
+import { randomStr } from '@shell/utils/string';
 import { HCI } from '../../types';
+import { FORKLIFT_NAMESPACE } from '../../config/harvester-map';
 import MappingColumn from './MappingColumn.vue';
 
 const props = defineProps({
@@ -29,6 +32,7 @@ const networkEntries = ref([]);
 const storageEntries = ref([]);
 const allNetworkMaps = ref([]);
 const allStorageMaps = ref([]);
+const errors = ref([]);
 const loading = ref(true);
 
 // Restore from stepData
@@ -39,12 +43,12 @@ if (props.stepData.storageEntries.length > 0) {
   storageEntries.value = props.stepData.storageEntries;
 }
 
-const NAMESPACE = 'forklift';
+const NAMESPACE = FORKLIFT_NAMESPACE;
 
 const harvesterNetworkOptions = computed(() => {
   const options = [
-    { label: 'Pod Networking', value: 'pod' },
-    { label: 'Ignored', value: 'ignored' },
+    { label: t('harvester.addons.vmMigration.configureMappings.networkMapping.options.podNetworking'), value: 'pod' },
+    { label: t('harvester.addons.vmMigration.configureMappings.networkMapping.options.ignored'), value: 'ignored' },
   ];
 
   harvesterNetworks.value.forEach((net) => {
@@ -167,7 +171,7 @@ const buildNetworkEntries = () => {
 
         if (!networkMap[netKey]) {
           networkMap[netKey] = {
-            name:   net.name || 'Unknown',
+            name:   net.name || t('harvester.addons.vmMigration.generic.unknown'),
             id:     net.id || '',
             vlanId: net.vlanId || '',
             target: '',
@@ -199,7 +203,7 @@ const buildStorageEntries = () => {
         if (ds && ds.id) {
           if (!datastoreMap[ds.id]) {
             datastoreMap[ds.id] = {
-              name:     ds.name || 'Unknown',
+              name:     ds.name || t('harvester.addons.vmMigration.generic.unknown'),
               id:       ds.id,
               type:     ds.type || '',
               capacity: 0,
@@ -352,7 +356,7 @@ const saveAndReturn = async() => {
   const networkMap = await store.dispatch(`${ inStore }/create`, {
     type:     HCI.FORKLIFT_NETWORK_MAP,
     metadata: {
-      name:            `${ props.providerName }-network-map-${ props.useAllProviderData ? 'default' : Math.random().toString(36).substring(2, 7) }`,
+      name:            `${ props.providerName }-network-map-${ props.useAllProviderData ? 'default' : randomStr(5).toLowerCase() }`,
       namespace:       NAMESPACE,
       ownerReferences: providerOwnerRef,
     },
@@ -364,7 +368,7 @@ const saveAndReturn = async() => {
   const storageMap = await store.dispatch(`${ inStore }/create`, {
     type:     HCI.FORKLIFT_STORAGE_MAP,
     metadata: {
-      name:            `${ props.providerName }-storage-map-${ props.useAllProviderData ? 'default' : Math.random().toString(36).substring(2, 7) }`,
+      name:            `${ props.providerName }-storage-map-${ props.useAllProviderData ? 'default' : randomStr(5).toLowerCase() }`,
       namespace:       NAMESPACE,
       ownerReferences: providerOwnerRef,
     },
@@ -473,7 +477,7 @@ const init = async() => {
         }
       }
     } catch (e) {
-      // Data resolution failed — entries will use IDs as fallback
+      errors.value = [e?.message || t('harvester.addons.vmMigration.errors.failedResolveDetails')];
     }
   }
 
@@ -508,6 +512,12 @@ init();
     v-else
     class="configure-mappings"
   >
+    <Banner
+      v-for="(err, i) in errors"
+      :key="i"
+      color="error"
+      :label="err"
+    />
     <p class="text-deemphasized line-height-20">
       {{ t('harvester.addons.vmMigration.configureMappings.description') }}
     </p>

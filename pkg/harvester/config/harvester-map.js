@@ -94,6 +94,7 @@ export const CSI_SECRETS = {
 };
 
 export const FORKLIFT_API_VERSION = 'forklift.konveyor.io/v1beta1';
+export const FORKLIFT_NAMESPACE = 'forklift';
 
 // Some harvester CRD type is not equal to model file name, define the mapping here
 export const HARVESTER_CRD_MAP = {

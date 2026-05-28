@@ -77,7 +77,10 @@ const selectOptions = computed(() => {
               />
             </div>
             <div :class="['mapping-arrow', entry.target ? 'text-success' : 'text-deemphasized']">
-              <i class="icon icon-right-arrow-alt" />
+              <i
+                class="icon icon-right-arrow-alt"
+                aria-hidden="true"
+              />
             </div>
             <div class="mapping-target">
               <LabeledSelect

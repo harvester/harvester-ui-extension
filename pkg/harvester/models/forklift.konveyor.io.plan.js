@@ -1,6 +1,7 @@
 import HarvesterResource from './harvester';
 import { HCI } from '../types';
 import { PRODUCT_NAME } from '../config/harvester';
+import { randomStr } from '@shell/utils/string';
 
 export default class ForkliftPlan extends HarvesterResource {
   get listLocation() {
@@ -87,22 +88,22 @@ export default class ForkliftPlan extends HarvesterResource {
 
   get stateDisplay() {
     if (this.planFailed) {
-      return 'Error';
+      return this.t('harvester.addons.vmMigration.plan.states.error');
     }
 
     if (this.planCritical) {
-      return 'Error';
+      return this.t('harvester.addons.vmMigration.plan.states.error');
     }
 
     if (this.planCanceled) {
-      return 'Canceled';
+      return this.t('harvester.addons.vmMigration.plan.states.canceled');
     }
 
     if (this.isMigrating) {
-      return 'In Progress';
+      return this.t('harvester.addons.vmMigration.plan.states.inProgress');
     }
 
-    return 'Active';
+    return this.t('harvester.addons.vmMigration.plan.states.active');
   }
 
   get stateBackground() {
@@ -141,7 +142,7 @@ export default class ForkliftPlan extends HarvesterResource {
         action:  'startMigration',
         enabled: true,
         icon:    'icon icon-play',
-        label:   this.isForkliftDashboard ? 'Restart' : 'Start',
+        label:   this.isForkliftDashboard ? this.t('harvester.addons.vmMigration.plan.actions.restart') : this.t('harvester.addons.vmMigration.plan.actions.start'),
       });
     }
 
@@ -150,7 +151,7 @@ export default class ForkliftPlan extends HarvesterResource {
         action:  'stopMigration',
         enabled: true,
         icon:    'icon icon-pause',
-        label:   'Stop',
+        label:   this.t('harvester.addons.vmMigration.plan.actions.stop'),
       });
     }
 
@@ -215,7 +216,7 @@ export default class ForkliftPlan extends HarvesterResource {
     const migration = await this.$dispatch('create', {
       type:     HCI.FORKLIFT_MIGRATION,
       metadata: {
-        name:            `${ this.metadata.name }-migration-${ Math.random().toString(36).substring(2, 7) }`,
+        name:            `${ this.metadata.name }-migration-${ randomStr(5).toLowerCase() }`,
         namespace,
         ownerReferences: [
           {
@@ -252,7 +253,7 @@ export default class ForkliftPlan extends HarvesterResource {
   remove() {
     const opt = { ...arguments };
 
-    opt.params = { propagationPolicy: 'Background' };
+    opt.params = { propagationPolicy: 'Foreground' };
 
     return this._remove(opt);
   }

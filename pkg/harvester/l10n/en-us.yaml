@@ -1813,6 +1813,18 @@ harvester:
       'descheduler': 'The virtual machine auto balance optimizes workload scheduling by evicting pods that are not optimally placed according to administrator-defined policies.'
 
     vmMigration:
+      generic:
+        unknown: Unknown
+        identifier: Identifier
+        podNetwork: Pod Network
+      errors:
+        failedLoadVms: Failed to load virtual machines
+        failedRefreshVms: Failed to refresh virtual machines
+        failedLoadProviders: Failed to load providers
+        failedResolveDetails: Failed to resolve network and datastore details
+        failedDecodeCredentials: Failed to decode provider credentials
+        connectionFailed: Connection failed
+        providerNotReady: Provider not ready
       labels:
         dashboard: Migrations
         provider: Providers
@@ -1905,6 +1917,10 @@ harvester:
           plan: Migration Plan
           progress: Progress
           mappings: Mappings
+        progress:
+          failed: Failed
+          migration: Migration
+          initializingMigration: Initializing migration
       configureMappings:
         title: Set Mappings
         description: Map VMware networks and datastores to Harvester and Longhorn target resources
@@ -1916,6 +1932,9 @@ harvester:
           description: Map VMware port groups to Harvester networks
           placeholder: Choose a Harvester network
           template: Use existing network mapping as template
+          options:
+            podNetworking: Pod Networking
+            ignored: Ignored
         storageMapping:
           title: Storage Mapping
           description: Map VMware datastores to Harvester storage classes
@@ -1939,6 +1958,16 @@ harvester:
         warningTitle: "Cold Migration Warning"
         warningMessage: "All source VMs will be powered off, and downtime will occur during migration. Plan your maintenance window accordingly and notify relevant stakeholders"
         startMigration: Start Migration Plan
+      plan:
+        states:
+          error: Error
+          canceled: Canceled
+          inProgress: In Progress
+          active: Active
+        actions:
+          start: Start
+          restart: Restart
+          stop: Stop
 
     vmImport:
       titles:

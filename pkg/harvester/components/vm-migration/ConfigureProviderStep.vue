@@ -11,6 +11,7 @@ import { SECRET } from '@shell/config/types';
 import { randomStr } from '@shell/utils/string';
 import { useI18n } from '@shell/composables/useI18n';
 import { HCI } from '../../types';
+import { FORKLIFT_NAMESPACE } from '../../config/harvester-map';
 
 const CREATE_NEW = '__create_new__';
 
@@ -143,7 +144,7 @@ watch(selectedProvider, (val) => {
     createdSecret.value = null;
   } else {
     const provider = allProviders.value.find(
-      (p) => p.metadata.name === val && p.metadata.namespace === 'forklift'
+      (p) => p.metadata.name === val && p.metadata.namespace === FORKLIFT_NAMESPACE
     );
 
     if (provider) {
@@ -212,7 +213,7 @@ const testConnection = async(buttonCb) => {
   // Edit mode: update existing provider URL + secret, then poll
   if (props.editMode && createdProvider.value) {
     try {
-      const namespace = 'forklift';
+      const namespace = FORKLIFT_NAMESPACE;
 
       createdProvider.value.spec.url = url.value;
       await createdProvider.value.save();
@@ -253,7 +254,7 @@ const testConnection = async(buttonCb) => {
             connected = true;
             break;
           } else {
-            errorMsg = connectionCondition.message || 'Connection failed';
+            errorMsg = connectionCondition.message || t('harvester.addons.vmMigration.errors.connectionFailed');
             break;
           }
         }
@@ -263,7 +264,7 @@ const testConnection = async(buttonCb) => {
             connected = true;
             break;
           } else if (readyCondition.status === 'False') {
-            errorMsg = readyCondition.message || 'Provider not ready';
+            errorMsg = readyCondition.message || t('harvester.addons.vmMigration.errors.providerNotReady');
             break;
           }
         }
@@ -291,7 +292,7 @@ const testConnection = async(buttonCb) => {
   // For existing providers, just poll for Ready/ConnectionTestSucceeded status
   if (isExistingProvider.value) {
     try {
-      const namespace = 'forklift';
+      const namespace = FORKLIFT_NAMESPACE;
       const maxAttempts = 15;
       let attempts = 0;
       let connected = false;
@@ -316,7 +317,7 @@ const testConnection = async(buttonCb) => {
             connected = true;
             break;
           } else {
-            errorMsg = connectionCondition.message || 'Connection failed';
+            errorMsg = connectionCondition.message || t('harvester.addons.vmMigration.errors.connectionFailed');
             break;
           }
         }
@@ -326,7 +327,7 @@ const testConnection = async(buttonCb) => {
             connected = true;
             break;
           } else if (readyCondition.status === 'False') {
-            errorMsg = readyCondition.message || 'Provider not ready';
+            errorMsg = readyCondition.message || t('harvester.addons.vmMigration.errors.providerNotReady');
             break;
           }
         }
@@ -363,7 +364,7 @@ const testConnection = async(buttonCb) => {
       createdSecret.value = null;
     }
 
-    const namespace = 'forklift';
+    const namespace = FORKLIFT_NAMESPACE;
     const secretName = `${ providerName.value }-creds-${ randomStr(4).toLowerCase() }`;
 
     // Create Provider first so we have its UID for the ownerReference on the Secret
@@ -440,7 +441,7 @@ const testConnection = async(buttonCb) => {
           connected = true;
           break;
         } else {
-          errorMsg = connectionCondition.message || 'Connection failed';
+          errorMsg = connectionCondition.message || t('harvester.addons.vmMigration.errors.connectionFailed');
           break;
         }
       }
@@ -450,7 +451,7 @@ const testConnection = async(buttonCb) => {
           connected = true;
           break;
         } else if (readyCondition.status === 'False') {
-          errorMsg = readyCondition.message || 'Provider not ready';
+          errorMsg = readyCondition.message || t('harvester.addons.vmMigration.errors.providerNotReady');
           break;
         }
       }
@@ -498,12 +499,17 @@ const testConnection = async(buttonCb) => {
 const init = async() => {
   const inStore = store.getters['currentProduct'].inStore;
 
-  allProviders.value = await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_PROVIDER });
+  try {
+    allProviders.value = await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_PROVIDER });
 
-  allSecrets.value = await store.dispatch(`${ inStore }/findAll`, {
-    type: SECRET,
-    opt:  { labelSelector: `ui.forklift/created-for-resource-type=${ HCI.FORKLIFT_PROVIDER }` }
-  });
+    allSecrets.value = await store.dispatch(`${ inStore }/findAll`, {
+      type: SECRET,
+      opt:  { labelSelector: `ui.forklift/created-for-resource-type=${ HCI.FORKLIFT_PROVIDER }` }
+    });
+  } catch (e) {
+    errors.value = [e?.message || t('harvester.addons.vmMigration.errors.failedLoadProviders')];
+  }
+
   loading.value = false;
 };
 

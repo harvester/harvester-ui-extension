@@ -44,7 +44,7 @@ const rows = computed(() => {
     const netMap = allNetworkMaps.value.find((m) => m.metadata.name === netMapName && m.metadata.namespace === netMapNs);
     const storMap = allStorageMaps.value.find((m) => m.metadata.name === storMapName && m.metadata.namespace === storMapNs);
 
-    plan.networkEntries = (netMap?.spec?.map || []).map((e) => `${ e.source?.id || '-' } → ${ e.destination?.type === 'pod' ? 'Pod Network' : (e.destination?.name || '-') }`);
+    plan.networkEntries = (netMap?.spec?.map || []).map((e) => `${ e.source?.id || '-' } → ${ e.destination?.type === 'pod' ? t('harvester.addons.vmMigration.generic.podNetwork') : (e.destination?.name || '-') }`);
     plan.storageEntries = (storMap?.spec?.map || []).map((e) => `${ e.source?.id || '-' } → ${ e.destination?.storageClass || '-' }`);
 
     plan.vmIdsDisplay = (plan.spec?.vms || []).map((vm) => vm.id || vm.name || '').filter(Boolean).join(', ') || '-';
@@ -73,33 +73,33 @@ const rows = computed(() => {
           }
 
           if (step.error && !errorMsg) {
-            const reasons = (step.error.reasons || []).join('; ') || 'Error';
+            const reasons = (step.error.reasons || []).join('; ') || t('harvester.addons.vmMigration.plan.states.error');
 
             errorMsg = `${ step.name || `Step ${ idx + 1 }` }: ${ reasons }`;
           }
 
           if (step.phase === 'Failed' && !errorMsg) {
-            errorMsg = `${ step.name || `Step ${ idx + 1 }` }: Failed`;
+            errorMsg = `${ step.name || `Step ${ idx + 1 }` }: ${ t('harvester.addons.vmMigration.dashboard.progress.failed') }`;
           }
         }
       });
 
       // Fallback to VM-level error if no step-level error found
       if (!errorMsg && vm.error) {
-        const reasons = (vm.error.reasons || []).join('; ') || 'Failed';
+        const reasons = (vm.error.reasons || []).join('; ') || t('harvester.addons.vmMigration.dashboard.progress.failed');
 
-        errorMsg = `${ currentStep || vm.error.phase || 'Migration' }: ${ reasons }`;
+        errorMsg = `${ currentStep || vm.error.phase || t('harvester.addons.vmMigration.dashboard.progress.migration') }: ${ reasons }`;
       }
 
       overallProgress = Math.round(overallProgress * 10) / 10;
 
       // If no step-level error but the plan itself is failed, surface it
       if (!errorMsg && plan.planFailed) {
-        errorMsg = `${ currentStep || 'Migration' }: Failed`;
+        errorMsg = `${ currentStep || t('harvester.addons.vmMigration.dashboard.progress.migration') }: ${ t('harvester.addons.vmMigration.dashboard.progress.failed') }`;
       }
 
       return {
-        vmName:   vm.name || vm.id || 'Unknown',
+        vmName:   vm.name || vm.id || t('harvester.addons.vmMigration.generic.unknown'),
         vmId:     vm.id || '',
         progress: overallProgress,
         currentStep,
@@ -111,10 +111,10 @@ const rows = computed(() => {
     // If no migration progress but we have VMs in the spec, show them at 0%
     if (plan.vmProgress.length === 0 && plan.spec?.vms?.length > 0) {
       plan.vmProgress = plan.spec.vms.map((vm) => ({
-        vmName:      vm.name || vm.id || 'Unknown',
+        vmName:      vm.name || vm.id || t('harvester.addons.vmMigration.generic.unknown'),
         vmId:        vm.id || '',
         progress:    0,
-        currentStep: 'Initializing migration',
+        currentStep: t('harvester.addons.vmMigration.dashboard.progress.initializingMigration'),
         errorMsg:    '',
         canceled:    false,
       }));
