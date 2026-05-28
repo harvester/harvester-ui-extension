@@ -260,9 +260,9 @@ const formatStorageDetail = (entry) => {
     const gb = entry.capacity / (1024 * 1024 * 1024);
 
     if (gb >= 1024) {
-      parts.push(`${ (gb / 1024).toFixed(1) } TB`);
+      parts.push(t('harvester.addons.vmMigration.generic.memoryTb', { value: (gb / 1024).toFixed(1) }));
     } else {
-      parts.push(`${ Math.round(gb) } GB`);
+      parts.push(t('harvester.addons.vmMigration.generic.memoryGb', { value: Math.round(gb) }));
     }
   }
 
@@ -532,7 +532,7 @@ init();
         :clearable="useAllProviderData"
       >
         <template #source-detail="{ entry }">
-          <span class="source-detail text-deemphasized">VLAN {{ entry.vlanId || '0' }}</span>
+          <span class="source-detail text-deemphasized">{{ t('harvester.addons.vmMigration.generic.vlan', { id: entry.vlanId || '0' }) }}</span>
         </template>
       </MappingColumn>
 

@@ -93,7 +93,7 @@ const selectOptions = computed(() => {
           </div>
           <div v-if="showUsedBy && entry.usedBy && entry.usedBy.length">
             <span class="used-by">
-              Used by: <b>{{ entry.usedBy.join(', ') }}</b>
+              {{ t('harvester.addons.vmMigration.generic.usedBy') }} <b>{{ entry.usedBy.join(', ') }}</b>
             </span>
           </div>
         </div>
