@@ -1,18 +1,17 @@
 <script setup>
 import { reactive, ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
-import { useRoute } from 'vue-router';
 import CruResource from '@shell/components/CruResource';
 import { SECRET } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
 import ConfigureProviderStep from '../../../../components/vm-migration/ConfigureProviderStep';
 import ConfigureMappingsStep from '../../../../components/vm-migration/ConfigureMappingsStep';
 import { PRODUCT_NAME } from '../../../../config/harvester';
-import { currentRouter } from '../../../../utils/router';
+import { currentRouter, currentRoute } from '../../../../utils/router';
 import { HCI } from '../../../../types';
 
 const store = useStore();
-const route = useRoute();
+const route = currentRoute();
 const { t } = useI18n(store);
 
 const cruRef = ref(null);
