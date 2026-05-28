@@ -5,14 +5,5 @@
     ".eslintcache": true,
     ".nyc_output": true,
     "yarn-error.log": true
-  },
-  "editor.formatOnSave": false,
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
-  },
-  "eslint.validate": [
-    "javascript",
-    "typescript",
-    "vue"
-  ]
+  }
 }
