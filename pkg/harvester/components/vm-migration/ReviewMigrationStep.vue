@@ -7,7 +7,9 @@ import { RcItemCard } from '@components/RcItemCard';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import MappingsCell from '../MappingsCell';
 import { useI18n } from '@shell/composables/useI18n';
+import { randomStr } from '@shell/utils/string';
 import { HCI } from '../../types';
+import { FORKLIFT_NAMESPACE } from '../../config/harvester-map';
 
 const props = defineProps({
   providerName:   { type: String, default: '' },
@@ -34,7 +36,7 @@ const loading = ref(true);
 // Restore persisted state
 planName.value = props.stepData.planName;
 
-const NAMESPACE = 'forklift';
+const NAMESPACE = FORKLIFT_NAMESPACE;
 const TARGET_NAMESPACE = 'default';
 
 watch(planName, (val) => {
@@ -202,7 +204,7 @@ const startMigrationAction = async() => {
   const migration = await store.dispatch(`${ inStore }/create`, {
     type:     HCI.FORKLIFT_MIGRATION,
     metadata: {
-      name:            `${ planName.value }-migration-${ Math.random().toString(36).substring(2, 7) }`,
+      name:            `${ planName.value }-migration-${ randomStr(5).toLowerCase() }`,
       namespace:       NAMESPACE,
       ownerReferences: [planOwnerRef],
     },
@@ -333,14 +335,17 @@ defineExpose({ startMigration: startMigrationAction });
             :id="vm.id"
             :key="vm.id"
             :variant="'small'"
-            :header="{ title: { text: vm.name }, statuses: [{ icon: 'icon-notify-tick', color: 'text-success' }] }"
+            :header="{ title: { text: vm.name } }"
           >
             <template #item-card-content>
               <div class="vm-card-content">
                 <div class="vm-card-specs">
                   <span class="vm-os text-deemphasized">{{ vm.os }}</span>
                   <span class="vm-resources">
-                    <i class="icon icon-disk" />
+                    <i
+                      class="icon icon-disk"
+                      aria-hidden="true"
+                    />
                     {{ vm.cpus }} vCPU &bull; {{ vm.memGB }} &bull; {{ vm.diskDisplay }}
                   </span>
                 </div>

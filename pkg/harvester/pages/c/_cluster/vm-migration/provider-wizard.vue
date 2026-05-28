@@ -203,9 +203,13 @@ const init = async() => {
       );
 
       if (secret?.data) {
-        stepData.provider.username = atob(secret.data.user || '');
-        stepData.provider.password = atob(secret.data.password || '');
-        stepData.provider.skipTlsVerify = atob(secret.data.insecureSkipVerify || '') === 'true';
+        try {
+          stepData.provider.username = atob(secret.data.user || '');
+          stepData.provider.password = atob(secret.data.password || '');
+          stepData.provider.skipTlsVerify = atob(secret.data.insecureSkipVerify || '') === 'true';
+        } catch (e) {
+          errors.value = [t('harvester.addons.vmMigration.errors.failedDecodeCredentials')];
+        }
         stepData.provider.createdSecret = secret;
       }
     }

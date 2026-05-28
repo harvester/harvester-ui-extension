@@ -18,7 +18,10 @@ defineProps({
       :key="'net-' + idx"
       class="mapping-entry"
     >
-      <i class="icon icon-network" />
+      <i
+        class="icon icon-network"
+        aria-hidden="true"
+      />
       <span>{{ entry }}</span>
     </div>
     <div
@@ -26,7 +29,10 @@ defineProps({
       :key="'stor-' + idx"
       class="mapping-entry"
     >
-      <i class="icon icon-datastore" />
+      <i
+        class="icon icon-datastore"
+        aria-hidden="true"
+      />
       <span>{{ entry }}</span>
     </div>
   </div>
