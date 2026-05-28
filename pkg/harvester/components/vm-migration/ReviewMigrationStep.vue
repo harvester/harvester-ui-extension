@@ -15,8 +15,6 @@ const props = defineProps({
   providerName:   { type: String, default: '' },
   provider:       { type: Object, default: null },
   selectedVms:    { type: Array, default: () => [] },
-  networkMapName:  { type: String, default: '' },
-  storageMapName:  { type: String, default: '' },
   mappingEntries:  { type: Object, default: null },
   stepData:        { type: Object, required: true },
 });

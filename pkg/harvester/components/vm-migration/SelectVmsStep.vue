@@ -406,8 +406,7 @@ init();
 </script>
 
 <template>
-  <Loading v-if="refreshing" />
-  <Loading v-if="loading" />
+  <Loading v-if="loading || refreshing" />
   <div
     v-else
     class="select-vms-step"

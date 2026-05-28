@@ -1821,6 +1821,7 @@ harvester:
         failedLoadVms: Failed to load virtual machines
         failedRefreshVms: Failed to refresh virtual machines
         failedLoadProviders: Failed to load providers
+        failedLoadProvider: "Failed to load provider: {error}"
         failedResolveDetails: Failed to resolve network and datastore details
         failedDecodeCredentials: Failed to decode provider credentials
         connectionFailed: Connection failed
@@ -1838,13 +1839,13 @@ harvester:
       wizard:
         title: VM Migration
         steps:
-          configureProvider: 
+          configureProvider:
             label: Provider
             description: Configure Provider
-          selectVms: 
+          selectVms:
             label: VMs
             description: Select VMs
-          configureMappings: 
+          configureMappings:
             label: Mappings
             description: Define Mappings
           reviewMigration:
@@ -1867,7 +1868,7 @@ harvester:
         urlHint: Enter the full URL including https://
         skipSsl: Skip SSL certificate verification
         skipSslHint: Not recommended for production environments
-        testConnection: 
+        testConnection:
           action: Test Connection
           success: Connection successful
           error: Connection failed
@@ -1921,6 +1922,10 @@ harvester:
           failed: Failed
           migration: Migration
           initializingMigration: Initializing migration
+          finishedSuccessfully: Finished Successfully
+          step: "Step {index}"
+          vmCount: "{count} VMs"
+          vmId: "id: {id}"
       configureMappings:
         title: Set Mappings
         description: Map VMware networks and datastores to Harvester and Longhorn target resources

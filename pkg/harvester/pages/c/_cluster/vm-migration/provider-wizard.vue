@@ -203,13 +203,17 @@ const init = async() => {
       );
 
       if (secret?.data) {
-        try {
-          stepData.provider.username = atob(secret.data.user || '');
-          stepData.provider.password = atob(secret.data.password || '');
-          stepData.provider.skipTlsVerify = atob(secret.data.insecureSkipVerify || '') === 'true';
-        } catch (e) {
-          errors.value = [t('harvester.addons.vmMigration.errors.failedDecodeCredentials')];
-        }
+        const decode = (val) => {
+          try {
+            return atob(val || '');
+          } catch (e) {
+            return '';
+          }
+        };
+
+        stepData.provider.username = decode(secret.data.user);
+        stepData.provider.password = decode(secret.data.password);
+        stepData.provider.skipTlsVerify = decode(secret.data.insecureSkipVerify) === 'true';
         stepData.provider.createdSecret = secret;
       }
     }
@@ -230,7 +234,7 @@ const init = async() => {
       // Maps may not exist yet
     }
   } catch (err) {
-    errors.value = [`Failed to load provider: ${ err.message || err }`];
+    errors.value = [t('harvester.addons.vmMigration.errors.failedLoadProvider', { error: err.message || err })];
   }
 
   initialLoading.value = false;

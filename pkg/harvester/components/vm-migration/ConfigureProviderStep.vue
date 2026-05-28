@@ -159,9 +159,17 @@ watch(selectedProvider, (val) => {
         );
 
         if (secret?.data) {
-          username.value = atob(secret.data.user || '');
-          password.value = atob(secret.data.password || '');
-          skipTlsVerify.value = atob(secret.data.insecureSkipVerify || '') === 'true';
+          const decode = (val) => {
+            try {
+              return atob(val || '');
+            } catch (e) {
+              return '';
+            }
+          };
+
+          username.value = decode(secret.data.user);
+          password.value = decode(secret.data.password);
+          skipTlsVerify.value = decode(secret.data.insecureSkipVerify) === 'true';
         }
       }
 
@@ -195,6 +203,74 @@ watch(testing, (val) => {
   emit('testing', val);
 }, { immediate: true });
 
+const pollProviderReady = async(name) => {
+  const inStore = store.getters['currentProduct'].inStore;
+  const namespace = FORKLIFT_NAMESPACE;
+  const maxAttempts = 15;
+  let attempts = 0;
+
+  while (attempts < maxAttempts) {
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    attempts++;
+
+    const refreshed = await store.dispatch(`${ inStore }/find`, {
+      type: HCI.FORKLIFT_PROVIDER,
+      id:   `${ namespace }/${ name }`,
+      opt:  { force: true }
+    });
+
+    const conditions = refreshed?.status?.conditions || [];
+    const connectionCondition = conditions.find((c) => c.type === 'ConnectionTestSucceeded');
+    const readyCondition = conditions.find((c) => c.type === 'Ready');
+
+    if (connectionCondition) {
+      if (connectionCondition.status === 'True') {
+        return { connected: true };
+      }
+
+      return { connected: false, errorMsg: connectionCondition.message || t('harvester.addons.vmMigration.errors.connectionFailed') };
+    }
+
+    if (readyCondition) {
+      if (readyCondition.status === 'True') {
+        return { connected: true };
+      } else if (readyCondition.status === 'False') {
+        return { connected: false, errorMsg: readyCondition.message || t('harvester.addons.vmMigration.errors.providerNotReady') };
+      }
+    }
+  }
+
+  return { connected: false, errorMsg: '' };
+};
+
+const handlePollResult = ({ connected, errorMsg }, buttonCb) => {
+  if (connected) {
+    testPassed.value = true;
+    testResult.value = t('harvester.addons.vmMigration.configureProvider.testSuccess');
+    testing.value = false;
+    buttonCb(true);
+  } else {
+    testError.value = errorMsg || t('harvester.addons.vmMigration.configureProvider.testTimeout');
+    testing.value = false;
+    buttonCb(false);
+  }
+};
+
+const cleanupCreatedResources = async() => {
+  if (createdProvider.value) {
+    try {
+      await createdProvider.value.remove();
+    } catch (e) {}
+    createdProvider.value = null;
+    createdSecret.value = null;
+  } else if (createdSecret.value) {
+    try {
+      await createdSecret.value.remove();
+    } catch (e) {}
+    createdSecret.value = null;
+  }
+};
+
 const testConnection = async(buttonCb) => {
   testResult.value = null;
   testError.value = null;
@@ -213,8 +289,6 @@ const testConnection = async(buttonCb) => {
   // Edit mode: update existing provider URL + secret, then poll
   if (props.editMode && createdProvider.value) {
     try {
-      const namespace = FORKLIFT_NAMESPACE;
-
       createdProvider.value.spec.url = url.value;
       await createdProvider.value.save();
 
@@ -230,56 +304,7 @@ const testConnection = async(buttonCb) => {
         await createdSecret.value.save();
       }
 
-      const maxAttempts = 15;
-      let attempts = 0;
-      let connected = false;
-      let errorMsg = '';
-
-      while (attempts < maxAttempts) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        attempts++;
-
-        const refreshed = await store.dispatch(`${ inStore }/find`, {
-          type: HCI.FORKLIFT_PROVIDER,
-          id:   `${ namespace }/${ providerName.value }`,
-          opt:  { force: true }
-        });
-
-        const conditions = refreshed?.status?.conditions || [];
-        const readyCondition = conditions.find((c) => c.type === 'Ready');
-        const connectionCondition = conditions.find((c) => c.type === 'ConnectionTestSucceeded');
-
-        if (connectionCondition) {
-          if (connectionCondition.status === 'True') {
-            connected = true;
-            break;
-          } else {
-            errorMsg = connectionCondition.message || t('harvester.addons.vmMigration.errors.connectionFailed');
-            break;
-          }
-        }
-
-        if (readyCondition) {
-          if (readyCondition.status === 'True') {
-            connected = true;
-            break;
-          } else if (readyCondition.status === 'False') {
-            errorMsg = readyCondition.message || t('harvester.addons.vmMigration.errors.providerNotReady');
-            break;
-          }
-        }
-      }
-
-      if (connected) {
-        testPassed.value = true;
-        testResult.value = t('harvester.addons.vmMigration.configureProvider.testSuccess');
-        testing.value = false;
-        buttonCb(true);
-      } else {
-        testError.value = errorMsg || t('harvester.addons.vmMigration.configureProvider.testTimeout');
-        testing.value = false;
-        buttonCb(false);
-      }
+      handlePollResult(await pollProviderReady(providerName.value), buttonCb);
     } catch (err) {
       testError.value = err.message || t('harvester.addons.vmMigration.configureProvider.testFailed');
       testing.value = false;
@@ -292,57 +317,7 @@ const testConnection = async(buttonCb) => {
   // For existing providers, just poll for Ready/ConnectionTestSucceeded status
   if (isExistingProvider.value) {
     try {
-      const namespace = FORKLIFT_NAMESPACE;
-      const maxAttempts = 15;
-      let attempts = 0;
-      let connected = false;
-      let errorMsg = '';
-
-      while (attempts < maxAttempts) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        attempts++;
-
-        const refreshed = await store.dispatch(`${ inStore }/find`, {
-          type: HCI.FORKLIFT_PROVIDER,
-          id:   `${ namespace }/${ providerName.value }`,
-          opt:  { force: true }
-        });
-
-        const conditions = refreshed?.status?.conditions || [];
-        const readyCondition = conditions.find((c) => c.type === 'Ready');
-        const connectionCondition = conditions.find((c) => c.type === 'ConnectionTestSucceeded');
-
-        if (connectionCondition) {
-          if (connectionCondition.status === 'True') {
-            connected = true;
-            break;
-          } else {
-            errorMsg = connectionCondition.message || t('harvester.addons.vmMigration.errors.connectionFailed');
-            break;
-          }
-        }
-
-        if (readyCondition) {
-          if (readyCondition.status === 'True') {
-            connected = true;
-            break;
-          } else if (readyCondition.status === 'False') {
-            errorMsg = readyCondition.message || t('harvester.addons.vmMigration.errors.providerNotReady');
-            break;
-          }
-        }
-      }
-
-      if (connected) {
-        testPassed.value = true;
-        testResult.value = t('harvester.addons.vmMigration.configureProvider.testSuccess');
-        testing.value = false;
-        buttonCb(true);
-      } else {
-        testError.value = errorMsg || t('harvester.addons.vmMigration.configureProvider.testTimeout');
-        testing.value = false;
-        buttonCb(false);
-      }
+      handlePollResult(await pollProviderReady(providerName.value), buttonCb);
     } catch (err) {
       testError.value = err.message || t('harvester.addons.vmMigration.configureProvider.testFailed');
       testing.value = false;
@@ -354,20 +329,11 @@ const testConnection = async(buttonCb) => {
 
   // For new providers, create provider + secret then poll
   try {
-    // Delete previous provider (cascades to secret via ownerReferences)
-    if (createdProvider.value) {
-      await createdProvider.value.remove();
-      createdProvider.value = null;
-      createdSecret.value = null;
-    } else if (createdSecret.value) {
-      await createdSecret.value.remove();
-      createdSecret.value = null;
-    }
+    await cleanupCreatedResources();
 
     const namespace = FORKLIFT_NAMESPACE;
     const secretName = `${ providerName.value }-creds-${ randomStr(4).toLowerCase() }`;
 
-    // Create Provider first so we have its UID for the ownerReference on the Secret
     const provider = await store.dispatch(`${ inStore }/create`, {
       type:     HCI.FORKLIFT_PROVIDER,
       metadata: {
@@ -387,7 +353,6 @@ const testConnection = async(buttonCb) => {
     await provider.save();
     createdProvider.value = provider;
 
-    // Create Secret with ownerReference already set (avoids an extra PUT)
     const newSecret = await store.dispatch(`${ inStore }/create`, {
       type:     SECRET,
       metadata: {
@@ -417,79 +382,15 @@ const testConnection = async(buttonCb) => {
     await newSecret.save();
     createdSecret.value = newSecret;
 
-    const maxAttempts = 15;
-    let attempts = 0;
-    let connected = false;
-    let errorMsg = '';
+    const result = await pollProviderReady(providerName.value);
 
-    while (attempts < maxAttempts) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      attempts++;
-
-      const refreshed = await store.dispatch(`${ inStore }/find`, {
-        type: HCI.FORKLIFT_PROVIDER,
-        id:   `${ namespace }/${ providerName.value }`,
-        opt:  { force: true }
-      });
-
-      const conditions = refreshed?.status?.conditions || [];
-      const readyCondition = conditions.find((c) => c.type === 'Ready');
-      const connectionCondition = conditions.find((c) => c.type === 'ConnectionTestSucceeded');
-
-      if (connectionCondition) {
-        if (connectionCondition.status === 'True') {
-          connected = true;
-          break;
-        } else {
-          errorMsg = connectionCondition.message || t('harvester.addons.vmMigration.errors.connectionFailed');
-          break;
-        }
-      }
-
-      if (readyCondition) {
-        if (readyCondition.status === 'True') {
-          connected = true;
-          break;
-        } else if (readyCondition.status === 'False') {
-          errorMsg = readyCondition.message || t('harvester.addons.vmMigration.errors.providerNotReady');
-          break;
-        }
-      }
+    if (!result.connected) {
+      await cleanupCreatedResources();
     }
 
-    if (connected) {
-      testPassed.value = true;
-      testResult.value = t('harvester.addons.vmMigration.configureProvider.testSuccess');
-      testing.value = false;
-      buttonCb(true);
-    } else {
-      if (createdProvider.value) {
-        await createdProvider.value.remove();
-        createdProvider.value = null;
-        createdSecret.value = null;
-      } else if (createdSecret.value) {
-        await createdSecret.value.remove();
-        createdSecret.value = null;
-      }
-
-      testError.value = errorMsg || t('harvester.addons.vmMigration.configureProvider.testTimeout');
-      testing.value = false;
-      buttonCb(false);
-    }
+    handlePollResult(result, buttonCb);
   } catch (err) {
-    if (createdProvider.value) {
-      try {
-        await createdProvider.value.remove();
-      } catch (e) {}
-      createdProvider.value = null;
-    }
-    if (createdSecret.value) {
-      try {
-        await createdSecret.value.remove();
-      } catch (e) {}
-      createdSecret.value = null;
-    }
-
+    await cleanupCreatedResources();
     testError.value = err.message || t('harvester.addons.vmMigration.configureProvider.testFailed');
     testing.value = false;
     buttonCb(false);

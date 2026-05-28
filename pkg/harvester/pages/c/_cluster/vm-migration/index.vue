@@ -69,17 +69,17 @@ const rows = computed(() => {
           overallProgress += (stepPct / 100) * stepWeight;
 
           if (!currentStep) {
-            currentStep = step.name || `Step ${ idx + 1 }`;
+            currentStep = step.name || t('harvester.addons.vmMigration.dashboard.progress.step', { index: idx + 1 });
           }
 
           if (step.error && !errorMsg) {
             const reasons = (step.error.reasons || []).join('; ') || t('harvester.addons.vmMigration.plan.states.error');
 
-            errorMsg = `${ step.name || `Step ${ idx + 1 }` }: ${ reasons }`;
+            errorMsg = `${ step.name || t('harvester.addons.vmMigration.dashboard.progress.step', { index: idx + 1 }) }: ${ reasons }`;
           }
 
           if (step.phase === 'Failed' && !errorMsg) {
-            errorMsg = `${ step.name || `Step ${ idx + 1 }` }: ${ t('harvester.addons.vmMigration.dashboard.progress.failed') }`;
+            errorMsg = `${ step.name || t('harvester.addons.vmMigration.dashboard.progress.step', { index: idx + 1 }) }: ${ t('harvester.addons.vmMigration.dashboard.progress.failed') }`;
           }
         }
       });
@@ -215,7 +215,7 @@ init();
         </div>
       </template>
       <template #cell:vmCount="{ row }">
-        {{ (row.spec.vms || []).length }} VMs
+        {{ t('harvester.addons.vmMigration.dashboard.progress.vmCount', { count: (row.spec.vms || []).length }) }}
       </template>
       <template #cell:progress="{ row }">
         <div
@@ -230,7 +230,7 @@ init();
             <div class="vm-progress-header">
               <div class="vm-name-block">
                 <span class="vm-name">{{ vm.vmName }}</span>
-                <span class="text-muted vm-id">id: {{ vm.vmId }}</span>
+                <span class="text-muted vm-id">{{ t('harvester.addons.vmMigration.dashboard.progress.vmId', { id: vm.vmId }) }}</span>
               </div>
             </div>
             <div class="vm-pct-block">
@@ -246,7 +246,7 @@ init();
               v-if="vm.progress >= 100"
               class="step-label text-muted"
             >
-              Finished Successfully
+              {{ t('harvester.addons.vmMigration.dashboard.progress.finishedSuccessfully') }}
             </div>
             <div
               v-else-if="vm.errorMsg"
@@ -258,7 +258,7 @@ init();
               v-else-if="vm.canceled"
               class="step-label text-muted"
             >
-              Canceled
+              {{ t('harvester.addons.vmMigration.plan.states.canceled') }}
             </div>
             <div
               v-else-if="vm.currentStep"
