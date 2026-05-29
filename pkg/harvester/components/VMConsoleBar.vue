@@ -58,11 +58,14 @@ export default {
 
       const url = `https://${ host }${ prefix }/${ PRODUCT_NAME }/c/${ params.cluster }/console/${ uid }/${ type }`;
 
-      window.open(
-        url,
-        '_blank',
-        `toolbars=0,width=${ screen.width - 200 },height=${ screen.height - 200 },left=0,top=0,noreferrer`
-      );
+      // Defer so v-select can finish closing the dropdown before the popup steals focus
+      this.$nextTick(() => {
+        window.open(
+          url,
+          '_blank',
+          `toolbars=0,width=${ screen.width - 200 },height=${ screen.height - 200 },left=0,top=0,noreferrer`
+        );
+      });
     },
 
     isEmpty(o) {
