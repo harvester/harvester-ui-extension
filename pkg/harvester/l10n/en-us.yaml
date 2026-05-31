@@ -832,14 +832,14 @@ harvester:
       password: Password
       reservedMemory: Reserved Memory
     filesystem:
-      description: Harvester exposes the volume as a filesystem to the VM via virtiofs.
+      description: Harvester supports filesystem disk for VM via virtiofs.
       type: Filesystem Type
       volume: Volume
       resource: Resource
       add: Add Filesystem
-      mountBannerHint: "Please update the mount path (e.g. /mnt/appConfigfs) based on your VM environment. Remember to add those commands in"
-      mountBannerHintLink: "User Data runcmd"
-      mountBannerHintSuffix: "in the Advanced tab."
+      mountBannerHint: "Please update the mount path (e.g. /mnt/appconfigfs) to your preferred location, then add the corresponding commands to the"
+      mountBannerHintLink: "runcmd"
+      mountBannerHintSuffix: "in Advanced tab User Data."
     machineTypeTip: 'Specify a processor architecture to emulate. To see a list of supported architectures, run: qemu-system-x86_64 -cpu ?'
     detail:
       tabs:
@@ -1445,6 +1445,12 @@ harvester:
       allowWorkloadDisruption: "Allow Workload Disruption"
       disableTLS: "Disable TLS"
       matchSELinuxLevelOnMigration: "Match SELinux Level On Migration"
+
+  configMap:
+    label: ConfigMaps
+
+  serviceAccount:
+    label: Service Accounts
 
   cloudTemplate:
     label: Cloud Configuration Templates

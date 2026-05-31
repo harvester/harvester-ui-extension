@@ -6,6 +6,7 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import { CONFIG_MAP, SECRET, SERVICE_ACCOUNT } from '@shell/config/types';
 import { _VIEW } from '@shell/config/query-params';
 import CopyToClipboard from '@shell/components/CopyToClipboard';
+import MessageLink from '@shell/components/MessageLink';
 import { FILESYSTEM_SOURCE_TYPE } from '@pkg/harvester/config/types';
 
 const MAX_FILESYSTEMS = 3;
@@ -13,9 +14,9 @@ const MAX_FILESYSTEMS = 3;
 const { CONFIGMAP: FS_TYPE_CONFIGMAP, SECRET: FS_TYPE_SECRET, SERVICEACCOUNT: FS_TYPE_SERVICEACCOUNT } = FILESYSTEM_SOURCE_TYPE;
 
 const DEFAULT_VOLUME_NAMES = {
-  [FS_TYPE_CONFIGMAP]:      'appConfigfs',
-  [FS_TYPE_SECRET]:         'appSecretfs',
-  [FS_TYPE_SERVICEACCOUNT]: 'appServiceAccountfs',
+  [FS_TYPE_CONFIGMAP]:      'appconfigfs',
+  [FS_TYPE_SECRET]:         'appsecretfs',
+  [FS_TYPE_SERVICEACCOUNT]: 'appserviceaccountfs',
 };
 
 const FS_TYPE_OPTIONS = [
@@ -40,6 +41,7 @@ export default {
     LabeledSelect,
     LabeledInput,
     CopyToClipboard,
+    MessageLink,
   },
 
   props: {
@@ -235,12 +237,13 @@ export default {
       class="mt-10"
     >
       <div>
-        <p>
-          {{ t('harvester.virtualMachine.filesystem.mountBannerHint') }}
-          <a href="/harvester/c/local/kubevirt.io.virtualmachine/create#advanced">{{ t('harvester.virtualMachine.filesystem.mountBannerHintLink') }}</a>
-          {{ t('harvester.virtualMachine.filesystem.mountBannerHintSuffix') }}
-        </p>
-        <div class="pre-wrapper">
+        <MessageLink
+          :to="{ hash: '#advanced' }"
+          prefix-label="harvester.virtualMachine.filesystem.mountBannerHint"
+          middle-label="harvester.virtualMachine.filesystem.mountBannerHintLink"
+          suffix-label="harvester.virtualMachine.filesystem.mountBannerHintSuffix"
+        />
+        <div class="pre-wrapper mt-10">
           <pre class="mt-5 mb-0">{{ allMountCommands }}</pre>
           <CopyToClipboard
             :text="allMountCommands"
