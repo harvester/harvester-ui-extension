@@ -220,6 +220,9 @@ export default {
     usbPassthroughEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('usbPassthrough');
     },
+    filesystemEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('supportFilesystem');
+    },
   },
 
   watch: {
@@ -787,6 +790,7 @@ export default {
       </Tab>
 
       <Tab
+        v-if="filesystemEnabled"
         name="filesystem"
         :label="t('harvester.tab.filesystem')"
         :weight="-9"
