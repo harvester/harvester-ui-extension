@@ -46,3 +46,9 @@ export const CDI_POPULATOR_KIND = {
   VOLUME_IMPORT_SOURCE: 'VolumeImportSource',
   VOLUME_CLONE_SOURCE:  'VolumeCloneSource',
 };
+
+export const FILESYSTEM_SOURCE_TYPE = {
+  CONFIGMAP:      'configmap',
+  SECRET:         'secret',
+  SERVICEACCOUNT: 'serviceaccount',
+};

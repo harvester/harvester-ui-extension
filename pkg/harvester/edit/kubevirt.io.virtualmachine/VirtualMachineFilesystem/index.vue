@@ -4,17 +4,18 @@ import { Banner } from '@components/Banner';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { CONFIG_MAP, SECRET, SERVICE_ACCOUNT } from '@shell/config/types';
+import { _VIEW } from '@shell/config/query-params';
+import CopyToClipboard from '@shell/components/CopyToClipboard';
+import { FILESYSTEM_SOURCE_TYPE } from '@pkg/harvester/config/types';
 
 const MAX_FILESYSTEMS = 3;
 
-const FS_TYPE_CONFIGMAP = 'configmap';
-const FS_TYPE_SECRET = 'secret';
-const FS_TYPE_SERVICEACCOUNT = 'serviceaccount';
+const { CONFIGMAP: FS_TYPE_CONFIGMAP, SECRET: FS_TYPE_SECRET, SERVICEACCOUNT: FS_TYPE_SERVICEACCOUNT } = FILESYSTEM_SOURCE_TYPE;
 
 const DEFAULT_VOLUME_NAMES = {
-  [FS_TYPE_CONFIGMAP]:      'configfs',
-  [FS_TYPE_SECRET]:         'secretfs',
-  [FS_TYPE_SERVICEACCOUNT]: 'serviceaccountfs',
+  [FS_TYPE_CONFIGMAP]:      'appConfigfs',
+  [FS_TYPE_SECRET]:         'appSecretfs',
+  [FS_TYPE_SERVICEACCOUNT]: 'appServiceAccountfs',
 };
 
 const FS_TYPE_OPTIONS = [
@@ -38,6 +39,7 @@ export default {
     Banner,
     LabeledSelect,
     LabeledInput,
+    CopyToClipboard,
   },
 
   props: {
@@ -49,10 +51,34 @@ export default {
       type:    String,
       default: '',
     },
+    value: {
+      type:    Array,
+      default: () => [],
+    },
   },
 
   data() {
-    return { rows: [emptyRow()] };
+    return { rows: this.value.length > 0 ? this.value.map((r) => ({ ...r })) : [emptyRow()] };
+  },
+
+  watch: {
+    value(newVal) {
+      if (newVal && newVal.length > 0) {
+        const incoming = JSON.stringify(newVal);
+        const current = JSON.stringify(this.rows);
+
+        if (incoming !== current) {
+          this.rows = newVal.map((r) => ({ ...r }));
+        }
+      }
+    },
+
+    rows: {
+      deep: true,
+      handler(val) {
+        this.$emit('update:value', val.map((r) => ({ ...r })));
+      },
+    },
   },
 
   computed: {
@@ -85,17 +111,25 @@ export default {
     },
 
     isView() {
-      return this.mode === 'view';
+      return this.mode === _VIEW;
     },
 
     completedRows() {
       return this.rows.filter((r) => r.fsType && r.volumeName && r.resourceName);
     },
+
+    allMountCommands() {
+      return this.completedRows.map((r) => this.mountCommands(r)).join('\n');
+    },
   },
 
   methods: {
-    fsTypeOptions() {
-      return FS_TYPE_OPTIONS;
+    fsTypeOptions(currentIndex) {
+      const usedTypes = this.rows
+        .filter((_, i) => i !== currentIndex)
+        .map((r) => r.fsType);
+
+      return FS_TYPE_OPTIONS.filter((opt) => !usedTypes.includes(opt.value));
     },
 
     resourceOptions(fsType) {
@@ -114,7 +148,14 @@ export default {
 
     addRow() {
       if (this.canAddRow) {
-        this.rows.push(emptyRow());
+        const usedTypes = this.rows.map((r) => r.fsType);
+        const nextType = FS_TYPE_OPTIONS.find((opt) => !usedTypes.includes(opt.value))?.value || FS_TYPE_CONFIGMAP;
+
+        this.rows.push({
+          fsType:       nextType,
+          volumeName:   DEFAULT_VOLUME_NAMES[nextType] || '',
+          resourceName: '',
+        });
       }
     },
 
@@ -147,8 +188,9 @@ export default {
           <LabeledSelect
             :value="row.fsType"
             :label="t('harvester.virtualMachine.filesystem.type')"
-            :options="fsTypeOptions()"
+            :options="fsTypeOptions(index)"
             :mode="mode"
+            required
             @update:value="onFsTypeChange(row, $event)"
           />
         </div>
@@ -158,6 +200,7 @@ export default {
             v-model:value="row.volumeName"
             :label="t('harvester.virtualMachine.filesystem.volume')"
             :mode="mode"
+            required
           />
         </div>
 
@@ -167,6 +210,7 @@ export default {
             :label="t('harvester.virtualMachine.filesystem.resource')"
             :options="resourceOptions(row.fsType)"
             :mode="mode"
+            required
           />
         </div>
 
@@ -183,17 +227,30 @@ export default {
           </button>
         </div>
       </div>
-
-      <Banner
-        v-if="row.fsType && row.volumeName && row.resourceName"
-        color="warning"
-        class="mt-10"
-      >
-        <p>{{ t('harvester.virtualMachine.filesystem.mountBannerHint') }}</p>
-        <pre class="mt-5 mb-0">- mkdir -p /mnt/{{ row.volumeName }}
-- mount -t virtiofs {{ row.volumeName }} /mnt/{{ row.volumeName }}</pre>
-      </Banner>
     </div>
+
+    <Banner
+      v-if="completedRows.length > 0"
+      color="warning"
+      class="mt-10"
+    >
+      <div>
+        <p>
+          {{ t('harvester.virtualMachine.filesystem.mountBannerHint') }}
+          <a href="/harvester/c/local/kubevirt.io.virtualmachine/create#advanced">{{ t('harvester.virtualMachine.filesystem.mountBannerHintLink') }}</a>
+          {{ t('harvester.virtualMachine.filesystem.mountBannerHintSuffix') }}
+        </p>
+        <div class="pre-wrapper">
+          <pre class="mt-5 mb-0">{{ allMountCommands }}</pre>
+          <CopyToClipboard
+            :text="allMountCommands"
+            :show-label="false"
+            class="icon-btn"
+            action-color="bg-transparent"
+          />
+        </div>
+      </div>
+    </Banner>
 
     <button
       v-if="!isView && canAddRow"
@@ -224,5 +281,27 @@ export default {
 
 .remove-btn {
   padding: 0;
+}
+
+.pre-wrapper {
+  position: relative;
+
+  pre {
+    padding-right: 36px;
+  }
+
+  .icon-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 2px 4px;
+    line-height: 1;
+
+    :deep(.btn.role-primary) {
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
 }
 </style>
