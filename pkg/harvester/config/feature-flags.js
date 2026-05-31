@@ -69,7 +69,9 @@ const FEATURE_FLAGS = {
     'clusterPodSecurityStandardSetting'
   ],
   'v1.8.1': [],
-  'v1.9.0': [],
+  'v1.9.0': [
+    'supportFilesystem',
+  ],
 };
 
 const generateFeatureFlags = () => {
