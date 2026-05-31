@@ -295,15 +295,13 @@ export default {
 
   .icon-btn {
     position: absolute;
-    top: 4px;
-    right: 4px;
+    top: 0px;
+    right: 5px;
     padding: 2px 4px;
     line-height: 1;
 
-    :deep(.btn.role-primary) {
-      &:hover {
-        background-color: rgba(0, 0, 0, 0.1);
-      }
+    &:active {
+      background-color: var(--success) !important;
     }
   }
 }
