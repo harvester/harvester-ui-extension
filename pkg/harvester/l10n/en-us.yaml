@@ -1446,12 +1446,6 @@ harvester:
       disableTLS: "Disable TLS"
       matchSELinuxLevelOnMigration: "Match SELinux Level On Migration"
 
-  configMap:
-    label: ConfigMaps
-
-  serviceAccount:
-    label: Service Accounts
-
   cloudTemplate:
     label: Cloud Configuration Templates
     templateType: Template Type
