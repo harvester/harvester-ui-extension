@@ -36,6 +36,8 @@ function emptyRow() {
 export default {
   name: 'VirtualMachineFilesystem',
 
+  emits: ['update:value'],
+
   components: {
     Banner,
     LabeledSelect,
@@ -65,7 +67,7 @@ export default {
 
   watch: {
     value(newVal) {
-      if (newVal && newVal.length > 0) {
+      if (newVal) {
         const incoming = JSON.stringify(newVal);
         const current = JSON.stringify(this.rows);
 
