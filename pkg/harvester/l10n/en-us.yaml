@@ -424,6 +424,8 @@ harvester:
       suffix: to enable the add-on to successfully manage your PCI devices.
     noPCIPermission: Please contact your system administrator to enable the PCI devices first.
     enablePassthroughWarning: Please be careful not to use host-owned PCI devices (e.g., management and VLAN NICs). Incorrect device allocation may cause damage to your cluster, including node failure.
+    disableResourcePooling: Disable Resource Pooling
+    disableResourcePoolingDescription: Assigns this device a unique resource name so it can be pinned to a specific VM, instead of sharing the pool with other identical devices.
 
   devices:
     matrixHostName: Host Name

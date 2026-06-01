@@ -71,6 +71,7 @@ const FEATURE_FLAGS = {
   'v1.8.1': [],
   'v1.9.0': [
     'supportFilesystem',
+    'disableResourcePooling',
   ],
 };
 
