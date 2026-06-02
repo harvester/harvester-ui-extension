@@ -160,7 +160,7 @@ export default {
 
   mounted() {
     this.imageId = this.diskRows[0]?.image || '';
-    this['filesystemRows'] = this.getFilesystemRows(this.value);
+    this['filesystemRows'] = this.getFilesystemRows(this.value.spec.vm);
   },
 
   methods: {
