@@ -3,6 +3,7 @@ import KeyValue from '@shell/components/form/KeyValue';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import RadioGroup from '@components/Form/Radio/RadioGroup';
+import Checkbox from '@components/Form/Checkbox/Checkbox';
 import { SECRET, LONGHORN } from '@shell/config/types';
 import { _CREATE, _VIEW } from '@shell/config/query-params';
 import { CSI_SECRETS } from '@pkg/harvester/config/harvester-map';
@@ -16,7 +17,9 @@ const {
   CSI_NODE_PUBLISH_SECRET_NAME,
   CSI_NODE_PUBLISH_SECRET_NAMESPACE,
   CSI_NODE_STAGE_SECRET_NAME,
-  CSI_NODE_STAGE_SECRET_NAMESPACE
+  CSI_NODE_STAGE_SECRET_NAMESPACE,
+  CSI_NODE_EXPAND_SECRET_NAME,
+  CSI_NODE_EXPAND_SECRET_NAMESPACE
 } = CSI_SECRETS;
 
 export default {
@@ -27,6 +30,7 @@ export default {
     LabeledSelect,
     LabeledInput,
     RadioGroup,
+    Checkbox,
   },
 
   props: {
@@ -57,7 +61,10 @@ export default {
       };
     }
 
-    return { };
+    const hasExpandSecret = !!(this.value.parameters?.[CSI_NODE_EXPAND_SECRET_NAME]);
+    const volumeExpansionEnabled = this.realMode === _CREATE ? true : hasExpandSecret;
+
+    return { volumeExpansionEnabled };
   },
 
   computed: {
@@ -180,6 +187,11 @@ export default {
       set(selectedSecret) {
         const [namespace, name] = selectedSecret.split('/');
 
+        const expandSecretParams = (this.volumeExpansionEnabled && this.value.expandOnlineEncryptedVolumeFeatureEnabled) ? {
+          [CSI_NODE_EXPAND_SECRET_NAME]:      name,
+          [CSI_NODE_EXPAND_SECRET_NAMESPACE]: namespace,
+        } : {};
+
         this.value['parameters'] = {
           ...this.value.parameters,
           [CSI_PROVISIONER_SECRET_NAME]:       name,
@@ -187,7 +199,8 @@ export default {
           [CSI_NODE_STAGE_SECRET_NAME]:        name,
           [CSI_PROVISIONER_SECRET_NAMESPACE]:  namespace,
           [CSI_NODE_PUBLISH_SECRET_NAMESPACE]: namespace,
-          [CSI_NODE_STAGE_SECRET_NAMESPACE]:   namespace
+          [CSI_NODE_STAGE_SECRET_NAMESPACE]:   namespace,
+          ...expandSecretParams,
         };
       }
     },
@@ -237,6 +250,32 @@ export default {
         if (value >= 1 && value <= 3) {
           this.value.parameters.numberOfReplicas = String(value);
         }
+      }
+    },
+  },
+
+  watch: {
+    volumeExpansionEnabled(enabled) {
+      const currentSecret = this.secret;
+
+      if (!currentSecret) {
+        return;
+      }
+
+      const [namespace, name] = currentSecret.split('/');
+
+      if (enabled && this.value.expandOnlineEncryptedVolumeFeatureEnabled) {
+        this.value['parameters'] = {
+          ...this.value.parameters,
+          [CSI_NODE_EXPAND_SECRET_NAME]:      name,
+          [CSI_NODE_EXPAND_SECRET_NAMESPACE]: namespace,
+        };
+      } else {
+        const params = { ...this.value.parameters };
+
+        delete params[CSI_NODE_EXPAND_SECRET_NAME];
+        delete params[CSI_NODE_EXPAND_SECRET_NAMESPACE];
+        this.value['parameters'] = params;
       }
     },
   },
@@ -335,6 +374,13 @@ export default {
             :label="t('harvester.storage.secret')"
             :options="secretOptions"
             :mode="mode"
+          />
+        </div>
+        <div class="col span-6 flex items-center mt-20">
+          <Checkbox
+            v-model:value="volumeExpansionEnabled"
+            :label="t('harvester.storage.volumeExpansionEnabled')"
+            :disabled="!value.expandOnlineEncryptedVolumeFeatureEnabled || isView"
           />
         </div>
       </div>
