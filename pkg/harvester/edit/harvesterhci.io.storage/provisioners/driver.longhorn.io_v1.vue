@@ -61,7 +61,7 @@ export default {
       };
     }
 
-    const hasExpandSecret = !!(this.value.parameters?.[CSI_NODE_EXPAND_SECRET_NAME]);
+    const hasExpandSecret = !!(this.value.parameters?.[CSI_NODE_EXPAND_SECRET_NAME] && this.value.parameters?.[CSI_NODE_EXPAND_SECRET_NAMESPACE]);
     const volumeExpansionEnabled = this.realMode === _CREATE ? true : hasExpandSecret;
 
     return { volumeExpansionEnabled };

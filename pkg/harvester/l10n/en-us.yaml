@@ -1534,7 +1534,7 @@ harvester:
     useDefault: Use the default storage
     volumeEncryption: Volume Encryption
     secret: Secret
-    volumeExpansionEnabled: Volume Expansion Enabled
+    volumeExpansionEnabled: Enable online expansion for encrypted volumes
     migratable:
       label: Migratable
     numberOfReplicas:
