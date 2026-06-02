@@ -12,7 +12,7 @@ import { base64Decode } from '@shell/utils/crypto';
 import { formatSi, parseSi } from '@shell/utils/units';
 import { _CLONE, _CREATE, _VIEW } from '@shell/config/query-params';
 import {
-  PV, PVC, STORAGE_CLASS, NODE, SECRET, CONFIG_MAP, SERVICE_ACCOUNT, NETWORK_ATTACHMENT, NAMESPACE, LONGHORN
+  PV, PVC, STORAGE_CLASS, NODE, SECRET, CONFIG_MAP, NETWORK_ATTACHMENT, NAMESPACE, LONGHORN
 } from '@shell/config/types';
 import { HOSTNAME } from '@shell/config/labels-annotations';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
@@ -25,7 +25,7 @@ import { HCI } from '../../types';
 import { parseVolumeClaimTemplates, EMPTY_IMAGE } from '../../utils/vm';
 import impl, { QGA_JSON, USB_TABLET } from './impl';
 import { GIBIBYTE } from '../../utils/unit';
-import { VOLUME_MODE, FILESYSTEM_SOURCE_TYPE } from '@pkg/harvester/config/types';
+import { VOLUME_MODE } from '@pkg/harvester/config/types';
 
 const LONGHORN_V2_DATA_ENGINE = 'longhorn-system/v2-data-engine';
 
@@ -102,8 +102,6 @@ export default {
       vmims:             this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VMIM }),
       vms:               this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VM }),
       secrets:           this.$store.dispatch(`${ inStore }/findAll`, { type: SECRET }),
-      configMaps:        this.$store.dispatch(`${ inStore }/findAll`, { type: CONFIG_MAP }),
-      serviceAccounts:   this.$store.dispatch(`${ inStore }/findAll`, { type: SERVICE_ACCOUNT }),
       addons:            this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.ADD_ONS }),
       longhornV2Engine:  this.$store.dispatch(`${ inStore }/find`, { type: LONGHORN.SETTINGS, id: LONGHORN_V2_DATA_ENGINE }),
     };
@@ -158,7 +156,6 @@ export default {
       imageId:                       '',
       diskRows:                      [],
       networkRows:                   [],
-      filesystemRows:                [],
       machineType:                   '',
       machineTypes:                  [],
       secretName:                    '',
@@ -443,7 +440,6 @@ export default {
       this['imageId'] = imageId;
 
       this['diskRows'] = diskRows;
-      this['filesystemRows'] = this.getFilesystemRows(vm);
 
       this.refreshYamlEditor();
     },
@@ -645,80 +641,6 @@ export default {
       this.parseAccessCredentials();
       this.parseNetworkRows(this.networkRows);
       this.parseDiskRows(this.diskRows);
-      this.parseFilesystemRows();
-    },
-
-    getFilesystemRows(vm) {
-      const _filesystems = vm.spec.template.spec.domain.devices?.filesystems || [];
-      const _volumes = vm.spec.template.spec.volumes || [];
-
-      return _filesystems.map((fs) => {
-        const volume = _volumes.find((v) => v.name === fs.name);
-        let fsType = FILESYSTEM_SOURCE_TYPE.CONFIGMAP;
-        let resourceName = '';
-
-        if (volume?.configMap) {
-          fsType = FILESYSTEM_SOURCE_TYPE.CONFIGMAP;
-          resourceName = volume.configMap.name;
-        } else if (volume?.secret) {
-          fsType = FILESYSTEM_SOURCE_TYPE.SECRET;
-          resourceName = volume.secret.secretName;
-        } else if (volume?.serviceAccount) {
-          fsType = FILESYSTEM_SOURCE_TYPE.SERVICEACCOUNT;
-          resourceName = volume.serviceAccount.serviceAccountName;
-        }
-
-        return {
-          fsType,
-          volumeName: fs.name,
-          resourceName,
-        };
-      });
-    },
-
-    parseFilesystemRows() {
-      const completedRows = this.filesystemRows.filter(
-        (r) => r.fsType && r.volumeName && r.resourceName
-      );
-
-      const filesystems = completedRows.map((r) => ({
-        name:     r.volumeName,
-        virtiofs: {},
-      }));
-
-      const fsVolumes = completedRows.map((r) => {
-        if (r.fsType === FILESYSTEM_SOURCE_TYPE.CONFIGMAP) {
-          return {
-            name:      r.volumeName,
-            configMap: { name: r.resourceName },
-          };
-        } else if (r.fsType === FILESYSTEM_SOURCE_TYPE.SECRET) {
-          return {
-            name:   r.volumeName,
-            secret: { secretName: r.resourceName },
-          };
-        } else if (r.fsType === FILESYSTEM_SOURCE_TYPE.SERVICEACCOUNT) {
-          return {
-            name:           r.volumeName,
-            serviceAccount: { serviceAccountName: r.resourceName },
-          };
-        }
-
-        return null;
-      }).filter(Boolean);
-
-      if (filesystems.length > 0) {
-        this.spec.template.spec.domain.devices['filesystems'] = filesystems;
-      } else {
-        delete this.spec.template.spec.domain.devices['filesystems'];
-      }
-
-      if (fsVolumes.length > 0) {
-        if (!this.spec.template.spec.volumes) {
-          this.spec.template.spec['volumes'] = [];
-        }
-        this.spec.template.spec.volumes.push(...fsVolumes);
-      }
     },
 
     parseOther() {
