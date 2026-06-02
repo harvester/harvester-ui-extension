@@ -67,7 +67,6 @@ const FEATURE_FLAGS = {
     'rwxNetworkSetting',
     'createPVCWithDataVolume',
     'clusterPodSecurityStandardSetting',
-    'supportFilesystem',
   ],
   'v1.8.1': [],
   'v1.9.0': [
