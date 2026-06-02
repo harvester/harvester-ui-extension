@@ -37,6 +37,7 @@ import Network from './VirtualMachineNetwork';
 import Volume from './VirtualMachineVolume';
 import SSHKey from './VirtualMachineSSHKey';
 import Reserved from './VirtualMachineReserved';
+import Filesystem from './VirtualMachineFilesystem';
 import { Banner } from '@components/Banner';
 import MessageLink from '@shell/components/MessageLink';
 
@@ -72,6 +73,7 @@ export default {
     Banner,
     MessageLink,
     UsbDevices,
+    Filesystem,
   },
 
   mixins: [CreateEditView, VM_MIXIN],
@@ -218,6 +220,9 @@ export default {
     usbPassthroughEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('usbPassthrough');
     },
+    filesystemEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('supportFilesystem');
+    },
   },
 
   watch: {
@@ -321,6 +326,7 @@ export default {
     const diskRows = this.getDiskRows(this.value);
 
     this['diskRows'] = diskRows;
+    this['filesystemRows'] = this.getFilesystemRows(this.value);
     const templateId = this.$route.query.templateId;
     const templateVersionId = this.$route.query.versionId;
 
@@ -784,9 +790,22 @@ export default {
       </Tab>
 
       <Tab
+        v-if="filesystemEnabled"
+        name="filesystem"
+        :label="t('harvester.tab.filesystem')"
+        :weight="-9"
+      >
+        <Filesystem
+          v-model:value="filesystemRows"
+          :mode="mode"
+          :namespace="value.metadata.namespace"
+        />
+      </Tab>
+
+      <Tab
         name="labels"
         :label="t('generic.labels')"
-        :weight="-9"
+        :weight="-10"
       >
         <Banner color="info">
           <t k="harvester.virtualMachine.labels.banner" />
@@ -805,7 +824,7 @@ export default {
       <Tab
         name="instanceLabel"
         :label="t('harvester.tab.instanceLabel')"
-        :weight="-10"
+        :weight="-11"
       >
         <Banner color="info">
           <t k="harvester.virtualMachine.instanceLabels.banner" />
@@ -826,7 +845,7 @@ export default {
       <Tab
         name="annotations"
         :label="t('harvester.tab.annotations')"
-        :weight="-11"
+        :weight="-12"
       >
         <Banner color="info">
           <t k="harvester.virtualMachine.annotations.banner" />
@@ -847,7 +866,7 @@ export default {
       <Tab
         name="advanced"
         :label="t('harvester.tab.advanced')"
-        :weight="-12"
+        :weight="-13"
       >
         <div class="row mb-20">
           <div class="col span-6">

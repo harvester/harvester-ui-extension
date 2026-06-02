@@ -26,6 +26,7 @@ import CpuMemory from './kubevirt.io.virtualmachine/VirtualMachineCpuMemory';
 import CpuModel from './kubevirt.io.virtualmachine/VirtualMachineCpuModel';
 import CloudConfig from './kubevirt.io.virtualmachine/VirtualMachineCloudConfig';
 import SSHKey from './kubevirt.io.virtualmachine/VirtualMachineSSHKey';
+import Filesystem from './kubevirt.io.virtualmachine/VirtualMachineFilesystem';
 
 export default {
   name: 'HarvesterEditVMTemplate',
@@ -51,6 +52,7 @@ export default {
     UnitInput,
     Banner,
     KeyValue,
+    Filesystem,
   },
 
   mixins: [CreateEditView, VM_MIXIN],
@@ -94,6 +96,10 @@ export default {
 
     secretNamePrefix() {
       return this.templateValue?.metadata?.name;
+    },
+
+    filesystemEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('supportFilesystem');
     },
   },
 
@@ -154,6 +160,7 @@ export default {
 
   mounted() {
     this.imageId = this.diskRows[0]?.image || '';
+    this['filesystemRows'] = this.getFilesystemRows(this.value.spec.vm);
   },
 
   methods: {
@@ -347,6 +354,19 @@ export default {
             :overwrite-labels="affinityLabels"
           />
         </template>
+      </Tab>
+
+      <Tab
+        v-if="filesystemEnabled"
+        name="filesystem"
+        :label="t('harvester.tab.filesystem')"
+        :weight="-8"
+      >
+        <Filesystem
+          v-model:value="filesystemRows"
+          :mode="mode"
+          :namespace="templateValue.metadata.namespace"
+        />
       </Tab>
 
       <Tab

@@ -355,6 +355,7 @@ harvester:
     snapshots: Snapshots
     instanceLabel: Instance Labels
     annotations: Annotations
+    filesystem: Filesystem Volume
   fields:
     version: Version
     name: Name
@@ -830,6 +831,15 @@ harvester:
       username: Username
       password: Password
       reservedMemory: Reserved Memory
+    filesystem:
+      description: Harvester supports filesystem volumes for VM via virtiofs.
+      type: Filesystem Type
+      volume: Volume
+      resource: Resource
+      add: Add
+      mountBannerHint: "Please update the mount path (e.g. /mnt/appconfigfs) to your preferred location, then add the corresponding commands to the"
+      mountBannerHintLink: "runcmd"
+      mountBannerHintSuffix: "in Advanced tab User Data."
     machineTypeTip: 'Specify a processor architecture to emulate. To see a list of supported architectures, run: qemu-system-x86_64 -cpu ?'
     detail:
       tabs:
