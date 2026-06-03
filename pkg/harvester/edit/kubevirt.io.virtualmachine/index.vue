@@ -93,6 +93,13 @@ export default {
 
     const hostname = this.value.spec.template.spec.hostname || '';
 
+    // In edit mode, surface the VM display name annotation as `_displayName`
+    // on the resource so NameNsDescription can bind to it via `name-key`
+    // without mutating `metadata.name` (which would break the k8s PUT).
+    if (this.mode !== 'create') {
+      this.value._displayName = this.value.metadata?.annotations?.[HCI_ANNOTATIONS.VM_DISPLAY_NAME] || this.value.metadata?.name || '';
+    }
+
     return {
       cloneVM,
       count:             2,
@@ -292,6 +299,21 @@ export default {
         this.templateVersionId = '';
         this.value.applyDefaults();
         this.getInitConfig({ value: this.value, init: this.isCreate });
+      }
+    },
+
+    // In create mode, sync metadata.name → VM_DISPLAY_NAME annotation
+    'value.metadata.name'(name) {
+      if (this.isCreate) {
+        this.value.setAnnotation(HCI_ANNOTATIONS.VM_DISPLAY_NAME, name);
+      }
+    },
+
+    // In edit mode, NameNsDescription writes to `_displayName` (via name-key);
+    // mirror it into the VM_DISPLAY_NAME annotation.
+    'value._displayName'(val) {
+      if (!this.isCreate) {
+        this.value.setAnnotation(HCI_ANNOTATIONS.VM_DISPLAY_NAME, val);
       }
     },
   },
@@ -597,6 +619,8 @@ export default {
       :value="value"
       :mode="mode"
       :has-extra="!isSingle"
+      :name-editable="true"
+      :name-key="isCreate ? null : '_displayName'"
       :name-label="nameLabel"
       :namespaced="true"
       :name-placeholder="isSingle ? 'nameNsDescription.name.placeholder' : 'harvester.virtualMachine.instance.multiple.nameNsDescription'"

@@ -22,6 +22,8 @@ export const VM_HEADERS = [
   {
     ...NAME,
     width: 350,
+    value: 'nameDisplay',
+    sort:  ['nameDisplay'],
   },
   NAMESPACE,
   {
@@ -244,7 +246,7 @@ export default {
             v-if="scope.row.type !== HCI.VMI"
             :to="scope.row.detailLocation"
           >
-            {{ scope.row.metadata.name }}
+            {{ scope.row.nameDisplay }}
             <i
               v-if="scope.row.encryptedVolumeType !== 'none'"
               v-tooltip="lockIconTooltipMessage(scope.row)"
@@ -253,7 +255,7 @@ export default {
             />
           </router-link>
           <span v-else>
-            {{ scope.row.metadata.name }}
+            {{ scope.row.nameDisplay }}
           </span>
           <ConsoleBar
             :resource-type="scope.row"
