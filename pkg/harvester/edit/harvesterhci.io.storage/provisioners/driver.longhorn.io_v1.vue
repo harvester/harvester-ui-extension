@@ -5,7 +5,7 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import RadioGroup from '@components/Form/Radio/RadioGroup';
 import Checkbox from '@components/Form/Checkbox/Checkbox';
 import { SECRET, LONGHORN } from '@shell/config/types';
-import { _CREATE, _VIEW } from '@shell/config/query-params';
+import { _CREATE, _VIEW, _EDIT } from '@shell/config/query-params';
 import { CSI_SECRETS } from '@pkg/harvester/config/harvester-map';
 import { clone } from '@shell/utils/object';
 import { uniq } from '@shell/utils/array';
@@ -62,9 +62,9 @@ export default {
     }
 
     const hasExpandSecret = !!(this.value.parameters?.[CSI_NODE_EXPAND_SECRET_NAME] && this.value.parameters?.[CSI_NODE_EXPAND_SECRET_NAMESPACE]);
-    const volumeExpansionEnabled = this.realMode === _CREATE ? true : hasExpandSecret;
+    const volumeExpansionCheckBoxEnabled = this.realMode === _CREATE ? true : hasExpandSecret;
 
-    return { volumeExpansionEnabled };
+    return { volumeExpansionCheckBoxEnabled, hasExpandSecret };
   },
 
   computed: {
@@ -105,8 +105,11 @@ export default {
       }, []);
     },
 
+    isEdit() {
+      return this.realMode === _EDIT;
+    },
     isView() {
-      return this.mode === _VIEW;
+      return this.realMode === _VIEW;
     },
 
     migratableOptions() {
@@ -159,6 +162,10 @@ export default {
       }
     },
 
+    enableOnlineExpansionVolumeEncryption() {
+      return this.value.expandOnlineEncryptedVolumeFeatureEnabled;
+    },
+
     volumeEncryption: {
       set(neu) {
         this.value['parameters'] = {
@@ -187,7 +194,7 @@ export default {
       set(selectedSecret) {
         const [namespace, name] = selectedSecret.split('/');
 
-        const expandSecretParams = (this.volumeExpansionEnabled && this.value.expandOnlineEncryptedVolumeFeatureEnabled) ? {
+        const expandSecretParams = (this.enableOnlineExpansionVolumeEncryption && this.volumeExpansionCheckBoxEnabled) ? {
           [CSI_NODE_EXPAND_SECRET_NAME]:      name,
           [CSI_NODE_EXPAND_SECRET_NAMESPACE]: namespace,
         } : {};
@@ -255,7 +262,7 @@ export default {
   },
 
   watch: {
-    volumeExpansionEnabled(enabled) {
+    volumeExpansionCheckBoxEnabled(enabled) {
       const currentSecret = this.secret;
 
       if (!currentSecret) {
@@ -264,7 +271,7 @@ export default {
 
       const [namespace, name] = currentSecret.split('/');
 
-      if (enabled && this.value.expandOnlineEncryptedVolumeFeatureEnabled) {
+      if (enabled && this.enableOnlineExpansionVolumeEncryption) {
         this.value['parameters'] = {
           ...this.value.parameters,
           [CSI_NODE_EXPAND_SECRET_NAME]:      name,
@@ -376,11 +383,14 @@ export default {
             :mode="mode"
           />
         </div>
-        <div class="col span-6 flex items-center mt-20">
+        <div
+          v-if="enableOnlineExpansionVolumeEncryption"
+          class="col span-6 flex items-center mt-20"
+        >
           <Checkbox
-            v-model:value="volumeExpansionEnabled"
-            :label="t('harvester.storage.volumeExpansionEnabled')"
-            :disabled="!value.expandOnlineEncryptedVolumeFeatureEnabled || isView"
+            v-model:value="volumeExpansionCheckBoxEnabled"
+            :label="t('harvester.storage.volumeExpansionCheckbox')"
+            :disabled="isEdit || isView"
           />
         </div>
       </div>
