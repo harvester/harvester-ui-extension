@@ -818,6 +818,9 @@ harvester:
       username: Username
       password: Password
       reservedMemory: Reserved Memory
+      customizeDisplayName: Customize virtual machine display name
+      displayNamePlaceholder: Virtual machine alias name
+      displayName: Display Name
     filesystem:
       description: Harvester supports filesystem volumes for VM via virtiofs.
       type: Filesystem Type
