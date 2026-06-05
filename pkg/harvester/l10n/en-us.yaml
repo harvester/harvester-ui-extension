@@ -392,21 +392,6 @@ harvester:
       middle: vGPU Devices
       suffix: page.
     deviceInTheSameHost: 'You can only select devices on the same host.'
-    oldFormatDevices:
-      help: |-
-        <p>
-          The following PCI devices are using the old naming convention and need to be updated in the YAML file:
-        </p>
-        <ul>
-          {oldFormatDevicesHTML}
-        </ul>
-        <p>
-          Please use the following instructions to update the virtual machine:
-        </p>
-        <ol>
-          <li>Stop the virtual machine, edit the virtual machine YAML, and remove the <Code>hostDevices</Code> section, and save virtual machine the changes to the YAML file.</li>
-          <li>Edit the virtual machine, and add the already enabled PCI Device from the list of available PCIDevices, and save and start VM.</li>
-        </ol>
     showCompatibility: Show device compatibility matrix
     hideCompatibility: Hide device compatibility matrix
     claimError: Error enabling passthrough on {name}
