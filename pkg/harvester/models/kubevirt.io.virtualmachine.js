@@ -1274,6 +1274,10 @@ export default class VirtVm extends HarvesterResource {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('schedulingVMBackup');
   }
 
+  get nameDisplay() {
+    return this.metadata?.annotations?.[HCI_ANNOTATIONS.VM_DISPLAY_NAME] || this.metadata?.name || this.id;
+  }
+
   get volumeEncryptionFeatureEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('volumeEncryption');
   }

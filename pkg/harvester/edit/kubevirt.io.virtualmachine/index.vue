@@ -93,21 +93,35 @@ export default {
 
     const hostname = this.value.spec.template.spec.hostname || '';
 
+    const customizeDisplayName = !!(this.value.metadata?.annotations?.[HCI_ANNOTATIONS.VM_DISPLAY_NAME]);
+
     return {
       cloneVM,
-      count:             2,
-      templateId:        '',
-      templateVersionId: '',
-      namePrefix:        '',
-      isSingle:          true,
-      isOpen:            false,
+      count:                2,
+      templateId:           '',
+      templateVersionId:    '',
+      namePrefix:           '',
+      isSingle:             true,
+      isOpen:               false,
       hostname,
       isRestartImmediately,
+      customizeDisplayName,
     };
   },
 
   computed: {
     ...mapGetters({ t: 'i18n/t' }),
+
+    // VM display name is stored as an annotation; bind a dedicated input to it
+    // so we don't have to mutate metadata.name (which would break the k8s PUT).
+    displayName: {
+      get() {
+        return this.value.metadata?.annotations?.[HCI_ANNOTATIONS.VM_DISPLAY_NAME] || '';
+      },
+      set(val) {
+        this.value.setAnnotation(HCI_ANNOTATIONS.VM_DISPLAY_NAME, val);
+      },
+    },
 
     to() {
       return {
@@ -292,6 +306,12 @@ export default {
         this.templateVersionId = '';
         this.value.applyDefaults();
         this.getInitConfig({ value: this.value, init: this.isCreate });
+      }
+    },
+
+    customizeDisplayName(neu) {
+      if (!neu) {
+        this.value.setAnnotation(HCI_ANNOTATIONS.VM_DISPLAY_NAME, '');
       }
     },
   },
@@ -615,6 +635,33 @@ export default {
         />
       </template>
     </NameNsDescription>
+
+    <div v-if="isSingle">
+      <div class="row mb-20">
+        <div class="col span-12">
+          <Checkbox
+            v-model:value="customizeDisplayName"
+            class="check"
+            type="checkbox"
+            :label="t('harvester.virtualMachine.input.customizeDisplayName')"
+            :mode="mode"
+          />
+        </div>
+      </div>
+      <div
+        v-if="customizeDisplayName"
+        class="row mb-20"
+      >
+        <div class="col span-6">
+          <LabeledInput
+            v-model:value="displayName"
+            :mode="mode"
+            :label="t('harvester.virtualMachine.input.displayName')"
+            :placeholder="t('harvester.virtualMachine.input.displayNamePlaceholder')"
+          />
+        </div>
+      </div>
+    </div>
 
     <Checkbox
       v-if="isCreate"

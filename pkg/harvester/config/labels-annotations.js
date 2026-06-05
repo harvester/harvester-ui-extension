@@ -19,6 +19,7 @@ export const HCI = {
   NETWORK_TYPE:                     'network.harvesterhci.io/type',
   VM_NAME:                          'harvesterhci.io/vmName',
   VM_NAME_PREFIX:                   'harvesterhci.io/vmNamePrefix',
+  VM_DISPLAY_NAME:                  'harvesterhci.io/vmDisplayName',
   VM_RESERVED_MEMORY:               'harvesterhci.io/reservedMemory',
   MAINTENANCE_STATUS:               'harvesterhci.io/maintain-status',
   HOST_CUSTOM_NAME:                 'harvesterhci.io/host-custom-name',
