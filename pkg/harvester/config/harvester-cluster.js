@@ -1322,13 +1322,16 @@ export function init($plugin, store) {
     }
   });
 
+  // Register the dashboard entry directly — it's a virtual type with no schema,
+  // so it cannot go through registerAddonSideNav (which filters by schema).
+  basicType(['forklift-create'], 'vmMigration');
+
   // Enable SideNav based on Forklift Addon Status
   registerAddonSideNav(store, PRODUCT_NAME, {
     addonName:    ADD_ONS.FORKLIFT_OPERATOR,
     resourceType: HCI.ADD_ONS,
     navGroup:     'vmMigration',
     types:        [
-      'forklift-create',
       HCI.FORKLIFT_PROVIDER,
     ]
   });
