@@ -31,6 +31,10 @@ export default {
     to() {
       return this.vm?.detailLocation;
     },
+
+    attachVMName() {
+      return this.vm?.nameDisplay || this.vm?.metadata?.name || this.value;
+    }
   }
 };
 </script>
@@ -40,10 +44,10 @@ export default {
     v-if="to"
     :to="to"
   >
-    {{ value }}
+    {{ attachVMName }}
   </router-link>
 
   <span v-else>
-    {{ value }}
+    {{ attachVMName }}
   </span>
 </template>
