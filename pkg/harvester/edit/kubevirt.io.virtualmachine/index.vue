@@ -21,9 +21,7 @@ import { saferDump } from '@shell/utils/create-yaml';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
-
 import CreateEditView from '@shell/mixins/create-edit-view';
-
 import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
 import VM_MIXIN from '../../mixins/harvester-vm';
 import { HCI } from '../../types';
@@ -844,7 +842,7 @@ export default {
       >
         <Filesystem
           v-model:value="filesystemRows"
-          :mode="mode"
+          :mode="isCreate ? mode : 'view'"
           :namespace="value.metadata.namespace"
         />
       </Tab>
