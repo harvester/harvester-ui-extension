@@ -64,6 +64,9 @@ export default {
 
     try {
       parsedDefaultValue = JSON.parse(this.value.value);
+      if (typeof parsedDefaultValue.exclusiveVlan !== 'boolean') {
+        parsedDefaultValue.exclusiveVlan = false;
+      }
       networkType = 'vlan' in parsedDefaultValue ? L2VLAN : UNTAGGED; // backend doesn't provide networkType, so we check if vlan is provided instead
       openVlan = true;
     } catch (error) {
@@ -72,7 +75,8 @@ export default {
         vlan:           '',
         clusterNetwork: '',
         range:          '',
-        exclude:        []
+        exclude:        [],
+        exclusiveVlan:  false
       };
     }
     const exclude = parsedDefaultValue?.exclude?.toString().split(',') || [];
@@ -94,6 +98,10 @@ export default {
   },
 
   computed: {
+    showExclusiveVlan() {
+      return this.networkType === L2VLAN &&
+        Number(this.parsedDefaultValue.vlan) !== 1;
+    },
     showVlan() {
       return this.networkType === L2VLAN;
     },
@@ -131,6 +139,18 @@ export default {
           disabled,
         };
       });
+    },
+    exclusiveVlanOptions() {
+      return [
+        {
+          label: this.t('generic.enabled'),
+          value: true
+        },
+        {
+          label: this.t('generic.disabled'),
+          value: false
+        }
+      ];
     },
   },
 
@@ -174,7 +194,8 @@ export default {
         vlan:           '',
         clusterNetwork: '',
         range:          '',
-        exclude:        []
+        exclude:        [],
+        exclusiveVlan:  false
       };
     },
 
@@ -280,7 +301,15 @@ export default {
         label-key="harvester.setting.storageNetwork.vlan"
         @update:value="inputVlan"
       />
-
+      <LabeledSelect
+        v-if="showExclusiveVlan"
+        v-model:value="parsedDefaultValue.exclusiveVlan"
+        class="mb-20"
+        :options="exclusiveVlanOptions"
+        :mode="mode"
+        label-key="harvester.setting.storageNetwork.exclusiveVlan"
+        @update:value="update"
+      />
       <LabeledSelect
         v-model:value="parsedDefaultValue.clusterNetwork"
         label-key="harvester.setting.storageNetwork.clusterNetwork"
