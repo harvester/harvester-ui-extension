@@ -1870,7 +1870,7 @@ harvester:
         providerSelect: Provider
         createNew: Create new provider
         requirementsTitle: Requirements
-        requirementsText: "To migrate virtual machines from VMWare, you will need a vCenter Server running version 6.5 or higher with a user account that has at least read permissions, and the source environment must be network-accessible from Rancher."
+        requirementsText: "To migrate virtual machines from VMware, you will need a vCenter Server running version 6.5 or higher with a user account that has at least read permissions, and the source environment must be network-accessible from Rancher."
         name: Name
         urlLabel: vCenter/ESXi URL
         urlPlaceholder: "https://vcenter.example.com/sdk"
