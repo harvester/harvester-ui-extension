@@ -235,6 +235,10 @@ export default class HciPv extends HarvesterResource {
     return allVMs.find(findAttachVM);
   }
 
+  get attachVMName() {
+    return this.attachVM?.nameDisplay || this.attachVM?.metadata?.name || '';
+  }
+
   get isAvailable() {
     const unAvailable = ['Resizing', 'Not Ready'];
 
