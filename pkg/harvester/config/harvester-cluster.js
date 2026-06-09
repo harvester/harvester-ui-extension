@@ -581,6 +581,7 @@ export function init($plugin, store) {
     [
       HCI.CLUSTER_NETWORK,
       HCI.NETWORK_ATTACHMENT,
+      HCI.HOST_NETWORK_CONFIG,
       HCI.VPC,
       NETWORK_POLICY,
       HCI.LB,
@@ -1141,4 +1142,24 @@ export function init($plugin, store) {
     ifHaveType: HCI.IP_POOL,
   });
   headers(HCI.IP_POOL, IP_POOL_HEADERS);
+
+  configureType(HCI.HOST_NETWORK_CONFIG, {
+    location: {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.HOST_NETWORK_CONFIG }
+    },
+    canYaml: false,
+  });
+  virtualType({
+    labelKey:   'harvester.hostNetworkConfig.label',
+    name:       HCI.HOST_NETWORK_CONFIG,
+    namespaced: false,
+    weight:     183,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.HOST_NETWORK_CONFIG }
+    },
+    exact:      false,
+    ifHaveType: HCI.HOST_NETWORK_CONFIG,
+  });
 }

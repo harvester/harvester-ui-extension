@@ -295,6 +295,12 @@ harvester:
     harvesterIpAddress:
       customIpTooltip: "Custom IP (set via annotation)"
   tableHeaders:
+    hostNetworkConfig:
+      underlay: Underlay
+      underlayTooltip: Let this interface to act as underlay for vm overlay networks.
+      vlanID: VLAN ID
+      mode: Mode
+      clusterNetwork: Cluster Network
     imageEncryption: Encryption
     size: Size
     virtualSize: Virtual Size
@@ -1871,6 +1877,8 @@ harvester:
       addLabel: Add CIDR
     range:
       addLabel: Add Range
+  hostNetworkConfig:
+    label: Host Network
 
   service:
     healthCheckPort:
@@ -2193,6 +2201,11 @@ typeLabel:
     {count, plural,
       one { Cluster Network }
       other { Cluster Networks }
+    }
+  network.harvesterhci.io.hostnetworkconfig: |-
+    {count, plural,
+      one { Host Network }
+      other { Host Networks }
     }
   harvesterhci.io.addon: |-
     {count, plural,
