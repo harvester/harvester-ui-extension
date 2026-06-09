@@ -234,7 +234,7 @@ export default {
     </div>
 
     <Banner
-      v-if="completedRows.length > 0"
+      v-if="completedRows.length > 0 && mode === 'create'"
       color="warning"
       class="mt-10"
     >
