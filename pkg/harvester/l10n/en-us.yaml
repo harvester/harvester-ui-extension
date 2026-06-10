@@ -1879,6 +1879,23 @@ harvester:
       addLabel: Add Range
   hostNetworkConfig:
     label: Host Network
+    mode:
+      label: Mode
+    tabs:
+      basic: Basic
+      mode: Mode
+    underlay:
+      label: Underlay
+      tooltip: Let this interface to act as underlay for vm overlay networks.
+    vlanID:
+      label: Vlan ID
+    ipRange:
+      label: IP Range ({node})
+      placeholder: e.g. 192.168.1.10/24
+    ips:
+      nodeLabel: Node
+      label: IPs
+      placeholder: 'e.g. 192.168.1.10/24'
 
   service:
     healthCheckPort:
