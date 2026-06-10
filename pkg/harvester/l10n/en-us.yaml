@@ -1884,6 +1884,9 @@ harvester:
     tabs:
       basic: Basic
       mode: Mode
+      nodeSelector: Node Selector
+    nodeSelector:
+      addButton: Add Node Selector
     underlay:
       label: Underlay
       tooltip: Let this interface to act as underlay for vm overlay networks.

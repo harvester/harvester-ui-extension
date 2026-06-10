@@ -63,7 +63,7 @@ export const HCI = {
   VMIMPORT_SOURCE_OVA: 'migration.harvesterhci.io.ovasource',
   VMIMPORT:            'migration.harvesterhci.io.virtualmachineimport',
   MIGRATION:           'migration.harvesterhci.io',
-  
+
 };
 
 export const VOLUME_SNAPSHOT = 'snapshot.storage.k8s.io.volumesnapshot';

@@ -3,17 +3,19 @@ import CruResource from '@shell/components/CruResource';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
 import ResourceTabs from '@shell/components/form/ResourceTabs';
 import Tab from '@shell/components/Tabbed/Tab';
+import InfoBox from '@shell/components/InfoBox';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { RadioGroup } from '@components/Form/Radio';
 import { Checkbox } from '@components/Form/Checkbox';
+import HarvesterNodeSelector from '../components/HarvesterNodeSelector';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { allHash } from '@shell/utils/promise';
 import { set } from '@shell/utils/object';
 import { NODE } from '@shell/config/types';
 import { HCI } from '../types';
 
-const MODE_DHCP   = 'dhcp';
+const MODE_DHCP = 'dhcp';
 const MODE_STATIC = 'static';
 
 export default {
@@ -26,10 +28,12 @@ export default {
     NameNsDescription,
     ResourceTabs,
     Tab,
+    InfoBox,
     LabeledSelect,
     LabeledInput,
     RadioGroup,
     Checkbox,
+    HarvesterNodeSelector,
   },
 
   mixins: [CreateEditView],
@@ -54,18 +58,24 @@ export default {
 
   data() {
     const networkMode = this.value?.spec?.mode || MODE_DHCP;
-    const ips         = { ...(this.value?.spec?.ips || {}) };
+    const ips = { ...(this.value?.spec?.ips || {}) };
+
+    if (!this.value.spec) {
+      set(this.value, 'spec', {});
+    }
 
     return {
       networkMode,
       ips,
+      NODE,
+      hasNodeSelector: !!this.value?.spec?.nodeSelector,
     };
   },
 
   computed: {
     modeOptions() {
       return [
-        { label: 'DHCP',   value: MODE_DHCP },
+        { label: 'DHCP', value: MODE_DHCP },
         { label: 'Static', value: MODE_STATIC },
       ];
     },
@@ -132,6 +142,11 @@ export default {
           delete this.value.spec.ips;
         }
         this.ips = {};
+
+        if (this.value?.spec?.nodeSelector !== undefined) {
+          delete this.value.spec.nodeSelector;
+        }
+        this.hasNodeSelector = false;
       }
     },
   },
@@ -153,6 +168,20 @@ export default {
 
     updateIp(nodeName, val) {
       this.ips = { ...this.ips, [nodeName]: val };
+    },
+
+    addNodeSelector() {
+      set(this.value.spec, 'nodeSelector', {
+        matchExpressions: [{
+          key: '', operator: 'In', values: []
+        }]
+      });
+      this.hasNodeSelector = true;
+    },
+
+    removeNodeSelector() {
+      delete this.value.spec.nodeSelector;
+      this.hasNodeSelector = false;
     },
   },
 };
@@ -203,7 +232,6 @@ export default {
             />
           </div>
         </div>
-        
 
         <div class="row mb-20">
           <div class="col span-6">
@@ -245,15 +273,6 @@ export default {
 
         <template v-if="isStaticMode">
           <hr class="section-divider" />
-
-          <div class="ips-header row mb-10">
-            <div class="col span-3">
-              <label class="text-label">{{ t('harvester.hostNetworkConfig.ips.nodeLabel') }}</label>
-            </div>
-            <div class="col span-5">
-              <label class="text-label">{{ t('harvester.hostNetworkConfig.ips.label') }}</label>
-            </div>
-          </div>
           <div
             v-for="node in nodes"
             :key="node.id"
@@ -262,6 +281,7 @@ export default {
             <div class="col span-3">
               <LabeledInput
                 :value="node.nameDisplay || node.id"
+                :label="t('harvester.hostNetworkConfig.ips.nodeLabel')"
                 mode="view"
                 :disabled="true"
               />
@@ -269,12 +289,47 @@ export default {
             <div class="col span-5">
               <LabeledInput
                 :value="ips[node.id]"
+                :label="t('harvester.hostNetworkConfig.ips.label')"
                 :placeholder="t('harvester.hostNetworkConfig.ips.placeholder')"
                 :mode="mode"
+                required
                 @update:value="updateIp(node.id, $event)"
               />
             </div>
           </div>
+        </template>
+      </Tab>
+      <Tab
+        v-if="isStaticMode"
+        name="nodeSelector"
+        :label="t('harvester.hostNetworkConfig.tabs.nodeSelector')"
+        :weight="98"
+      >
+        <template v-if="hasNodeSelector">
+          <InfoBox class="node-selector-box">
+            <button
+              v-if="!isView"
+              type="button"
+              class="role-link btn btn-sm remove"
+              @click="removeNodeSelector"
+            >
+              <i class="icon icon-x" />
+            </button>
+            <HarvesterNodeSelector
+              class="mt-20"
+              :value="value.spec.nodeSelector"
+              :mode="mode"
+            />
+          </InfoBox>
+        </template>
+        <template v-else>
+          <button
+            type="button"
+            class="btn role-secondary"
+            @click="addNodeSelector"
+          >
+            {{ t('harvester.hostNetworkConfig.nodeSelector.addButton') }}
+          </button>
         </template>
       </Tab>
     </ResourceTabs>
@@ -286,5 +341,17 @@ export default {
   border: none;
   border-top: 1px solid var(--border);
   margin: 10px 0 20px;
+}
+
+.node-selector-box {
+  position: relative;
+
+  .remove {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1;
+    padding: 0;
+  }
 }
 </style>
