@@ -53,6 +53,10 @@ export default {
   },
 
   computed: {
+    schema() {
+       const inStore = this.$store.getters['currentProduct'].inStore;
+       return this.$store.getters[`${ inStore }/schemaFor`](HCI.HOST_NETWORK_CONFIG);
+    },
     headers() {
       return [
         STATE,
@@ -75,6 +79,7 @@ export default {
     v-bind="$attrs"
     :headers="headers"
     :rows="rows"
+    :schema="schema"
     key-field="_key"
   />
 </template>

@@ -311,6 +311,7 @@ export default {
               v-if="!isView"
               type="button"
               class="role-link btn btn-sm remove"
+              :aria-label="t('generic.remove')"
               @click="removeNodeSelector"
             >
               <i class="icon icon-x" />
@@ -326,6 +327,7 @@ export default {
           <button
             type="button"
             class="btn role-secondary"
+            :disabled="isView"
             @click="addNodeSelector"
           >
             {{ t('harvester.hostNetworkConfig.nodeSelector.addButton') }}

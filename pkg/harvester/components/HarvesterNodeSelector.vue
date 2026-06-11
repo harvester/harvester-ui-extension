@@ -79,6 +79,9 @@ export default {
       handler:   'updateMatchingResources',
       deep:      true,
     },
+    allResourcesInScope() {
+      this.updateMatchingResources();
+    },
   },
 
   computed: {

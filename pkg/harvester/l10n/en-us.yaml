@@ -1882,16 +1882,15 @@ harvester:
     mode:
       label: Mode
     tabs:
-      basic: Basic
       mode: Mode
       nodeSelector: Node Selector
     nodeSelector:
       addButton: Add Node Selector
     underlay:
       label: Underlay
-      tooltip: Let this interface to act as underlay for vm overlay networks.
+      tooltip: Let this interface to act as underlay for VM overlay networks.
     vlanID:
-      label: Vlan ID
+      label: VLAN ID
     ipRange:
       label: IP Range ({node})
       placeholder: e.g. 192.168.1.10/24
