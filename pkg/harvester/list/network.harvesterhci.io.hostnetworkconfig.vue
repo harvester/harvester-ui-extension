@@ -54,8 +54,9 @@ export default {
 
   computed: {
     schema() {
-       const inStore = this.$store.getters['currentProduct'].inStore;
-       return this.$store.getters[`${ inStore }/schemaFor`](HCI.HOST_NETWORK_CONFIG);
+      const inStore = this.$store.getters['currentProduct'].inStore;
+
+      return this.$store.getters[`${ inStore }/schemaFor`](HCI.HOST_NETWORK_CONFIG);
     },
     headers() {
       return [
