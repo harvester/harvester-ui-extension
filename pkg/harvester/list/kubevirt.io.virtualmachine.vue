@@ -1,4 +1,5 @@
 <script>
+import { mapGetters } from 'vuex';
 import ResourceTable from '@shell/components/ResourceTable';
 import { STATE, AGE, NAME, NAMESPACE } from '@shell/config/table-headers';
 import {
@@ -116,6 +117,8 @@ export default {
   },
 
   computed: {
+    ...mapGetters({ actionCb: 'action-menu/performCallbackData' }),
+
     headers() {
       const restoreCol = {
         name:      'restoreProgress',
@@ -182,6 +185,13 @@ export default {
   },
 
   watch: {
+    actionCb(neu) {
+      if (neu?.clearTableSelection) {
+        this.$refs.resourceTable.clearSelection();
+        this.$store.dispatch('action-menu/clearCallbackData');
+      }
+    },
+
     vmRestartRequiredNames(vmNames) {
       const count = vmNames.length;
 
@@ -220,6 +230,7 @@ export default {
   <Loading v-if="$fetchState.pending" />
   <div v-else>
     <ResourceTable
+      ref="resourceTable"
       v-bind="$attrs"
       :headers="headers"
       default-sort-by="age"

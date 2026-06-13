@@ -117,10 +117,10 @@ export default {
   },
 
   methods: {
-    close() {
+    close(data) {
       this.nodeName = '';
       this.errors = [];
-      this.$emit('close');
+      this.$emit('close', data);
     },
 
     async apply(buttonDone) {
@@ -166,7 +166,7 @@ export default {
         }
 
         buttonDone(true);
-        this.close();
+        this.close({ performCallback: true, clearTableSelection: true });
       } catch (err) {
         const error = err?.data || err;
         const message = exceptionToErrorsArray(error);

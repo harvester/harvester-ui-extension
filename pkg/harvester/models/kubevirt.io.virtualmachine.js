@@ -184,11 +184,12 @@ export default class VirtVm extends HarvesterResource {
         label:      this.t('harvester.action.softreboot')
       },
       {
-        action:   'startVM',
-        enabled:  !!this.actions?.start,
-        icon:     'icon icon-play',
-        label:    this.t('harvester.action.start'),
-        bulkable: true
+        action:     'startVM',
+        enabled:    !!this.actions?.start,
+        icon:       'icon icon-play',
+        label:      this.t('harvester.action.start'),
+        bulkable:   true,
+        bulkAction: 'startVM'
       },
       {
         action:  'backupVM',
@@ -555,14 +556,27 @@ export default class VirtVm extends HarvesterResource {
 
   altStopVM() {
     this.doActionGrowl('stop', {});
+    this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
   }
 
-  forceStop() {
-    this.doActionGrowl('forceStop', {});
+  async forceStop() {
+    await this.doActionGrowl('forceStop', {});
+    this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
   }
 
-  startVM() {
-    this.doActionGrowl('start', {});
+  async startVM() {
+    await this.doActionGrowl('start', {});
+    this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
+  }
+
+  async download() {
+    await super.download();
+    this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
+  }
+
+  async downloadBulk(items) {
+    await super.downloadBulk(items);
+    this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
   }
 
   migrateVM(resources = this) {

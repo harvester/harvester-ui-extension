@@ -98,9 +98,9 @@ export default {
   methods: {
     escapeHtml,
 
-    close() {
+    close(data) {
       this.errors = [];
-      this.$emit('close');
+      this.$emit('close', data);
     },
 
     async apply(buttonDone) {
@@ -109,7 +109,7 @@ export default {
           await resource.doActionGrowl(this.modalData.action, {});
         }
         buttonDone(true);
-        this.close();
+        this.close({ performCallback: true, clearTableSelection: true });
       } catch (e) {
         this.errors = exceptionToErrorsArray(e);
         buttonDone(false);
