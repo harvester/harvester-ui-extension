@@ -1888,7 +1888,7 @@ harvester:
       addButton: Add Node Selector
     underlay:
       label: Underlay
-      tooltip: Let this interface to act as underlay for VM overlay networks.
+      tooltip: Allow this interface to act as the underlay for VM overlay networks.
     vlanID:
       label: VLAN ID
     ipRange:

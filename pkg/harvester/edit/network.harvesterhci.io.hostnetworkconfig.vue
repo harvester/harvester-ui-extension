@@ -67,7 +67,6 @@ export default {
     return {
       networkMode,
       ips,
-      NODE,
       hasNodeSelector: !!this.value?.spec?.nodeSelector,
     };
   },
@@ -194,7 +193,6 @@ export default {
     :resource="value"
     :errors="errors"
     :apply-hooks="applyHooks"
-    finish-button-mode="create"
     @finish="save"
     @cancel="done"
     @error="e => errors = e"
