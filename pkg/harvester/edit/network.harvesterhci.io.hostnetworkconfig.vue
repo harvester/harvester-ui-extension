@@ -4,6 +4,7 @@ import NameNsDescription from '@shell/components/form/NameNsDescription';
 import ResourceTabs from '@shell/components/form/ResourceTabs';
 import Tab from '@shell/components/Tabbed/Tab';
 import InfoBox from '@shell/components/InfoBox';
+import MessageLink from '@shell/components/MessageLink';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { RadioGroup } from '@components/Form/Radio';
@@ -14,6 +15,7 @@ import { allHash } from '@shell/utils/promise';
 import { set } from '@shell/utils/object';
 import { NODE } from '@shell/config/types';
 import { HCI } from '../types';
+import { ADD_ONS } from '../config/harvester-map';
 
 const MODE_DHCP = 'dhcp';
 const MODE_STATIC = 'static';
@@ -29,6 +31,7 @@ export default {
     ResourceTabs,
     Tab,
     InfoBox,
+    MessageLink,
     LabeledSelect,
     LabeledInput,
     RadioGroup,
@@ -51,8 +54,10 @@ export default {
     const inStore = this.$store.getters['currentProduct'].inStore;
 
     await allHash({
-      clusterNetworks: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.CLUSTER_NETWORK }),
-      nodes:           this.$store.dispatch(`${ inStore }/findAll`, { type: NODE }),
+      clusterNetworks:     this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.CLUSTER_NETWORK }),
+      nodes:               this.$store.dispatch(`${ inStore }/findAll`, { type: NODE }),
+      hostNetworkConfigs:  this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.HOST_NETWORK_CONFIG }),
+      addons:              this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.ADD_ONS }),
     });
   },
 
@@ -130,6 +135,40 @@ export default {
         set(this.value, 'spec.clusterNetwork', val);
       },
     },
+
+    underlayConflict() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const all = this.$store.getters[`${ inStore }/all`](HCI.HOST_NETWORK_CONFIG) || [];
+      const currentId = this.value?.id;
+
+      return all.find((c) => c.id !== currentId && c.spec?.underlay === true) || null;
+    },
+
+    kubeovnEnabled() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const addons = this.$store.getters[`${ inStore }/all`](HCI.ADD_ONS) || [];
+
+      return addons.find((a) => a.name === ADD_ONS.KUBEOVN_OPERATOR)?.spec?.enabled === true;
+    },
+
+    underlayDisabled() {
+      return !this.kubeovnEnabled || !!this.underlayConflict;
+    },
+
+    kubeovnAddonTo() {
+      return {
+        name:   'c-cluster-product-resource-namespace-id',
+        params: {
+          cluster:   this.$route.params.cluster,
+          product:   this.$store.getters['productId'],
+          resource:  HCI.ADD_ONS,
+          namespace: 'kube-system',
+          id:        ADD_ONS.KUBEOVN_OPERATOR,
+        },
+        query: { mode: 'edit' },
+        hash:  '#basic',
+      };
+    },
   },
 
   watch: {
@@ -141,11 +180,6 @@ export default {
           delete this.value.spec.ips;
         }
         this.ips = {};
-
-        if (this.value?.spec?.nodeSelector !== undefined) {
-          delete this.value.spec.nodeSelector;
-        }
-        this.hasNodeSelector = false;
       }
     },
   },
@@ -265,7 +299,27 @@ export default {
               :label="t('harvester.hostNetworkConfig.underlay.label')"
               :tooltip="t('harvester.hostNetworkConfig.underlay.tooltip')"
               :mode="mode"
+              :disabled="underlayDisabled"
             />
+            <span
+              v-if="!kubeovnEnabled"
+              class="underlay-conflict-warning"
+            >
+              <i class="icon icon-warning" />
+              <MessageLink
+                :to="kubeovnAddonTo"
+                prefix-label="harvester.hostNetworkConfig.underlay.noKubeovn.prefix"
+                middle-label="harvester.hostNetworkConfig.underlay.noKubeovn.middle"
+                suffix-label="harvester.hostNetworkConfig.underlay.noKubeovn.suffix"
+              />
+            </span>
+            <span
+              v-else-if="underlayConflict"
+              class="underlay-conflict-warning"
+            >
+              <i class="icon icon-warning" />
+              {{ t('harvester.hostNetworkConfig.underlay.conflict', { name: underlayConflict.nameDisplay || underlayConflict.id }) }}
+            </span>
           </div>
         </div>
 
@@ -298,7 +352,6 @@ export default {
         </template>
       </Tab>
       <Tab
-        v-if="isStaticMode"
         name="nodeSelector"
         :label="t('harvester.hostNetworkConfig.tabs.nodeSelector')"
         :weight="98"
@@ -353,5 +406,14 @@ export default {
     z-index: 1;
     padding: 0;
   }
+}
+
+.underlay-conflict-warning {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  color: var(--warning);
+  font-size: 13px;
 }
 </style>

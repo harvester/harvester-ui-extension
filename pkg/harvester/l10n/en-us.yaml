@@ -1878,7 +1878,7 @@ harvester:
     range:
       addLabel: Add Range
   hostNetworkConfig:
-    label: Host Network
+    label: Host Networks
     mode:
       label: Mode
     tabs:
@@ -1889,6 +1889,11 @@ harvester:
     underlay:
       label: Underlay
       tooltip: Allow this interface to act as the underlay for VM overlay networks.
+      conflict: '`{name}` host network config already has underlay enabled. Only one underlay is allowed in the cluster.'
+      noKubeovn:
+        prefix: The kubeovn-operator add-on is not enabled. Click
+        middle: here
+        suffix: to enable the add-on to enable overlay feature.
     vlanID:
       label: VLAN ID
     ipRange:
@@ -1896,7 +1901,7 @@ harvester:
       placeholder: e.g. 192.168.1.10/24
     ips:
       nodeLabel: Node
-      label: IPs
+      label: IP
       placeholder: 'e.g. 192.168.1.10/24'
 
   service:
