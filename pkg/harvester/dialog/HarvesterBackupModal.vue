@@ -6,6 +6,7 @@ import { Banner } from '@components/Banner';
 import AsyncButton from '@shell/components/AsyncButton';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
+import { DEFAULT_FS_FREEZE_DEADLINE, getFsFreezeDeadlineOptions } from '../utils/backup';
 
 export default {
   name: 'HarvesterBackupModal',
@@ -29,39 +30,9 @@ export default {
 
   data() {
     return {
-      backUpName:              '',
-      errors:                  [],
-      fsFreezeDeadline:        '10s',
-      fsFreezeDeadlineOptions: [
-        {
-          label: this.t('generic.duration.infinite'),
-          value: '0s'
-        },
-        {
-          label: this.t('generic.duration.5s'),
-          value: '5s'
-        },
-        {
-          label: this.t('generic.duration.10s'),
-          value: '10s'
-        },
-        {
-          label: this.t('generic.duration.30s'),
-          value: '30s'
-        },
-        {
-          label: this.t('generic.duration.1m'),
-          value: '1m'
-        },
-        {
-          label: this.t('generic.duration.3m'),
-          value: '3m'
-        },
-        {
-          label: this.t('generic.duration.5m'),
-          value: '5m'
-        }
-      ]
+      backUpName:       '',
+      errors:           [],
+      fsFreezeDeadline: DEFAULT_FS_FREEZE_DEADLINE
     };
   },
 
@@ -70,13 +41,22 @@ export default {
 
     actionResource() {
       return this.resources[0];
+    },
+
+    fsFreezeDeadlineEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('fsFreezeDeadline');
+    },
+
+    fsFreezeDeadlineOptions() {
+      return getFsFreezeDeadlineOptions(this.t);
     }
   },
 
   methods: {
     close() {
       this.backUpName = '';
-      this.fsFreezeDeadline = '';
+      this.fsFreezeDeadline = DEFAULT_FS_FREEZE_DEADLINE;
+      this.errors = [];
       this.$emit('close');
     },
 
@@ -139,10 +119,11 @@ export default {
         required
       />
       <LabeledSelect
+        v-if="fsFreezeDeadlineEnabled"
         v-model:value="fsFreezeDeadline"
         class="mt-20"
         :options="fsFreezeDeadlineOptions"
-        :label="t('harvester.modal.backup.fsFreezeDeadline')"
+        :label="t('harvester.modal.backup.fileSystemFreezeDeadline.label')"
         required
       />
       <Banner
