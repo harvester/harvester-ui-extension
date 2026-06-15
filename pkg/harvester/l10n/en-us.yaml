@@ -297,7 +297,7 @@ harvester:
   tableHeaders:
     hostNetworkConfig:
       underlay: Underlay
-      underlayTooltip: Let this interface to act as underlay for vm overlay networks.
+      underlayTooltip: Allow this interface to act as the underlay for VM overlay networks.
       vlanID: VLAN ID
       mode: Mode
       clusterNetwork: Cluster Network
@@ -1893,7 +1893,7 @@ harvester:
       noKubeovn:
         prefix: The kubeovn-operator add-on is not enabled. Click
         middle: here
-        suffix: to enable the add-on to enable overlay feature.
+        suffix: to enable the add-on for overlay networking.
     vlanID:
       label: VLAN ID
     ipRange:
