@@ -3,6 +3,7 @@ generic:
   resourceExternalLinkTips: 'External Link'
   namespace: Namespace
   notReady: Not Ready
+  managed: Managed
   labels: Labels
   inProgress: In Progress
   basic: Basic
