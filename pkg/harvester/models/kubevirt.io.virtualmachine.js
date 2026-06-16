@@ -123,7 +123,12 @@ const IgnoreMessages = ['pod has unbound immediate PersistentVolumeClaims'];
 
 export default class VirtVm extends HarvesterResource {
   get availableActions() {
-    const out = super._availableActions;
+    let out = super._availableActions;
+
+    if (this.isCloneBackendStorageCloning || this.isCloneBackendStorageFailed) {
+      out = out.filter(({ action }) => action !== 'goToClone');
+    }
+
     const clone = out.find((action) => action.action === 'goToClone');
 
     if (clone) {
@@ -770,6 +775,18 @@ export default class VirtVm extends HarvesterResource {
     return this.volumes.filter((volume) => volume?.isLonghornV2);
   }
 
+  get cloneBackendStorageStatus() {
+    return this.metadata?.annotations?.[HCI_ANNOTATIONS.CLONE_BACKEND_STORAGE_STATUS]?.toLowerCase?.() || '';
+  }
+
+  get isCloneBackendStorageCloning() {
+    return this.cloneBackendStorageStatus === 'cloning';
+  }
+
+  get isCloneBackendStorageFailed() {
+    return this.cloneBackendStorageStatus === 'failed';
+  }
+
   get encryptedVolumeType() {
     if (!this.volumes || this.volumes.length === 0) {
       return 'none';
@@ -825,8 +842,16 @@ export default class VirtVm extends HarvesterResource {
       !this.isVMExpectedRunning &&
       this.isVMCreated &&
       this.vmi?.status?.phase === VMIPhase.Pending
-    ) || (this.metadata?.annotations?.[HCI_ANNOTATIONS.CLONE_BACKEND_STORAGE_STATUS] === 'cloning')) {
+    ) || this.isCloneBackendStorageCloning) {
       return { status: VMIPhase.Pending };
+    }
+
+    return null;
+  }
+
+  get isCloneFailed() {
+    if (this.isCloneBackendStorageFailed) {
+      return { status: VMIPhase.Failed };
     }
 
     return null;
@@ -988,6 +1013,7 @@ export default class VirtVm extends HarvesterResource {
       this.isUnschedulable?.status ||
       this.isPaused?.status ||
       this.isVMError?.status ||
+      this.isCloneFailed?.status ||
       this.isPending?.status ||
       this.isStopping?.status ||
       this.isOff?.status ||
