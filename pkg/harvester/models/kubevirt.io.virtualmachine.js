@@ -564,8 +564,12 @@ export default class VirtVm extends HarvesterResource {
     this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
   }
 
-  async startVM() {
-    await this.doActionGrowl('start', {});
+  async startVM(resources = this) {
+    const list = Array.isArray(resources) ? resources : [resources];
+
+    for (const r of list) {
+      await r.doActionGrowl('start', {});
+    }
     this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
   }
 
