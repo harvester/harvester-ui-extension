@@ -554,8 +554,8 @@ export default class VirtVm extends HarvesterResource {
     });
   }
 
-  altStopVM() {
-    this.doActionGrowl('stop', {});
+  async altStopVM() {
+    await this.doActionGrowl('stop', {});
     this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
   }
 
