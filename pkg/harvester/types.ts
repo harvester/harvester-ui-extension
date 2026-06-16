@@ -16,6 +16,7 @@ export const HCI = {
   RESTORE:             'harvesterhci.io.virtualmachinerestore',
   NODE_NETWORK:        'network.harvesterhci.io.nodenetwork',
   CLUSTER_NETWORK:     'network.harvesterhci.io.clusternetwork',
+  HOST_NETWORK_CONFIG: 'network.harvesterhci.io.hostnetworkconfig',
   SUBNET:              'kubeovn.io.subnet',
   VPC:                 'kubeovn.io.vpc',
   IP:                  'kubeovn.io.ip',
@@ -62,6 +63,7 @@ export const HCI = {
   VMIMPORT_SOURCE_OVA: 'migration.harvesterhci.io.ovasource',
   VMIMPORT:            'migration.harvesterhci.io.virtualmachineimport',
   MIGRATION:           'migration.harvesterhci.io',
+
 };
 
 export const VOLUME_SNAPSHOT = 'snapshot.storage.k8s.io.volumesnapshot';

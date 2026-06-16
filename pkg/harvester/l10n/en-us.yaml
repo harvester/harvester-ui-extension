@@ -295,6 +295,12 @@ harvester:
     harvesterIpAddress:
       customIpTooltip: "Custom IP (set via annotation)"
   tableHeaders:
+    hostNetworkConfig:
+      underlay: Underlay
+      underlayTooltip: Allow this interface to act as the underlay for VM overlay networks.
+      vlanID: VLAN ID
+      mode: Mode
+      clusterNetwork: Cluster Network
     imageEncryption: Encryption
     size: Size
     virtualSize: Virtual Size
@@ -1871,6 +1877,32 @@ harvester:
       addLabel: Add CIDR
     range:
       addLabel: Add Range
+  hostNetworkConfig:
+    label: Host Networks
+    mode:
+      label: Mode
+    tabs:
+      mode: Mode
+      nodeSelector: Node Selector
+    nodeSelector:
+      addButton: Add Node Selector
+    underlay:
+      label: Underlay
+      tooltip: Allow this interface to act as the underlay for VM overlay networks.
+      conflict: '`{name}` host network config already has underlay enabled. Only one underlay is allowed in the cluster.'
+      noKubeovn:
+        prefix: The kubeovn-operator add-on is not enabled. Click
+        middle: here
+        suffix: to enable the add-on for overlay networking.
+    vlanID:
+      label: VLAN ID
+    ipRange:
+      label: IP Range ({node})
+      placeholder: e.g. 192.168.1.10/24
+    ips:
+      nodeLabel: Node
+      label: IP
+      placeholder: 'e.g. 192.168.1.10/24'
 
   service:
     healthCheckPort:
@@ -2193,6 +2225,11 @@ typeLabel:
     {count, plural,
       one { Cluster Network }
       other { Cluster Networks }
+    }
+  network.harvesterhci.io.hostnetworkconfig: |-
+    {count, plural,
+      one { Host Network }
+      other { Host Networks }
     }
   harvesterhci.io.addon: |-
     {count, plural,
