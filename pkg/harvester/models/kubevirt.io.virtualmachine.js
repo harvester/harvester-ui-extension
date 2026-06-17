@@ -776,7 +776,7 @@ export default class VirtVm extends HarvesterResource {
   }
 
   get cloneBackendStorageStatus() {
-    return this.metadata?.annotations?.[HCI_ANNOTATIONS.CLONE_BACKEND_STORAGE_STATUS]?.toLowerCase?.() || '';
+    return this.metadata?.annotations?.[HCI_ANNOTATIONS.CLONE_BACKEND_STORAGE_STATUS]?.toLowerCase() || '';
   }
 
   get isCloneBackendStorageCloning() {
@@ -1021,7 +1021,7 @@ export default class VirtVm extends HarvesterResource {
       this.isRunning?.status ||
       this.isNotReady?.status ||
       this.isStarting?.status ||
-      this.isWaitingForVMI?.state ||
+      this.isWaitingForVMI?.status ||
       this.otherState?.status;
 
     return state;
