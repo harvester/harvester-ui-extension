@@ -379,10 +379,6 @@ export default class VirtVm extends HarvesterResource {
     this.metadata.annotations[HCI_ANNOTATIONS.VOLUME_CLAIM_TEMPLATE] = JSON.stringify(deleteDataSource);
   }
 
-  altRestartVM() {
-    this.doActionGrowl('restart', {});
-  }
-
   restartVM(resources = this) {
     this.$dispatch('promptModal', {
       resources,
@@ -552,6 +548,11 @@ export default class VirtVm extends HarvesterResource {
       warningMessageKey: 'dialog.confirmExecution.stop.message',
       component:         'ConfirmExecutionDialog'
     });
+  }
+
+  async altRestartVM() {
+    await this.doActionGrowl('restart', {});
+    this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
   }
 
   async altStopVM() {
