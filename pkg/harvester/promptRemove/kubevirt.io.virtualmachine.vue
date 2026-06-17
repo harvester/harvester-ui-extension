@@ -123,6 +123,7 @@ export default {
           this.value?.[0]?.currentRouter().push(goTo);
         }
         this.close();
+        this.$store.commit('action-menu/togglePromptModal', { performCallback: true, clearTableSelection: true });
       }).catch((err) => {
         this.$emit('errors', err);
       });

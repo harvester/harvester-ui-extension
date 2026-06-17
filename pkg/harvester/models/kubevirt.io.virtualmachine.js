@@ -184,11 +184,12 @@ export default class VirtVm extends HarvesterResource {
         label:      this.t('harvester.action.softreboot')
       },
       {
-        action:   'startVM',
-        enabled:  !!this.actions?.start,
-        icon:     'icon icon-play',
-        label:    this.t('harvester.action.start'),
-        bulkable: true
+        action:     'startVM',
+        enabled:    !!this.actions?.start,
+        icon:       'icon icon-play',
+        label:      this.t('harvester.action.start'),
+        bulkable:   true,
+        bulkAction: 'startVM'
       },
       {
         action:  'backupVM',
@@ -378,10 +379,6 @@ export default class VirtVm extends HarvesterResource {
     this.metadata.annotations[HCI_ANNOTATIONS.VOLUME_CLAIM_TEMPLATE] = JSON.stringify(deleteDataSource);
   }
 
-  altRestartVM() {
-    this.doActionGrowl('restart', {});
-  }
-
   restartVM(resources = this) {
     this.$dispatch('promptModal', {
       resources,
@@ -553,16 +550,38 @@ export default class VirtVm extends HarvesterResource {
     });
   }
 
-  altStopVM() {
-    this.doActionGrowl('stop', {});
+  async altRestartVM() {
+    await this.doActionGrowl('restart', {});
+    this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
   }
 
-  forceStop() {
-    this.doActionGrowl('forceStop', {});
+  async altStopVM() {
+    await this.doActionGrowl('stop', {});
+    this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
   }
 
-  startVM() {
-    this.doActionGrowl('start', {});
+  async forceStop() {
+    await this.doActionGrowl('forceStop', {});
+    this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
+  }
+
+  async startVM(resources = this) {
+    const list = Array.isArray(resources) ? resources : [resources];
+
+    for (const r of list) {
+      await r.doActionGrowl('start', {});
+    }
+    this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
+  }
+
+  async download() {
+    await super.download();
+    this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
+  }
+
+  async downloadBulk(items) {
+    await super.downloadBulk(items);
+    this.$dispatch('promptModal', { performCallback: true, clearTableSelection: true });
   }
 
   migrateVM(resources = this) {
