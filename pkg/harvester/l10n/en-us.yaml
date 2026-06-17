@@ -1248,6 +1248,7 @@ harvester:
     tabs:
       basics: Basics
       layer3Network: Route
+      nics: NICs
     clusterNetwork:
       label: Cluster Network
       create: Create a new cluster network
@@ -1636,6 +1637,7 @@ harvester:
       nics:
         label: NICs
         addLabel: Add NIC
+        overlayPlaceholder: Select a network interface for overlay network
         placeholder: Select a NIC that is available on all the selected nodes
         validate:
           available: NIC "{nic}" is not available on the selected nodes

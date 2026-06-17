@@ -166,6 +166,7 @@ export default {
       :schema="schema"
       :groupable="true"
       :rows="filterRows"
+      :ignore-filter="true"
       key-field="_key"
     >
       <template #cell:state="{row}">
