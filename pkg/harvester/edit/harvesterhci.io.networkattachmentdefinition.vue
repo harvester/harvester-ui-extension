@@ -9,6 +9,7 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { HCI as HCI_LABELS_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { allHash } from '@shell/utils/promise';
+import { NAMESPACE } from '@shell/config/types';
 import { HCI } from '../types';
 import { NETWORK_TYPE, L2VLAN_MODE } from '../config/types';
 import { removeObject } from '@shell/utils/array';
@@ -70,7 +71,10 @@ export default {
   async fetch() {
     const inStore = this.$store.getters['currentProduct'].inStore;
 
-    await allHash({ clusterNetworks: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.CLUSTER_NETWORK }) });
+    await allHash({
+      clusterNetworks: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.CLUSTER_NETWORK }),
+      namespaces:      this.$store.dispatch(`${ inStore }/findAll`, { type: NAMESPACE }),
+    });
   },
 
   created() {
@@ -199,6 +203,16 @@ export default {
       }
 
       return this.type === UNTAGGED;
+    },
+
+    namespaceOptions() {
+      const ns = this.$store.getters['harvester/all'](NAMESPACE) || [];
+      // we allow user to select "kube-system" namespace as external subnet 
+      // from kubeovn expects provider network to be in "kube-system" namespace for vpc nat gateway functionality.
+      return ns
+        .filter((ns) => !ns.isSystem || ns.id === 'kube-system')
+        .map((ns) => ({ name: ns.id }))
+        .sort((a, b) => a.name.localeCompare(b.name));
     }
   },
 
@@ -350,6 +364,7 @@ export default {
       ref="nd"
       :value="value"
       :mode="mode"
+      :namespace-options="namespaceOptions"
       @update:value="$emit('update:value', $event)"
     />
     <Tabbed
