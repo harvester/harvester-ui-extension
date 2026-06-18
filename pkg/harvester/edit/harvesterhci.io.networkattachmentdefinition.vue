@@ -21,6 +21,7 @@ const { ACCESS, TRUNK } = L2VLAN_MODE;
 
 const AUTO = 'auto';
 const MANUAL = 'manual';
+const KUBE_SYSTEM = 'kube-system';
 
 export default {
   emits: ['update:value'],
@@ -207,13 +208,17 @@ export default {
       return this.type === UNTAGGED;
     },
 
+    showNicsTab() {
+      return this.isOverlayNetwork && this.value.metadata.namespace === KUBE_SYSTEM;
+    },
+
     namespaceOptions() {
       const ns = this.$store.getters['harvester/all'](NAMESPACE) || [];
 
-      // we allow user to select "kube-system" namespace as external subnet from kubeovn
-      // expects provider network to be in "kube-system" namespace for vpc nat gateway functionality.
+      // Allow users to select the "kube-system" namespace as the external subnet from Kube-OVN.
+      // This expects the provider network to be in the "kube-system" namespace for VPC NAT gateway functionality.
       return ns
-        .filter((ns) => !ns.isSystem || ns.id === 'kube-system')
+        .filter((ns) => !ns.isSystem || ns.id === KUBE_SYSTEM)
         .map((ns) => ({ name: ns.id }))
         .sort((a, b) => a.name.localeCompare(b.name));
     },
@@ -254,7 +259,7 @@ export default {
       const out = [];
       const seen = new Set();
 
-      (this.nics || []).map((nic) => {
+      (this.nics || []).forEach((nic) => {
         if (!seen.has(nic.name)) {
           seen.add(nic.name);
           out.push({
@@ -305,6 +310,13 @@ export default {
       } else { // access mode
         delete this.config.vlanTrunk;
         this.config.vlan = '';
+      }
+    },
+    'value.metadata.namespace'(newNamespace) {
+      // NIC selection is only valid for overlay in kube-system namespace.
+      if (newNamespace !== KUBE_SYSTEM) {
+        delete this.config.master;
+        this.value.spec.config = JSON.stringify({ ...this.config });
       }
     },
   },
@@ -401,6 +413,10 @@ export default {
         delete this.config.promiscMode;
         delete this.config.vlan;
         delete this.config.ipam;
+
+        if (this.value.metadata.namespace !== KUBE_SYSTEM) {
+          delete this.config.master;
+        }
       }
 
       if (this.isUntaggedNetwork) {
@@ -600,18 +616,18 @@ export default {
         </div>
       </Tab>
       <Tab
-        v-if="isOverlayNetwork"
+        v-if="showNicsTab"
         name="nics"
-        :label="t('harvester.network.tabs.nics')"
+        :label="t('harvester.network.tabs.nic')"
         :weight="97"
         class="bordered-table"
       >
         <div class="row mt-10">
-          <div class="col span-6">
+          <div class="col span-12">
             <LabeledSelect
               v-model:value="master"
               :label="t('harvester.vlanConfig.uplink.nics.label')"
-              :placeholder="t('harvester.vlanConfig.uplink.nics.overlayPlaceholder')"
+              :placeholder="t('harvester.vlanConfig.uplink.nics.overlayWarning')"
               :mode="mode"
               :options="nicOptions"
             />
