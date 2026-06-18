@@ -1240,8 +1240,20 @@ harvester:
       remoteVpc:
         label: Remote VPC
       infoBanner: The static route destination CIDR must cover all subnets CIDR from remote VPC Peer. Read <a href="{url}" target="_blank">VPC Peering Configuration Examples</a> for more information.
+  natGateway:
+    label: Gateway
+  externalIP:
+    label: External IPs
+  snat:
+    label: Source Rules
+  dnat:
+    label: Destination Rules
+  providerNetwork:
+    label: Providers
+  vlanNetwork:
+    label: VLANs
   networkPolicy:
-    label: Network Policies
+    label: Policies
     banner: The network policies must be used for VMs attached to overlay networks. Please read the <a href="{url}" target="_blank">harvester document</a> how the network policy works.
   network:
     label: Virtual Machine Networks
@@ -1880,7 +1892,7 @@ harvester:
     range:
       addLabel: Add Range
   hostNetworkConfig:
-    label: Host Networks
+    label: Hosts
     mode:
       label: Mode
     tabs:
@@ -2161,6 +2173,36 @@ typeLabel:
     {count, plural,
       one { Virtual Private Cloud }
       other { Virtual Private Clouds }
+    }
+  kubeovn.io.vlan: |-
+    {count, plural,
+      one { Vlan Network }
+      other { Vlan Networks }
+    }
+  kubeovn.io.providernetwork: |-
+    {count, plural,
+      one { Provider Network }
+      other { Provider Networks }
+    }
+  kubeovn.io.vpcnatgateway: |-
+    {count, plural,
+      one { NAT Gateway }
+      other { NAT Gateways }
+    }
+  kubeovn.io.iptablessnatrule: |-
+    {count, plural,
+      one { Source Rule }
+      other { Source Rules }
+    }
+  kubeovn.io.iptablesdnatrule: |-
+    {count, plural,
+      one { Destination Rule }
+      other { Destination Rules }
+    }
+  kubeovn.io.iptableseip: |-
+    {count, plural,
+      one { External IP }
+      other { External IPs }
     }
   networking.k8s.io.networkpolicy: |-
     {count, plural,
