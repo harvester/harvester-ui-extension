@@ -53,7 +53,7 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@5119fcb9089d432beecbf79bb2c7915207344b78 # v3
         with:
-          version: v3.8.0
+          version: v3.21.1
 
       - name: Setup Nodejs with yarn caching
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
