@@ -21,7 +21,7 @@
     "yaml": "^2.5.1"
   },
   "resolutions": {
-    "@types/node": "25.9.2",
+    "@types/node": "25.9.3",
     "cronstrue": "2.59.0",
     "d3-color": "3.1.0",
     "ejs": "3.1.10",
@@ -35,7 +35,7 @@
     "nth-check": "2.1.1",
     "qs": "6.15.2",
     "roarr": "7.21.5",
-    "semver": "7.8.2",
+    "semver": "7.8.4",
     "@vue/cli-service/html-webpack-plugin": "^5.0.0"
   },
   "scripts": {
