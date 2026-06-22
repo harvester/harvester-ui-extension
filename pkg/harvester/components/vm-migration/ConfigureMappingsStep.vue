@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, toRefs } from 'vue';
 import { useStore } from 'vuex';
 import Loading from '@shell/components/Loading';
 import { Banner } from '@components/Banner';
@@ -28,20 +28,12 @@ const { t } = useI18n(store);
 const vms = ref([]);
 const harvesterNetworks = ref([]);
 const storageClasses = ref([]);
-const networkEntries = ref([]);
-const storageEntries = ref([]);
 const allNetworkMaps = ref([]);
 const allStorageMaps = ref([]);
 const errors = ref([]);
 const loading = ref(true);
 
-// Restore from stepData
-if (props.stepData.networkEntries.length > 0) {
-  networkEntries.value = props.stepData.networkEntries;
-}
-if (props.stepData.storageEntries.length > 0) {
-  storageEntries.value = props.stepData.storageEntries;
-}
+const { networkEntries, storageEntries } = toRefs(props.stepData);
 
 const NAMESPACE = FORKLIFT_NAMESPACE;
 
@@ -152,13 +144,6 @@ if (canSave.value) {
   emit('ready', true);
 }
 
-// Sync state back to stepData
-watch(networkEntries, (val) => {
-  props.stepData.networkEntries = val;
-}, { deep: true });
-watch(storageEntries, (val) => {
-  props.stepData.storageEntries = val;
-}, { deep: true });
 const buildNetworkEntries = () => {
   const networkMap = {};
 

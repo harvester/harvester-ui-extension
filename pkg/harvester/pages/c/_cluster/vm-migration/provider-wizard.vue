@@ -2,13 +2,14 @@
 import { reactive, ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import CruResource from '@shell/components/CruResource';
+import Loading from '@shell/components/Loading';
 import { SECRET } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
-import ConfigureProviderStep from '../../../../components/vm-migration/ConfigureProviderStep';
-import ConfigureMappingsStep from '../../../../components/vm-migration/ConfigureMappingsStep';
-import { PRODUCT_NAME } from '../../../../config/harvester';
-import { currentRouter, currentRoute } from '../../../../utils/router';
-import { HCI } from '../../../../types';
+import ConfigureProviderStep from '@pkg/harvester/components/vm-migration/ConfigureProviderStep.vue';
+import ConfigureMappingsStep from '@pkg/harvester/components/vm-migration/ConfigureMappingsStep.vue';
+import { PRODUCT_NAME } from '@pkg/harvester/config/harvester';
+import { currentRouter, currentRoute } from '@pkg/harvester/utils/router';
+import { HCI } from '@pkg/harvester/types';
 
 const store = useStore();
 const route = currentRoute();
@@ -59,22 +60,17 @@ const stepData = reactive({
 const steps = reactive([
   {
     name:    'configure-provider',
-    label:   '',
-    subtext: '',
+    label:   t('harvester.addons.vmMigration.wizard.steps.configureProvider.label'),
+    subtext: t('harvester.addons.vmMigration.wizard.steps.configureProvider.description'),
     ready:   false,
   },
   {
     name:    'configure-mappings',
-    label:   '',
-    subtext: '',
+    label:   t('harvester.addons.vmMigration.wizard.steps.configureMappings.label'),
+    subtext: t('harvester.addons.vmMigration.wizard.steps.configureMappings.description'),
     ready:   false,
   },
 ]);
-
-steps[0].label = t('harvester.addons.vmMigration.wizard.steps.configureProvider.label');
-steps[0].subtext = t('harvester.addons.vmMigration.wizard.steps.configureProvider.description');
-steps[1].label = t('harvester.addons.vmMigration.wizard.steps.configureMappings.label');
-steps[1].subtext = t('harvester.addons.vmMigration.wizard.steps.configureMappings.description');
 
 watch([providerFormValid, providerTesting], () => {
   steps[0].ready = providerFormValid.value && !providerTesting.value;
@@ -243,7 +239,7 @@ init();
 </script>
 
 <template>
-  <div v-if="initialLoading" />
+  <Loading v-if="initialLoading" />
   <CruResource
     v-else
     ref="cruRef"
