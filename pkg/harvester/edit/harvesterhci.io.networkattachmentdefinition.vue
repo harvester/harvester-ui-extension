@@ -9,6 +9,7 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { HCI as HCI_LABELS_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { allHash } from '@shell/utils/promise';
+import { NAMESPACE, NODE } from '@shell/config/types';
 import { HCI } from '../types';
 import { NETWORK_TYPE, L2VLAN_MODE } from '../config/types';
 import { removeObject } from '@shell/utils/array';
@@ -20,6 +21,7 @@ const { ACCESS, TRUNK } = L2VLAN_MODE;
 
 const AUTO = 'auto';
 const MANUAL = 'manual';
+const KUBE_SYSTEM = 'kube-system';
 
 export default {
   emits: ['update:value'],
@@ -70,7 +72,12 @@ export default {
   async fetch() {
     const inStore = this.$store.getters['currentProduct'].inStore;
 
-    await allHash({ clusterNetworks: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.CLUSTER_NETWORK }) });
+    await allHash({
+      clusterNetworks: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.CLUSTER_NETWORK }),
+      namespaces:      this.$store.dispatch(`${ inStore }/findAll`, { type: NAMESPACE }),
+      nodes:           this.$store.dispatch(`${ inStore }/findAll`, { type: NODE }),
+      linkMonitors:    this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.LINK_MONITOR }),
+    });
   },
 
   created() {
@@ -199,6 +206,80 @@ export default {
       }
 
       return this.type === UNTAGGED;
+    },
+
+    showNicsTab() {
+      return this.isOverlayNetwork && this.value.metadata.namespace === KUBE_SYSTEM;
+    },
+
+    namespaceOptions() {
+      const ns = this.$store.getters['harvester/all'](NAMESPACE) || [];
+
+      // Allow users to select the "kube-system" namespace as the external subnet from Kube-OVN.
+      // This expects the provider network to be in the "kube-system" namespace for VPC NAT gateway functionality.
+      return ns
+        .filter((ns) => !ns.isSystem || ns.id === KUBE_SYSTEM)
+        .map((ns) => ({ name: ns.id }))
+        .sort((a, b) => a.name.localeCompare(b.name));
+    },
+
+    nodes() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const nodes = this.$store.getters[`${ inStore }/all`](NODE);
+
+      return nodes.filter((n) => n.isEtcd !== 'true');
+    },
+
+    nics() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const linkMonitor = this.$store.getters[`${ inStore }/byId`](HCI.LINK_MONITOR, 'nic') || {};
+      const linkStatus = linkMonitor?.status?.linkStatus || {};
+      const nodes = this.nodes.map((n) => n.id);
+
+      const out = [];
+
+      // Collect all nics from all nodes (for overlay, we select from all nodes)
+      Object.keys(linkStatus).map((nodeName) => {
+        if (nodes.includes(nodeName)) {
+          const nics = linkStatus[nodeName] || [];
+
+          nics.map((nic) => {
+            out.push({
+              ...nic,
+              nodeName,
+            });
+          });
+        }
+      });
+
+      return out;
+    },
+
+    nicOptions() {
+      const out = [];
+      const seen = new Set();
+
+      (this.nics || []).forEach((nic) => {
+        if (!seen.has(nic.name)) {
+          seen.add(nic.name);
+          out.push({
+            label: nic.name,
+            value: nic.name,
+          });
+        }
+      });
+
+      return out.sort((a, b) => a.label.localeCompare(b.label));
+    },
+
+    master: {
+      get() {
+        return this.config?.master || '';
+      },
+
+      set(value) {
+        this.config.master = value;
+      }
     }
   },
 
@@ -214,6 +295,7 @@ export default {
         this.config.ipam = {};
         this.config.bridge = '';
         delete this.config.provider;
+        delete this.config.master;
         delete this.config.server_socket;
       }
     },
@@ -228,6 +310,13 @@ export default {
       } else { // access mode
         delete this.config.vlanTrunk;
         this.config.vlan = '';
+      }
+    },
+    'value.metadata.namespace'(newNamespace) {
+      // NIC selection is only valid for overlay in kube-system namespace.
+      if (newNamespace !== KUBE_SYSTEM) {
+        delete this.config.master;
+        this.value.spec.config = JSON.stringify({ ...this.config });
       }
     },
   },
@@ -324,6 +413,10 @@ export default {
         delete this.config.promiscMode;
         delete this.config.vlan;
         delete this.config.ipam;
+
+        if (this.value.metadata.namespace !== KUBE_SYSTEM) {
+          delete this.config.master;
+        }
       }
 
       if (this.isUntaggedNetwork) {
@@ -350,6 +443,7 @@ export default {
       ref="nd"
       :value="value"
       :mode="mode"
+      :namespace-options="namespaceOptions"
       @update:value="$emit('update:value', $event)"
     />
     <Tabbed
@@ -517,6 +611,25 @@ export default {
               :placeholder="t('harvester.network.layer3Network.gateway.placeholder')"
               :mode="mode"
               required
+            />
+          </div>
+        </div>
+      </Tab>
+      <Tab
+        v-if="showNicsTab"
+        name="nics"
+        :label="t('harvester.network.tabs.nic')"
+        :weight="97"
+        class="bordered-table"
+      >
+        <div class="row mt-10">
+          <div class="col span-12">
+            <LabeledSelect
+              v-model:value="master"
+              :label="t('harvester.vlanConfig.uplink.nics.label')"
+              :placeholder="t('harvester.vlanConfig.uplink.nics.overlayWarning')"
+              :mode="mode"
+              :options="nicOptions"
             />
           </div>
         </div>
