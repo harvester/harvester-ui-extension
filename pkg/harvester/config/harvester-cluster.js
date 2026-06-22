@@ -800,6 +800,21 @@ export function init($plugin, store) {
     ifHaveType: HCI.IPTABLES_SNAT_RULE,
   });
 
+  // headers(HCI.IPTABLES_SNAT_RULE, [
+  //   STATE,
+  //   NAME_COL,
+  //   NAMESPACE_COL,
+  //   {
+  //     name:     'eipName',
+  //     labelKey: 'harvester.tableHeaders.eipName',
+  //     value:    'spec.eipName',
+  //     sort:     'spec.eipName'
+  //   },
+  //   SNAT_V4IP,
+  //   SNAT_V6IP,
+  //   AGE
+  // ]);
+
   configureType(HCI.IPTABLES_DNAT_RULE, { hiddenNamespaceGroupButton: true, canYaml: false });
 
   virtualType({
@@ -835,7 +850,7 @@ export function init($plugin, store) {
   virtualType({
     labelKey:   'harvester.providerNetwork.label',
     name:       HCI.PROVIDER_NETWORK,
-    namespaced: true,
+    namespaced: false,
     weight:     181,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
@@ -867,7 +882,7 @@ export function init($plugin, store) {
   virtualType({
     labelKey:   'harvester.vlanNetwork.label',
     name:       HCI.VLAN,
-    namespaced: true,
+    namespaced: false,
     weight:     180,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,

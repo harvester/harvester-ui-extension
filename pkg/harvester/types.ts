@@ -1,4 +1,4 @@
-// To find the CRD name, you can run `kubectl api-resources` and look for the `NAME` column. 
+// To find the CRD name, you can run `kubectl api-resources` and look for the `NAME` column.
 // The CRD name is usually in the format of `<plural>.<group>`, where `<plural>` is the plural form of the resource and `<group>` is the API group it belongs to.
 // e.g
 // 1. `virtualmachines.kubevirt.io` -> kubevirt.io.virtualmachine, the CRD name for the `VirtualMachine` resource in the `kubevirt.io` API group
