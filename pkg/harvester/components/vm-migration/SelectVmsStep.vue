@@ -1,6 +1,6 @@
 <script setup>
 import {
-  ref, computed, watch, nextTick, onBeforeUnmount
+  ref, computed, watch, nextTick, onBeforeUnmount, toRefs
 } from 'vue';
 import { useStore } from 'vuex';
 import Loading from '@shell/components/Loading';
@@ -20,15 +20,14 @@ const emit = defineEmits(['complete', 'loading']);
 const store = useStore();
 const { t } = useI18n(store);
 
-const discoveredVMs = ref([]);
+const { discoveredVMs, selectedVMIds, tableRows } = toRefs(props.stepData);
+
 const selectedVMs = ref([]);
-const tableRows = ref([]);
 const loading = ref(true);
 const networkMap = ref({});
 const datastoreMap = ref({});
 const sortableTableRef = ref(null);
 const allVMsSelected = ref(false);
-const selectedVMIds = ref(new Set());
 const errors = ref([]);
 let skipNextSelectionEvent = false;
 
@@ -67,29 +66,11 @@ onBeforeUnmount(() => {
   clearInterval(nowTimer);
 });
 
-// Restore from stepData
-if (props.stepData.discoveredVMs.length > 0) {
-  discoveredVMs.value = props.stepData.discoveredVMs;
-}
-if (props.stepData.selectedVMIds.size > 0) {
-  selectedVMIds.value = props.stepData.selectedVMIds;
+// Restore selection state from stepData
+if (selectedVMIds.value.size > 0) {
   selectedVMs.value = discoveredVMs.value.filter((vm) => selectedVMIds.value.has(vm.id));
   allVMsSelected.value = selectedVMIds.value.size === discoveredVMs.value.length;
 }
-if (props.stepData.tableRows.length > 0) {
-  tableRows.value = props.stepData.tableRows;
-}
-
-// Sync back to stepData
-watch(discoveredVMs, (val) => {
-  props.stepData.discoveredVMs = val;
-});
-watch(selectedVMIds, (val) => {
-  props.stepData.selectedVMIds = val;
-});
-watch(tableRows, (val) => {
-  props.stepData.tableRows = val;
-});
 
 const vmCount = computed(() => discoveredVMs.value.length);
 const selectedCount = computed(() => selectedVMs.value.length);

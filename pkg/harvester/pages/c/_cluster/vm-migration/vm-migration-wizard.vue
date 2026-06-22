@@ -3,12 +3,12 @@ import { reactive, ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import CruResource from '@shell/components/CruResource';
 import { useI18n } from '@shell/composables/useI18n';
-import ConfigureProviderStep from '../../../../components/vm-migration/ConfigureProviderStep';
-import SelectVmsStep from '../../../../components/vm-migration/SelectVmsStep';
-import ConfigureMappingsStep from '../../../../components/vm-migration/ConfigureMappingsStep';
-import ReviewMigrationStep from '../../../../components/vm-migration/ReviewMigrationStep';
-import { PRODUCT_NAME } from '../../../../config/harvester';
-import { currentRouter } from '../../../../utils/router';
+import ConfigureProviderStep from '@pkg/harvester/components/vm-migration/ConfigureProviderStep.vue';
+import SelectVmsStep from '@pkg/harvester/components/vm-migration/SelectVmsStep.vue';
+import ConfigureMappingsStep from '@pkg/harvester/components/vm-migration/ConfigureMappingsStep.vue';
+import ReviewMigrationStep from '@pkg/harvester/components/vm-migration/ReviewMigrationStep.vue';
+import { PRODUCT_NAME } from '@pkg/harvester/config/harvester';
+import { currentRouter } from '@pkg/harvester/utils/router';
 
 const store = useStore();
 const { t } = useI18n(store);
@@ -61,38 +61,29 @@ const stepData = reactive({
 const steps = reactive([
   {
     name:    'configure-provider',
-    label:   '',
-    subtext: '',
+    label:   t('harvester.addons.vmMigration.wizard.steps.configureProvider.label'),
+    subtext: t('harvester.addons.vmMigration.wizard.steps.configureProvider.description'),
     ready:   false,
   },
   {
     name:    'select-vms',
-    label:   '',
-    subtext: '',
+    label:   t('harvester.addons.vmMigration.wizard.steps.selectVms.label'),
+    subtext: t('harvester.addons.vmMigration.wizard.steps.selectVms.description'),
     ready:   false,
   },
   {
     name:    'configure-mappings',
-    label:   '',
-    subtext: '',
+    label:   t('harvester.addons.vmMigration.wizard.steps.configureMappings.label'),
+    subtext: t('harvester.addons.vmMigration.wizard.steps.configureMappings.description'),
     ready:   false,
   },
   {
     name:    'review-migration',
-    label:   '',
-    subtext: '',
+    label:   t('harvester.addons.vmMigration.wizard.steps.reviewMigration.label'),
+    subtext: t('harvester.addons.vmMigration.wizard.steps.reviewMigration.description'),
     ready:   false,
   },
 ]);
-
-steps[0].label = t('harvester.addons.vmMigration.wizard.steps.configureProvider.label');
-steps[0].subtext = t('harvester.addons.vmMigration.wizard.steps.configureProvider.description');
-steps[1].label = t('harvester.addons.vmMigration.wizard.steps.selectVms.label');
-steps[1].subtext = t('harvester.addons.vmMigration.wizard.steps.selectVms.description');
-steps[2].label = t('harvester.addons.vmMigration.wizard.steps.configureMappings.label');
-steps[2].subtext = t('harvester.addons.vmMigration.wizard.steps.configureMappings.description');
-steps[3].label = t('harvester.addons.vmMigration.wizard.steps.reviewMigration.label');
-steps[3].subtext = t('harvester.addons.vmMigration.wizard.steps.reviewMigration.description');
 
 watch([providerFormValid, providerTesting], () => {
   steps[0].ready = providerFormValid.value && !providerTesting.value;
@@ -127,6 +118,12 @@ watch(providerReady, (val) => {
     pendingProceed.value = false;
     steps[0].ready = true;
     wizardComponent.value.goToStep(2);
+  }
+});
+
+watch(providerTesting, (testing) => {
+  if (!testing && pendingProceed.value && !providerReady.value) {
+    pendingProceed.value = false;
   }
 });
 
@@ -185,7 +182,11 @@ watch(() => stepData.provider.providerName, (newVal, oldVal) => {
 
 // Clear mappings and review when VM selection changes
 watch(selectedVMs, (newVal, oldVal) => {
-  if (oldVal.length > 0 && JSON.stringify(newVal.map((v) => v.id).sort()) !== JSON.stringify(oldVal.map((v) => v.id).sort())) {
+  const newIds = new Set(newVal.map((v) => v.id));
+  const oldIds = new Set(oldVal.map((v) => v.id));
+  const changed = newIds.size !== oldIds.size || [...newIds].some((id) => !oldIds.has(id));
+
+  if (oldVal.length > 0 && changed) {
     stepData.mappings.networkEntries = [];
     stepData.mappings.storageEntries = [];
     mappingsReady.value = false;
@@ -195,18 +196,19 @@ watch(selectedVMs, (newVal, oldVal) => {
   }
 });
 
+const migrationListLocation = {
+  name:   `${ PRODUCT_NAME }-c-cluster-vm-migration`,
+  params: {
+    product: store.getters['productId'],
+    cluster: store.getters['clusterId'],
+  }
+};
+
 const onFinish = async(buttonCb) => {
   try {
     await reviewStepRef.value.startMigration();
     buttonCb(true);
-
-    currentRouter().push({
-      name:   `${ PRODUCT_NAME }-c-cluster-vm-migration`,
-      params: {
-        product: store.getters['productId'],
-        cluster: store.getters['clusterId'],
-      }
-    });
+    currentRouter().push(migrationListLocation);
   } catch (err) {
     errors.value = [err instanceof Error ? err.message : String(err)];
     buttonCb(false);
@@ -214,13 +216,7 @@ const onFinish = async(buttonCb) => {
 };
 
 const onCancel = () => {
-  currentRouter().push({
-    name:   `${ PRODUCT_NAME }-c-cluster-vm-migration`,
-    params: {
-      product: store.getters['productId'],
-      cluster: store.getters['clusterId'],
-    }
-  });
+  currentRouter().push(migrationListLocation);
 };
 </script>
 

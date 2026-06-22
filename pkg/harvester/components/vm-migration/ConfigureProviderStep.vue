@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, toRefs } from 'vue';
 import { useStore } from 'vuex';
 
 import { LabeledInput } from '@components/Form/LabeledInput';
@@ -28,69 +28,24 @@ const { t } = useI18n(store);
 
 const allProviders = ref([]);
 const allSecrets = ref([]);
-const selectedProvider = ref(CREATE_NEW);
-const providerName = ref('');
-const url = ref('');
-const username = ref('');
-const password = ref('');
-const skipTlsVerify = ref(false);
-const testResult = ref(null);
-const testError = ref(null);
 const errors = ref([]);
 const testBtnRef = ref(null);
-const createdProvider = ref(null);
-const createdSecret = ref(null);
 const loading = ref(true);
-const testPassed = ref(false);
 const testing = ref(false);
 
-// Restore state from stepData on mount
-selectedProvider.value = props.stepData.selectedProvider;
-providerName.value = props.stepData.providerName;
-url.value = props.stepData.url;
-username.value = props.stepData.username;
-password.value = props.stepData.password;
-skipTlsVerify.value = props.stepData.skipTlsVerify;
-testPassed.value = props.stepData.testPassed;
-testResult.value = props.stepData.testResult;
-testError.value = props.stepData.testError;
-createdProvider.value = props.stepData.createdProvider;
-createdSecret.value = props.stepData.createdSecret;
-
-// Sync state back to stepData
-watch(selectedProvider, (val) => {
-  props.stepData.selectedProvider = val;
-});
-watch(providerName, (val) => {
-  props.stepData.providerName = val;
-});
-watch(url, (val) => {
-  props.stepData.url = val;
-});
-watch(username, (val) => {
-  props.stepData.username = val;
-});
-watch(password, (val) => {
-  props.stepData.password = val;
-});
-watch(skipTlsVerify, (val) => {
-  props.stepData.skipTlsVerify = val;
-});
-watch(testPassed, (val) => {
-  props.stepData.testPassed = val;
-});
-watch(testResult, (val) => {
-  props.stepData.testResult = val;
-});
-watch(testError, (val) => {
-  props.stepData.testError = val;
-});
-watch(createdProvider, (val) => {
-  props.stepData.createdProvider = val;
-});
-watch(createdSecret, (val) => {
-  props.stepData.createdSecret = val;
-});
+const {
+  selectedProvider,
+  providerName,
+  url,
+  username,
+  password,
+  skipTlsVerify,
+  testPassed,
+  testResult,
+  testError,
+  createdProvider,
+  createdSecret,
+} = toRefs(props.stepData);
 
 const isExistingProvider = computed(() => selectedProvider.value !== CREATE_NEW);
 const isFormValid = computed(() => !!providerName.value && !!url.value && !!username.value && !!password.value);
