@@ -760,7 +760,7 @@ export function init($plugin, store) {
   virtualType({
     labelKey:   'harvester.natGateway.label',
     name:       HCI.VPC_NAT_GATEWAY,
-    namespaced: true,
+    namespaced: false,
     weight:     185,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
@@ -775,7 +775,7 @@ export function init($plugin, store) {
   virtualType({
     labelKey:   'harvester.externalIP.label',
     name:       HCI.IPTABLES_EIP,
-    namespaced: true,
+    namespaced: false,
     weight:     184,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
@@ -790,7 +790,7 @@ export function init($plugin, store) {
   virtualType({
     labelKey:   'harvester.snat.label',
     name:       HCI.IPTABLES_SNAT_RULE,
-    namespaced: true,
+    namespaced: false,
     weight:     183,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
@@ -820,7 +820,7 @@ export function init($plugin, store) {
   virtualType({
     labelKey:   'harvester.dnat.label',
     name:       HCI.IPTABLES_DNAT_RULE,
-    namespaced: true,
+    namespaced: false,
     weight:     182,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,

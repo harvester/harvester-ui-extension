@@ -1245,12 +1245,55 @@ harvester:
       infoBanner: The static route destination CIDR must cover all subnets CIDR from remote VPC Peer. Read <a href="{url}" target="_blank">VPC Peering Configuration Examples</a> for more information.
   natGateway:
     label: Gateway
+    vpc:
+      label: VPC
+      placeholder: Select a VPC
+    subnet:
+      label: Subnet
+      placeholder: Select a subnet
+    lanIP:
+      label: LAN IP
+      placeholder: Enter LAN IP
+    externalSubnets:
+      label: External Subnets
+      addLabel: Add
+      placeholder: Select a subnet
   externalIP:
     label: External IPs
+    natGateway:
+      label: VpcNatGateway
+      placeholder: Select a VpcNatGateway
+    externalSubnet:
+      label: External Subnet
+      placeholder: Enter external subnet
+    v4ip:
+      label: V4 IP
+      placeholder: public ip from external subnet
   snat:
     label: Source Rules
+    eip:
+      label: EIP
+      placeholder: Select an external IP
+    internalCIDR:
+      label: Internal CIDR
+      placeholder: internal subnet CIDR
   dnat:
     label: Destination Rules
+    eip:
+      label: EIP
+      placeholder: Select an external IP
+    externalPort:
+      label: External Port
+      placeholder: port number
+    internalIp:
+      label: Internal IP
+      placeholder: internal IP address
+    internalPort:
+      label: Internal Port
+      placeholder: port number
+    protocol:
+      label: Protocol
+      placeholder: Select protocol (tcp or udp)
   providerNetwork:
     label: Provider Networks
     defaultInterface:
@@ -1905,7 +1948,7 @@ harvester:
     range:
       addLabel: Add Range
   hostNetworkConfig:
-    label: Hosts
+    label: Host Networks
     mode:
       label: Mode
     tabs:
