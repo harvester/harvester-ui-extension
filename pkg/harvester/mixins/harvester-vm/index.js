@@ -1742,7 +1742,7 @@ export default {
 
           const oldImageId = old[0]?.image;
 
-          if (this.isCreate && oldImageId === imageId && imageId) {
+          if (this.isCreate && oldImageId !== imageId && imageId && osType) {
             this.osType = osType;
           }
         }
