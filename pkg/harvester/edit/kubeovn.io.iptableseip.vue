@@ -119,7 +119,7 @@ export default {
     >
       <Tab
         name="basic"
-        label="Basic"
+        :label="t('generic.basic')"
         :weight="99"
       >
         <div class="mt-20">
