@@ -1247,7 +1247,7 @@ harvester:
         label: Remote VPC
       infoBanner: The static route destination CIDR must cover all subnets CIDR from remote VPC Peer. Read <a href="{url}" target="_blank">VPC Peering Configuration Examples</a> for more information.
   natGateway:
-    label: Gateway
+    label: Gateways
     internalTenantNetwork:
       label: Internal Tenant Network
       placeholder: Select a Virtual Machine Network
