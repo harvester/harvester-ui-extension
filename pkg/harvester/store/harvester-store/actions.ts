@@ -3,7 +3,8 @@ import { ClusterNotFoundError } from '@shell/utils/error';
 import { SETTING } from '@shell/config/settings';
 import { COUNT, NAMESPACE, MANAGEMENT } from '@shell/config/types';
 import { allHash } from '@shell/utils/promise';
-import { DEV } from '@shell/store/prefs';
+import { DEV, NAMESPACE_FILTERS } from '@shell/store/prefs';
+import { createNamespaceFilterKeyWithId } from '@shell/utils/namespace-filter';
 import { HCI } from '../../types';
 
 export default {
@@ -121,8 +122,11 @@ export default {
 
     await dispatch('cleanNamespaces', null, { root: true });
 
+    const namespaceFilterKey = createNamespaceFilterKeyWithId(id, 'harvester');
+    const savedFilters = rootGetters['prefs/get'](NAMESPACE_FILTERS)?.[namespaceFilterKey];
+
     commit('updateNamespaces', {
-      filters: [],
+      filters: savedFilters || [],
       all:     getters.filterNamespace(),
       getters
     }, { root: true });
