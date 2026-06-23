@@ -58,7 +58,7 @@ const OVERLAY_NETWORKS_GROUP = 'Overlay Networks';
 const UNDERLAY_NETWORKS_GROUP = 'Underlay Networks';
 const NAT_INTERNET_GROUP = `${ OVERLAY_NETWORKS_GROUP }::NAT & Internet`;
 const GATEWAYS_GROUP = `${ NAT_INTERNET_GROUP }::Gateways`;
-const EXTERNAL_IPS_GROUP = `${ NAT_INTERNET_GROUP }::External Ips`;
+const EXTERNAL_IPS_GROUP = `${ NAT_INTERNET_GROUP }::External IPs`;
 const RULES_GROUP = `${ NAT_INTERNET_GROUP }::Rules`;
 const SOURCE_RULES_GROUP = `${ RULES_GROUP }::Source Rules`;
 const DESTINATION_RULES_GROUP = `${ RULES_GROUP }::Destination Rules`;
@@ -423,7 +423,6 @@ export function init($plugin, store) {
     basicType([NAMESPACE]);
     virtualType({
       labelKey:   'harvester.namespace.label',
-      // group:      'root',
       name:       NAMESPACE,
       namespaced: true,
       weight:     495,

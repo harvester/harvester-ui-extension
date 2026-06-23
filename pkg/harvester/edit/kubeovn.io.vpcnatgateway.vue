@@ -152,7 +152,7 @@ export default {
     >
       <Tab
         name="basic"
-        label="Basic"
+        :label="t('generic.basic')"
         :weight="99"
       >
         <div class="mt-20">
@@ -212,7 +212,7 @@ export default {
 
       <Tab
         name="externalSubnets"
-        label="External Subnets"
+        :label="t('harvester.natGateway.externalSubnets.label')"
         :weight="98"
       >
         <div class="mt-20">
