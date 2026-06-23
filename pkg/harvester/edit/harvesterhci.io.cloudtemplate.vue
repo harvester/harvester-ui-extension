@@ -108,6 +108,7 @@ export default {
           <YamlEditor
             ref="yamlUser"
             v-model:value="config"
+            :mode="mode"
             class="yaml-editor"
             :editor-mode="mode === 'view' ? 'VIEW_CODE' : 'EDIT_CODE'"
             @onChanges="update"
