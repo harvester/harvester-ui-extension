@@ -1158,6 +1158,9 @@ harvester:
     gateway:
       label: Gateway IP
       placeholder: e.g. 172.20.0.1
+    vlan:
+      label: VLAN
+      placeholder: Select a VLAN
     dhcp:
       label: Dynamic Host Configuration Protocol (DHCP)
       v4Options: DHCPV4Options
@@ -1245,13 +1248,16 @@ harvester:
       infoBanner: The static route destination CIDR must cover all subnets CIDR from remote VPC Peer. Read <a href="{url}" target="_blank">VPC Peering Configuration Examples</a> for more information.
   natGateway:
     label: Gateway
+    internalTenantNetwork:
+      label: Internal Tenant Network
+      placeholder: Select a Virtual Machine Network
     vpc:
       label: VPC
       placeholder: Select a VPC
     subnet:
       label: Subnet
       placeholder: Select a subnet
-    lanIP:
+    lanIp:
       label: LAN IP
       placeholder: Enter LAN IP
     externalSubnets:
@@ -1265,7 +1271,7 @@ harvester:
       placeholder: Select a VpcNatGateway
     externalSubnet:
       label: External Subnet
-      placeholder: Enter external subnet
+      placeholder: Select an external subnet
     v4ip:
       label: V4 IP
       placeholder: public ip from external subnet
@@ -1298,7 +1304,21 @@ harvester:
     label: Provider Networks
     defaultInterface:
       label: Default Interface
-      placeholder: Select the interface thesame as master interface of external overlay network
+      placeholder: Select the interface the same as master interface of external overlay network
+    customInterfaces:
+      label: Custom Interfaces
+      addLabel: Add Custom Interface
+      interface:
+        label: Network Interface
+        placeholder: e.g. eth2
+      nodes:
+        label: Nodes
+        addLabel: Add Node
+        placeholder: Select a node
+    excludedNodes:
+      label: Excluded Nodes
+      addLabel: Add Excluded Node
+      placeholder: Select node to exclude from this provider network
   vlanNetwork:
     label: VLANs
   vlan:

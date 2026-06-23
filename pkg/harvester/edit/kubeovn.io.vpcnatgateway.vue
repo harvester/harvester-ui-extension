@@ -1,11 +1,14 @@
 <script>
 import CruResource from '@shell/components/CruResource';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
+import ResourceTabs from '@shell/components/form/ResourceTabs';
+import Tab from '@shell/components/Tabbed/Tab';
 import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import ArrayListSelect from '@shell/components/form/ArrayListSelect';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { allHash } from '@shell/utils/promise';
+import { HCI as HCI_ANNOTATIONS } from '@pkg/config/labels-annotations';
 import { HCI } from '../types';
 
 export default {
@@ -14,6 +17,8 @@ export default {
   components: {
     CruResource,
     NameNsDescription,
+    ResourceTabs,
+    Tab,
     LabeledInput,
     LabeledSelect,
     ArrayListSelect,
@@ -31,10 +36,13 @@ export default {
   },
 
   data() {
+    const internalTenantNetwork = this.value?.metadata?.annotations?.[HCI_ANNOTATIONS.CNI_NETWORKS] || '';
+
     return {
+      internalTenantNetwork,
       vpc:             this.value?.spec?.vpc || '',
       subnet:          this.value?.spec?.subnet || '',
-      lanIP:           this.value?.spec?.lanIp || '',
+      lanIp:           this.value?.spec?.lanIp || '',
       externalSubnets: this.value?.spec?.externalSubnets || [],
     };
   },
@@ -43,8 +51,9 @@ export default {
     const inStore = this.$store.getters['currentProduct'].inStore;
 
     await allHash({
-      vpcs:    this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VPC }),
-      subnets: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.SUBNET }),
+      vpcs:       this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VPC }),
+      subnets:    this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.SUBNET }),
+      vmNetworks: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.NETWORK_ATTACHMENT }),
     });
   },
 
@@ -74,6 +83,16 @@ export default {
         value: subnet.id,
       }));
     },
+
+    vmNetworkOptions() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const vmNetworks = this.$store.getters[`${ inStore }/all`](HCI.NETWORK_ATTACHMENT) || [];
+
+      return vmNetworks.map((network) => ({
+        label: network.id,
+        value: network.id,
+      }));
+    },
   },
 
   methods: {
@@ -82,10 +101,24 @@ export default {
         this.value.spec = {};
       }
 
+      if (!this.value.metadata) {
+        this.value.metadata = {};
+      }
+
+      if (!this.value.metadata.annotations) {
+        this.value.metadata.annotations = {};
+      }
+
       this.value.spec.vpc = this.vpc;
       this.value.spec.subnet = this.subnet;
-      this.value.spec.lanIP = this.lanIP;
+      this.value.spec.lanIp = this.lanIp;
       this.value.spec.externalSubnets = (this.externalSubnets || []).filter((subnet) => !!subnet);
+
+      if (this.internalTenantNetwork) {
+        this.value.metadata.annotations[HCI_ANNOTATIONS.CNI_NETWORKS] = this.internalTenantNetwork;
+      } else {
+        delete this.value.metadata.annotations[HCI_ANNOTATIONS.CNI_NETWORKS];
+      }
     },
   }
 };
@@ -109,65 +142,105 @@ export default {
       @update:value="$emit('update:value', $event)"
     />
 
-    <div class="mt-20">
-      <div class="row">
-        <div class="col span-12">
-          <LabeledSelect
-            v-model:value="vpc"
-            class="mb-20"
-            :options="vpcOptions"
-            :mode="mode"
-            :label="t('harvester.natGateway.vpc.label')"
-            :placeholder="t('harvester.natGateway.vpc.placeholder')"
-            required
-          />
+    <ResourceTabs
+      class="mt-15"
+      :need-conditions="false"
+      :need-related="false"
+      :need-events="false"
+      :side-tabs="true"
+      :mode="mode"
+    >
+      <Tab
+        name="basic"
+        label="Basic"
+        :weight="99"
+      >
+        <div class="mt-20">
+          <div class="row">
+            <div class="col span-12">
+              <LabeledSelect
+                v-model:value="internalTenantNetwork"
+                class="mb-20"
+                required
+                :options="vmNetworkOptions"
+                :mode="mode"
+                :label="t('harvester.natGateway.internalTenantNetwork.label')"
+                :placeholder="t('harvester.natGateway.internalTenantNetwork.placeholder')"
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col span-12">
+              <LabeledSelect
+                v-model:value="vpc"
+                class="mb-20"
+                :options="vpcOptions"
+                :mode="mode"
+                :label="t('harvester.natGateway.vpc.label')"
+                :placeholder="t('harvester.natGateway.vpc.placeholder')"
+                required
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col span-12">
+              <LabeledSelect
+                v-model:value="subnet"
+                class="mb-20"
+                :options="subnetOptions"
+                :mode="mode"
+                :label="t('harvester.natGateway.subnet.label')"
+                :placeholder="t('harvester.natGateway.subnet.placeholder')"
+                required
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col span-12">
+              <LabeledInput
+                v-model:value="lanIp"
+                class="mb-20"
+                :mode="mode"
+                :label="t('harvester.natGateway.lanIp.label')"
+                :placeholder="t('harvester.natGateway.lanIp.placeholder')"
+                required
+              />
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="row">
-        <div class="col span-12">
-          <LabeledSelect
-            v-model:value="subnet"
-            class="mb-20"
-            :options="subnetOptions"
-            :mode="mode"
-            :label="t('harvester.natGateway.subnet.label')"
-            :placeholder="t('harvester.natGateway.subnet.placeholder')"
-            required
-          />
+      </Tab>
+
+      <Tab
+        name="externalSubnets"
+        label="External Subnets"
+        :weight="98"
+      >
+        <div class="mt-20">
+          <div class="row">
+            <div class="col span-12">
+              <ArrayListSelect
+                v-model:value="externalSubnets"
+                :mode="mode"
+                :disabled="mode === 'view'"
+                required
+                :options="subnetOptions"
+                :enable-default-add-value="false"
+                :array-list-props="{
+                  addLabel: t('harvester.natGateway.externalSubnets.addLabel'),
+                  title: t('harvester.natGateway.subnet.label'),
+                  initialEmptyRow: true,
+                  required: true,
+                  protip: false,
+                }"
+                :select-props="{
+                  placeholder: t('harvester.natGateway.externalSubnets.placeholder'),
+                  disabled: mode === 'view',
+                }"
+              />
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="row">
-        <div class="col span-12">
-          <LabeledInput
-            v-model:value="lanIP"
-            class="mb-20"
-            :mode="mode"
-            :label="t('harvester.natGateway.lanIP.label')"
-            :placeholder="t('harvester.natGateway.lanIP.placeholder')"
-            required
-          />
-        </div>
-      </div>
-      <div class="row">
-        <div class="col span-12">
-          <ArrayListSelect
-            v-model:value="externalSubnets"
-            :mode="mode"
-            :options="subnetOptions"
-            :enable-default-add-value="false"
-            :array-list-props="{
-              addLabel: t('harvester.natGateway.externalSubnets.addLabel'),
-              initialEmptyRow: true,
-              title: t('harvester.natGateway.externalSubnets.label'),
-              required: false,
-              protip: false,
-            }"
-            :select-props="{
-              placeholder: t('harvester.natGateway.externalSubnets.placeholder'),
-            }"
-          />
-        </div>
-      </div>
-    </div>
+      </Tab>
+    </ResourceTabs>
   </CruResource>
 </template>

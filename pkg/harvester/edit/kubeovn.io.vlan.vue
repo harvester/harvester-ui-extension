@@ -1,6 +1,8 @@
 <script>
 import CruResource from '@shell/components/CruResource';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
+import ResourceTabs from '@shell/components/form/ResourceTabs';
+import Tab from '@shell/components/Tabbed/Tab';
 import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import CreateEditView from '@shell/mixins/create-edit-view';
@@ -13,6 +15,8 @@ export default {
   components: {
     CruResource,
     NameNsDescription,
+    ResourceTabs,
+    Tab,
     LabeledInput,
     LabeledSelect,
   },
@@ -93,33 +97,50 @@ export default {
       @update:value="$emit('update:value', $event)"
     />
 
-    <div class="mt-20">
-      <div class="row">
-        <div class="col span-12">
-          <LabeledInput
-            v-model:value.number="vlanId"
-            class="mb-20"
-            type="number"
-            :label="t('harvester.vlan.id.label')"
-            :placeholder="t('harvester.vlan.id.placeholder')"
-            :mode="mode"
-            required
-          />
+    <ResourceTabs
+      class="mt-15"
+      :need-conditions="false"
+      :need-related="false"
+      :need-events="false"
+      :side-tabs="true"
+      :mode="mode"
+    >
+      <Tab
+        name="basic"
+        label="Basic"
+        :weight="99"
+      >
+        <div class="mt-20">
+          <div class="row">
+            <div class="col span-12">
+              <LabeledInput
+                v-model:value.number="vlanId"
+                class="mb-20"
+                type="number"
+                :min="1"
+                :max="4094"
+                :label="t('harvester.vlan.id.label')"
+                :placeholder="t('harvester.vlan.id.placeholder')"
+                :mode="mode"
+                required
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col span-12">
+              <LabeledSelect
+                v-model:value="provider"
+                class="mb-20"
+                :options="providerNetworks"
+                :mode="mode"
+                :label="t('harvester.vlan.provider.label')"
+                :placeholder="t('harvester.vlan.provider.placeholder')"
+                required
+              />
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="row">
-        <div class="col span-12">
-          <LabeledSelect
-            v-model:value="provider"
-            class="mb-20"
-            :options="providerNetworks"
-            :mode="mode"
-            :label="t('harvester.vlan.provider.label')"
-            :placeholder="t('harvester.vlan.provider.placeholder')"
-            required
-          />
-        </div>
-      </div>
-    </div>
+      </Tab>
+    </ResourceTabs>
   </CruResource>
 </template>

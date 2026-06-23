@@ -1,6 +1,8 @@
 <script>
 import CruResource from '@shell/components/CruResource';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
+import ResourceTabs from '@shell/components/form/ResourceTabs';
+import Tab from '@shell/components/Tabbed/Tab';
 import LabeledInput from '@components/Form/LabeledInput/LabeledInput.vue';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import CreateEditView from '@shell/mixins/create-edit-view';
@@ -13,6 +15,8 @@ export default {
   components: {
     CruResource,
     NameNsDescription,
+    ResourceTabs,
+    Tab,
     LabeledInput,
     LabeledSelect,
   },
@@ -105,45 +109,60 @@ export default {
       @update:value="$emit('update:value', $event)"
     />
 
-    <div class="mt-20">
-      <div class="row">
-        <div class="col span-12">
-          <LabeledSelect
-            v-model:value="natGwDp"
-            class="mb-20"
-            :options="natGatewayOptions"
-            :mode="mode"
-            :label="t('harvester.externalIP.natGateway.label')"
-            :placeholder="t('harvester.externalIP.natGateway.placeholder')"
-            required
-          />
+    <ResourceTabs
+      class="mt-15"
+      :need-conditions="false"
+      :need-related="false"
+      :need-events="false"
+      :side-tabs="true"
+      :mode="mode"
+    >
+      <Tab
+        name="basic"
+        label="Basic"
+        :weight="99"
+      >
+        <div class="mt-20">
+          <div class="row">
+            <div class="col span-12">
+              <LabeledSelect
+                v-model:value="natGwDp"
+                class="mb-20"
+                :options="natGatewayOptions"
+                :mode="mode"
+                :label="t('harvester.externalIP.natGateway.label')"
+                :placeholder="t('harvester.externalIP.natGateway.placeholder')"
+                required
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col span-12">
+              <LabeledSelect
+                v-model:value="externalSubnet"
+                class="mb-20"
+                :options="subnetOptions"
+                :label="t('harvester.externalIP.externalSubnet.label')"
+                :placeholder="t('harvester.externalIP.externalSubnet.placeholder')"
+                :mode="mode"
+                required
+              />
+            </div>
+          </div>
+          <div class="row">
+            <div class="col span-12">
+              <LabeledInput
+                v-model:value="v4ip"
+                class="mb-20"
+                :label="t('harvester.externalIP.v4ip.label')"
+                :placeholder="t('harvester.externalIP.v4ip.placeholder')"
+                :mode="mode"
+                required
+              />
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="row">
-        <div class="col span-12">
-          <LabeledSelect
-            v-model:value="externalSubnet"
-            class="mb-20"
-            :options="subnetOptions"
-            :label="t('harvester.externalIP.externalSubnet.label')"
-            :placeholder="t('harvester.externalIP.externalSubnet.placeholder')"
-            :mode="mode"
-            required
-          />
-        </div>
-      </div>
-      <div class="row">
-        <div class="col span-12">
-          <LabeledInput
-            v-model:value="v4ip"
-            class="mb-20"
-            :label="t('harvester.externalIP.v4ip.label')"
-            :placeholder="t('harvester.externalIP.v4ip.placeholder')"
-            :mode="mode"
-            required
-          />
-        </div>
-      </div>
-    </div>
+      </Tab>
+    </ResourceTabs>
   </CruResource>
 </template>
