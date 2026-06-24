@@ -72,7 +72,8 @@ const FEATURE_FLAGS = {
   'v1.9.0': [
     'supportFilesystem',
     'disableResourcePooling',
-    'expandOnlineEncryptedVolume'
+    'expandOnlineEncryptedVolume',
+    'longhornV2HugepageSettings'
   ],
 };
 
