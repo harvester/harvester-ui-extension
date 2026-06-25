@@ -5,6 +5,8 @@ import { Card } from '@components/Card';
 import { Banner } from '@components/Banner';
 import AsyncButton from '@shell/components/AsyncButton';
 import { LabeledInput } from '@components/Form/LabeledInput';
+import LabeledSelect from '@shell/components/form/LabeledSelect';
+import { DEFAULT_FS_FREEZE_DEADLINE, getFsFreezeDeadlineOptions } from '../utils/backup';
 
 export default {
   name: 'HarvesterBackupModal',
@@ -15,6 +17,7 @@ export default {
     AsyncButton,
     Card,
     LabeledInput,
+    LabeledSelect,
     Banner
   },
 
@@ -27,8 +30,9 @@ export default {
 
   data() {
     return {
-      backUpName: '',
-      errors:     []
+      backUpName:       '',
+      errors:           [],
+      fsFreezeDeadline: DEFAULT_FS_FREEZE_DEADLINE
     };
   },
 
@@ -37,12 +41,18 @@ export default {
 
     actionResource() {
       return this.resources[0];
+    },
+
+    fsFreezeDeadlineOptions() {
+      return getFsFreezeDeadlineOptions(this.t);
     }
   },
 
   methods: {
     close() {
       this.backUpName = '';
+      this.fsFreezeDeadline = DEFAULT_FS_FREEZE_DEADLINE;
+      this.errors = [];
       this.$emit('close');
     },
 
@@ -51,7 +61,7 @@ export default {
         try {
           const res = await this.actionResource.doAction(
             'backup',
-            { name: this.backUpName },
+            { name: this.backUpName, fsFreezeDeadline: this.fsFreezeDeadline },
             {},
             false
           );
@@ -100,7 +110,15 @@ export default {
     <template #body>
       <LabeledInput
         v-model:value="backUpName"
+        class="mt-20"
         :label="t('generic.name')"
+        required
+      />
+      <LabeledSelect
+        v-model:value="fsFreezeDeadline"
+        class="mt-20"
+        :options="fsFreezeDeadlineOptions"
+        :label="t('harvester.modal.backup.fileSystemFreezeDeadline.label')"
         required
       />
       <Banner
