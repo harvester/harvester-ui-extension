@@ -67,6 +67,13 @@ export default {
         NAMESPACE,
         CIDR_BLOCK,
         PROTOCOL,
+        {
+          name:      'vlan',
+          labelKey:  'harvester.subnet.vlan.label',
+          value:     'spec.vlan',
+          sort:      'spec.vlan',
+          formatter: 'HarvesterVlan',
+        },
         PROVIDER,
         AGE
       ];

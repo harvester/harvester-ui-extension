@@ -348,6 +348,9 @@ harvester:
     vmImportSourceOClusterStatus: Cluster Status
     vmImportSourceOVAUrl: URL
     vmImportSourceOVAStatus: Status
+    v4ip: V4 IP
+    v6ip: V6 IP
+    eipName: EIP Name
   tab:
     volume: Volumes
     network: Networks
@@ -1155,6 +1158,9 @@ harvester:
     gateway:
       label: Gateway IP
       placeholder: e.g. 172.20.0.1
+    vlan:
+      label: VLAN
+      placeholder: Select a VLAN
     dhcp:
       label: Dynamic Host Configuration Protocol (DHCP)
       v4Options: DHCPV4Options
@@ -1240,8 +1246,90 @@ harvester:
       remoteVpc:
         label: Remote VPC
       infoBanner: The static route destination CIDR must cover all subnets CIDR from remote VPC Peer. Read <a href="{url}" target="_blank">VPC Peering Configuration Examples</a> for more information.
+  natGateway:
+    label: Gateways
+    internalTenantNetwork:
+      label: Internal Tenant Network
+      placeholder: Select a Virtual Machine Network
+    vpc:
+      label: VPC
+      placeholder: Select a VPC
+    subnet:
+      label: Subnet
+      placeholder: Select a subnet
+    lanIp:
+      label: LAN IP
+      placeholder: Enter LAN IP
+    externalSubnets:
+      label: External Subnets
+      addLabel: Add
+      placeholder: Select a subnet
+  externalIP:
+    label: External IPs
+    natGateway:
+      label: VpcNatGateway
+      placeholder: Select a VpcNatGateway
+    externalSubnet:
+      label: External Subnet
+      placeholder: Select an external subnet
+    v4ip:
+      label: V4 IP
+      placeholder: public ip from external subnet
+  snat:
+    label: Source Rules
+    eip:
+      label: EIP
+      placeholder: Select an external IP
+    internalCIDR:
+      label: Internal CIDR
+      placeholder: internal subnet CIDR
+  dnat:
+    label: Destination Rules
+    eip:
+      label: EIP
+      placeholder: Select an external IP
+    externalPort:
+      label: External Port
+      placeholder: port number
+    internalIp:
+      label: Internal IP
+      placeholder: internal IP address
+    internalPort:
+      label: Internal Port
+      placeholder: port number
+    protocol:
+      label: Protocol
+      placeholder: Select protocol (tcp or udp)
+  providerNetwork:
+    label: Provider Networks
+    defaultInterface:
+      label: Default Interface
+      placeholder: Select the interface the same as master interface of external overlay network
+    customInterfaces:
+      label: Custom Interfaces
+      addLabel: Add Custom Interface
+      interface:
+        label: Network Interface
+        placeholder: e.g. eth2
+      nodes:
+        label: Nodes
+        addLabel: Add Node
+        placeholder: Select a node
+    excludedNodes:
+      label: Excluded Nodes
+      addLabel: Add Excluded Node
+      placeholder: Select node to exclude from this provider network
+  vlanNetwork:
+    label: VLANs
+  vlan:
+    id:
+      label: VLAN ID
+      placeholder: "e.g. 1-4094"
+    provider:
+      label: Provider Network
+      placeholder: Select a provider network
   networkPolicy:
-    label: Network Policies
+    label: Policies
     banner: The network policies must be used for VMs attached to overlay networks. Please read the <a href="{url}" target="_blank">harvester document</a> how the network policy works.
   network:
     label: Virtual Machine Networks
@@ -2163,6 +2251,36 @@ typeLabel:
     {count, plural,
       one { Virtual Private Cloud }
       other { Virtual Private Clouds }
+    }
+  kubeovn.io.vlan: |-
+    {count, plural,
+      one { VLAN Network }
+      other { VLAN Networks }
+    }
+  kubeovn.io.providernetwork: |-
+    {count, plural,
+      one { Provider Network }
+      other { Provider Networks }
+    }
+  kubeovn.io.vpcnatgateway: |-
+    {count, plural,
+      one { NAT Gateway }
+      other { NAT Gateways }
+    }
+  kubeovn.io.iptablessnatrule: |-
+    {count, plural,
+      one { Source Rule }
+      other { Source Rules }
+    }
+  kubeovn.io.iptablesdnatrule: |-
+    {count, plural,
+      one { Destination Rule }
+      other { Destination Rules }
+    }
+  kubeovn.io.iptableseip: |-
+    {count, plural,
+      one { External IP }
+      other { External IPs }
     }
   networking.k8s.io.networkpolicy: |-
     {count, plural,

@@ -54,6 +54,14 @@ import { registerAddonSideNav } from '../utils/dynamic-nav';
 const TEMPLATE = HCI.VM_VERSION;
 const MONITORING_GROUP = 'Monitoring & Logging::Monitoring';
 const LOGGING_GROUP = 'Monitoring & Logging::Logging';
+const OVERLAY_NETWORKS_GROUP = 'Overlay Networks';
+const UNDERLAY_NETWORKS_GROUP = 'Underlay Networks';
+const NAT_INTERNET_GROUP = `${ OVERLAY_NETWORKS_GROUP }::NAT & Internet`;
+const GATEWAYS_GROUP = `${ NAT_INTERNET_GROUP }::Gateways`;
+const EXTERNAL_IPS_GROUP = `${ NAT_INTERNET_GROUP }::External IPs`;
+const RULES_GROUP = `${ NAT_INTERNET_GROUP }::Rules`;
+const SOURCE_RULES_GROUP = `${ RULES_GROUP }::Source Rules`;
+const DESTINATION_RULES_GROUP = `${ RULES_GROUP }::Destination Rules`;
 
 export const PRODUCT_NAME = 'harvester';
 
@@ -582,12 +590,50 @@ export function init($plugin, store) {
       HCI.CLUSTER_NETWORK,
       HCI.NETWORK_ATTACHMENT,
       HCI.HOST_NETWORK_CONFIG,
-      HCI.VPC,
-      NETWORK_POLICY,
       HCI.LB,
       HCI.IP_POOL,
     ],
     'networks'
+  );
+
+  basicType(
+    [HCI.VPC],
+    OVERLAY_NETWORKS_GROUP
+  );
+
+  basicType(
+    [NETWORK_POLICY],
+    OVERLAY_NETWORKS_GROUP
+  );
+
+  basicType(
+    [HCI.VPC_NAT_GATEWAY],
+    GATEWAYS_GROUP
+  );
+
+  basicType(
+    [HCI.IPTABLES_EIP],
+    EXTERNAL_IPS_GROUP
+  );
+
+  basicType(
+    [HCI.IPTABLES_SNAT_RULE],
+    SOURCE_RULES_GROUP
+  );
+
+  basicType(
+    [HCI.IPTABLES_DNAT_RULE],
+    DESTINATION_RULES_GROUP
+  );
+
+  basicType(
+    [HCI.PROVIDER_NETWORK],
+    UNDERLAY_NETWORKS_GROUP
+  );
+
+  basicType(
+    [HCI.VLAN],
+    UNDERLAY_NETWORKS_GROUP
   );
 
   basicType(
@@ -601,7 +647,11 @@ export function init($plugin, store) {
   );
 
   weightGroup('networks', 494, true);
-  weightGroup('backupAndSnapshot', 493, true);
+  weightGroup('Overlay Networks', 493, true);
+  weightGroup('NAT & Internet', 492, true);
+  weightGroup('Rules', 491, true);
+  weightGroup('Underlay Networks', 490, true);
+  weightGroup('backupAndSnapshot', 489, true);
 
   basicType(
     [
@@ -680,7 +730,7 @@ export function init($plugin, store) {
     name:       HCI.CLUSTER_NETWORK,
     ifHaveType: HCI.CLUSTER_NETWORK,
     namespaced: false,
-    weight:     189,
+    weight:     484,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.CLUSTER_NETWORK }
@@ -702,7 +752,7 @@ export function init($plugin, store) {
     labelKey:   'harvester.network.label',
     name:       HCI.NETWORK_ATTACHMENT,
     namespaced: true,
-    weight:     188,
+    weight:     485,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.NETWORK_ATTACHMENT }
@@ -716,7 +766,7 @@ export function init($plugin, store) {
     labelKey:   'harvester.vpc.label',
     name:       HCI.VPC,
     namespaced: true,
-    weight:     187,
+    weight:     195,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.VPC }
@@ -725,19 +775,126 @@ export function init($plugin, store) {
     ifHaveType: HCI.VPC,
   });
 
+  configureType(HCI.VPC_NAT_GATEWAY, { hiddenNamespaceGroupButton: true, canYaml: false });
+
+  virtualType({
+    labelKey:   'harvester.natGateway.label',
+    name:       HCI.VPC_NAT_GATEWAY,
+    namespaced: false,
+    weight:     193,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VPC_NAT_GATEWAY }
+    },
+    exact:      false,
+    ifHaveType: HCI.VPC_NAT_GATEWAY,
+  });
+
+  configureType(HCI.IPTABLES_EIP, { hiddenNamespaceGroupButton: true, canYaml: false });
+
+  virtualType({
+    labelKey:   'harvester.externalIP.label',
+    name:       HCI.IPTABLES_EIP,
+    namespaced: false,
+    weight:     192,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.IPTABLES_EIP }
+    },
+    exact:      false,
+    ifHaveType: HCI.IPTABLES_EIP,
+  });
+
+  configureType(HCI.IPTABLES_SNAT_RULE, { hiddenNamespaceGroupButton: true, canYaml: false });
+
+  virtualType({
+    labelKey:   'harvester.snat.label',
+    name:       HCI.IPTABLES_SNAT_RULE,
+    namespaced: false,
+    weight:     191,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.IPTABLES_SNAT_RULE }
+    },
+    exact:      false,
+    ifHaveType: HCI.IPTABLES_SNAT_RULE,
+  });
+
+  configureType(HCI.IPTABLES_DNAT_RULE, { hiddenNamespaceGroupButton: true, canYaml: false });
+
+  virtualType({
+    labelKey:   'harvester.dnat.label',
+    name:       HCI.IPTABLES_DNAT_RULE,
+    namespaced: false,
+    weight:     190,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.IPTABLES_DNAT_RULE }
+    },
+    exact:      false,
+    ifHaveType: HCI.IPTABLES_DNAT_RULE,
+  });
+
   configureType(NETWORK_POLICY, { hiddenNamespaceGroupButton: true, canYaml: false });
 
   virtualType({
     labelKey:   'harvester.networkPolicy.label',
     name:       NETWORK_POLICY,
     namespaced: true,
-    weight:     186,
+    weight:     194,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: NETWORK_POLICY }
     },
     exact:      false,
     ifHaveType: NETWORK_POLICY,
+  });
+
+  configureType(HCI.PROVIDER_NETWORK, { hiddenNamespaceGroupButton: true, canYaml: false });
+
+  virtualType({
+    labelKey:   'harvester.providerNetwork.label',
+    name:       HCI.PROVIDER_NETWORK,
+    namespaced: false,
+    weight:     189,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.PROVIDER_NETWORK }
+    },
+    exact:      false,
+    ifHaveType: HCI.PROVIDER_NETWORK,
+  });
+
+  configureType(HCI.VLAN, { hiddenNamespaceGroupButton: true, canYaml: false });
+
+  headers(HCI.VLAN, [
+    STATE,
+    NAME_COL,
+    {
+      name:  'id',
+      label: 'ID',
+      value: 'spec.id',
+      sort:  'spec.id'
+    },
+    {
+      name:     'provider',
+      labelKey: 'harvester.subnet.provider.label',
+      value:    'spec.provider',
+      sort:     'spec.provider'
+    }
+  ]);
+
+  virtualType({
+    labelKey:   'harvester.vlanNetwork.label',
+    name:       HCI.VLAN,
+    namespaced: false,
+    weight:     188,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VLAN }
+    },
+    exact:      false,
+    ifHaveType: HCI.VLAN,
   });
 
   configureType(HCI.SNAPSHOT, {
@@ -1094,7 +1251,7 @@ export function init($plugin, store) {
     labelKey:   'harvester.loadBalancer.label',
     name:       HCI.LB,
     namespaced: true,
-    weight:     185,
+    weight:     483,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.LB }
@@ -1133,7 +1290,7 @@ export function init($plugin, store) {
     labelKey:   'harvester.ipPool.label',
     name:       HCI.IP_POOL,
     namespaced: false,
-    weight:     184,
+    weight:     482,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.IP_POOL }
@@ -1154,7 +1311,7 @@ export function init($plugin, store) {
     labelKey:   'harvester.hostNetworkConfig.label',
     name:       HCI.HOST_NETWORK_CONFIG,
     namespaced: false,
-    weight:     183,
+    weight:     481,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.HOST_NETWORK_CONFIG }

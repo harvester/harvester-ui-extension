@@ -64,8 +64,9 @@ export default {
     const inStore = this.$store.getters['currentProduct'].inStore;
 
     const hash = {
-      vpc: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VPC }),
-      nad: this.$store.dispatch(`${ inStore }/findAll`, { type: NETWORK_ATTACHMENT }),
+      vpc:   this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VPC }),
+      nad:   this.$store.dispatch(`${ inStore }/findAll`, { type: NETWORK_ATTACHMENT }),
+      vlans: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VLAN }),
     };
 
     await allHash(hash);
@@ -135,6 +136,16 @@ export default {
     natOutgoingDisabled() {
       // Disable the NAT Outgoing option when the subnet belongs to the ovn-cluster VPC and its name is join or ovn-default.
       return this.value?.spec?.vpc === 'ovn-cluster' && ['join', 'ovn-default'].includes(this.value?.metadata?.name);
+    },
+
+    vlanOptions() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const vlans = this.$store.getters[`${ inStore }/all`](HCI.VLAN) || [];
+
+      return vlans.map((vlan) => ({
+        label: vlan.id,
+        value: vlan.id,
+      }));
     }
   },
 
@@ -267,6 +278,16 @@ export default {
               class="mb-20"
               :placeholder="t('harvester.subnet.gateway.placeholder')"
               :label="t('harvester.subnet.gateway.label')"
+              :mode="mode"
+            />
+          </div>
+          <div class="col span-6">
+            <LabeledSelect
+              v-model:value="value.spec.vlan"
+              class="mb-20"
+              :options="vlanOptions"
+              :placeholder="t('harvester.subnet.vlan.placeholder')"
+              :label="t('harvester.subnet.vlan.label')"
               :mode="mode"
             />
           </div>

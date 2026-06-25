@@ -1,3 +1,9 @@
+// To find the CRD name, you can run `kubectl api-resources` and look for the `NAME` column.
+// The CRD name is usually in the format of `<plural>.<group>`, where `<plural>` is the plural form of the resource and `<group>` is the API group it belongs to.
+// e.g
+// 1. `virtualmachines.kubevirt.io` -> kubevirt.io.virtualmachine, the CRD name for the `VirtualMachine` resource in the `kubevirt.io` API group
+// 2. `vpc-nat-gateways.kubeovn.io` -> kubeovn.io.vpcnatgateway, the CRD name for the `VpcNatGateway` resource in the `kubeovn.io` API group.
+
 export const HCI = {
   VM:                  'kubevirt.io.virtualmachine',
   VMI:                 'kubevirt.io.virtualmachineinstance',
@@ -20,6 +26,12 @@ export const HCI = {
   SUBNET:              'kubeovn.io.subnet',
   VPC:                 'kubeovn.io.vpc',
   IP:                  'kubeovn.io.ip',
+  VLAN:                'kubeovn.io.vlan',
+  IPTABLES_EIP:        'kubeovn.io.iptableseip',
+  IPTABLES_SNAT_RULE:  'kubeovn.io.iptablessnatrule',
+  IPTABLES_DNAT_RULE:  'kubeovn.io.iptablesdnatrule',
+  PROVIDER_NETWORK:    'kubeovn.io.providernetwork',
+  VPC_NAT_GATEWAY:     'kubeovn.io.vpcnatgateway',
   VM_IMAGE_DOWNLOADER: 'harvesterhci.io.virtualmachineimagedownloader',
   SUPPORT_BUNDLE:      'harvesterhci.io.supportbundle',
   NETWORK_ATTACHMENT:  'harvesterhci.io.networkattachmentdefinition',
