@@ -47,6 +47,13 @@ import {
   VM_IMPORT_SOURCE_O_STATUS,
   VM_IMPORT_SOURCE_OVA_URL,
   VM_IMPORT_SOURCE_OVA_STATUS,
+  FORKLIFT_PROVIDER_TYPE,
+  FORKLIFT_PROVIDER_URL,
+  FORKLIFT_MAP_SOURCE_PROVIDER,
+  FORKLIFT_MAP_DEST_PROVIDER,
+  FORKLIFT_PLAN_TARGET_NS,
+  FORKLIFT_PLAN_VM_COUNT,
+  FORKLIFT_MIGRATION_PLAN,
 } from './table-headers';
 import { ADD_ONS } from './harvester-map';
 import { registerAddonSideNav } from '../utils/dynamic-nav';
@@ -1162,4 +1169,182 @@ export function init($plugin, store) {
     exact:      false,
     ifHaveType: HCI.HOST_NETWORK_CONFIG,
   });
+  // ===========================================================================
+  // Forklift Addon UI Flow
+  // ===========================================================================
+  weightGroup('vmMigration', 0, false);
+
+  // Provider
+  headers(HCI.FORKLIFT_PROVIDER, [
+    STATE,
+    NAME_COL,
+    NAMESPACE_COL,
+    FORKLIFT_PROVIDER_TYPE,
+    FORKLIFT_PROVIDER_URL,
+    AGE
+  ]);
+  configureType(HCI.FORKLIFT_PROVIDER, {
+    resource:  HCI.FORKLIFT_PROVIDER,
+    location:  {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_PROVIDER }
+    }
+  });
+  virtualType({
+    name:       HCI.FORKLIFT_PROVIDER,
+    labelKey:   'harvester.addons.vmMigration.labels.provider',
+    group:      'vmMigration',
+    namespaced: true,
+    weight:     100,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_PROVIDER }
+    }
+  });
+
+  // NetworkMap
+  headers(HCI.FORKLIFT_NETWORK_MAP, [
+    STATE,
+    NAME_COL,
+    NAMESPACE_COL,
+    FORKLIFT_MAP_SOURCE_PROVIDER,
+    FORKLIFT_MAP_DEST_PROVIDER,
+    AGE
+  ]);
+  configureType(HCI.FORKLIFT_NETWORK_MAP, {
+    resource:  HCI.FORKLIFT_NETWORK_MAP,
+    location:  {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_NETWORK_MAP }
+    }
+  });
+  virtualType({
+    name:       HCI.FORKLIFT_NETWORK_MAP,
+    labelKey:   'harvester.addons.vmMigration.labels.networkMap',
+    group:      'vmMigration::Advanced',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_NETWORK_MAP }
+    }
+  });
+
+  // StorageMap
+  headers(HCI.FORKLIFT_STORAGE_MAP, [
+    STATE,
+    NAME_COL,
+    NAMESPACE_COL,
+    FORKLIFT_MAP_SOURCE_PROVIDER,
+    FORKLIFT_MAP_DEST_PROVIDER,
+    AGE
+  ]);
+  configureType(HCI.FORKLIFT_STORAGE_MAP, {
+    resource:  HCI.FORKLIFT_STORAGE_MAP,
+    location:  {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_STORAGE_MAP }
+    }
+  });
+  virtualType({
+    name:       HCI.FORKLIFT_STORAGE_MAP,
+    labelKey:   'harvester.addons.vmMigration.labels.storageMap',
+    group:      'vmMigration::Advanced',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_STORAGE_MAP }
+    }
+  });
+
+  // Plan
+  headers(HCI.FORKLIFT_PLAN, [
+    STATE,
+    NAME_COL,
+    NAMESPACE_COL,
+    FORKLIFT_MAP_SOURCE_PROVIDER,
+    FORKLIFT_PLAN_TARGET_NS,
+    FORKLIFT_PLAN_VM_COUNT,
+    AGE
+  ]);
+  configureType(HCI.FORKLIFT_PLAN, {
+    resource:  HCI.FORKLIFT_PLAN,
+    location:  {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_PLAN }
+    }
+  });
+  virtualType({
+    name:       HCI.FORKLIFT_PLAN,
+    labelKey:   'harvester.addons.vmMigration.labels.plan',
+    group:      'vmMigration::Advanced',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_PLAN }
+    }
+  });
+
+  // Migration
+  headers(HCI.FORKLIFT_MIGRATION, [
+    STATE,
+    NAME_COL,
+    NAMESPACE_COL,
+    FORKLIFT_MIGRATION_PLAN,
+    AGE
+  ]);
+  configureType(HCI.FORKLIFT_MIGRATION, {
+    resource:  HCI.FORKLIFT_MIGRATION,
+    location:  {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_MIGRATION }
+    }
+  });
+  virtualType({
+    name:       HCI.FORKLIFT_MIGRATION,
+    labelKey:   'harvester.addons.vmMigration.labels.migration',
+    group:      'vmMigration::Advanced',
+    namespaced: true,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.FORKLIFT_MIGRATION }
+    }
+  });
+  configureType('forklift-create', { subTypes: [HCI.FORKLIFT_PLAN] });
+  virtualType({
+    name:       'forklift-create',
+    labelKey:   'harvester.addons.vmMigration.labels.dashboard',
+    group:      'vmMigration',
+    namespaced: true,
+    weight:     200,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-vm-migration`,
+      params: {}
+    }
+  });
+
+  // Register the dashboard entry directly — it's a virtual type with no schema,
+  // so it cannot go through registerAddonSideNav (which filters by schema).
+  basicType(['forklift-create'], 'vmMigration');
+
+  // Enable SideNav based on Forklift Addon Status
+  registerAddonSideNav(store, PRODUCT_NAME, {
+    addonName:    ADD_ONS.FORKLIFT_OPERATOR,
+    resourceType: HCI.ADD_ONS,
+    navGroup:     'vmMigration',
+    types:        [
+      HCI.FORKLIFT_PROVIDER,
+    ]
+  });
+  registerAddonSideNav(store, PRODUCT_NAME, {
+    addonName:    ADD_ONS.FORKLIFT_OPERATOR,
+    resourceType: HCI.ADD_ONS,
+    navGroup:     'vmMigration::Advanced',
+    types:        [
+      HCI.FORKLIFT_NETWORK_MAP,
+      HCI.FORKLIFT_STORAGE_MAP,
+      HCI.FORKLIFT_PLAN,
+      HCI.FORKLIFT_MIGRATION,
+    ]
+  });
+  // ===========================================================================
 }
