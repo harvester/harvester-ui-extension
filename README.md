@@ -5,6 +5,19 @@ The Harvester UI Extension is a Rancher extension that provides the user interfa
 > **Note:**
 > This extension is available starting from **Rancher 2.10.0**. Ensure your Rancher version is **2.10.0 or later** to access Harvester integration.
 
+## Table of Contents
+
+- [Installation](#installation)
+- [Development Setup](#development-setup)
+- [Commit Message Guidelines](#commit-message-guidelines)
+- [Branch Structure](#branch-structure)
+- [Testing Guidelines](#testing-guidelines)
+- [Release](#release)
+- [Contributing](#contributing)
+- [License](#license)
+
+
+
 ## Installation
 
 For Harvester UI extension installation instructions, please refer to the page **Rancher Integration** -> **Harvester UI Extension** in [official Harvester documentation](https://docs.harvesterhci.io).
@@ -156,6 +169,13 @@ To test the standalone UI, configure Harvester to load the UI from an external s
 1. Go to **Harvester UI** → **Advanced** → **Settings** → **UI**
 2. Set **ui-source** to `External`
 3. Set **ui-index** to the desired URL
+
+
+## Release
+
+The Harvester UI Extension follows the [Harvester](https://github.com/harvester/harvester) release cycle. After RC1 is cut for a new Harvester version, we usually create and work from the corresponding release branch (for example, `release-harvester-v1.8`). The remaining RC builds and the final official release are published from that branch.
+
+After Harvester releases a new version, update the Harvester entry in rancher/ui-plugin-charts [manifest.json](https://github.com/rancher/ui-plugin-charts/blob/aafd215debbc6cb3100e7ba4b0a542c932397acd/manifest.json#L133-L151). This ensures air-gapped users can pull the new Harvester UI Extension image.
 
 ## Contributing
 
