@@ -82,4 +82,5 @@ export const HCI = {
   MAC_ADDRESS:                      'harvesterhci.io/mac-address',
   NODE_UPGRADE_PAUSE_MAP:           'harvesterhci.io/node-upgrade-pause-map',
   CDI_POPULATOR_KIND:               'cdi.kubevirt.io/storage.populator.kind',
+  CNI_NETWORKS:                     'k8s.v1.cni.cncf.io/networks',
 };
