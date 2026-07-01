@@ -781,7 +781,7 @@ harvester:
       addPort:  Add Port
     cloudConfig:
       title: Cloud Configuration
-      createTemplateTitle: 'Create {name}.'
+      createTemplateTitle: 'Create {name}'
       createNew: Create new...
       cloudInit:
         label: Cloud Init
