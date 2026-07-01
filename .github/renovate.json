@@ -14,10 +14,17 @@
   "semanticCommits": "enabled",
   "semanticCommitType": "deps",
   "prHourlyLimit": 12,
+  "digest": {
+    "enabled": false
+  },
   "timezone": "Asia/Taipei",
   "schedule": ["after 10am on sunday"],
   "postUpdateOptions": ["yarnDedupeFewer"],
   "packageRules": [
+    {
+      "matchUpdateTypes": ["digest"],
+      "enabled": false
+    },
     {
       "matchUpdateTypes": ["major"],
       "enabled": false
@@ -44,14 +51,6 @@
       "minimumReleaseAge": "7 days",
       "groupName": "patch dependencies",
       "labels": ["patch-update"],
-      "reviewers": ["a110605", "houhoucoop"]
-    },
-    {
-      "matchUpdateTypes": ["digest", "pinDigest"],
-      "automerge": false,
-      "groupName": "digest dependencies",
-      "labels": ["digest-update"],
-      "schedule": ["on the first day of the month"],
       "reviewers": ["a110605", "houhoucoop"]
     }
   ]
