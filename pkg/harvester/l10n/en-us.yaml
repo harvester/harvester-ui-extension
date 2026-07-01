@@ -7,6 +7,7 @@ generic:
   inProgress: In Progress
   basic: Basic
   loading: Loading...
+  none: None
 
 unsupported:
   serverVersion: 'Current version: <code>{serverVersion}</code>'
@@ -797,6 +798,17 @@ harvester:
         label: Network Data Template
         title: "Network Data:"
         tip: "The network-data configuration allows you to customize the instance's networking interfaces by assigning subnet configuration, virtual device creation (bonds, bridges, VLANs) routes and DNS configuration. <a href='https://cloudinit.readthedocs.io/en/latest/reference/network-config-format-v1.html' target='_blank'>Learn more</a>"
+    sysprep:
+      title: Windows Sysprep Configuration
+      description: "Configure Windows automated installation using autounattend.xml. The configuration will be stored in a Kubernetes Secret and mounted as a CD-ROM during installation. <a href='https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/automate-windows-setup' target='_blank'>Learn more</a>"
+      createNew: Create new...
+      createNewTitle: Create Windows Sysprep Template
+      xmlContent: autounattend.xml content
+      secret:
+        label: Windows Sysprep Template
+      validation:
+        invalidXml: Invalid XML syntax
+        invalidNamespace: Invalid unattend.xml namespace. Expected 'urn:schemas-microsoft-com:unattend'
     scheduling:
       affinity:
         anyNode: 'Run virtual machine on any available node'
