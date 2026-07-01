@@ -143,6 +143,7 @@ export default {
       <YamlEditor
         ref="yaml"
         v-model:value="yamlScript"
+        :mode="mode"
         class="yaml-editor"
         :editor-mode="editorMode"
       />
