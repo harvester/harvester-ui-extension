@@ -54,8 +54,16 @@ export default class HciVlanConfig extends HarvesterResource {
     return 'VLAN';
   }
 
+  get isMgmtVlanConfig() {
+    return this.spec?.clusterNetwork === 'mgmt';
+  }
+
   get _availableActions() {
     const out = super._availableActions;
+
+    if (this.isMgmtVlanConfig) {
+      return out;
+    }
 
     const canMigrate = !!this.$getters?.['schemaFor']?.(HCI.VLAN_CONFIG)?.collectionMethods?.find((x) => ['post'].includes(x.toLowerCase()));
 
@@ -64,6 +72,30 @@ export default class HciVlanConfig extends HarvesterResource {
     }
 
     return out;
+  }
+
+  get canUpdate() {
+    if (this.isMgmtVlanConfig) {
+      return false;
+    }
+
+    return super.canUpdate;
+  }
+
+  get canDelete() {
+    if (this.isMgmtVlanConfig) {
+      return false;
+    }
+
+    return super.canDelete;
+  }
+
+  get canClone() {
+    if (this.isMgmtVlanConfig) {
+      return false;
+    }
+
+    return super.canClone;
   }
 
   get migrateAction() {
@@ -127,6 +159,10 @@ export default class HciVlanConfig extends HarvesterResource {
   }
 
   get stateDisplay() {
+    if (this.isMgmtVlanConfig) {
+      return this.t('generic.managed');
+    }
+
     if (!this.isReady) {
       return NOT_READY;
     }
@@ -135,6 +171,10 @@ export default class HciVlanConfig extends HarvesterResource {
   }
 
   get stateBackground() {
+    if (this.isMgmtVlanConfig) {
+      return 'bg-info';
+    }
+
     if (!this.isReady) {
       return 'bg-warning';
     }
