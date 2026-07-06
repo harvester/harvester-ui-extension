@@ -186,6 +186,7 @@ export default {
       terminationGracePeriodSeconds: '',
       cpuPinning:                    false,
       cpuModel:                      '',
+      sysprep:                       { secretName: '', xmlContent: '' },
     };
   },
 
@@ -445,6 +446,17 @@ export default {
       this['diskRows'] = diskRows;
       this['filesystemRows'] = this.getFilesystemRows(vm);
 
+      let sysprepConfig = { secretName: '', xmlContent: '' };
+
+      if (osType === 'windows') {
+        sysprepConfig = this.getSysprepConfig(spec);
+      }
+
+      this['sysprep'] = {
+        secretName: sysprepConfig.secretName || this.sysprep?.secretName || '',
+        xmlContent: sysprepConfig.xmlContent || this.sysprep?.xmlContent || '',
+      };
+
       this.refreshYamlEditor();
     },
 
@@ -609,7 +621,8 @@ export default {
 
       out = sortBy(out, 'bootOrder');
 
-      return out.filter( (O) => O.name !== 'cloudinitdisk');
+      // Filter out cloudinitdisk and sysprep disk from UI display.
+      return out.filter( (O) => O.name !== 'cloudinitdisk' && O.name !== 'sysprep');
     },
 
     getNetworkRows(vm, config) {
@@ -828,6 +841,32 @@ export default {
         this.secretName = this.generateSecretName(this.secretNamePrefix);
       }
 
+      if (!disks.find((D) => D.name === 'sysprep') && this.isWindows) {
+        const hasSysprepContent = !!this.sysprep.xmlContent?.trim?.();
+
+        // If we have content but no secret name, it's a new secret that needs a name.
+        if (hasSysprepContent && !this.sysprep.secretName?.trim?.()) {
+          const prefix = this.secretNamePrefix ? `${ this.secretNamePrefix }-windows-sysprep` : 'windows-sysprep';
+
+          this.sysprep.secretName = `${ this.value.metadata.namespace }/${ this.generateSecretName(prefix) }`;
+        }
+
+        // Preserve/attach sysprep whenever a secret is selected/known.
+        if (this.sysprep.secretName) {
+          disks.push({
+            name:  'sysprep',
+            cdrom: { bus: 'sata' }
+          });
+
+          const secretName = this.sysprep.secretName.split('/')[1] || this.sysprep.secretName;
+
+          volumes.push({
+            name:    'sysprep',
+            sysprep: { secret: { name: secretName } }
+          });
+        }
+      }
+
       if (!disks.find( (D) => D.name === 'cloudinitdisk') && (this.userData || this.networkData)) {
         if (!this.isWindows) {
           disks.push({
@@ -836,7 +875,6 @@ export default {
           });
 
           const userData = this.getUserData({ osType: this.osType, installAgent: this.installAgent });
-
           const cloudinitdisk = {
             name:             'cloudinitdisk',
             cloudInitNoCloud: {}
@@ -1480,6 +1518,42 @@ export default {
       } catch (e) {
         return Promise.reject(e);
       }
+    },
+
+    async saveSysprepConfig(vm) {
+      if (!this.isWindows) {
+        return;
+      }
+
+      if (!this.sysprep.secretName?.trim?.() && !this.sysprep.xmlContent?.trim?.()) {
+        return;
+      }
+
+      const secretName = this.sysprep.secretName.split('/')[1] || this.sysprep.secretName;
+      const namespace = vm.metadata.namespace;
+      const namespacedName = `${ namespace }/${ secretName }`;
+
+      let secret;
+
+      try {
+        secret = await this.$store.dispatch('harvester/find', { type: SECRET, id: namespacedName });
+      } catch (e) {
+        if (e?.status !== 404) {
+          throw e;
+        }
+
+        secret = await this.$store.dispatch('harvester/create', {
+          type:     SECRET,
+          metadata: {
+            name:      secretName,
+            namespace,
+            labels:    { [HCI_ANNOTATIONS.WINDOWS_SYSPREP]: 'true' },
+          },
+        });
+      }
+
+      secret.setData('autounattend.xml', this.sysprep.xmlContent);
+      await secret.save();
     },
 
     getAccessCredentialsValidation() {

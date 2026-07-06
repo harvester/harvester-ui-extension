@@ -255,6 +255,29 @@ export default {
       return this.convertToJson(userData)?.ssh_authorized_keys || [];
     },
 
+    getSysprepConfig(spec) {
+      const sysprepVolume = spec?.template?.spec?.volumes?.find(
+        (v) => v.name === 'sysprep' && v.sysprep?.secret
+      );
+
+      if (!sysprepVolume) {
+        return { secretName: '', xmlContent: '' };
+      }
+
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const namespace = this.value.metadata.namespace;
+      const secretName = sysprepVolume.sysprep.secret.name;
+      const secret = this.$store.getters[`${ inStore }/byId`](
+        SECRET,
+        `${ namespace }/${ secretName }`
+      );
+
+      return {
+        secretName: `${ namespace }/${ secretName }`,
+        xmlContent: secret?.decodedData?.['autounattend.xml'] || ''
+      };
+    },
+
     compareSSHValue(a = '', b = '') {
       const r = /(\r\n\t|\n|\r\t)|(\s*)/gm;
 

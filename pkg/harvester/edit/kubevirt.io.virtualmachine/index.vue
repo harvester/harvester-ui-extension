@@ -29,6 +29,7 @@ import RestartVMDialog from '../../dialog/RestartVMDialog';
 import PciDevices from './VirtualMachinePciDevices/index';
 import AccessCredentials from './VirtualMachineAccessCredentials';
 import CloudConfig from './VirtualMachineCloudConfig';
+import WindowsSysprep from './VirtualMachineWindowsSysprep';
 import CpuMemory from './VirtualMachineCpuMemory';
 import CpuModel from './VirtualMachineCpuModel';
 import Network from './VirtualMachineNetwork';
@@ -59,6 +60,7 @@ export default {
     CpuMemory,
     CpuModel,
     CloudConfig,
+    WindowsSysprep,
     NodeScheduling,
     PodAffinity,
     AccessCredentials,
@@ -324,6 +326,10 @@ export default {
       try {
         await this.saveSecret(res);
         await this.saveAccessCredentials(res);
+
+        if (this.isWindows) {
+          await this.saveSysprepConfig(res);
+        }
       } catch (e) {
         this.errors.push(...exceptionToErrorsArray(e));
       }
@@ -369,6 +375,7 @@ export default {
       clear(this.errors);
 
       this.validateCPUMemory();
+      this.validateWindowsSysprep();
 
       // block create VM flow if has validation errors
       if (this.errors.length) {
@@ -393,6 +400,24 @@ export default {
 
       if ((!memory)) {
         this.errors.push(this.t('validation.required', { key: this.t('harvester.virtualMachine.input.memory') }, true));
+      }
+    },
+
+    validateWindowsSysprep() {
+      if (!this.isWindows) {
+        return;
+      }
+
+      if (this.sysprep?.secretName?.trim?.() && !this.sysprep?.xmlContent?.trim?.()) {
+        this.errors.push(this.t('validation.required', { key: this.t('harvester.virtualMachine.sysprep.xmlContent') }, true));
+
+        return;
+      }
+
+      const sysprepValidationError = this.$refs.sysprepConfig?.xmlContentValidationError;
+
+      if (sysprepValidationError) {
+        this.errors.push(sysprepValidationError);
       }
     },
 
@@ -546,6 +571,7 @@ export default {
     onTabChanged({ tab }) {
       if (tab.name === 'advanced') {
         this.$refs.yamlEditor?.refresh();
+        this.$refs.sysprepConfig?.refresh();
       }
     },
 
@@ -1019,16 +1045,24 @@ export default {
         </div>
 
         <CloudConfig
+          v-if="!isWindows"
           ref="yamlEditor"
           :user-script="userScript"
           :mode="mode"
           :os-type="osType"
-          :view-code="isWindows"
           :namespace="value.metadata.namespace"
           :network-script="networkScript"
           @updateUserData="updateUserData"
           @updateNetworkData="updateNetworkData"
           @updateDataTemplateId="updateDataTemplateId"
+        />
+
+        <WindowsSysprep
+          v-if="isWindows"
+          ref="sysprepConfig"
+          v-model:value="sysprep"
+          :mode="mode"
+          :namespace="value.metadata.namespace"
         />
 
         <Checkbox
