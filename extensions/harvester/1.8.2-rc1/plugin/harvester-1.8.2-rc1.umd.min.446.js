@@ -1,0 +1,2 @@
+"use strict";(("undefined"!==typeof self?self:this)["webpackChunkharvester_1_8_2_rc1"]=("undefined"!==typeof self?self:this)["webpackChunkharvester_1_8_2_rc1"]||[]).push([[446],{36446:function(e,n,r){r.r(n),r.d(n,{default:function(){return i}});var t=r(9274);function s(e,n,r,s,o,c){const u=(0,t.resolveComponent)("ResourceList");return(0,t.openBlock)(),(0,t.createBlock)(u)}var o=r(21758),c={name:"ClusterResourcedList",components:{ResourceList:o.A}},u=r(47433);const f=(0,u.A)(c,[["render",s]]);var i=f}}]);
+//# sourceMappingURL=harvester-1.8.2-rc1.umd.min.446.js.map
