@@ -5,6 +5,7 @@ import { useStore } from 'vuex';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { Checkbox } from '@components/Form/Checkbox';
 import { Banner } from '@components/Banner';
+import Loading from '@shell/components/Loading';
 import AsyncButton from '@shell/components/AsyncButton';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { SECRET } from '@shell/config/types';
@@ -372,7 +373,11 @@ defineExpose({ testConnection, clickTestButton });
 </script>
 
 <template>
-  <div class="configure-provider-step">
+  <Loading v-if="loading" />
+  <div
+    v-else
+    class="configure-provider-step"
+  >
     <p class="text-deemphasized line-height-20">
       {{ t('harvester.addons.vmMigration.configureProvider.description') }}
     </p>
