@@ -231,6 +231,7 @@ const onCancel = () => {
     :can-yaml="false"
     :cancel-event="true"
     finish-mode="finish"
+    finish-button-mode="createAndStart"
     class="wizard"
     @cancel="onCancel"
     @finish="onFinish"

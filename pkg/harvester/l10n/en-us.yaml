@@ -41,6 +41,8 @@ members:
   projectMembership: Project Membership
 
 asyncButton:
+  createAndStart:
+    action: Create and Start
   restart:
     action: Save and Restart
     success: Restarted
@@ -1977,7 +1979,7 @@ harvester:
           error: Error
           canceled: Canceled
           inProgress: In Progress
-          active: Active
+          active: Succeeded
         actions:
           start: Start
           restart: Restart
