@@ -279,14 +279,17 @@ const fetchVMs = async() => {
     return;
   }
 
+  const inStore = store.getters['currentProduct'].inStore;
   const providerUid = props.provider.metadata.uid;
   const providerType = props.provider.spec?.type || 'vsphere';
-  const baseUrl = `https://forklift-apir.13.48.147.135.sslip.io/providers/${ providerType }/${ providerUid }`;
+  const baseUrl = store.getters['harvester-common/getHarvesterClusterUrl'](
+    `v1/harvester/providers/${ providerType }/${ providerUid }`
+  );
 
   const [vmsResp, networksResp, datastoresResp] = await Promise.all([
-    fetch(`${ baseUrl }/vms`).then((r) => r.json()),
-    fetch(`${ baseUrl }/networks`).then((r) => r.json()).catch(() => []),
-    fetch(`${ baseUrl }/datastores`).then((r) => r.json()).catch(() => []),
+    store.dispatch(`${ inStore }/request`, { url: `${ baseUrl }/vms` }),
+    store.dispatch(`${ inStore }/request`, { url: `${ baseUrl }/networks` }).catch(() => []),
+    store.dispatch(`${ inStore }/request`, { url: `${ baseUrl }/datastores` }).catch(() => []),
   ]);
 
   if (Array.isArray(vmsResp)) {
