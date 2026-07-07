@@ -80,6 +80,7 @@ export const HCI = {
   VOLUME_MODE_ACCESS_MODES:         'cdi.harvesterhci.io/storageProfileVolumeModeAccessModes',
   VOLUME_SNAPSHOT_CLASS:            'cdi.harvesterhci.io/storageProfileVolumeSnapshotClass',
   MAC_ADDRESS:                      'harvesterhci.io/mac-address',
+  STATIC_IP:                        'static-ip.harvesterhci.io',
   NODE_UPGRADE_PAUSE_MAP:           'harvesterhci.io/node-upgrade-pause-map',
   CDI_POPULATOR_KIND:               'cdi.kubevirt.io/storage.populator.kind',
   CNI_NETWORKS:                     'k8s.v1.cni.cncf.io/networks',

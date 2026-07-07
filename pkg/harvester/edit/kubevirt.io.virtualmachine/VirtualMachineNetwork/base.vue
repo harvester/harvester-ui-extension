@@ -150,6 +150,7 @@ export default {
     isSingle(neu) {
       if (!neu) {
         this.value['macAddress'] = '';
+        this.value['staticIp'] = '';
         this.update();
       }
     }
@@ -289,9 +290,29 @@ export default {
         </a>
       </div>
 
-      <div class="row">
+      <div
+        v-if="showAdvanced"
+        class="row"
+      >
         <div
-          v-if="showAdvanced"
+          data-testid="input-hen-staticIp"
+          class="col span-6"
+        >
+          <InputOrDisplay
+            :name="t('harvester.fields.staticIp')"
+            :value="value.staticIp"
+            :mode="mode"
+          >
+            <LabeledInput
+              v-model:value="value.staticIp"
+              label-key="harvester.fields.staticIp"
+              :mode="mode"
+              :tooltip="t('harvester.virtualMachine.volume.staticIpTip', { nic_name: value.name || 'default' })"
+              @update:value="update"
+            />
+          </InputOrDisplay>
+        </div>
+        <div
           data-testid="input-hen-macAddress"
           class="col span-6"
         >

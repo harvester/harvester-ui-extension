@@ -376,6 +376,7 @@ harvester:
     network: Network
     model: Model
     macAddress: MAC address
+    staticIp: Static IP
     port: Port
     protocol: Protocol
     remove: Remove
@@ -750,6 +751,7 @@ harvester:
       dragTip: Drag and drop volumes, or use the volume's arrows, to change the boot order.
       volumeTip: The virtual machine only contains a CD-ROM volume. You may want to add additional disk volumes.
       macTip: "MAC address as seen inside the guest system."
+      staticIpTip: "Static IP that will be stored to annotation static-ip.harvesterhci.io/{nic_name}."
       volumeUpdate: 'Set volume { name } successfully'
       type: Type
       size: Size
