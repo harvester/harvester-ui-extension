@@ -1829,6 +1829,7 @@ harvester:
           hours: "{hours} {hours, plural, one {hour} other {hours}}"
           minutes: "{minutes} {minutes, plural, one {minute} other {minutes}}"
       errors:
+        failedLoadPlans: Failed to load migration plans
         failedLoadVms: Failed to load virtual machines
         failedRefreshVms: Failed to refresh virtual machines
         failedLoadProviders: Failed to load providers

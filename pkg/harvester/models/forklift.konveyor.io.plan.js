@@ -251,7 +251,7 @@ export default class ForkliftPlan extends HarvesterResource {
    * Use foreground propagation to ensure children are deleted before the parent.
    */
   remove(opt = {}) {
-    opt.params = { propagationPolicy: 'Foreground' };
+    opt.params = { ...(opt.params || {}), propagationPolicy: 'Foreground' };
 
     return this._remove(opt);
   }

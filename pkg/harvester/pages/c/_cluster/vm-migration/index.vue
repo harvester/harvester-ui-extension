@@ -5,6 +5,7 @@ import Loading from '@shell/components/Loading';
 import Masthead from '@shell/components/ResourceList/Masthead';
 import ResourceTable from '@shell/components/ResourceTable';
 import PercentageBar from '@shell/components/PercentageBar';
+import { Banner } from '@components/Banner';
 import MappingsCell from '../../../../components/MappingsCell';
 import { SCHEMA } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
@@ -27,6 +28,7 @@ const store = useStore();
 const { t } = useI18n(store);
 
 const loading = ref(true);
+const errors = ref([]);
 
 const inStore = computed(() => store.getters['currentProduct'].inStore);
 
@@ -155,13 +157,17 @@ const headers = [
 ];
 
 const init = async() => {
-  await Promise.all([
-    store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_PLAN }),
-    store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_NETWORK_MAP }),
-    store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_STORAGE_MAP }),
-  ]);
-
-  loading.value = false;
+  try {
+    await Promise.all([
+      store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_PLAN }),
+      store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_NETWORK_MAP }),
+      store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_STORAGE_MAP }),
+    ]);
+  } catch (e) {
+    errors.value = [e?.message || t('harvester.addons.vmMigration.errors.failedLoadPlans')];
+  } finally {
+    loading.value = false;
+  }
 };
 
 init();
@@ -170,6 +176,12 @@ init();
 <template>
   <Loading v-if="loading" />
   <div v-else>
+    <Banner
+      v-for="(err, i) in errors"
+      :key="i"
+      color="error"
+      :label="err"
+    />
     <Masthead
       :schema="schema"
       :resource="schema.id"
