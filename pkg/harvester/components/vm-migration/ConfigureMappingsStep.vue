@@ -8,6 +8,7 @@ import { useI18n } from '@shell/composables/useI18n';
 import { randomStr } from '@shell/utils/string';
 import { HCI } from '../../types';
 import { FORKLIFT_NAMESPACE } from '../../config/harvester-map';
+import { buildNetworkMapEntries, buildStorageMapEntries } from '../../utils/forklift';
 import MappingColumn from './MappingColumn.vue';
 
 const props = defineProps({
@@ -254,49 +255,15 @@ const formatStorageDetail = (entry) => {
   return parts.join(' • ');
 };
 
-const buildNetworkMapSpec = (providerRef) => {
-  return {
-    map: networkEntries.value.filter((entry) => !!entry.target).map((entry) => {
-      if (entry.target === 'pod') {
-        return {
-          source:      { name: entry.name, id: entry.id },
-          destination: { type: 'pod' },
-        };
-      }
+const buildNetworkMapSpec = (providerRef) => ({
+  map:      buildNetworkMapEntries(networkEntries.value, NAMESPACE),
+  provider: providerRef,
+});
 
-      if (entry.target === 'ignored') {
-        return {
-          source:      { name: entry.name, id: entry.id },
-          destination: { type: 'ignored' },
-        };
-      }
-
-      const parts = entry.target.split('/');
-      const netName = parts.length > 1 ? parts[1] : parts[0];
-      const netNamespace = parts.length > 1 ? parts[0] : NAMESPACE;
-
-      return {
-        source:      { name: entry.name, id: entry.id },
-        destination: {
-          type:      'multus',
-          name:      netName,
-          namespace: netNamespace,
-        },
-      };
-    }),
-    provider: providerRef,
-  };
-};
-
-const buildStorageMapSpec = (providerRef) => {
-  return {
-    map: storageEntries.value.filter((entry) => !!entry.target).map((entry) => ({
-      source:      { name: entry.name, id: entry.id },
-      destination: { storageClass: entry.target },
-    })),
-    provider: providerRef,
-  };
-};
+const buildStorageMapSpec = (providerRef) => ({
+  map:      buildStorageMapEntries(storageEntries.value),
+  provider: providerRef,
+});
 
 const saveAndReturn = async() => {
   const inStore = store.getters['currentProduct'].inStore;

@@ -12,6 +12,7 @@ import { randomStr } from '@shell/utils/string';
 import { useI18n } from '@shell/composables/useI18n';
 import { HCI } from '../../types';
 import { FORKLIFT_NAMESPACE } from '../../config/harvester-map';
+import { decodeSecretValue } from '../../utils/forklift';
 
 const CREATE_NEW = '__create_new__';
 
@@ -114,17 +115,9 @@ watch(selectedProvider, (val) => {
         );
 
         if (secret?.data) {
-          const decode = (val) => {
-            try {
-              return atob(val || '');
-            } catch (e) {
-              return '';
-            }
-          };
-
-          username.value = decode(secret.data.user);
-          password.value = decode(secret.data.password);
-          skipTlsVerify.value = decode(secret.data.insecureSkipVerify) === 'true';
+          username.value = decodeSecretValue(secret.data.user);
+          password.value = decodeSecretValue(secret.data.password);
+          skipTlsVerify.value = decodeSecretValue(secret.data.insecureSkipVerify) === 'true';
         }
       }
 

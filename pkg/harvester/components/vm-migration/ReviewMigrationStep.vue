@@ -7,9 +7,11 @@ import { RcItemCard } from '@components/RcItemCard';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import MappingsCell from '../MappingsCell';
 import { useI18n } from '@shell/composables/useI18n';
-import { randomStr } from '@shell/utils/string';
 import { HCI } from '../../types';
 import { FORKLIFT_NAMESPACE } from '../../config/harvester-map';
+import {
+  FORKLIFT_API_VERSION, buildNetworkMapEntries, buildStorageMapEntries, bytesToGB, mbToGB
+} from '../../utils/forklift';
 
 const props = defineProps({
   providerName:   { type: String, default: '' },
@@ -47,7 +49,7 @@ const totalVCpu = computed(() => vms.value.reduce((sum, vm) => sum + (vm.cpuCoun
 const totalMemoryGB = computed(() => {
   const totalMB = vms.value.reduce((sum, vm) => sum + (vm.memoryMB || vm.memory || 0), 0);
 
-  return Math.round(totalMB / 1024);
+  return mbToGB(totalMB);
 });
 
 const totalStorageGB = computed(() => {
@@ -59,14 +61,14 @@ const totalStorageGB = computed(() => {
     }
   });
 
-  return Math.round(totalBytes / (1024 * 1024 * 1024));
+  return bytesToGB(totalBytes);
 });
 
 const vmCards = computed(() => {
   return vms.value.map((vm) => {
     const cpus = vm.cpuCount || vm.numCPU || 0;
     const memMB = vm.memoryMB || vm.memory || 0;
-    const memGB = memMB ? t('harvester.addons.vmMigration.generic.memoryGb', { value: Math.round(memMB / 1024) }) : '-';
+    const memGB = memMB ? t('harvester.addons.vmMigration.generic.memoryGb', { value: mbToGB(memMB) }) : '-';
 
     let totalDiskBytes = 0;
 
@@ -74,7 +76,7 @@ const vmCards = computed(() => {
       totalDiskBytes = vm.disks.reduce((sum, d) => sum + (d.capacity || 0), 0);
     }
 
-    const diskDisplay = totalDiskBytes ? t('harvester.addons.vmMigration.generic.memoryGb', { value: Math.round(totalDiskBytes / (1024 * 1024 * 1024)) }) : '-';
+    const diskDisplay = totalDiskBytes ? t('harvester.addons.vmMigration.generic.memoryGb', { value: bytesToGB(totalDiskBytes) }) : '-';
     const os = vm.guestName || vm.guestOS || vm.os || '-';
 
     const vmNetworkMappings = networkMappings.value.filter((m) => m.usedBy && m.usedBy.includes(vm.name || vm.id));
@@ -93,52 +95,18 @@ const vmCards = computed(() => {
   });
 });
 
-const buildNetworkMapSpec = () => {
-  const entries = props.mappingEntries?.networkEntries || [];
-
-  return entries.map((entry) => {
-    if (entry.target === 'pod') {
-      return { source: { name: entry.name, id: entry.id }, destination: { type: 'pod' } };
-    }
-
-    if (entry.target === 'ignored') {
-      return { source: { name: entry.name, id: entry.id }, destination: { type: 'ignored' } };
-    }
-
-    const parts = entry.target.split('/');
-    const netName = parts.length > 1 ? parts[1] : parts[0];
-    const netNamespace = parts.length > 1 ? parts[0] : NAMESPACE;
-
-    return {
-      source:      { name: entry.name, id: entry.id },
-      destination: {
-        type: 'multus', name: netName, namespace: netNamespace
-      },
-    };
-  });
-};
-
-const buildStorageMapSpec = () => {
-  const entries = props.mappingEntries?.storageEntries || [];
-
-  return entries.map((entry) => ({
-    source:      { name: entry.name, id: entry.id },
-    destination: { storageClass: entry.target },
-  }));
-};
-
 const startMigrationAction = async() => {
   const inStore = store.getters['currentProduct'].inStore;
 
   const providerRef = {
     source: {
-      apiVersion: 'forklift.konveyor.io/v1beta1',
+      apiVersion: FORKLIFT_API_VERSION,
       kind:       'Provider',
       name:       props.providerName,
       namespace:  NAMESPACE,
     },
     destination: {
-      apiVersion: 'forklift.konveyor.io/v1beta1',
+      apiVersion: FORKLIFT_API_VERSION,
       kind:       'Provider',
       name:       'host',
       namespace:  NAMESPACE,
@@ -151,7 +119,7 @@ const startMigrationAction = async() => {
   const networkMap = await store.dispatch(`${ inStore }/create`, {
     type:     HCI.FORKLIFT_NETWORK_MAP,
     metadata: { name: networkMapName, namespace: NAMESPACE },
-    spec:     { map: buildNetworkMapSpec(), provider: providerRef },
+    spec:     { map: buildNetworkMapEntries(props.mappingEntries?.networkEntries || [], NAMESPACE), provider: providerRef },
   });
 
   await networkMap.save();
@@ -159,7 +127,7 @@ const startMigrationAction = async() => {
   const storageMap = await store.dispatch(`${ inStore }/create`, {
     type:     HCI.FORKLIFT_STORAGE_MAP,
     metadata: { name: storageMapName, namespace: NAMESPACE },
-    spec:     { map: buildStorageMapSpec(), provider: providerRef },
+    spec:     { map: buildStorageMapEntries(props.mappingEntries?.storageEntries || []), provider: providerRef },
   });
 
   await storageMap.save();
@@ -171,19 +139,19 @@ const startMigrationAction = async() => {
       provider: providerRef,
       map:      {
         network: {
-          apiVersion: 'forklift.konveyor.io/v1beta1',
+          apiVersion: FORKLIFT_API_VERSION,
           kind:       'NetworkMap',
           name:       networkMapName,
           namespace:  NAMESPACE,
         },
         storage: {
-          apiVersion: 'forklift.konveyor.io/v1beta1',
+          apiVersion: FORKLIFT_API_VERSION,
           kind:       'StorageMap',
           name:       storageMapName,
           namespace:  NAMESPACE,
         },
       },
-      targetNamespace: 'default',
+      targetNamespace: TARGET_NAMESPACE,
       vms:             vms.value.map((vm) => ({ id: vm.id, name: vm.name || vm.id })),
       warm:            false,
     },
@@ -192,36 +160,21 @@ const startMigrationAction = async() => {
   await plan.save();
 
   const planOwnerRef = {
-    apiVersion:         'forklift.konveyor.io/v1beta1',
+    apiVersion:         FORKLIFT_API_VERSION,
     kind:               'Plan',
     name:               plan.metadata.name,
     uid:                plan.metadata.uid,
     blockOwnerDeletion: true,
   };
 
-  const migration = await store.dispatch(`${ inStore }/create`, {
-    type:     HCI.FORKLIFT_MIGRATION,
-    metadata: {
-      name:            `${ planName.value }-migration-${ randomStr(5).toLowerCase() }`,
-      namespace:       NAMESPACE,
-      ownerReferences: [planOwnerRef],
-    },
-    spec: {
-      plan: {
-        apiVersion: 'forklift.konveyor.io/v1beta1',
-        kind:       'Plan',
-        name:       planName.value,
-        namespace:  NAMESPACE,
-      },
-    },
-  });
-
-  await migration.save();
-
   networkMap.metadata.ownerReferences = [planOwnerRef];
   await networkMap.save();
   storageMap.metadata.ownerReferences = [planOwnerRef];
   await storageMap.save();
+
+  // Kick off the first migration through the model so the Migration payload
+  // lives in a single place (also reused by the dashboard start/restart action).
+  await plan.startMigration();
 };
 
 const init = () => {
@@ -462,32 +415,6 @@ defineExpose({ startMigration: startMigrationAction });
       align-items: center;
       gap: 8px;
     }
-  }
-
-  .vm-card-mappings {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    border-top: 1px solid var(--border);
-    padding-top: 10px;
-  }
-
-  .mapping-line {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-
-    .icon {
-      color: var(--muted);
-      font-size: 14px;
-    }
-  }
-
-  .small-text {
-    font-size: 12px;
-    line-height: 16px;
-    color: #973C00;
   }
 
   .banner-title {

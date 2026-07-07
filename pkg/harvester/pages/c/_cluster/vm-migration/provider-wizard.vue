@@ -9,6 +9,7 @@ import ConfigureProviderStep from '@pkg/harvester/components/vm-migration/Config
 import ConfigureMappingsStep from '@pkg/harvester/components/vm-migration/ConfigureMappingsStep.vue';
 import { PRODUCT_NAME } from '@pkg/harvester/config/harvester';
 import { currentRouter, currentRoute } from '@pkg/harvester/utils/router';
+import { decodeSecretValue } from '@pkg/harvester/utils/forklift';
 import { HCI } from '@pkg/harvester/types';
 
 const store = useStore();
@@ -79,10 +80,19 @@ watch(mappingsReady, (val) => {
   steps[1].ready = val;
 });
 
+// CruResource exposes its inner Wizard via $refs; we reach into it to drive the
+// "test connection before advancing" handshake, since the provider must be verified
+// before the user can leave the first step.
 const wizardComponent = computed(() => cruRef.value?.$refs?.Wizard);
 
 const pendingProceed = ref(false);
 
+// Handshake to gate step 1 -> 2 on a successful connection test:
+// 1. When the user tries to advance off the provider step before it's ready,
+//    snap back (goToStep is 1-based, so goToStep(1) == the provider step) and
+//    programmatically trigger the async "Test connection" button.
+// 2. Once the test flips `providerReady`, mark the step ready and advance
+//    (goToStep(2)). If the test fails, the user simply stays on the provider step.
 watch(
   () => wizardComponent.value?.activeStepIndex,
   (newIdx, oldIdx) => {
@@ -198,17 +208,9 @@ const init = async() => {
       );
 
       if (secret?.data) {
-        const decode = (val) => {
-          try {
-            return atob(val || '');
-          } catch (e) {
-            return '';
-          }
-        };
-
-        stepData.provider.username = decode(secret.data.user);
-        stepData.provider.password = decode(secret.data.password);
-        stepData.provider.skipTlsVerify = decode(secret.data.insecureSkipVerify) === 'true';
+        stepData.provider.username = decodeSecretValue(secret.data.user);
+        stepData.provider.password = decodeSecretValue(secret.data.password);
+        stepData.provider.skipTlsVerify = decodeSecretValue(secret.data.insecureSkipVerify) === 'true';
         stepData.provider.createdSecret = secret;
       }
     }

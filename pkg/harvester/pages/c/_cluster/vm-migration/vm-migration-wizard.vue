@@ -98,10 +98,20 @@ watch(reviewReady, (val) => {
   steps[3].ready = val;
 });
 
+// CruResource exposes its inner Wizard via $refs; we reach into it to drive the
+// "test connection before advancing" handshake, since the provider must be verified
+// before the user can leave the first step.
 const wizardComponent = computed(() => cruRef.value?.$refs?.Wizard);
 
 const pendingProceed = ref(false);
 
+// Handshake to gate step 1 -> 2 on a successful connection test:
+// 1. When the user tries to advance off the provider step before it's ready,
+//    snap back (goToStep is 1-based, so goToStep(1) == the provider step) and
+//    programmatically trigger the async "Test connection" button.
+// 2. Once the test flips `providerReady` (watcher below), mark the step ready and
+//    advance to the next step (goToStep(2)). If the test fails, `providerTesting`
+//    watcher clears `pendingProceed` and the user stays put.
 watch(
   () => wizardComponent.value?.activeStepIndex,
   (newIdx, oldIdx) => {

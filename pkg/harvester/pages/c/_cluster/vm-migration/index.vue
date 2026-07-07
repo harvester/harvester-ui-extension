@@ -150,7 +150,6 @@ const headers = [
   {
     name:     'mappings',
     labelKey: 'harvester.addons.vmMigration.dashboard.columns.mappings',
-    value:    'mappingsDisplay',
   },
   { ...AGE },
 ];

@@ -8,6 +8,7 @@ import SortableTable from '@shell/components/SortableTable';
 import { Banner } from '@components/Banner';
 import { BadgeState } from '@components/BadgeState';
 import { useI18n } from '@shell/composables/useI18n';
+import { bytesToGB, mbToGB } from '../../utils/forklift';
 
 const props = defineProps({
   providerName: { type: String, default: '' },
@@ -139,7 +140,7 @@ const buildTableRows = () => {
   return discoveredVMs.value.map((vm) => {
     const cpus = vm.cpuCount || vm.numCPU || '-';
     const memMB = vm.memoryMB || vm.memory || 0;
-    const memGB = memMB ? t('harvester.addons.vmMigration.generic.memoryGb', { value: Math.round(memMB / 1024) }) : '-';
+    const memGB = memMB ? t('harvester.addons.vmMigration.generic.memoryGb', { value: mbToGB(memMB) }) : '-';
 
     let totalDiskBytes = 0;
 
@@ -147,7 +148,7 @@ const buildTableRows = () => {
       totalDiskBytes = vm.disks.reduce((sum, d) => sum + (d.capacity || 0), 0);
     }
 
-    const diskDisplay = totalDiskBytes ? t('harvester.addons.vmMigration.generic.memoryGb', { value: Math.round(totalDiskBytes / (1024 * 1024 * 1024)) }) : '-';
+    const diskDisplay = totalDiskBytes ? t('harvester.addons.vmMigration.generic.memoryGb', { value: bytesToGB(totalDiskBytes) }) : '-';
     const rawPowerState = vm.powerState || vm.status?.phase || '-';
     const powerState = rawPowerState.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
 
@@ -524,11 +525,6 @@ init();
 
 <style lang="scss" scoped>
   .vm-table-title {
-    h4 {
-      margin: 0;
-      font-weight: 600;
-    }
-
     .text-deemphasized {
       font-size: 13px;
     }

@@ -28,9 +28,7 @@ export default class ForkliftProvider extends HarvesterResource {
    * Kubernetes GC will automatically delete: Secret, NetworkMap, StorageMap.
    * Use foreground propagation to ensure children are deleted before the parent.
    */
-  remove() {
-    const opt = { ...arguments };
-
+  remove(opt = {}) {
     opt.params = { propagationPolicy: 'Foreground' };
 
     return this._remove(opt);
