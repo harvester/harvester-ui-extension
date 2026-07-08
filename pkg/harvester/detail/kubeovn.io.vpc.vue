@@ -7,6 +7,7 @@ import { MiniMap } from '@vue-flow/minimap';
 import { allHash } from '@shell/utils/promise';
 import { NETWORK_ATTACHMENT } from '@shell/config/types';
 import Checkbox from '@components/Form/Checkbox/Checkbox.vue';
+import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { HCI } from '../types';
 import { NETWORK_TYPE } from '../config/types';
 
@@ -454,10 +455,10 @@ export default {
         const overlayName = nad?.parseConfig?.name || nad?.metadata?.name;
 
         const clusterNetwork =
-          nad?.metadata?.labels?.[HCI.CLUSTER_NETWORK] || 'mgmt';
+          nad?.metadata?.labels?.[HCI_ANNOTATIONS.CLUSTER_NETWORK] || 'mgmt';
 
         const nadType =
-          nad?.metadata?.labels?.[HCI.NETWORK_TYPE] || NETWORK_TYPE.OVERLAY;
+          nad?.metadata?.labels?.[HCI_ANNOTATIONS.NETWORK_TYPE] || NETWORK_TYPE.OVERLAY;
         const overlayNodeId = `overlay-${ provider }`;
 
         nodes.push({
