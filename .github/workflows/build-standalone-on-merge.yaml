@@ -6,11 +6,13 @@ on:
       - main
       - 'release-harvester-v*'
       - '*-dev'
+      - forklift-poc
   pull_request:
     branches:
       - main
       - 'release-harvester-v*'
       - '*-dev'
+      - forklift-poc
     types:
       - merged
 
