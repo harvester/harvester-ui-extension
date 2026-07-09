@@ -133,6 +133,10 @@ export default {
       }];
 
       return this.isMasquerade ? masquerade : other;
+    },
+
+    staticIPForVMEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('staticIPForVM');
     }
   },
 
@@ -164,6 +168,7 @@ export default {
       if (neu === MANAGEMENT_NETWORK) {
         this.value.isPod = true;
         this.value.macAddress = '';
+        this.value.staticIp = '';
       } else {
         this.value.isPod = false;
       }
@@ -295,6 +300,7 @@ export default {
         class="row"
       >
         <div
+          v-if="staticIPForVMEnabled"
           data-testid="input-hen-staticIp"
           class="col span-6"
         >
