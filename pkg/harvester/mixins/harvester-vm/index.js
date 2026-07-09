@@ -630,6 +630,8 @@ export default {
 
       const networks = vm.spec.template.spec.networks || [];
       const interfaces = vm.spec.template.spec.domain.devices.interfaces || [];
+      const annotations = vm.metadata?.annotations || {};
+      const staticIpPrefix = `${ HCI_ANNOTATIONS.STATIC_IP }/`;
 
       const out = interfaces.map( (I, index) => {
         const network = networks.find( (N) => I.name === N.name);
@@ -646,6 +648,7 @@ export default {
           newCreateId: (fromTemplate || init) ? randomStr(10) : false,
           model:       I.model,
           networkName: isPod ? MANAGEMENT_NETWORK : network?.multus?.networkName,
+          staticIp:    annotations[`${ staticIpPrefix }${ I.name }`] || '',
         };
       });
 
@@ -747,6 +750,8 @@ export default {
 
       const vm = this.resourceType === HCI.VM ? this.value : this.value.spec.vm;
 
+      this.syncStaticIpAnnotations(vm);
+
       // parse reserved memory
       if (!this.reservedMemory) {
         delete vm.metadata.annotations[HCI_ANNOTATIONS.VM_RESERVED_MEMORY];
@@ -766,6 +771,30 @@ export default {
       } else {
         vm.metadata.labels[HCI_ANNOTATIONS.VM_MAINTENANCE_MODE_STRATEGY] = this.maintenanceStrategy;
       }
+    },
+
+    syncStaticIpAnnotations(vm) {
+      if (!vm?.metadata) {
+        return;
+      }
+
+      if (!vm.metadata.annotations) {
+        vm.metadata.annotations = {};
+      }
+
+      const staticIpPrefix = `${ HCI_ANNOTATIONS.STATIC_IP }/`;
+
+      Object.keys(vm.metadata.annotations).forEach((key) => {
+        if (key.startsWith(staticIpPrefix)) {
+          delete vm.metadata.annotations[key];
+        }
+      });
+
+      this.networkRows.forEach((row) => {
+        if (row.name && row.staticIp) {
+          vm.metadata.annotations[`${ staticIpPrefix }${ row.name }`] = row.staticIp;
+        }
+      });
     },
 
     setCPUAndMemory() {
@@ -1807,6 +1836,15 @@ export default {
   },
 
   watch: {
+    networkRows: {
+      handler() {
+        const vm = this.resourceType === HCI.VM ? this.value : this.value?.spec?.vm;
+
+        this.syncStaticIpAnnotations(vm);
+      },
+      deep: true
+    },
+
     diskRows: {
       handler(neu, old) {
         if (Array.isArray(neu)) {
