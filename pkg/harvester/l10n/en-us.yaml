@@ -8,6 +8,15 @@ generic:
   basic: Basic
   loading: Loading...
   none: None
+  duration:
+    infinite: Infinite
+    1s: 1 second
+    5s: 5 seconds
+    10s: 10 seconds
+    30s: 30 seconds
+    1m: 1 minute
+    3m: 3 minutes
+    5m: 5 minutes
 
 unsupported:
   serverVersion: 'Current version: <code>{serverVersion}</code>'
@@ -75,6 +84,8 @@ harvester:
     backup:
       success: 'Backup { backUpName } has been initiated.'
       addBackup: Add Backup
+      fileSystemFreezeDeadline:
+        label: 'File System Freeze Deadline'
     quota:
       editVMQuota: Edit VM Quota
       editQuota: Edit Quota
@@ -214,6 +225,8 @@ harvester:
       title: Take Virtual Machine Snapshot
       name: Name
       success: 'Take virtual machine Snapshot { name } successfully.'
+      fileSystemFreezeDeadline:
+        label: 'File System Freeze Deadline'
     restart:
       title: Restart Virtual Machine
       tip: Restart the virtual machine for configuration changes to take effect.
@@ -376,6 +389,7 @@ harvester:
     network: Network
     model: Model
     macAddress: MAC address
+    staticIp: Static IP
     port: Port
     protocol: Protocol
     remove: Remove
@@ -750,6 +764,7 @@ harvester:
       dragTip: Drag and drop volumes, or use the volume's arrows, to change the boot order.
       volumeTip: The virtual machine only contains a CD-ROM volume. You may want to add additional disk volumes.
       macTip: "MAC address as seen inside the guest system."
+      staticIpTip: "Static IP that will be stored to annotation static-ip.harvesterhci.io/{nic_name}."
       volumeUpdate: 'Set volume { name } successfully'
       type: Type
       size: Size
