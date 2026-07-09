@@ -43,12 +43,10 @@ jobs:
     needs:
       - setup-release-tag
       - check-version
-    uses: rancher/dashboard/.github/workflows/build-extension-charts.yml@3b26a36bad555e5e2b8634b24823be29732f287c # master
+    uses: rancher/dashboard/.github/workflows/build-extension-charts.yml@9bf23dff6650116673346447bcf0b088e0edb27f # creators-pkg-v3.0.12
     permissions:
-      actions: write
       contents: write
-      deployments: write
-      pages: write
+      pull-requests: write
     with:
       target_branch: gh-pages
       tagged_release: '${{ needs.setup-release-tag.outputs.release_tag }}'
