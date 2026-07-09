@@ -75,6 +75,7 @@ const FEATURE_FLAGS = {
     'expandOnlineEncryptedVolume',
     'longhornV2HugepageSettings',
     'staticIPForVM',
+    'fsFreezeDeadline',
   ],
 };
 

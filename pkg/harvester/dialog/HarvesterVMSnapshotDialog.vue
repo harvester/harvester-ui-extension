@@ -5,8 +5,10 @@ import { Card } from '@components/Card';
 import { Banner } from '@components/Banner';
 import AsyncButton from '@shell/components/AsyncButton';
 import { LabeledInput } from '@components/Form/LabeledInput';
+import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { HCI } from '../types';
 import { BACKUP_TYPE } from '../config/types';
+import { DEFAULT_FS_FREEZE_DEADLINE, getFsFreezeDeadlineOptions } from '../utils/backup';
 
 export default {
   name: 'HarvesterVMSnapshotDialog',
@@ -17,6 +19,7 @@ export default {
     AsyncButton,
     Card,
     LabeledInput,
+    LabeledSelect,
     Banner
   },
 
@@ -31,7 +34,8 @@ export default {
     return {
       snapshotName:      '',
       snapshotNamespace: '',
-      errors:            []
+      errors:            [],
+      fsFreezeDeadline:  DEFAULT_FS_FREEZE_DEADLINE
     };
   },
 
@@ -40,13 +44,23 @@ export default {
 
     actionResource() {
       return this.resources[0];
+    },
+
+    fsFreezeDeadlineEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('fsFreezeDeadline');
+    },
+
+    fsFreezeDeadlineOptions() {
+      return getFsFreezeDeadlineOptions(this.t);
     }
   },
 
   methods: {
     close() {
+      this.fsFreezeDeadline = DEFAULT_FS_FREEZE_DEADLINE;
       this.snapshotNamespace = '';
       this.snapshotName = '';
+      this.errors = [];
       this.$emit('close');
     },
 
@@ -60,7 +74,8 @@ export default {
               ownerReferences: this.getOwnerReferencesFromVM(this.actionResource)
             },
             spec: {
-              source: {
+              fsFreezeDeadline: this.fsFreezeDeadline,
+              source:           {
                 apiGroup: 'kubevirt.io',
                 kind:     'VirtualMachine',
                 name:     this.actionResource.metadata.name
@@ -130,6 +145,14 @@ export default {
         v-model:value="snapshotName"
         class="mt-20"
         :label="t('generic.name')"
+        required
+      />
+      <LabeledSelect
+        v-if="fsFreezeDeadlineEnabled"
+        v-model:value="fsFreezeDeadline"
+        class="mt-20"
+        :options="fsFreezeDeadlineOptions"
+        :label="t('harvester.modal.vmSnapshot.fileSystemFreezeDeadline.label')"
         required
       />
       <Banner
