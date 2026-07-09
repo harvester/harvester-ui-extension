@@ -36,6 +36,10 @@ export default {
 
   computed: {
     ips() {
+      if (this.staticAnnotationIP.length) {
+        return this.staticAnnotationIP;
+      }
+
       if (this.vmiIp.length) {
         return [...this.vmiIp, ...this.networkAnnotationIP]
           .filter(Boolean)
@@ -43,6 +47,24 @@ export default {
       }
 
       return this.customAnnotationIP;
+    },
+
+    staticAnnotationIP() {
+      const annotations = this.row?.metadata?.annotations || {};
+      const staticIpPrefix = `${ HCI_ANNOTATIONS.STATIC_IP }/`;
+
+      return Object.entries(annotations)
+        .filter(([key, value]) => key.startsWith(staticIpPrefix) && !!value)
+        .map(([key, value]) => {
+          const nicName = key.slice(staticIpPrefix.length);
+          const ip = String(value).replace(/\/[\d\D]*/, '');
+
+          return {
+            ip,
+            name: nicName
+          };
+        })
+        .filter(({ ip }) => isIpv4(ip));
     },
 
     customAnnotationIP() {

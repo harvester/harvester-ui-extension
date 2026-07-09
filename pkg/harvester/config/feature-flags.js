@@ -73,7 +73,8 @@ const FEATURE_FLAGS = {
     'supportFilesystem',
     'disableResourcePooling',
     'expandOnlineEncryptedVolume',
-    'longhornV2HugepageSettings'
+    'longhornV2HugepageSettings',
+    'staticIPForVM',
   ],
 };
 
