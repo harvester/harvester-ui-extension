@@ -917,32 +917,30 @@ export default {
       }
 
       if (!disks.find( (D) => D.name === 'cloudinitdisk') && (this.userData || this.networkScript)) {
-        if (!this.isWindows) {
-          disks.push({
-            name: 'cloudinitdisk',
-            disk: { bus: 'virtio' }
-          });
+        disks.push({
+          name: 'cloudinitdisk',
+          disk: { bus: 'virtio' }
+        });
 
-          const userData = this.getUserData({ osType: this.osType, installAgent: this.installAgent });
-          const cloudinitdisk = {
-            name:             'cloudinitdisk',
-            cloudInitNoCloud: {}
-          };
+        const userData = this.getUserData({ osType: this.osType, installAgent: this.installAgent });
+        const cloudinitdisk = {
+          name:             'cloudinitdisk',
+          cloudInitNoCloud: {}
+        };
 
-          if (this.saveUserDataAsClearText) {
-            cloudinitdisk.cloudInitNoCloud.userData = userData;
-          } else {
-            cloudinitdisk.cloudInitNoCloud.secretRef = { name: this.secretName };
-          }
-
-          if (this.saveNetworkDataAsClearText) {
-            cloudinitdisk.cloudInitNoCloud.networkData = this.networkScript;
-          } else {
-            cloudinitdisk.cloudInitNoCloud.networkDataSecretRef = { name: this.secretName };
-          }
-
-          volumes.push(cloudinitdisk);
+        if (this.saveUserDataAsClearText) {
+          cloudinitdisk.cloudInitNoCloud.userData = userData;
+        } else {
+          cloudinitdisk.cloudInitNoCloud.secretRef = { name: this.secretName };
         }
+
+        if (this.saveNetworkDataAsClearText) {
+          cloudinitdisk.cloudInitNoCloud.networkData = this.networkScript;
+        } else {
+          cloudinitdisk.cloudInitNoCloud.networkDataSecretRef = { name: this.secretName };
+        }
+
+        volumes.push(cloudinitdisk);
       }
 
       const specDisks = this.spec?.template?.spec?.domain?.devices?.disks;
@@ -1144,6 +1142,16 @@ export default {
     },
 
     getInitUserData(config) {
+      // Windows guests don't use qemu-guest-agent via systemd (VMDP installs
+      // the QGA as a Windows service), and the Linux `runcmd` recipe would
+      // fail on Cloudbase-Init. Return an empty string so `this.userData`
+      // stays falsy on Windows until the user actually enters cloud-config
+      // content — this prevents emitting a spurious cloudinitdisk volume
+      // and Secret for every Windows VM (Copilot review comment on #984).
+      if (config.osType === 'windows') {
+        return '';
+      }
+
       const _QGA_JSON = this.getMatchQGA(config.osType);
 
       const out = jsyaml.dump(_QGA_JSON);
@@ -1485,7 +1493,22 @@ export default {
     },
 
     async saveSecret(vm) {
-      if (!vm?.spec || !this.secretName || this.isWindows) {
+      if (!vm?.spec || !this.secretName) {
+        return true;
+      }
+
+      // Don't create a Secret unless the VM spec actually references it.
+      // A cloudinitdisk can carry user/network data either inline (clear
+      // text) or via secretRef/networkDataSecretRef — only in the latter
+      // cases does saveSecret need to run. Preserve the existing edit-mode
+      // cleanup path so a previously-populated secret still gets its data
+      // cleared when the user removes the Cloud Config content.
+      const cloudInitVol = vm.spec?.template?.spec?.volumes?.find((v) => v.name === 'cloudinitdisk');
+      const referencesSecret =
+        cloudInitVol?.cloudInitNoCloud?.secretRef?.name === this.secretName ||
+        cloudInitVol?.cloudInitNoCloud?.networkDataSecretRef?.name === this.secretName;
+
+      if (!referencesSecret && !(this.isEdit && this.secretRef)) {
         return true;
       }
 
