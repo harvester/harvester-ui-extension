@@ -59,7 +59,7 @@ export default {
 
       const configs = this.$store.getters[`${ inStore }/all`](HCI.VLAN_CONFIG);
 
-      return configs;
+      return configs.filter((config) => config.spec?.clusterNetwork !== 'mgmt');
     },
 
     vlanConfigSchema() {
@@ -120,6 +120,22 @@ export default {
       });
 
       return [...this.rows, ...fakeRows];
+    },
+
+    managementVlanConfigs() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+
+      const configs = this.$store.getters[`${ inStore }/all`](HCI.VLAN_CONFIG);
+
+      return configs
+        .filter((vc) => vc.spec?.clusterNetwork === 'mgmt')
+        .map((vc) => ({
+          id:         vc.id,
+          node:       vc.id.replace('mgmt-vlanconfig-', ''),
+          bondMode:   vc.spec?.uplink?.bondOptions?.mode || '-',
+          interfaces: (vc.spec?.uplink?.nics?.length ? vc.spec.uplink.nics.join(', ') : '-'),
+          mtu:        vc.spec?.uplink?.linkAttributes?.mtu || '-',
+        }));
     },
   },
 
@@ -224,6 +240,29 @@ export default {
               </button>
             </div>
           </div>
+
+          <div
+            v-if="group.key === 'mgmt'"
+            class="mgmt-summary"
+          >
+            <div class="mgmt-header">
+              <div>{{ t('harvester.tableHeaders.vm.node') }}</div>
+              <div>{{ t('harvester.vlanConfig.uplink.bondOptions.mode.label') }}</div>
+              <div>{{ t('harvester.vlanConfig.uplink.nics.label') }}</div>
+              <div>{{ t('harvester.vlanConfig.uplink.linkAttributes.mtu.label') }}</div>
+            </div>
+
+            <div
+              v-for="config in managementVlanConfigs"
+              :key="config.id"
+              class="mgmt-row"
+            >
+              <div>{{ config.node }}</div>
+              <div>{{ config.bondMode }}</div>
+              <div>{{ config.interfaces }}</div>
+              <div>{{ config.mtu }}</div>
+            </div>
+          </div>
         </template>
         <template
           v-for="(clusterNetwork, i) in clusterNetworkWithoutConfigs"
@@ -272,6 +311,21 @@ export default {
       color: var(--body-text) !important;
     }
   }
+}
+
+.mgmt-header,
+.mgmt-row {
+  display: grid;
+  grid-template-columns: 2fr 2fr 2fr 1fr;
+  padding: 8px 12px;
+}
+
+.mgmt-header {
+  font-weight: 600;
+}
+
+.mgmt-row {
+  border-top: 1px solid var(--border);
 }
 </style>
 
