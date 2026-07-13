@@ -466,7 +466,7 @@ init();
       <template #cell:powerState="{ row }">
         <BadgeState
           :label="row.powerState"
-          :color="row.powerStateClass === 'power-on' ? 'bg-success' : 'bg-darker'"
+          :color="row.powerStateClass === 'power-on' ? 'bg-warning' : 'bg-darker'"
         />
       </template>
       <template #cell:network="{ row }">
