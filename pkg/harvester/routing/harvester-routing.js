@@ -16,6 +16,9 @@ import HarvesterMembers from '../pages/c/_cluster/members/index.vue';
 import ProjectNamespaces from '../pages/c/_cluster/projectsnamespaces.vue';
 import HarvesterAlertmanagerReceiver from '../pages/c/_cluster/alertmanagerconfig/_alertmanagerconfigid/receiver.vue';
 import HarvesterUnsupported from '../pages/c/_cluster/unsupported/index.vue';
+import ForkliftDashboard from '../pages/c/_cluster/vm-migration/index.vue';
+import ForkliftVmMigrationWizard from '../pages/c/_cluster/vm-migration/vm-migration-wizard.vue';
+import ForkliftProviderWizard from '../pages/c/_cluster/vm-migration/provider-wizard.vue';
 
 const routes = [
   {
@@ -83,6 +86,18 @@ const routes = [
     name:      `${ PRODUCT_NAME }-c-cluster-projectsnamespaces`,
     path:      `/:product/c/:cluster/projectsnamespaces`,
     component: ProjectNamespaces,
+  }, {
+    name:      `${ PRODUCT_NAME }-c-cluster-vm-migration`,
+    path:      `/:product/c/:cluster/vm-migration`,
+    component: ForkliftDashboard,
+  }, {
+    name:      `${ PRODUCT_NAME }-c-cluster-vm-migration-wizard`,
+    path:      `/:product/c/:cluster/vm-migration/wizard`,
+    component: ForkliftVmMigrationWizard,
+  }, {
+    name:      `${ PRODUCT_NAME }-c-cluster-vm-migration-provider-wizard`,
+    path:      `/:product/c/:cluster/vm-migration/provider-wizard`,
+    component: ForkliftProviderWizard,
   }, {
     name:      `${ PRODUCT_NAME }-c-cluster-resource`,
     path:      `/:product/c/:cluster/:resource`,
