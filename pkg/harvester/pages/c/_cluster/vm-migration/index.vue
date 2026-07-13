@@ -171,7 +171,7 @@ const init = async() => {
     }
 
     if (!forkliftEnabled) {
-      currentRouter().replace({
+      await currentRouter().replace({
         name:   `${ PRODUCT_NAME }-c-cluster-resource`,
         params: {
           product:  store.getters['productId'],
