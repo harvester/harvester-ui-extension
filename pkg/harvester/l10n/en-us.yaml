@@ -1,3 +1,8 @@
+wizard:
+  create: Create
+  next: Proceed
+  previous: Back
+
 generic:
   tip: Tip
   resourceExternalLinkTips: 'External Link'
@@ -31,6 +36,7 @@ nav:
     Logging: Logging
     'Monitoring and Logging': Monitoring and Logging
     vmimport: Virtual Machine Imports
+    vmMigration: VM Migration
 
 resourceTable:
   groupBy:
@@ -44,6 +50,8 @@ members:
   projectMembership: Project Membership
 
 asyncButton:
+  createAndStart:
+    action: Create and Start
   restart:
     action: Save and Restart
     success: Restarted
@@ -365,6 +373,13 @@ harvester:
     v4ip: V4 IP
     v6ip: V6 IP
     eipName: EIP Name
+    vmMigrationProviderType: Type
+    vmMigrationProviderUrl: URL
+    vmMigrationMapSourceProvider: Source Provider
+    vmMigrationMapDestProvider: Destination Provider
+    vmMigrationPlanTargetNs: Target Namespace
+    vmMigrationPlanVmCount: VMs
+    vmMigrationMigrationPlan: Plan
   tab:
     volume: Volumes
     network: Networks
@@ -1814,6 +1829,178 @@ harvester:
       'harvester-csi-driver-lvm': harvester-csi-driver-lvm is an add-on allowing users to create PVC through the LVM with local devices.
       'descheduler': 'The virtual machine auto balance optimizes workload scheduling by evicting pods that are not optimally placed according to administrator-defined policies.'
 
+    vmMigration:
+      generic:
+        unknown: Unknown
+        identifier: Identifier
+        podNetwork: Pod Network
+        usedBy: "Used by:"
+        vlan: "VLAN {id}"
+        vCpu: "{count} vCPU"
+        memoryGb: "{value} GB"
+        memoryTb: "{value} TB"
+        elapsed:
+          hoursAndMinutes: "{hours} {hours, plural, one {hour} other {hours}} and {minutes} {minutes, plural, one {minute} other {minutes}}"
+          hours: "{hours} {hours, plural, one {hour} other {hours}}"
+          minutes: "{minutes} {minutes, plural, one {minute} other {minutes}}"
+      errors:
+        failedLoadPlans: Failed to load migration plans
+        failedLoadVms: Failed to load virtual machines
+        failedRefreshVms: Failed to refresh virtual machines
+        failedLoadProviders: Failed to load providers
+        failedLoadProvider: "Failed to load provider: {error}"
+        failedResolveDetails: Failed to resolve network and datastore details
+        failedDecodeCredentials: Failed to decode provider credentials
+        connectionFailed: Connection failed
+        providerNotReady: Provider not ready
+      labels:
+        dashboard: Migrations
+        provider: Providers
+        networkMap: Network Maps
+        storageMap: Storage Maps
+        plan: Migration Plans
+        migration: Migrations
+      providerWizard:
+        title: Create Provider
+        editTitle: Edit Provider
+      wizard:
+        title: VM Migration
+        steps:
+          configureProvider:
+            label: Provider
+            description: Configure Provider
+          selectVms:
+            label: VMs
+            description: Select VMs
+          configureMappings:
+            label: Mappings
+            description: Define Mappings
+          reviewMigration:
+            label: Migration Plan
+            description: Review Migration Plan
+      fields:
+        username: Username
+        password: Password
+      configureProvider:
+        title: Configure Provider
+        description: Connect to your VMware vCenter or ESXi host to discover virtual machines for migration
+        connectionDetails: Connection Details
+        providerSelect: Provider
+        createNew: Create new provider
+        requirementsTitle: Requirements
+        requirementsText: "To migrate virtual machines from VMware, you will need a vCenter Server running version 6.5 or higher with a user account that has at least read permissions, and the source environment must be network-accessible from Rancher."
+        name: Name
+        urlLabel: vCenter/ESXi URL
+        urlPlaceholder: "https://vcenter.example.com/sdk"
+        urlHint: Enter the full URL including https://
+        skipSsl: Skip SSL certificate verification
+        skipSslHint: Not recommended for production environments
+        testConnection:
+          action: Test Connection
+          success: Connection successful
+          error: Connection failed
+          waiting: Testing connection...
+        testSuccess: Connection test passed
+        testFailed: Connection test failed
+        testMissingFields: Please fill in all required fields before testing
+        testTimeout: Connection test timed out — the provider did not report a status in time
+        save: Save Provider and Continue
+        saveExisting: Check Provider and Continue
+      selectVms:
+        title: Select Virtual Machines
+        description: Select the virtual machines you want to migrate from the source provider
+        discovered: "{count} VMs discovered from"
+        lastSynced: "Last synced {time} ago • "
+        refreshNow: Refresh now
+        availableVms: Available Virtual Machines
+        selected: selected
+        saveSelection: Save Selection and Continue
+        selectAllBanner:
+          pageOnly: "Your current selection includes only VMs currently shown on the page."
+          selectAll: "Select all {count} VMs from this provider"
+          allSelected: "Your current selection includes all VMs."
+          clearSelection: "Clear Selection"
+        manualEntry:
+          title: Add Virtual Machines
+          description: No VMs were discovered from the provider inventory. Add VMs manually by entering their IDs and names.
+          vmId: VM ID
+          vmIdPlaceholder: "e.g. vm-60527"
+          add: Add
+          added: VMs added
+        columns:
+          vmName: VM Name
+          vmId: VM ID
+          os: Operating System
+          resources: Resources
+          powerState: Power State
+          network: Network
+          datastore: Datastore
+      dashboard:
+        title: VMware to Harvester Migration
+        description: Migrate virtual machines from VMware vSphere to Harvester using cold migration for data consistency. Create a migration plan to select VMs, map networks and storage, and prepare a migration to Harvester.
+        createPlan: Create Migration
+        tableTitle: Migrations
+        columns:
+          status: Status
+          plan: Migration Plan
+          progress: Progress
+          mappings: Mappings
+        progress:
+          failed: Failed
+          migration: Migration
+          initializingMigration: Initializing migration
+          finishedSuccessfully: Finished Successfully
+          step: "Step {index}"
+          vmCount: "{count} VMs"
+          vmId: "id: {id}"
+      configureMappings:
+        title: Set Mappings
+        description: Map VMware networks and datastores to Harvester and Longhorn target resources
+        save: Save Mappings and Continue
+        noTemplate: Start from scratch
+        removeMap: Remove Map
+        networkMapping:
+          title: Network Mapping
+          description: Map VMware port groups to Harvester networks
+          placeholder: Choose a Harvester network
+          template: Use existing network mapping as template
+          options:
+            podNetworking: Pod Networking
+            ignored: Ignored
+        storageMapping:
+          title: Storage Mapping
+          description: Map VMware datastores to Harvester storage classes
+          placeholder: Choose a Longhorn Storage Volume
+          template: Use existing storage mapping as template
+      reviewMigration:
+        title: Review Migration Plan
+        description: Confirm your migration settings before starting the transfer of VMs to the target cluster.
+        planName: Name
+        planNamePlaceholder: "e.g. my-migration-plan"
+        migrationDetails: Migration Details
+        totalVms: Total VMs
+        vcpu: vCPU
+        memory: Memory
+        storage: Storage
+        source: Source
+        targetNamespace: Target Namespace
+        migrationMode: Migration Mode
+        coldMigration: Cold Migration
+        virtualMachines: Virtual Machines
+        warningTitle: "Cold Migration Warning"
+        warningMessage: "All source VMs will be powered off, and downtime will occur during migration. Plan your maintenance window accordingly and notify relevant stakeholders"
+        startMigration: Start Migration Plan
+      plan:
+        states:
+          error: Error
+          canceled: Canceled
+          inProgress: In Progress
+          active: Succeeded
+        actions:
+          start: Start
+          restart: Restart
+          stop: Stop
+
     vmImport:
       titles:
         basic: Basic
@@ -2448,4 +2635,29 @@ typeLabel:
     {count, plural,
       one { Virtual Machine Import }
       other { Virtual Machine Imports }
+    }
+  forklift.konveyor.io.provider: |-
+    {count, plural,
+      one { Provider }
+      other { Providers }
+    }
+  forklift.konveyor.io.networkmap: |-
+    {count, plural,
+      one { Network Map }
+      other { Network Maps }
+    }
+  forklift.konveyor.io.storagemap: |-
+    {count, plural,
+      one { Storage Map }
+      other { Storage Maps }
+    }
+  forklift.konveyor.io.plan: |-
+    {count, plural,
+      one { Migration Plan }
+      other { Migration Plans }
+    }
+  forklift.konveyor.io.migration: |-
+    {count, plural,
+      one { Migration }
+      other { Migrations }
     }
