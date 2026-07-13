@@ -37,6 +37,7 @@ nav:
     'Monitoring and Logging': Monitoring and Logging
     vmimport: Virtual Machine Imports
     vmMigration: Virtual Machine Migration
+    Configurations: Configurations
 
 resourceTable:
   groupBy:
@@ -1854,7 +1855,7 @@ harvester:
         connectionFailed: Connection failed
         providerNotReady: Provider not ready
       labels:
-        dashboard: Migrations
+        dashboard: Migration Overview
         provider: Providers
         networkMap: Network Maps
         storageMap: Storage Maps

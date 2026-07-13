@@ -239,11 +239,6 @@ init();
       :search="false"
       key-field="_key"
     >
-      <template #header-left>
-        <h3 class="table-title m-0">
-          {{ t('harvester.addons.vmMigration.dashboard.tableTitle') }}
-        </h3>
-      </template>
       <template #cell:name="{ row }">
         <div class="plan-name-cell">
           <div class="plan-name">
