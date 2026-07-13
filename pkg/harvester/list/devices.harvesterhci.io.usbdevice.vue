@@ -53,7 +53,6 @@ export default {
 
     devices() {
       const inStore = this.$store.getters['currentProduct'].inStore;
-
       const data = this.$store.getters[`${ inStore }/all`](HCI.USB_DEVICE) || [];
 
       data.forEach((row) => {
