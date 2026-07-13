@@ -107,18 +107,21 @@ const headers = [
     labelKey: 'harvester.addons.vmMigration.selectVms.columns.os',
     value:    'os',
     sort:     ['os'],
+    width:    180,
   },
   {
     name:     'resources',
     labelKey: 'harvester.addons.vmMigration.selectVms.columns.resources',
     value:    'resources',
     sort:     false,
+    width:    140,
   },
   {
     name:     'powerState',
     labelKey: 'harvester.addons.vmMigration.selectVms.columns.powerState',
     value:    'powerState',
     sort:     ['powerState'],
+    width:    130,
   },
   {
     name:     'network',
@@ -126,6 +129,7 @@ const headers = [
     value:    'network',
     sort:     ['network'],
     subLabel: t('harvester.addons.vmMigration.generic.identifier'),
+    width:    200,
   },
   {
     name:     'datastore',
@@ -133,6 +137,7 @@ const headers = [
     value:    'datastore',
     sort:     ['datastore'],
     subLabel: t('harvester.addons.vmMigration.generic.identifier'),
+    width:    200,
   },
 ];
 
@@ -461,7 +466,7 @@ init();
       <template #cell:powerState="{ row }">
         <BadgeState
           :label="row.powerState"
-          :color="row.powerStateClass === 'power-on' ? 'bg-warning' : 'bg-darker'"
+          :color="row.powerStateClass === 'power-on' ? 'bg-success' : 'bg-darker'"
         />
       </template>
       <template #cell:network="{ row }">

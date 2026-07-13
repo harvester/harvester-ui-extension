@@ -215,8 +215,8 @@ init();
       <template #subHeader>
         <div class="mmt-5">
           <p
-            class="text-muted"
             v-clean-html="t('harvester.addons.vmMigration.dashboard.description')"
+            class="text-muted"
           ></p>
         </div>
       </template>

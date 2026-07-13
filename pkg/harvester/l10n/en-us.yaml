@@ -379,7 +379,7 @@ harvester:
     vmMigrationMapSourceProvider: Source Provider
     vmMigrationMapDestProvider: Destination Provider
     vmMigrationPlanTargetNs: Target Namespace
-    vmMigrationPlanVmCount: VMs
+    vmMigrationPlanVmCount: VM Count
     vmMigrationMigrationPlan: Plan
   tab:
     volume: Volumes
