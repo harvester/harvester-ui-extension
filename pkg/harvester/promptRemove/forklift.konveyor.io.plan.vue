@@ -48,11 +48,23 @@ export default defineComponent({
     ...mapState('action-menu', ['toRemove']),
     ...mapGetters({ t: 'i18n/t' }),
 
+    existingRelatedResources() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+
+      return {
+        [HCI.FORKLIFT_MIGRATION]:   this.$store.getters[`${ inStore }/all`](HCI.FORKLIFT_MIGRATION) || [],
+        [HCI.FORKLIFT_NETWORK_MAP]: this.$store.getters[`${ inStore }/all`](HCI.FORKLIFT_NETWORK_MAP) || [],
+        [HCI.FORKLIFT_STORAGE_MAP]: this.$store.getters[`${ inStore }/all`](HCI.FORKLIFT_STORAGE_MAP) || [],
+      };
+    },
+
     resourceType() {
       return this.t('typeLabel."forklift.konveyor.io.plan"', { count: this.names?.length || 1 });
     },
 
     relatedSummary() {
+      const existing = this.existingRelatedResources;
+
       return (this.value || []).map((plan) => {
         const planName = plan?.metadata?.name || '-';
         const namespace = plan?.metadata?.namespace || '';
@@ -69,17 +81,24 @@ export default defineComponent({
           }))
           .filter((entry) => !!entry.name)
           .forEach((entry) => {
-            migrationsMap.set(`${ entry.namespace }/${ entry.name }`, entry);
+            const matched = existing[HCI.FORKLIFT_MIGRATION].find((resource) => resource?.metadata?.name === entry.name && resource?.metadata?.namespace === entry.namespace);
+
+            if (matched) {
+              migrationsMap.set(`${ entry.namespace }/${ entry.name }`, entry);
+            }
           });
+
+        const matchedNetworkMap = networkMap?.name && existing[HCI.FORKLIFT_NETWORK_MAP].find((resource) => resource?.metadata?.name === networkMap.name && resource?.metadata?.namespace === (networkMap.namespace || namespace));
+        const matchedStorageMap = storageMap?.name && existing[HCI.FORKLIFT_STORAGE_MAP].find((resource) => resource?.metadata?.name === storageMap.name && resource?.metadata?.namespace === (storageMap.namespace || namespace));
 
         return {
           planName,
           migrations: [...migrationsMap.values()],
-          networkMap: networkMap?.name ? {
+          networkMap: matchedNetworkMap ? {
             namespace: networkMap.namespace || namespace,
             name:      networkMap.name,
           } : null,
-          storageMap: storageMap?.name ? {
+          storageMap: matchedStorageMap ? {
             namespace: storageMap.namespace || namespace,
             name:      storageMap.name,
           } : null,
