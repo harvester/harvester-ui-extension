@@ -58,7 +58,7 @@ const harvesterNetworkOptions = computed(() => {
 
 const storageClassOptions = computed(() => {
   const options = storageClasses.value.filter((s) => !s.parameters?.backingImage).map((sc) => {
-    const value = sc.metadata?.name || sc.id;
+    const value = sc.name;
     let label = sc.isDefault ? `${ value } (${ t('generic.default') })` : value;
     let disabled = false;
 
