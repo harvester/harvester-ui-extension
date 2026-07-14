@@ -93,6 +93,7 @@ export default defineComponent({
 
         return {
           planName,
+          namespace,
           migrations: [...migrationsMap.values()],
           networkMap: matchedNetworkMap ? {
             namespace: networkMap.namespace || namespace,
