@@ -1929,8 +1929,6 @@ export default {
     isWindows(val) {
       if (val) {
         this['sshKey'] = [];
-        this['userScript'] = undefined;
-        this['networkScript'] = undefined;
         this['installAgent'] = false;
       }
     },
