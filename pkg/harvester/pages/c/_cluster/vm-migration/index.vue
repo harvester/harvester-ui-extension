@@ -11,6 +11,8 @@ import { SCHEMA } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
 import { HCI } from '../../../../types';
 import { PRODUCT_NAME } from '../../../../config/harvester';
+import { ADD_ONS } from '../../../../config/harvester-map';
+import { currentRouter } from '../../../../utils/router';
 import { FORKLIFT_PLAN_VM_COUNT } from '../../../../config/table-headers';
 import { STATE, NAME as NAME_COL, AGE } from '@shell/config/table-headers';
 
@@ -158,6 +160,29 @@ const headers = [
 
 const init = async() => {
   try {
+    // Guard: the Forklift dashboard is only available when the Forklift addon is
+    // enabled. Redirect back to the Harvester dashboard otherwise (e.g. direct URL).
+    let forkliftEnabled = false;
+
+    if (store.getters[`${ inStore.value }/schemaFor`](HCI.ADD_ONS)) {
+      const addons = await store.dispatch(`${ inStore.value }/findAll`, { type: HCI.ADD_ONS });
+
+      forkliftEnabled = addons.find((a) => a.metadata?.name === ADD_ONS.FORKLIFT_OPERATOR)?.spec?.enabled === true;
+    }
+
+    if (!forkliftEnabled) {
+      await currentRouter().replace({
+        name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+        params: {
+          product:  store.getters['productId'],
+          cluster:  store.getters['clusterId'],
+          resource: HCI.DASHBOARD,
+        },
+      });
+
+      return;
+    }
+
     await Promise.all([
       store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_PLAN }),
       store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_NETWORK_MAP }),
@@ -189,9 +214,10 @@ init();
     >
       <template #subHeader>
         <div class="mmt-5">
-          <p class="text-muted">
-            {{ t('harvester.addons.vmMigration.dashboard.description') }}
-          </p>
+          <p
+            v-clean-html="t('harvester.addons.vmMigration.dashboard.description')"
+            class="text-muted"
+          ></p>
         </div>
       </template>
       <template #createButton>
@@ -213,11 +239,6 @@ init();
       :search="false"
       key-field="_key"
     >
-      <template #header-left>
-        <h3 class="table-title m-0">
-          {{ t('harvester.addons.vmMigration.dashboard.tableTitle') }}
-        </h3>
-      </template>
       <template #cell:name="{ row }">
         <div class="plan-name-cell">
           <div class="plan-name">

@@ -36,7 +36,8 @@ nav:
     Logging: Logging
     'Monitoring and Logging': Monitoring and Logging
     vmimport: Virtual Machine Imports
-    vmMigration: VM Migration
+    vmMigration: Virtual Machine Migration
+    Configurations: Configurations
 
 resourceTable:
   groupBy:
@@ -378,7 +379,7 @@ harvester:
     vmMigrationMapSourceProvider: Source Provider
     vmMigrationMapDestProvider: Destination Provider
     vmMigrationPlanTargetNs: Target Namespace
-    vmMigrationPlanVmCount: VMs
+    vmMigrationPlanVmCount: VM Count
     vmMigrationMigrationPlan: Plan
   tab:
     volume: Volumes
@@ -1855,7 +1856,7 @@ harvester:
         connectionFailed: Connection failed
         providerNotReady: Provider not ready
       labels:
-        dashboard: Migrations
+        dashboard: Migration Overview
         provider: Providers
         networkMap: Network Maps
         storageMap: Storage Maps
@@ -1937,8 +1938,8 @@ harvester:
           network: Network
           datastore: Datastore
       dashboard:
-        title: VMware to Harvester Migration
-        description: Migrate virtual machines from VMware vSphere to Harvester using cold migration for data consistency. Create a migration plan to select VMs, map networks and storage, and prepare a migration to Harvester.
+        title: Virtual Machine Migration Overview
+        description: "Migrate virtual machines from VMware vSphere to Harvester using cold migration for data consistency. Create a migration plan to select VMs, map networks and storage, and prepare a migration to Harvester."
         createPlan: Create Migration
         tableTitle: Migrations
         columns:
