@@ -1967,7 +1967,7 @@ harvester:
           placeholder: Choose a Harvester network
           template: Use existing network mapping as template
           options:
-            podNetworking: Pod Networking
+            podNetworking: Management Network
             ignored: Ignored
         storageMapping:
           title: Storage Mapping

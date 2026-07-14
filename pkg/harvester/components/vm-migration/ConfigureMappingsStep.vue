@@ -9,6 +9,7 @@ import { randomStr } from '@shell/utils/string';
 import { HCI } from '../../types';
 import { FORKLIFT_NAMESPACE } from '../../config/harvester-map';
 import { buildNetworkMapEntries, buildStorageMapEntries } from '../../utils/forklift';
+import { isInternalStorageClass } from '../../utils/storage-class';
 import MappingColumn from './MappingColumn.vue';
 
 const props = defineProps({
@@ -56,10 +57,22 @@ const harvesterNetworkOptions = computed(() => {
 });
 
 const storageClassOptions = computed(() => {
-  const options = storageClasses.value.map((sc) => ({
-    label: sc.metadata?.name || sc.id,
-    value: sc.metadata?.name || sc.id,
-  }));
+  const options = storageClasses.value.filter((s) => !s.parameters?.backingImage).map((sc) => {
+    const value = sc.name;
+    let label = sc.isDefault ? `${ value } (${ t('generic.default') })` : value;
+    let disabled = false;
+
+    if (isInternalStorageClass(value)) {
+      label += ` (${ t('harvester.storage.internal.label') })`;
+      disabled = true;
+    }
+
+    return {
+      label,
+      value,
+      disabled,
+    };
+  });
 
   if (!options.find((o) => o.value === 'harvester-longhorn')) {
     options.unshift({ label: 'harvester-longhorn', value: 'harvester-longhorn' });
