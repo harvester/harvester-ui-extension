@@ -41,11 +41,6 @@ export default defineComponent({
     return {
       errors:        [],
       removing:      false,
-      deletedCounts: {
-        migration:  0,
-        networkMap: 0,
-        storageMap: 0,
-      },
     };
   },
 
@@ -155,12 +150,18 @@ export default defineComponent({
       if (!targets.length) {
         return;
       }
+      let cache = {};
 
-      const cache = {
-        [HCI.FORKLIFT_MIGRATION]:   await this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_MIGRATION }),
-        [HCI.FORKLIFT_NETWORK_MAP]: await this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_NETWORK_MAP }),
-        [HCI.FORKLIFT_STORAGE_MAP]: await this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_STORAGE_MAP }),
-      };
+      try {
+        cache = {
+          [HCI.FORKLIFT_MIGRATION]:   await this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_MIGRATION }),
+          [HCI.FORKLIFT_NETWORK_MAP]: await this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_NETWORK_MAP }),
+          [HCI.FORKLIFT_STORAGE_MAP]: await this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_STORAGE_MAP }),
+        };
+      } catch (err) {
+        // Best-effort cleanup; don't block closing the dialog if listing related resources fails.
+        return;
+      }
 
       for (const target of targets) {
         const matched = (cache[target.type] || []).find((resource) => resource?.metadata?.name === target.name && resource?.metadata?.namespace === target.namespace
@@ -172,14 +173,6 @@ export default defineComponent({
 
         try {
           await matched.remove({ params: { propagationPolicy: 'Background' } });
-
-          if (target.type === HCI.FORKLIFT_MIGRATION) {
-            this.deletedCounts.migration += 1;
-          } else if (target.type === HCI.FORKLIFT_NETWORK_MAP) {
-            this.deletedCounts.networkMap += 1;
-          } else if (target.type === HCI.FORKLIFT_STORAGE_MAP) {
-            this.deletedCounts.storageMap += 1;
-          }
         } catch (err) {
           // Continue deleting remaining resources and let final plan deletion fail if needed.
         }
@@ -191,8 +184,15 @@ export default defineComponent({
       this.removing = true;
 
       try {
-        await Promise.all((this.value || []).map((resource) => resource.remove({ params: { propagationPolicy: 'Background' } })));
+        const results = await Promise.allSettled((this.value || []).map((resource) => resource.remove({ params: { propagationPolicy: 'Background' } })));
+
         await this.deleteRelatedResources();
+        const rejected = results.filter((r) => r.status === 'rejected');
+
+        if (rejected.length) {
+          throw rejected[0].reason;
+        }
+
         this.close(buttonDone);
       } catch (err) {
         this.errors = exceptionToErrorsArray(err);
