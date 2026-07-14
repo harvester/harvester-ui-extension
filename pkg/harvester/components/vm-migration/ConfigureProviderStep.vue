@@ -402,6 +402,7 @@ defineExpose({ testConnection, clickTestButton });
         <div v-if="!createOnly && !editMode">
           <LabeledSelect
             v-model:value="selectedProvider"
+            required
             :label="t('harvester.addons.vmMigration.configureProvider.providerSelect')"
             :options="providerOptions"
             :reduce="(opt) => opt.value"

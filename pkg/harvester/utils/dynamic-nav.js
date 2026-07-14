@@ -8,9 +8,11 @@
  * @param {String} config.resourceType - The schema ID for addons.
  * @param {String} config.navGroup - The group name in the side nav.
  * @param {Array<String>} config.types - Array of Resource IDs to show/hide.
+ * @param {Boolean} [config.requireSchema=true] - When true, only types with an
+ *        accessible schema are shown. Set false for schema-less virtual types.
  */
 export function registerAddonSideNav(store, productName, {
-  addonName, resourceType, navGroup, types
+  addonName, resourceType, navGroup, types, requireSchema = true
 }) {
   if (typeof window === 'undefined') {
     return;
@@ -57,7 +59,7 @@ export function registerAddonSideNav(store, productName, {
 
   // Adds or removes the resource IDs from the product visibility whitelist.
   const setMenuVisibility = (visible) => {
-    const accessibleTypes = visible ? types.filter(hasAccessibleSchema) : [];
+    const accessibleTypes = visible ? (requireSchema ? types.filter(hasAccessibleSchema) : types) : [];
 
     // Always clear first to remove any previously-registered types that are
     // no longer accessible (e.g. partial permission changes like types=[A,B] where B is dropped).

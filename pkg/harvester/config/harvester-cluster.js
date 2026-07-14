@@ -1378,7 +1378,7 @@ export function init($plugin, store) {
   virtualType({
     name:       HCI.FORKLIFT_NETWORK_MAP,
     labelKey:   'harvester.addons.vmMigration.labels.networkMap',
-    group:      'vmMigration::Advanced',
+    group:      'vmMigration::Configurations',
     namespaced: true,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
@@ -1405,7 +1405,7 @@ export function init($plugin, store) {
   virtualType({
     name:       HCI.FORKLIFT_STORAGE_MAP,
     labelKey:   'harvester.addons.vmMigration.labels.storageMap',
-    group:      'vmMigration::Advanced',
+    group:      'vmMigration::Configurations',
     namespaced: true,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
@@ -1433,7 +1433,7 @@ export function init($plugin, store) {
   virtualType({
     name:       HCI.FORKLIFT_PLAN,
     labelKey:   'harvester.addons.vmMigration.labels.plan',
-    group:      'vmMigration::Advanced',
+    group:      'vmMigration::Configurations',
     namespaced: true,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
@@ -1459,7 +1459,7 @@ export function init($plugin, store) {
   virtualType({
     name:       HCI.FORKLIFT_MIGRATION,
     labelKey:   'harvester.addons.vmMigration.labels.migration',
-    group:      'vmMigration::Advanced',
+    group:      'vmMigration::Configurations',
     namespaced: true,
     route:      {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
@@ -1479,11 +1479,16 @@ export function init($plugin, store) {
     }
   });
 
-  // Register the dashboard entry directly — it's a virtual type with no schema,
-  // so it cannot go through registerAddonSideNav (which filters by schema).
-  basicType(['forklift-create'], 'vmMigration');
-
   // Enable SideNav based on Forklift Addon Status
+  // The dashboard entry ('forklift-create') is a schema-less virtual type, so it
+  // is registered with requireSchema:false to still be gated by the addon status.
+  registerAddonSideNav(store, PRODUCT_NAME, {
+    addonName:     ADD_ONS.FORKLIFT_OPERATOR,
+    resourceType:  HCI.ADD_ONS,
+    navGroup:      'vmMigration',
+    requireSchema: false,
+    types:         ['forklift-create']
+  });
   registerAddonSideNav(store, PRODUCT_NAME, {
     addonName:    ADD_ONS.FORKLIFT_OPERATOR,
     resourceType: HCI.ADD_ONS,
@@ -1495,7 +1500,7 @@ export function init($plugin, store) {
   registerAddonSideNav(store, PRODUCT_NAME, {
     addonName:    ADD_ONS.FORKLIFT_OPERATOR,
     resourceType: HCI.ADD_ONS,
-    navGroup:     'vmMigration::Advanced',
+    navGroup:     'vmMigration::Configurations',
     types:        [
       HCI.FORKLIFT_NETWORK_MAP,
       HCI.FORKLIFT_STORAGE_MAP,
