@@ -2002,6 +2002,8 @@ harvester:
           start: Start
           restart: Restart
           stop: Stop
+      deleteDialog:
+        warning: Deleting this migration plan will also delete the following related resources
 
     vmImport:
       titles:

@@ -46,6 +46,10 @@ export default class ForkliftPlan extends HarvesterResource {
   }
 
   get stateDescription() {
+    if (this.metadata?.deletionTimestamp) {
+      return null;
+    }
+
     const messages = [];
     const conditions = this.status?.conditions || [];
 
@@ -67,7 +71,7 @@ export default class ForkliftPlan extends HarvesterResource {
   get stateObj() {
     return {
       error:         this.planFailed || this.planCritical,
-      transitioning: this.isMigrating,
+      transitioning: this.isMigrating || this.isPendingMigrationStart || !!this.metadata?.deletionTimestamp,
       message:       this.stateDescription,
     };
   }
@@ -76,6 +80,14 @@ export default class ForkliftPlan extends HarvesterResource {
     const migration = this.status?.migration;
 
     return !!migration?.started && !migration?.completed;
+  }
+
+  // Right after creating a plan, controller status can lag briefly.
+  // Treat this window as in-progress so we don't flash a succeeded badge.
+  get isPendingMigrationStart() {
+    const vmCount = this.spec?.vms?.length || 0;
+
+    return vmCount > 0 && !this.planFailed && !this.planCritical && !this.planCanceled && !this.planSucceeded && !this.isMigrating;
   }
 
   get planCanceled() {
@@ -98,6 +110,10 @@ export default class ForkliftPlan extends HarvesterResource {
   }
 
   get stateDisplay() {
+    if (this.metadata?.deletionTimestamp) {
+      return 'Terminating';
+    }
+
     if (this.planFailed) {
       return this.t('harvester.addons.vmMigration.plan.states.error');
     }
@@ -114,10 +130,18 @@ export default class ForkliftPlan extends HarvesterResource {
       return this.t('harvester.addons.vmMigration.plan.states.inProgress');
     }
 
+    if (this.isPendingMigrationStart) {
+      return this.t('harvester.addons.vmMigration.plan.states.inProgress');
+    }
+
     return this.t('harvester.addons.vmMigration.plan.states.active');
   }
 
   get stateBackground() {
+    if (this.metadata?.deletionTimestamp) {
+      return 'bg-info';
+    }
+
     if (this.planFailed) {
       return 'bg-error';
     }
@@ -131,6 +155,10 @@ export default class ForkliftPlan extends HarvesterResource {
     }
 
     if (this.isMigrating) {
+      return 'bg-info';
+    }
+
+    if (this.isPendingMigrationStart) {
       return 'bg-info';
     }
 
@@ -254,16 +282,5 @@ export default class ForkliftPlan extends HarvesterResource {
 
   async deletePlan() {
     await this.remove();
-  }
-
-  /**
-   * Deleting a Plan cascades via ownerReferences set at creation time.
-   * Kubernetes GC will automatically delete: Migration, NetworkMap, StorageMap.
-   * Use foreground propagation to ensure children are deleted before the parent.
-   */
-  remove(opt = {}) {
-    opt.params = { ...(opt.params || {}), propagationPolicy: 'Foreground' };
-
-    return this._remove(opt);
   }
 }
