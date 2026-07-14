@@ -38,6 +38,65 @@ const allPlans = computed(() => store.getters[`${ inStore.value }/all`](HCI.FORK
 const allNetworkMaps = computed(() => store.getters[`${ inStore.value }/all`](HCI.FORKLIFT_NETWORK_MAP));
 const allStorageMaps = computed(() => store.getters[`${ inStore.value }/all`](HCI.FORKLIFT_STORAGE_MAP));
 
+const escapeHtml = (value = '') => String(value)
+  .replaceAll('&', '&amp;')
+  .replaceAll('<', '&lt;')
+  .replaceAll('>', '&gt;')
+  .replaceAll('"', '&quot;')
+  .replaceAll("'", '&#39;');
+
+const getPipelineStepMeta = (step = {}) => {
+  const phase = String(step.phase || '').toLowerCase();
+  const hasProgress = typeof step.progress?.completed === 'number' && typeof step.progress?.total === 'number' && step.progress.total > 0;
+  const progressPct = hasProgress ? Math.round((step.progress.completed / step.progress.total) * 1000) / 10 : null;
+
+  if (phase === 'completed' || phase === 'succeeded') {
+    return {
+      icon:  '✓',
+      color: 'var(--success)',
+      text:  ''
+    };
+  }
+
+  if (phase === 'running' || phase === 'inprogress' || phase === 'progressing' || phase === 'started' || (hasProgress && progressPct > 0)) {
+    return {
+      icon:  '↻',
+      color: 'var(--primary)',
+      text:  progressPct !== null ? `${ step.phase || t('generic.inProgress') } (${ progressPct }%)` : (step.phase || t('generic.inProgress'))
+    };
+  }
+
+  if (phase === 'failed' || phase === 'error') {
+    return {
+      icon:  '✕',
+      color: 'var(--error)',
+      text:  step.phase || t('harvester.addons.vmMigration.dashboard.progress.failed')
+    };
+  }
+
+  return {
+    icon:  '○',
+    color: 'var(--muted)',
+    text:  ''
+  };
+};
+
+const formatPipelineTooltip = (pipeline = []) => {
+  if (!pipeline.length) {
+    return `<div style="display:flex;align-items:center;gap:8px;"><span style="color:var(--muted);font-weight:700;">○</span><span>${ escapeHtml(t('harvester.addons.vmMigration.dashboard.progress.initializingMigration')) }</span></div>`;
+  }
+
+  return pipeline
+    .map((step, idx) => {
+      const stepName = step.name || t('harvester.addons.vmMigration.dashboard.progress.step', { index: idx + 1 });
+      const meta = getPipelineStepMeta(step);
+      const lineText = meta.text ? `${ escapeHtml(stepName) } : ${ escapeHtml(meta.text) }` : escapeHtml(stepName);
+
+      return `<div style="display:flex;align-items:center;gap:8px;"><span style="color:${ meta.color };font-weight:700;">${ meta.icon }</span><span>${ lineText }</span></div>`;
+    })
+    .join('');
+};
+
 const rows = computed(() => {
   return allPlans.value.map((plan) => {
     const netMapName = plan.spec?.map?.network?.name;
@@ -103,24 +162,26 @@ const rows = computed(() => {
       }
 
       return {
-        vmName:   vm.name || vm.id || t('harvester.addons.vmMigration.generic.unknown'),
-        vmId:     vm.id || '',
-        progress: overallProgress,
+        vmName:          vm.name || vm.id || t('harvester.addons.vmMigration.generic.unknown'),
+        vmId:            vm.id || '',
+        progress:        overallProgress,
         currentStep,
+        pipelineTooltip: formatPipelineTooltip(pipeline),
         errorMsg,
-        canceled: plan.planCanceled,
+        canceled:        plan.planCanceled,
       };
     });
 
     // If no migration progress but we have VMs in the spec, show them at 0%
     if (plan.vmProgress.length === 0 && plan.spec?.vms?.length > 0) {
       plan.vmProgress = plan.spec.vms.map((vm) => ({
-        vmName:      vm.name || vm.id || t('harvester.addons.vmMigration.generic.unknown'),
-        vmId:        vm.id || '',
-        progress:    0,
-        currentStep: t('harvester.addons.vmMigration.dashboard.progress.initializingMigration'),
-        errorMsg:    '',
-        canceled:    false,
+        vmName:          vm.name || vm.id || t('harvester.addons.vmMigration.generic.unknown'),
+        vmId:            vm.id || '',
+        progress:        0,
+        currentStep:     t('harvester.addons.vmMigration.dashboard.progress.initializingMigration'),
+        pipelineTooltip: formatPipelineTooltip([]),
+        errorMsg:        '',
+        canceled:        false,
       }));
     }
 
@@ -266,12 +327,16 @@ init();
               </div>
             </div>
             <div class="vm-pct-block">
-              <PercentageBar
-                :model-value="vm.progress"
-                :color-stops="vm.errorMsg ? { 100: '--error' } : vm.canceled ? { 100: '--darker' } : vm.progress >= 100 ? { 100: '--success' } : { 100: '--primary' }"
-                preferred-direction="MORE"
+              <div
+                v-clean-tooltip="{ content: vm.pipelineTooltip, html: true }"
                 class="vm-bar"
-              />
+              >
+                <PercentageBar
+                  :model-value="vm.progress"
+                  :color-stops="vm.errorMsg ? { 100: '--error' } : vm.canceled ? { 100: '--darker' } : vm.progress >= 100 ? { 100: '--success' } : { 100: '--primary' }"
+                  preferred-direction="MORE"
+                />
+              </div>
               <span class="vm-pct text-muted mr-10">{{ vm.progress }}%</span>
             </div>
             <div
