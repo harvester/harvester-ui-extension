@@ -53,7 +53,7 @@ const getPipelineStepMeta = (step = {}) => {
   if (phase === 'completed' || phase === 'succeeded') {
     return {
       icon:  '✓',
-      color: '#27AE60',
+      color: 'var(--success)',
       text:  ''
     };
   }
@@ -61,29 +61,29 @@ const getPipelineStepMeta = (step = {}) => {
   if (phase === 'running' || phase === 'inprogress' || phase === 'progressing' || phase === 'started' || (hasProgress && progressPct > 0)) {
     return {
       icon:  '↻',
-      color: '#2F80ED',
-      text:  progressPct !== null ? `${ step.phase || 'Running' } (${ progressPct }%)` : (step.phase || 'Running')
+      color: 'var(--primary)',
+      text:  progressPct !== null ? `${ step.phase || t('generic.inProgress') } (${ progressPct }%)` : (step.phase || t('generic.inProgress'))
     };
   }
 
   if (phase === 'failed' || phase === 'error') {
     return {
       icon:  '✕',
-      color: '#EB5757',
-      text:  step.phase || 'Failed'
+      color: 'var(--error)',
+      text:  step.phase || t('harvester.addons.vmMigration.dashboard.progress.failed')
     };
   }
 
   return {
     icon:  '○',
-    color: '#BDBDBD',
+    color: 'var(--muted)',
     text:  ''
   };
 };
 
 const formatPipelineTooltip = (pipeline = []) => {
   if (!pipeline.length) {
-    return `<div style="display:flex;align-items:center;gap:8px;"><span style="color:#BDBDBD;font-weight:700;">○</span><span>${ escapeHtml(t('harvester.addons.vmMigration.dashboard.progress.initializingMigration')) }</span></div>`;
+    return `<div style="display:flex;align-items:center;gap:8px;"><span style="color:var(--muted);font-weight:700;">○</span><span>${ escapeHtml(t('harvester.addons.vmMigration.dashboard.progress.initializingMigration')) }</span></div>`;
   }
 
   return pipeline
