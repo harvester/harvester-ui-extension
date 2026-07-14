@@ -107,6 +107,20 @@ export default defineComponent({
     },
   },
 
+  async mounted() {
+    const inStore = this.$store.getters['currentProduct'].inStore;
+
+    try {
+      await Promise.all([
+        this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_MIGRATION }),
+        this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_NETWORK_MAP }),
+        this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_STORAGE_MAP }),
+      ]);
+    } catch {
+      // Best-effort: the dialog can still function without this prefetch.
+    }
+  },
+
   methods: {
     resourceNames,
 
@@ -243,7 +257,7 @@ export default defineComponent({
 
     <div
       v-for="summary in relatedSummary"
-      :key="summary.planName"
+      :key="`${ summary.namespace }/${ summary.planName }`"
       class="mb-10"
     >
       <div>• {{ t('harvester.addons.vmMigration.labels.migration') }}:</div>
