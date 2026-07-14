@@ -468,9 +468,14 @@ export default {
           const size = formatSi(sizeBytes, { increment: 1024, suffix: UNIT_SUFFIX });
           const parentDevice = d.status?.deviceStatus?.parentDevice;
           const isChildAdded = this.newDisks.find((newDisk) => newDisk.blockDevice?.status?.deviceStatus?.parentDevice === devPath);
+          const mountPoint = d.status?.deviceStatus?.fileSystem?.mountPoint;
           const name = d.displayName;
 
           let label = `${ name } (Type: ${ deviceType }, Size: ${ size })`;
+
+          if (mountPoint) {
+            label = `${ label } - ${ this.t('harvester.host.disk.mounted') }`;
+          }
 
           if (parentDevice) {
             label = `- ${ label }`;
@@ -481,7 +486,7 @@ export default {
             value:    d.id,
             action:   this.addDisk,
             kind:     !parentDevice ? 'group' : '',
-            disabled: !!isChildAdded,
+            disabled: !!isChildAdded || !!mountPoint,
             group:    parentDevice || devPath,
             isParent: !!parentDevice,
           };
