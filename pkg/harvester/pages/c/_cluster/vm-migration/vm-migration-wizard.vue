@@ -9,6 +9,7 @@ import ConfigureMappingsStep from '@pkg/harvester/components/vm-migration/Config
 import ReviewMigrationStep from '@pkg/harvester/components/vm-migration/ReviewMigrationStep.vue';
 import { PRODUCT_NAME } from '@pkg/harvester/config/harvester';
 import { currentRouter } from '@pkg/harvester/utils/router';
+import { exceptionToErrorsArray, stringify } from '@shell/utils/error';
 
 const store = useStore();
 const { t } = useI18n(store);
@@ -220,7 +221,13 @@ const onFinish = async(buttonCb) => {
     buttonCb(true);
     currentRouter().push(migrationListLocation);
   } catch (err) {
-    errors.value = [err instanceof Error ? err.message : String(err)];
+    errors.value = exceptionToErrorsArray(err).map((e) => {
+      if (typeof e === 'string') {
+        return e;
+      }
+
+      return stringify(e);
+    });
     buttonCb(false);
   }
 };
