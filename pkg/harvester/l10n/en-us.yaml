@@ -640,6 +640,7 @@ harvester:
       notification:
         success: 'Update host "{name}" storage configurations successfully.'
       error: Host has unready or unschedulable disks.
+      mounted: Already Mounted
       fileSystem:
         info: Current file system is {system}, You can format it manually.
         formatting: Disk is formatting, please wait.
