@@ -14,6 +14,17 @@ export default class ForkliftPlan extends HarvesterResource {
     };
   }
 
+  /**
+   * The base HarvesterResource sets `doneOverride` to `listLocation`, which would
+   * force every single-item delete to redirect to the VM Migration dashboard.
+   * Return undefined so the delete flow stays on the current page (list/dashboard)
+   * and only falls back to the shell's default navigation when a now-invalid
+   * detail page is being viewed.
+   */
+  get doneOverride() {
+    return undefined;
+  }
+
   get planFailed() {
     const conditions = this.status?.conditions || [];
 
@@ -247,7 +258,7 @@ export default class ForkliftPlan extends HarvesterResource {
 
   /**
    * Deleting a Plan cascades via ownerReferences set at creation time.
-   * Kubernetes GC will automatically delete: Migration, NetworkMap, StorageMap, Provider (→ Secret).
+   * Kubernetes GC will automatically delete: Migration, NetworkMap, StorageMap.
    * Use foreground propagation to ensure children are deleted before the parent.
    */
   remove(opt = {}) {
