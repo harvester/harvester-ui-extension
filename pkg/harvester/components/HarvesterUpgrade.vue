@@ -55,6 +55,10 @@ export default {
         !this.latestUpgrade.isUpgradeFailed;
     },
 
+    canUpgrade() {
+      return this.versionOptions.length > 0 && !this.isUpgradeInProgress;
+    },
+
     versionOptions() {
       const versions = this.$store.getters['harvester/all'](HCI.VERSION);
 
@@ -154,14 +158,21 @@ export default {
           :cluster="currentCluster.nameDisplay"
         />
       </h1>
-      <button
-        v-if="versionOptions.length && !isUpgradeInProgress"
-        type="button"
-        class="btn bg-warning btn-sm"
-        @click="open"
+      <span
+        v-clean-tooltip="{
+          content: canUpgrade ? t('harvester.upgradePage.upgradeAvailable') : t('harvester.upgradePage.upgradeUnavailable'),
+        }"
+        class="upgrade-btn-wrap"
       >
-        <t k="harvester.upgradePage.upgrade" />
-      </button>
+        <button
+          :disabled="!canUpgrade"
+          type="button"
+          class="btn bg-warning btn-sm"
+          @click="open"
+        >
+          <t k="harvester.upgradePage.upgrade" />
+        </button>
+      </span>
     </header>
 
     <ModalWithCard
@@ -294,6 +305,18 @@ export default {
     font-size: 20px;
     width: 20px;
     line-height: 23px;
+  }
+
+  .upgrade-btn-wrap {
+    display: inline-flex;
+
+    button {
+      color: #000 !important;
+    }
+
+    button:hover {
+      color: #000 !important;
+    }
   }
 
   .currentVersion {
