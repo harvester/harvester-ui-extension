@@ -1947,6 +1947,7 @@ harvester:
           plan: Migration Plan
           progress: Progress
           mappings: Mappings
+          duration: Duration
         progress:
           failed: Failed
           migration: Migration
