@@ -60,7 +60,7 @@ export default {
     },
 
     versionOptions() {
-      const versions = this.$store.getters['harvester/all'](HCI.VERSION);
+      const versions = this.$store.getters['harvester/all'](HCI.VERSION) || [];
 
       return versions.map((V) => V.metadata.name);
     },
@@ -161,8 +161,10 @@ export default {
       <span
         v-clean-tooltip="{
           content: canUpgrade ? t('harvester.upgradePage.upgradeAvailable') : t('harvester.upgradePage.upgradeUnavailable'),
+          triggers: ['hover', 'focus', 'touch'],
         }"
         class="upgrade-btn-wrap"
+        :tabindex="canUpgrade ? -1 : 0"
       >
         <button
           :disabled="!canUpgrade"
