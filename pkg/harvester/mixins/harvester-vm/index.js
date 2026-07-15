@@ -1788,7 +1788,18 @@ export default {
         const specDevice = specDeviceMap.get(device.name);
 
         if (specDevice) {
-          return { ...specDevice, ...device };
+          const merged = { ...specDevice, ...device };
+
+          // A disk entry must be either `disk` or `cdrom`, never both.
+          const type = device?.cdrom ? CD_ROM : device?.disk ? HARD_DISK : '';
+
+          if (type === CD_ROM) {
+            delete merged.disk;
+          } else if (type === HARD_DISK) {
+            delete merged.cdrom;
+          }
+
+          return merged;
         }
 
         return device;
