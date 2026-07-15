@@ -99,14 +99,14 @@ const formatPipelineTooltip = (pipeline = []) => {
 
 const formatDuration = (started, completed) => {
   if (!started || !completed) {
-    return null;
+    return { display: null, seconds: -1 };
   }
 
   const startMs = new Date(started).getTime();
   const endMs = new Date(completed).getTime();
 
   if (isNaN(startMs) || isNaN(endMs) || endMs < startMs) {
-    return null;
+    return { display: null, seconds: -1 };
   }
 
   const totalSeconds = Math.floor((endMs - startMs) / 1000);
@@ -114,11 +114,9 @@ const formatDuration = (started, completed) => {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
-  if (hours > 0) {
-    return `${ hours }h ${ minutes }m`;
-  }
+  const display = hours > 0 ? `${ hours }h ${ minutes }m` : `${ minutes }m ${ seconds }s`;
 
-  return `${ minutes }m ${ seconds }s`;
+  return { display, seconds: totalSeconds };
 };
 
 const rows = computed(() => {
@@ -211,7 +209,10 @@ const rows = computed(() => {
 
     plan.progress = plan.vmProgress.length > 0 ? Math.round(plan.vmProgress.reduce((sum, vm) => sum + vm.progress, 0) / plan.vmProgress.length * 10) / 10 : 0;
 
-    plan.duration = formatDuration(plan.status?.migration?.started, plan.status?.migration?.completed);
+    const durationResult = formatDuration(plan.status?.migration?.started, plan.status?.migration?.completed);
+
+    plan.duration = durationResult.display;
+    plan.durationSeconds = durationResult.seconds;
 
     return plan;
   });
@@ -236,7 +237,7 @@ const headers = [
     name:     'progress',
     labelKey: 'harvester.addons.vmMigration.dashboard.columns.progress',
     value:    'progress',
-    width:    400,
+    width:    450,
   },
   {
     name:     'mappings',
@@ -246,6 +247,7 @@ const headers = [
     name:     'duration',
     labelKey: 'harvester.addons.vmMigration.dashboard.columns.duration',
     value:    'duration',
+    sort:     'durationSeconds',
     width:    120,
   },
   { ...AGE },
