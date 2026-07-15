@@ -5,8 +5,10 @@ import Loading from '@shell/components/Loading';
 import { Banner } from '@components/Banner';
 import { RcItemCard } from '@components/RcItemCard';
 import { LabeledInput } from '@components/Form/LabeledInput';
+import LabeledSelect from '@shell/components/form/LabeledSelect';
 import MappingsCell from '../MappingsCell';
 import { useI18n } from '@shell/composables/useI18n';
+import { NAMESPACE } from '@shell/config/types';
 import { HCI } from '../../types';
 import { FORKLIFT_NAMESPACE } from '../../config/harvester-map';
 import {
@@ -30,19 +32,25 @@ const vms = ref([]);
 const networkMappings = ref([]);
 const storageMappings = ref([]);
 const planName = ref('');
+const targetNamespace = ref('default');
+const namespaceOptions = ref([]);
 const errors = ref([]);
 const loading = ref(true);
 
 // Restore persisted state
 planName.value = props.stepData.planName;
+targetNamespace.value = props.stepData.targetNamespace || 'default';
 
-const NAMESPACE = FORKLIFT_NAMESPACE;
-const TARGET_NAMESPACE = 'default';
+const NS = FORKLIFT_NAMESPACE;
 
 watch(planName, (val) => {
   props.stepData.planName = val;
   emit('ready', !!val);
 }, { immediate: true });
+
+watch(targetNamespace, (val) => {
+  props.stepData.targetNamespace = val;
+});
 
 const totalVCpu = computed(() => vms.value.reduce((sum, vm) => sum + (vm.cpuCount || vm.numCPU || 0), 0));
 
@@ -103,13 +111,13 @@ const startMigrationAction = async() => {
       apiVersion: FORKLIFT_API_VERSION,
       kind:       'Provider',
       name:       props.providerName,
-      namespace:  NAMESPACE,
+      namespace:  NS,
     },
     destination: {
       apiVersion: FORKLIFT_API_VERSION,
       kind:       'Provider',
       name:       'host',
-      namespace:  NAMESPACE,
+      namespace:  NS,
     },
   };
 
@@ -118,15 +126,15 @@ const startMigrationAction = async() => {
 
   const networkMap = await store.dispatch(`${ inStore }/create`, {
     type:     HCI.FORKLIFT_NETWORK_MAP,
-    metadata: { name: networkMapName, namespace: NAMESPACE },
-    spec:     { map: buildNetworkMapEntries(props.mappingEntries?.networkEntries || [], NAMESPACE), provider: providerRef },
+    metadata: { name: networkMapName, namespace: NS },
+    spec:     { map: buildNetworkMapEntries(props.mappingEntries?.networkEntries || [], NS), provider: providerRef },
   });
 
   await networkMap.save();
 
   const storageMap = await store.dispatch(`${ inStore }/create`, {
     type:     HCI.FORKLIFT_STORAGE_MAP,
-    metadata: { name: storageMapName, namespace: NAMESPACE },
+    metadata: { name: storageMapName, namespace: NS },
     spec:     { map: buildStorageMapEntries(props.mappingEntries?.storageEntries || []), provider: providerRef },
   });
 
@@ -134,7 +142,7 @@ const startMigrationAction = async() => {
 
   const plan = await store.dispatch(`${ inStore }/create`, {
     type:     HCI.FORKLIFT_PLAN,
-    metadata: { name: planName.value, namespace: NAMESPACE },
+    metadata: { name: planName.value, namespace: NS },
     spec:     {
       provider: providerRef,
       map:      {
@@ -142,16 +150,16 @@ const startMigrationAction = async() => {
           apiVersion: FORKLIFT_API_VERSION,
           kind:       'NetworkMap',
           name:       networkMapName,
-          namespace:  NAMESPACE,
+          namespace:  NS,
         },
         storage: {
           apiVersion: FORKLIFT_API_VERSION,
           kind:       'StorageMap',
           name:       storageMapName,
-          namespace:  NAMESPACE,
+          namespace:  NS,
         },
       },
-      targetNamespace: TARGET_NAMESPACE,
+      targetNamespace: targetNamespace.value,
       vms:             vms.value.map((vm) => ({ id: vm.id, name: vm.name || vm.id })),
       warm:            false,
     },
@@ -177,8 +185,18 @@ const startMigrationAction = async() => {
   await plan.startMigration();
 };
 
-const init = () => {
+const init = async() => {
   vms.value = props.selectedVms;
+
+  const inStore = store.getters['currentProduct'].inStore;
+
+  try {
+    const namespaces = await store.dispatch(`${ inStore }/findAll`, { type: NAMESPACE });
+
+    namespaceOptions.value = namespaces.filter((ns) => !ns.isSystem).map((ns) => ns.metadata.name).sort();
+  } catch (e) {
+    namespaceOptions.value = [];
+  }
 
   if (props.mappingEntries) {
     networkMappings.value = (props.mappingEntries.networkEntries || []).map((entry) => ({
@@ -216,9 +234,17 @@ defineExpose({ startMigration: startMigrationAction });
         <h3 class="section-title m-0">
           {{ t('harvester.addons.vmMigration.reviewMigration.migrationDetails') }}
         </h3>
-        <div class="span-9">
+        <div class="name-row">
+          <LabeledSelect
+            v-model:value="targetNamespace"
+            class="namespace-select"
+            :label="t('harvester.addons.vmMigration.reviewMigration.targetNamespace')"
+            :options="namespaceOptions"
+            required
+          />
           <LabeledInput
             v-model:value="planName"
+            class="name-input"
             :label="t('harvester.addons.vmMigration.reviewMigration.planName')"
             :placeholder="t('harvester.addons.vmMigration.reviewMigration.planNamePlaceholder')"
             required
@@ -244,7 +270,7 @@ defineExpose({ startMigration: startMigrationAction });
               <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.targetNamespace') }}</span>
             </div>
             <div class="detail-item">
-              <span class="detail-value">{{ TARGET_NAMESPACE }}</span>
+              <span class="detail-value">{{ targetNamespace }}</span>
             </div>
           </div>
           <div class="detail-column">
@@ -345,6 +371,22 @@ defineExpose({ startMigration: startMigrationAction });
 
   .section-title {
     font-weight: 600;
+  }
+
+  .name-row {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+
+    .namespace-select {
+      max-width: 280px;
+      flex-shrink: 0;
+    }
+
+    .name-input {
+      flex: 1;
+    }
   }
 
   .details-grid {

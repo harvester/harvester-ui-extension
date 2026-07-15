@@ -1956,7 +1956,7 @@ harvester:
           initializingMigration: Initializing migration
           finishedSuccessfully: Finished Successfully
           step: "Step {index}"
-          vmCount: "{count} VMs"
+          vmCount: "{count, plural, one {# VM} other {# VMs}}"
           vmId: "id: {id}"
       configureMappings:
         title: Set Mappings
