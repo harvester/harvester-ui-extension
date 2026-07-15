@@ -283,9 +283,9 @@ export default {
               v-model:value.number="vlanID"
               type="number"
               required
-              :min="2"
+              :min="1"
               :max="4094"
-              placeholder="e.g. 2 ~ 4094"
+              placeholder="e.g. 1 ~ 4094"
               :label="t('harvester.hostNetworkConfig.vlanID.label')"
               :mode="mode"
             />
