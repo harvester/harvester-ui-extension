@@ -69,16 +69,15 @@ export default class SRIOVDevice extends SteveModel {
     return this.spec.enabled && this.status?.vfAddresses?.length > 0 && this.status?.vGPUDevices?.length > 0;
   }
 
-  async enableDevice() {
-    try {
-      this.spec.enabled = true;
-      await this.save();
-    } catch (err) {
-      this.$dispatch('growl/fromError', {
-        title: this.t('generic.notification.title.error', { name: escapeHtml(this.metadata.name) }),
-        err,
-      }, { root: true });
-    }
+  get isTimesliced() {
+    return this.metadata?.annotations?.[HCI_ANNOTATIONS.SKIP_MIG_CONFIGURATION] === 'true';
+  }
+
+  enableDevice() {
+    this.$dispatch('promptModal', {
+      resources: [this],
+      component: 'EnableSriovGpuDevice'
+    });
   }
 
   async disableDevice() {
