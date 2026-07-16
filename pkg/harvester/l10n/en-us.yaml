@@ -1956,7 +1956,7 @@ harvester:
           initializingMigration: Initializing migration
           finishedSuccessfully: Finished Successfully
           step: "Step {index}"
-          vmCount: "{count} VMs"
+          vmCount: "{count, plural, one {# VM} other {# VMs}}"
           vmId: "id: {id}"
       configureMappings:
         title: Set Mappings
@@ -1971,7 +1971,7 @@ harvester:
           template: Use existing network mapping as template
           options:
             podNetworking: Management Network
-            ignored: Ignored
+            ignored: Ignored (No NIC will be created)
         storageMapping:
           title: Storage Mapping
           description: Map VMware datastores to Harvester storage classes
@@ -1988,7 +1988,8 @@ harvester:
         memory: Memory
         storage: Storage
         source: Source
-        targetNamespace: Target Namespace
+        targetNamespace: Namespace
+        targetNamespacePlaceholder: "Select target namespace"
         migrationMode: Migration Mode
         coldMigration: Cold Migration
         virtualMachines: Virtual Machines
