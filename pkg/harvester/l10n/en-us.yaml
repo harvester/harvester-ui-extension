@@ -1099,6 +1099,8 @@ harvester:
       downloadLog: Download Log
       logStatus: Log Download Status
     dismissMessage: Dismiss it
+    upgradeAvailable: Upgrade Available
+    upgradeUnavailable: Upgrade Unavailable
     upgradeInfo:
       warning: WARNING
       doc: Read the <a href="{url}" target="_blank">documentation</a> before starting the upgrade process. Ensure that you complete procedures that are relevant to your environment and the version you are upgrading to.
