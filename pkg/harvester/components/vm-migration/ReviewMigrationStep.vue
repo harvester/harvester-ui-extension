@@ -196,7 +196,7 @@ const init = async() => {
   try {
     const namespaces = await store.dispatch(`${ inStore }/findAll`, { type: NAMESPACE });
 
-    namespaceOptions.value = namespaces.filter((ns) => !ns.isSystem).map((ns) => ns.metadata.name).sort();
+    namespaceOptions.value = namespaces.filter((ns) => !ns.isSystem).map((ns) => ns.metadata.name).sort().map((name) => ({ label: name, value: name }));
   } catch (e) {
     namespaceOptions.value = [];
   }
