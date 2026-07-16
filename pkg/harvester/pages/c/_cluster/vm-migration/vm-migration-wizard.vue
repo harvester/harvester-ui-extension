@@ -56,7 +56,7 @@ const stepData = reactive({
     networkEntries:  [],
     storageEntries:  [],
   },
-  review: { planName: '' },
+  review: { planName: '', targetNamespace: '' },
 });
 
 const steps = reactive([
