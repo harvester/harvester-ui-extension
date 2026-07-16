@@ -1971,7 +1971,7 @@ harvester:
           template: Use existing network mapping as template
           options:
             podNetworking: Management Network
-            ignored: Ignored
+            ignored: Ignored (No NIC will be created)
         storageMapping:
           title: Storage Mapping
           description: Map VMware datastores to Harvester storage classes
