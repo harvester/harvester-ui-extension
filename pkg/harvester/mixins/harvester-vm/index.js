@@ -162,6 +162,12 @@ export default {
       machineType:                   '',
       machineTypes:                  [],
       secretName:                    '',
+      // Tracks the name prefix that `secretName` was generated from, so it can be
+      // regenerated if the VM name changes (e.g. after a failed create attempt is retried
+      // with a different name). See harvester/harvester#11174.
+      secretNamePrefixUsed:          '',
+      // Same purpose as secretNamePrefixUsed, but for the Windows sysprep secret name.
+      sysprepSecretNamePrefixUsed:   '',
       secretRef:                     null,
       showAdvanced:                  false,
       deleteAgent:                   true,
@@ -866,18 +872,30 @@ export default {
         }
       });
 
-      if (this.needNewSecret || !this.secretName) {
+      // Regenerate the cloud-init secret name whenever it hasn't been generated yet, or the VM
+      // name has changed since it was last generated (e.g. a previous create attempt failed with
+      // an invalid/duplicate name and the user corrected it). Without this, a stale secret name
+      // derived from a rejected attempt gets reused for the VM that's actually created.
+      // See harvester/harvester#11174.
+      if (this.needNewSecret || !this.secretName || (this.isCreate && this.secretNamePrefixUsed !== this.secretNamePrefix)) {
         this.secretName = this.generateSecretName(this.secretNamePrefix);
+        this.secretNamePrefixUsed = this.secretNamePrefix;
       }
 
       if (!disks.find((D) => D.name === 'sysprep') && this.isWindows) {
         const hasSysprepContent = !!this.sysprep.xmlContent?.trim?.();
 
-        // If we have content but no secret name, it's a new secret that needs a name.
-        if (hasSysprepContent && !this.sysprep.secretName?.trim?.()) {
+        // If we have content but no secret name, it's a new secret that needs a name. Also
+        // regenerate when creating a VM if the name prefix has changed since it was last
+        // generated (see the secretName regeneration comment above for context).
+        const sysprepNeedsNewSecretName = !this.sysprep.secretName?.trim?.() ||
+          (this.isCreate && this.sysprepSecretNamePrefixUsed !== this.secretNamePrefix);
+
+        if (hasSysprepContent && sysprepNeedsNewSecretName) {
           const prefix = this.secretNamePrefix ? `${ this.secretNamePrefix }-windows-sysprep` : 'windows-sysprep';
 
           this.sysprep.secretName = `${ this.value.metadata.namespace }/${ this.generateSecretName(prefix) }`;
+          this.sysprepSecretNamePrefixUsed = this.secretNamePrefix;
         }
 
         // Preserve/attach sysprep whenever a secret is selected/known.

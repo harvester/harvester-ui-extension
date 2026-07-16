@@ -484,6 +484,18 @@ export default {
         await value.save();
         await this.applyHooks(AFTER_SAVE_HOOKS);
       } catch (e) {
+        // Reset the generated secret name(s) so a retried create (e.g. after correcting an
+        // invalid/duplicate VM name) always regenerates them from the current name instead of
+        // reusing names derived from this failed attempt. Only do this for create: in edit mode
+        // secretName/sysprep.secretName may reference an existing secret loaded from the VM,
+        // which must not be discarded. See harvester/harvester#11174.
+        if (this.isCreate) {
+          this.secretName = '';
+          this.secretNamePrefixUsed = '';
+          this.sysprep.secretName = '';
+          this.sysprepSecretNamePrefixUsed = '';
+        }
+
         this.errors.push(...exceptionToErrorsArray(e));
         buttonCb(false);
       }
