@@ -32,25 +32,28 @@ const vms = ref([]);
 const networkMappings = ref([]);
 const storageMappings = ref([]);
 const planName = ref('');
-const targetNamespace = ref('default');
+const targetNamespace = ref('');
 const namespaceOptions = ref([]);
 const errors = ref([]);
 const loading = ref(true);
 
 // Restore persisted state
 planName.value = props.stepData.planName;
-targetNamespace.value = props.stepData.targetNamespace || 'default';
+targetNamespace.value = props.stepData.targetNamespace || '';
 
 const NS = FORKLIFT_NAMESPACE;
 
 watch(planName, (val) => {
   props.stepData.planName = val;
-  emit('ready', !!val);
 }, { immediate: true });
 
 watch(targetNamespace, (val) => {
   props.stepData.targetNamespace = val;
 });
+
+watch([planName, targetNamespace], ([name, namespace]) => {
+  emit('ready', !!name && !!namespace);
+}, { immediate: true });
 
 const totalVCpu = computed(() => vms.value.reduce((sum, vm) => sum + (vm.cpuCount || vm.numCPU || 0), 0));
 
@@ -239,6 +242,7 @@ defineExpose({ startMigration: startMigrationAction });
             v-model:value="targetNamespace"
             class="namespace-select"
             :label="t('harvester.addons.vmMigration.reviewMigration.targetNamespace')"
+            :placeholder="t('harvester.addons.vmMigration.reviewMigration.targetNamespacePlaceholder')"
             :options="namespaceOptions"
             required
           />

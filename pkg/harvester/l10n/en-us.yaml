@@ -1988,7 +1988,8 @@ harvester:
         memory: Memory
         storage: Storage
         source: Source
-        targetNamespace: Target Namespace
+        targetNamespace: Namespace
+        targetNamespacePlaceholder: "Select target namespace"
         migrationMode: Migration Mode
         coldMigration: Cold Migration
         virtualMachines: Virtual Machines
