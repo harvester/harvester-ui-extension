@@ -69,16 +69,10 @@ export function vmDisks(spec, getters, errors, validatorArgs, displayKey, value)
     validName(getters, errors, D.name, diskNames, prefix, type, lowerType, upperType);
   });
 
-  let hasBootableVolume = false;
-
   _volumes.forEach((V, idx) => {
     const { type, typeValue } = getVolumeType(getters, V, _volumeClaimTemplates, value);
 
     const prefix = V.name || idx + 1;
-
-    if ([SOURCE_TYPE.IMAGE, SOURCE_TYPE.ATTACH_VOLUME, SOURCE_TYPE.CONTAINER].includes(type)) {
-      hasBootableVolume = true;
-    }
 
     if (type === SOURCE_TYPE.NEW || type === SOURCE_TYPE.IMAGE) {
       if (!/([1-9]|[1-9][0-9]+)[a-zA-Z]+/.test(typeValue?.spec?.resources?.requests?.storage)) {
@@ -135,13 +129,6 @@ export function vmDisks(spec, getters, errors, validatorArgs, displayKey, value)
       errors.push(getters['i18n/t']('harvester.validation.generic.tabError', { prefix, message }));
     }
   });
-
-  /**
-   *  At least one bootable volume must be provided.  (Verify only when create.)
-   */
-  if (!hasBootableVolume && !value.links) {
-    errors.push(getters['i18n/t']('harvester.validation.vm.volume.needAtLeastOneBootable'));
-  }
 
   return errors;
 }
