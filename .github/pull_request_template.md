@@ -3,14 +3,14 @@
 
 
 ### PR Checklist
-<!-- Check Yes if there is backend PR related to this UI PR, tag the backend owner's github account  -->
+<!-- Check Yes if there is backend PR related to this UI PR, tag the backend owner's Github account  -->
 - Are backend engineers aware of UI changes ?
     - [ ] Yes, the backend owner is @
-    - [x] No, frontend-only.
+    - [ ] No, frontend-only.
 
 ### Related Issue #
-<!-- Give issue number after # -->
-harvester/harvester#
+ <!-- Link the issue as harvester/harvester#<issue_number> -->
+ harvester/harvester#<issue_number>
 
 
 ### Test screenshot or video (Required)
