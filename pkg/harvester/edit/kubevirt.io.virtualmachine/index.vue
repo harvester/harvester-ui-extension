@@ -496,7 +496,6 @@ export default {
             this.sysprep.secretName = '';
             this.sysprepSecretNamePrefixUsed = '';
           }
-          console.log('create ')
         }
 
         this.errors.push(...exceptionToErrorsArray(e));

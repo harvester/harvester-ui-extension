@@ -881,7 +881,6 @@ export default {
         this.secretName = this.generateSecretName(this.secretNamePrefix);
         this.secretNamePrefixUsed = this.secretNamePrefix;
       }
-      console.log('secretNamePrefixUsed=', this.secretNamePrefixUsed, 'secretNamePrefix=', this.secretNamePrefix);
 
       if (!disks.find((D) => D.name === 'sysprep') && this.isWindows) {
         const hasSysprepContent = !!this.sysprep.xmlContent?.trim?.();
