@@ -881,15 +881,16 @@ export default {
         this.secretName = this.generateSecretName(this.secretNamePrefix);
         this.secretNamePrefixUsed = this.secretNamePrefix;
       }
+      console.log('secretNamePrefixUsed=', this.secretNamePrefixUsed, 'secretNamePrefix=', this.secretNamePrefix);
 
       if (!disks.find((D) => D.name === 'sysprep') && this.isWindows) {
         const hasSysprepContent = !!this.sysprep.xmlContent?.trim?.();
 
         // If we have content but no secret name, it's a new secret that needs a name. Also
         // regenerate when creating a VM if the name prefix has changed since it was last
-        // generated (see the secretName regeneration comment above for context).
+        // generated.
         const sysprepNeedsNewSecretName = !this.sysprep.secretName?.trim?.() ||
-          (this.isCreate && this.sysprepSecretNamePrefixUsed !== this.secretNamePrefix);
+          (this.isCreate && this.sysprepSecretNamePrefixUsed !== '' && this.sysprepSecretNamePrefixUsed !== this.secretNamePrefix);
 
         if (hasSysprepContent && sysprepNeedsNewSecretName) {
           const prefix = this.secretNamePrefix ? `${ this.secretNamePrefix }-windows-sysprep` : 'windows-sysprep';

@@ -492,8 +492,11 @@ export default {
         if (this.isCreate) {
           this.secretName = '';
           this.secretNamePrefixUsed = '';
-          this.sysprep.secretName = '';
-          this.sysprepSecretNamePrefixUsed = '';
+          if (this.sysprepSecretNamePrefixUsed !== '') {
+            this.sysprep.secretName = '';
+            this.sysprepSecretNamePrefixUsed = '';
+          }
+          console.log('create ')
         }
 
         this.errors.push(...exceptionToErrorsArray(e));
