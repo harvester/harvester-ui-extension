@@ -93,6 +93,9 @@ export default {
 
     const hostname = this.value.spec.template.spec.hostname || '';
 
+    // Display name can contain arbitrary strings. There is no XSS risk because the value is
+    // rendered via Vue's {{ }} interpolation which auto-escapes HTML; v-html is never used for
+    // this field. See harvester/harvester#10423 for details.
     const customizeDisplayName = !!(this.value.metadata?.annotations?.[HCI_ANNOTATIONS.VM_DISPLAY_NAME]);
 
     return {
