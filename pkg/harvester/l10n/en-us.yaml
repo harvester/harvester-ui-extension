@@ -487,7 +487,6 @@ harvester:
       volume:
         upperType: Volume name
         lowerType: volume name
-        needAtLeastOneBootable: 'At least one bootable volume is required!'
     image:
       ruleTip: 'The URL you have entered ends in an extension that we do not support. We only accept image files that end in .img, .iso, .qcow, .qcow2, .raw.'
       ruleFileTip: 'The file you have chosen ends in an extension that we do not support. We only accept image files that end in .img, .iso, .qcow, .qcow2, .raw.'
