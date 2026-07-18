@@ -2,13 +2,15 @@
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import { sortBy } from '@shell/utils/sort';
 import { mapGetters } from 'vuex';
-import { PVC } from '@shell/config/types';
+import { PVC, STORAGE_CLASS, LONGHORN_DRIVER } from '@shell/config/types';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
+import { VOLUME_MODE } from '@pkg/harvester/config/types';
 import { Card } from '@components/Card';
 import { Banner } from '@components/Banner';
 import AsyncButton from '@shell/components/AsyncButton';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
+import { Checkbox } from '@components/Form/Checkbox';
 
 export default {
   name: 'HotplugVolumeModal',
@@ -16,7 +18,7 @@ export default {
   emits: ['close'],
 
   components: {
-    AsyncButton, Card, LabeledInput, LabeledSelect, Banner
+    AsyncButton, Card, LabeledInput, LabeledSelect, Banner, Checkbox
   },
 
   props: {
@@ -28,14 +30,17 @@ export default {
 
   async fetch() {
     this.allPVCs = await this.$store.dispatch('harvester/findAll', { type: PVC });
+    this.allStorageClasses = await this.$store.dispatch('harvester/findAll', { type: STORAGE_CLASS });
   },
 
   data() {
     return {
-      diskName:   '',
-      volumeName: '',
-      errors:     [],
-      allPVCs:    [],
+      diskName:          '',
+      volumeName:        '',
+      shareable:         false,
+      errors:            [],
+      allPVCs:           [],
+      allStorageClasses: [],
     };
   },
 
@@ -73,19 +78,58 @@ export default {
         'label'
       );
     },
+
+    selectedPVC() {
+      return this.PVCs.find((P) => P.metadata.name === this.volumeName);
+    },
+
+    isShareableCapable() {
+      const pvcSpec = this.selectedPVC?.spec;
+
+      if (!pvcSpec) {
+        return false;
+      }
+
+      const isRWX = (pvcSpec.accessModes || []).includes('ReadWriteMany');
+      const isBlock = pvcSpec.volumeMode === VOLUME_MODE.BLOCK;
+      const storageClass = this.allStorageClasses.find((sc) => sc.name === pvcSpec.storageClassName);
+
+      // fail closed: without a resolved StorageClass the provisioner
+      // requirement cannot be evaluated
+      if (!storageClass) {
+        return false;
+      }
+
+      return isRWX && isBlock && storageClass.provisioner !== LONGHORN_DRIVER;
+    },
+  },
+
+  watch: {
+    isShareableCapable(neu) {
+      if (!neu) {
+        this.shareable = false;
+      }
+    },
   },
 
   methods: {
     close() {
       this.diskName = '';
       this.volumeName = '';
+      this.shareable = false;
       this.$emit('close');
     },
 
     async save(buttonCb) {
       if (this.actionResource) {
         try {
-          const res = await this.actionResource.doAction('addVolume', { volumeSourceName: this.volumeName, diskName: this.diskName }, {}, false);
+          const input = { volumeSourceName: this.volumeName, diskName: this.diskName };
+
+          if (this.isShareableCapable && this.shareable) {
+            input.shareable = true;
+          }
+
+          const res = await this.actionResource.doAction('addVolume', input, {}, false);
 
           if (res._status === 200 || res._status === 204) {
             this.$store.dispatch('growl/success', {
@@ -140,6 +184,14 @@ export default {
         :options="volumeOption"
         class="mt-20"
         required
+      />
+      <Checkbox
+        v-if="isShareableCapable"
+        v-model:value="shareable"
+        class="mt-20"
+        type="checkbox"
+        label-key="harvester.virtualMachine.volume.shareable.label"
+        tooltip-key="harvester.virtualMachine.volume.shareable.tip"
       />
       <Banner
         v-for="(err, i) in errors"

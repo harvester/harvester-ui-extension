@@ -616,6 +616,7 @@ export default {
             type,
             storageClassName,
             hotpluggable,
+            shareable:  DISK.shareable || false,
             volumeStatus,
             dataSource,
             namespace,
@@ -946,6 +947,14 @@ export default {
       const specDisks = this.spec?.template?.spec?.domain?.devices?.disks;
       const mergedDisks = this.mergeDeviceList(specDisks, disks);
 
+      // `shareable` is an attachment-level opt-in, remove the field
+      // inherited from the old spec when the disk row no longer requests it
+      mergedDisks.forEach((disk) => {
+        if (disk.shareable && !disks.find((D) => D.name === disk.name)?.shareable) {
+          delete disk.shareable;
+        }
+      });
+
       let spec = {
         ...this.spec,
         runStrategy: this.runStrategy,
@@ -1218,6 +1227,10 @@ export default {
         out.disk = { bus: R.bus };
       } else if (R.type === CD_ROM) {
         out.cdrom = { bus: R.bus };
+      }
+
+      if (R.shareable) {
+        out.shareable = true;
       }
 
       out.bootOrder = index + 1;
