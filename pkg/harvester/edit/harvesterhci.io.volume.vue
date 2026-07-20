@@ -27,9 +27,9 @@ import { LVM_DRIVER } from '../models/harvester/storage.k8s.io.storageclass';
 import { DATA_ENGINE_V2 } from '../models/harvester/persistentvolumeclaim';
 import { GIBIBYTE } from '../utils/unit';
 import { VOLUME_MODE, ACCESS_MODE } from '@pkg/harvester/config/types';
+import { isInternalStorageClass } from '../utils/storage-class';
 
 const { READ_WRITE_MANY, READ_WRITE_ONCE, READ_ONLY_MANY } = ACCESS_MODE;
-import { isInternalStorageClass } from '../utils/storage-class';
 
 export default {
   name: 'HarvesterVolume',

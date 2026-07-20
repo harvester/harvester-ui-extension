@@ -1,9 +1,5 @@
 <script>
 import { VOLUME_MODE, ACCESS_MODE } from '@pkg/harvester/config/types';
-
-const {
-  READ_WRITE_ONCE, READ_ONLY_MANY, READ_WRITE_MANY, READ_WRITE_ONCE_POD
-} = ACCESS_MODE;
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import ArrayList from '@shell/components/form/ArrayList';
 import { Checkbox } from '@components/Form/Checkbox';
@@ -13,6 +9,10 @@ import { VOLUME_SNAPSHOT_CLASS, HCI } from '../../types';
 import { HCI_SETTING } from '../../config/settings';
 import { allHash } from '@shell/utils/promise';
 import { _EDIT, _CREATE } from '@shell/config/query-params';
+
+const {
+  READ_WRITE_ONCE, READ_ONLY_MANY, READ_WRITE_MANY, READ_WRITE_ONCE_POD
+} = ACCESS_MODE;
 
 export default {
   name: 'CDISettings',
