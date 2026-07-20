@@ -87,6 +87,13 @@ export default {
           sort:  ['spec.address']
         },
         {
+          name:      'timesliced',
+          labelKey:  'harvester.sriovgpu.timesliced',
+          value:     'isTimesliced',
+          formatter: 'Checked',
+          align:     'center',
+        },
+        {
           name:        'vfAddresses',
           label:       'VF Addresses',
           labelKey:    'harvester.sriovgpu.vfAddresses',
