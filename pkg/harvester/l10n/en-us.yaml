@@ -1837,6 +1837,7 @@ harvester:
         unknown: Unknown
         identifier: Identifier
         podNetwork: Pod Network
+        ignored: Ignored
         usedBy: "Used by:"
         vlan: "VLAN {id}"
         vCpu: "{count} vCPU"
@@ -1957,6 +1958,7 @@ harvester:
           step: "Step {index}"
           vmCount: "{count, plural, one {# VM} other {# VMs}}"
           vmId: "id: {id}"
+          checkMigratedVm: Click to check migrated VM details
       configureMappings:
         title: Set Mappings
         description: Map VMware networks and datastores to Harvester and Longhorn target resources

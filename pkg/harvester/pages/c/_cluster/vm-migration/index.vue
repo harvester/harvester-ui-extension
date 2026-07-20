@@ -37,6 +37,7 @@ const inStore = computed(() => store.getters['currentProduct'].inStore);
 const allPlans = computed(() => store.getters[`${ inStore.value }/all`](HCI.FORKLIFT_PLAN));
 const allNetworkMaps = computed(() => store.getters[`${ inStore.value }/all`](HCI.FORKLIFT_NETWORK_MAP));
 const allStorageMaps = computed(() => store.getters[`${ inStore.value }/all`](HCI.FORKLIFT_STORAGE_MAP));
+const allVMs = computed(() => store.getters[`${ inStore.value }/all`](HCI.VM));
 
 const escapeHtml = (value = '') => String(value)
   .replaceAll('&', '&amp;')
@@ -129,8 +130,8 @@ const rows = computed(() => {
     const netMap = allNetworkMaps.value.find((m) => m.metadata.name === netMapName && m.metadata.namespace === netMapNs);
     const storMap = allStorageMaps.value.find((m) => m.metadata.name === storMapName && m.metadata.namespace === storMapNs);
 
-    plan.networkEntries = (netMap?.spec?.map || []).map((e) => `${ e.source?.id || '-' } → ${ e.destination?.type === 'pod' ? t('harvester.addons.vmMigration.generic.podNetwork') : (e.destination?.name || '-') }`);
-    plan.storageEntries = (storMap?.spec?.map || []).map((e) => `${ e.source?.id || '-' } → ${ e.destination?.storageClass || '-' }`);
+    plan.networkEntries = (netMap?.spec?.map || []).map((e) => `${ e.source?.id || 'Ignored' } → ${ e.destination?.type === 'pod' ? t('harvester.addons.vmMigration.configureMappings.networkMapping.options.podNetworking') : (e.destination?.name || 'Ignored') }`);
+    plan.storageEntries = (storMap?.spec?.map || []).map((e) => `${ e.source?.id || 'Ignored' } → ${ e.destination?.storageClass || 'Ignored' }`);
 
     plan.vmIdsDisplay = (plan.spec?.vms || []).map((vm) => vm.id || vm.name || '').filter(Boolean).join(', ') || '-';
 
@@ -183,6 +184,24 @@ const rows = computed(() => {
         errorMsg = `${ currentStep || t('harvester.addons.vmMigration.dashboard.progress.migration') }: ${ t('harvester.addons.vmMigration.dashboard.progress.failed') }`;
       }
 
+      const vmNamespace = vm.namespace || plan.spec?.targetNamespace || plan.metadata?.namespace;
+      const routeParams = currentRouter().currentRoute?.value?.params || {};
+      const product = routeParams.product || store.getters['productId'];
+      const cluster = routeParams.cluster || store.getters['clusterId'];
+      const vmNameCandidates = [vm.targetName, vm.name, vm.id].filter(Boolean);
+      const targetVm = allVMs.value.find((item) => vmNameCandidates.includes(item.metadata?.name) && (!vmNamespace || item.metadata?.namespace === vmNamespace));
+      const canNavigateToVm = overallProgress >= 100 && !errorMsg && !plan.planFailed && !plan.planCanceled && !!targetVm && !!product && !!cluster;
+      const vmDetailLocation = canNavigateToVm ? {
+        name:   `${ PRODUCT_NAME }-c-cluster-resource-namespace-id`,
+        params: {
+          product,
+          cluster,
+          resource:  HCI.VM,
+          namespace: targetVm.metadata.namespace,
+          id:        targetVm.metadata.name,
+        }
+      } : null;
+
       return {
         vmName:          vm.name || vm.id || t('harvester.addons.vmMigration.generic.unknown'),
         vmId:            vm.id || '',
@@ -191,6 +210,7 @@ const rows = computed(() => {
         pipelineTooltip: formatPipelineTooltip(pipeline),
         errorMsg,
         canceled:        plan.planCanceled,
+        vmDetailLocation,
       };
     });
 
@@ -282,6 +302,7 @@ const init = async() => {
       store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_PLAN }),
       store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_NETWORK_MAP }),
       store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_STORAGE_MAP }),
+      store.dispatch(`${ inStore.value }/findAll`, { type: HCI.VM }),
     ]);
   } catch (e) {
     errors.value = [e?.message || t('harvester.addons.vmMigration.errors.failedLoadPlans')];
@@ -366,7 +387,17 @@ init();
           >
             <div class="vm-progress-header">
               <div class="vm-name-block">
-                <span class="vm-name">{{ vm.vmName }}</span>
+                <span class="vm-name">
+                  {{ vm.vmName }}
+                  <router-link
+                    v-if="vm.vmDetailLocation"
+                    v-clean-tooltip="t('harvester.addons.vmMigration.dashboard.progress.checkMigratedVm')"
+                    :to="vm.vmDetailLocation"
+                    class="vm-detail-link"
+                  >
+                    <i class="icon icon-external-link" />
+                  </router-link>
+                </span>
                 <span class="text-muted vm-id">{{ t('harvester.addons.vmMigration.dashboard.progress.vmId', { id: vm.vmId }) }}</span>
               </div>
             </div>
@@ -457,6 +488,14 @@ init();
 
   .vm-name {
     font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .vm-detail-link {
+    display: inline-flex;
+    align-items: center;
   }
 
   .vm-name-block {
