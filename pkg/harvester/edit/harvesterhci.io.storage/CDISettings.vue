@@ -1,5 +1,5 @@
 <script>
-import { VOLUME_MODE } from '@pkg/harvester/config/types';
+import { VOLUME_MODE, ACCESS_MODE } from '@pkg/harvester/config/types';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import ArrayList from '@shell/components/form/ArrayList';
 import { Checkbox } from '@components/Form/Checkbox';
@@ -90,10 +90,10 @@ export default {
 
     accessModeOptions() {
       return [
-        { label: 'ReadWriteOnce', value: 'ReadWriteOnce' },
-        { label: 'ReadOnlyMany', value: 'ReadOnlyMany' },
-        { label: 'ReadWriteMany', value: 'ReadWriteMany' },
-        { label: 'ReadWriteOncePod', value: 'ReadWriteOncePod' },
+        { label: ACCESS_MODE.READ_WRITE_ONCE, value: ACCESS_MODE.READ_WRITE_ONCE },
+        { label: ACCESS_MODE.READ_ONLY_MANY, value: ACCESS_MODE.READ_ONLY_MANY },
+        { label: ACCESS_MODE.READ_WRITE_MANY, value: ACCESS_MODE.READ_WRITE_MANY },
+        { label: ACCESS_MODE.READ_WRITE_ONCE_POD, value: ACCESS_MODE.READ_WRITE_ONCE_POD },
       ];
     },
 
