@@ -1,11 +1,11 @@
 <script>
-import ConsumptionGauge from '@shell/components/ConsumptionGauge';
+import PercentageBar from '@shell/components/PercentageBar';
 import { METRIC, NODE } from '@shell/config/types';
 import { formatSi, exponentNeeded, UNITS, parseSi } from '@shell/utils/units';
 import { UNIT_SUFFIX } from '../utils/unit';
 export default {
   name:       'HarvesterMemoryUsed',
-  components: { ConsumptionGauge },
+  components: { PercentageBar },
 
   props: {
     value: {
@@ -76,6 +76,30 @@ export default {
         return 0;
       }
     },
+
+    reservedPercentage() {
+      return this.memoryTotal ? (this.reserved * 100) / this.memoryTotal : 0;
+    },
+
+    usedPercentage() {
+      return this.memoryTotal ? (this.used * 100) / this.memoryTotal : 0;
+    },
+
+    reservedAmountTemplateValues() {
+      return {
+        used:  this.memoryFormatter(this.reserved || 0),
+        total: this.memoryFormatter(this.memoryTotal || 0),
+        unit:  ` ${ this.memoryUnits }`,
+      };
+    },
+
+    usedAmountTemplateValues() {
+      return {
+        used:  this.memoryFormatter(this.used || 0),
+        total: this.memoryFormatter(this.memoryTotal || 0),
+        unit:  ` ${ this.memoryUnits }`,
+      };
+    },
   },
 
   methods: {
@@ -96,50 +120,53 @@ export default {
 
 <template>
   <div>
-    <ConsumptionGauge
-      :capacity="memoryTotal"
-      :used="reserved"
-      :units="memoryUnits"
-      :number-formatter="memoryFormatter"
-      :resource-name="resourceName"
-    >
-      <template #title="{amountTemplateValues, formattedPercentage}">
-        <span>
+    <div class="consumption-gauge">
+      <div class="numbers">
+        <span class="mr-10">
           {{ t('harvester.formatters.hardwareResourceGauge.reserved') }}
         </span>
         <span class="precent-data">
-          {{ t('node.detail.glance.consumptionGauge.amount', amountTemplateValues) }}
-          <span class="ml-10 percentage">/&nbsp;{{ formattedPercentage }}
-          </span>
+          {{ t('node.detail.glance.consumptionGauge.amount', reservedAmountTemplateValues) }}
         </span>
-      </template>
-    </ConsumptionGauge>
+      </div>
+      <div class="mt-10">
+        <PercentageBar
+          :model-value="reservedPercentage"
+          show-percentage
+        />
+      </div>
+    </div>
     <div
       v-if="showUsed"
-      class="mt-10"
+      class="consumption-gauge mt-10"
     >
-      <ConsumptionGauge
-        :capacity="memoryTotal"
-        :used="used"
-        :units="memoryUnits"
-        :number-formatter="memoryFormatter"
-      >
-        <template #title="{amountTemplateValues, formattedPercentage}">
-          <span>
-            {{ t('harvester.formatters.hardwareResourceGauge.used') }}
-          </span>
-          <span class="precent-data">
-            {{ t('node.detail.glance.consumptionGauge.amount', amountTemplateValues) }}
-            <span class="ml-10 percentage">/&nbsp;{{ formattedPercentage }}
-            </span>
-          </span>
-        </template>
-      </ConsumptionGauge>
+      <div class="numbers">
+        <span>
+          {{ t('harvester.formatters.hardwareResourceGauge.used') }}
+        </span>
+        <span class="precent-data">
+          {{ t('node.detail.glance.consumptionGauge.amount', usedAmountTemplateValues) }}
+        </span>
+      </div>
+      <div class="mt-10">
+        <PercentageBar
+          :model-value="usedPercentage"
+          show-percentage
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
+.consumption-gauge {
+  .numbers {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+
 .precent-data {
   white-space: nowrap;
 }
