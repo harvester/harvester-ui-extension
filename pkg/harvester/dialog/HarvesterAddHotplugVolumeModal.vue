@@ -5,6 +5,7 @@ import { mapGetters } from 'vuex';
 import { PVC, STORAGE_CLASS, LONGHORN_DRIVER } from '@shell/config/types';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { VOLUME_MODE } from '@pkg/harvester/config/types';
+import { HCI } from '@pkg/harvester/types';
 import { Card } from '@components/Card';
 import { Banner } from '@components/Banner';
 import AsyncButton from '@shell/components/AsyncButton';
@@ -31,6 +32,7 @@ export default {
   async fetch() {
     this.allPVCs = await this.$store.dispatch('harvester/findAll', { type: PVC });
     this.allStorageClasses = await this.$store.dispatch('harvester/findAll', { type: STORAGE_CLASS });
+    this.allVMs = await this.$store.dispatch('harvester/findAll', { type: HCI.VM });
   },
 
   data() {
@@ -41,6 +43,7 @@ export default {
       errors:            [],
       allPVCs:           [],
       allStorageClasses: [],
+      allVMs:            [],
     };
   },
 
@@ -55,6 +58,31 @@ export default {
       return this.resources[0];
     },
 
+    // claim names already attached to the VM this modal was opened for
+    currentVMClaimNames() {
+      const volumes = this.actionResource?.spec?.template?.spec?.volumes || [];
+
+      return volumes.map((vol) => vol.persistentVolumeClaim?.claimName).filter((name) => !!name);
+    },
+
+    // claim names attached to other VMs in the same namespace
+    otherVMClaimNames() {
+      const out = [];
+
+      this.allVMs.forEach((vm) => {
+        if (vm.metadata.namespace !== this.actionResource?.metadata?.namespace || vm.id === this.actionResource?.id) {
+          return;
+        }
+        (vm.spec?.template?.spec?.volumes || []).forEach((vol) => {
+          if (vol.persistentVolumeClaim?.claimName) {
+            out.push(vol.persistentVolumeClaim.claimName);
+          }
+        });
+      });
+
+      return out;
+    },
+
     volumeOption() {
       return sortBy(
         this.PVCs
@@ -64,6 +92,14 @@ export default {
             }
             // we won't show golden image volume in the hot plug volume modal
             if (pvc.isGoldenImageVolume) {
+              return false;
+            }
+            // a volume attached to this VM can never be attached to it again
+            if (this.currentVMClaimNames.includes(pvc.metadata.name)) {
+              return false;
+            }
+            // a volume attached to another VM can only be re-attached as a shareable disk
+            if (this.otherVMClaimNames.includes(pvc.metadata.name) && !this.isShareableCapablePVC(pvc)) {
               return false;
             }
 
@@ -84,7 +120,21 @@ export default {
     },
 
     isShareableCapable() {
-      const pvcSpec = this.selectedPVC?.spec;
+      return this.selectedPVC ? this.isShareableCapablePVC(this.selectedPVC) : false;
+    },
+  },
+
+  watch: {
+    isShareableCapable(neu) {
+      if (!neu) {
+        this.shareable = false;
+      }
+    },
+  },
+
+  methods: {
+    isShareableCapablePVC(pvc) {
+      const pvcSpec = pvc?.spec;
 
       if (!pvcSpec) {
         return false;
@@ -102,17 +152,7 @@ export default {
 
       return isRWX && isBlock && storageClass.provisioner !== LONGHORN_DRIVER;
     },
-  },
 
-  watch: {
-    isShareableCapable(neu) {
-      if (!neu) {
-        this.shareable = false;
-      }
-    },
-  },
-
-  methods: {
     close() {
       this.diskName = '';
       this.volumeName = '';
