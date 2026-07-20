@@ -2256,6 +2256,12 @@ harvester:
       prefix: The nvidia-driver-toolkit add-on is not enabled, click
       middle: here
       suffix: to enable it to manage your SR-IOV GPU devices.
+    enable:
+      title: Enable SR-IOV GPU Device
+      skipMigConfiguration: Use timesliced mode (skip MIG configuration)
+      note: If unchecked, MIG mode will be attempted by default. If MIG mode is not supported or fails to initialize, it will fall back to timesliced mode. The actual mode depends on whether the GPU supports MIG.
+    timeslicedBadge: timesliced mode
+    timesliced: Timesliced
 
   migconfiguration:
     label: vGPU MIG Configurations
