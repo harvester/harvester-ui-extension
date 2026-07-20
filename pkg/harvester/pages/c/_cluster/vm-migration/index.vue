@@ -302,8 +302,18 @@ const init = async() => {
       store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_PLAN }),
       store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_NETWORK_MAP }),
       store.dispatch(`${ inStore.value }/findAll`, { type: HCI.FORKLIFT_STORAGE_MAP }),
-      store.dispatch(`${ inStore.value }/findAll`, { type: HCI.VM }),
     ]);
+
+    // VMs are only needed to conditionally show the post-migration VM-detail
+    // link, so load them separately and non-fatally: a failure here (or the
+    // cost of findAll on large clusters) should not block plans/maps from
+    // rendering.
+    try {
+      await store.dispatch(`${ inStore.value }/findAll`, { type: HCI.VM });
+    } catch (e) {
+      // Intentionally ignored: the dashboard still works without the VM list,
+      // the migrated VM-detail link simply won't be shown.
+    }
   } catch (e) {
     errors.value = [e?.message || t('harvester.addons.vmMigration.errors.failedLoadPlans')];
   } finally {
