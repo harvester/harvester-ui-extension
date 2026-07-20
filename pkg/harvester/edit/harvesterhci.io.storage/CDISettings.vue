@@ -89,11 +89,15 @@ export default {
     },
 
     accessModeOptions() {
+      const {
+        READ_WRITE_ONCE, READ_ONLY_MANY, READ_WRITE_MANY, READ_WRITE_ONCE_POD
+      } = ACCESS_MODE;
+
       return [
-        { label: ACCESS_MODE.READ_WRITE_ONCE, value: ACCESS_MODE.READ_WRITE_ONCE },
-        { label: ACCESS_MODE.READ_ONLY_MANY, value: ACCESS_MODE.READ_ONLY_MANY },
-        { label: ACCESS_MODE.READ_WRITE_MANY, value: ACCESS_MODE.READ_WRITE_MANY },
-        { label: ACCESS_MODE.READ_WRITE_ONCE_POD, value: ACCESS_MODE.READ_WRITE_ONCE_POD },
+        { label: READ_WRITE_ONCE, value: READ_WRITE_ONCE },
+        { label: READ_ONLY_MANY, value: READ_ONLY_MANY },
+        { label: READ_WRITE_MANY, value: READ_WRITE_MANY },
+        { label: READ_WRITE_ONCE_POD, value: READ_WRITE_ONCE_POD },
       ];
     },
 
