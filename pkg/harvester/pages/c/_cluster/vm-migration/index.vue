@@ -99,12 +99,12 @@ const formatPipelineTooltip = (pipeline = []) => {
 };
 
 const formatDuration = (started, completed) => {
-  if (!started || !completed) {
+  if (!started) {
     return { display: null, seconds: -1 };
   }
 
   const startMs = new Date(started).getTime();
-  const endMs = new Date(completed).getTime();
+  const endMs = completed ? new Date(completed).getTime() : Date.now();
 
   if (isNaN(startMs) || isNaN(endMs) || endMs < startMs) {
     return { display: null, seconds: -1 };
