@@ -28,9 +28,7 @@ You are an expert Senior Software Engineer specializing in Vue.js and TypeScript
   - Run `yarn lint:fix` before commits.
     - Use conventional commit format: 
     ```
-    <type>:
-
-    <description>
+    <type>(<scope>): <description>
     ```
   - Follow existing naming conventions (PascalCase for components, camelCase for functions).
   - After changing a Vue, JS, or TS file, make sure it's automatically formatted with ESLint.
@@ -130,8 +128,8 @@ To get started, follow the `Development Setup` section.
   - `Vue.js`:
     - Composition API components are preferred over Options API.
     - Large pages with lots of code and styles should be avoided by breaking the page up into smaller Vue components.
-    - Place source tag above template above style.
-    - style tag should contain `lang='scss' scoped`.
+    - Order the Single File Component blocks as `<script>`, then `<template>`, then `<style>`.
+    - The `<style>` tag should include `lang="scss" scoped`.
   - `Linting`: Follow the ESLint configuration in the root.
 
 - **File Structure:**
@@ -163,24 +161,26 @@ To get started, follow the `Development Setup` section.
 
 ## Harvester UI Extension Development Guide
 
-1. Backward Compatibility
-The Harvester UI Extension supports earlier cluster versions (e.g., UI Ext v1.8.0 works with clusters v1.7.0 and v1.6.0). It uses Feature Flags defined in pkg/config/feature-flags to ensure the UI matches the cluster's specific version.
+### Backward Compatibility
 
-2. Implementation Steps for New Features
+The Harvester UI Extension supports earlier cluster versions (e.g., UI Ext v1.8.0 works with clusters v1.7.0 and v1.6.0). It uses Feature Flags defined in `pkg/harvester/config/` to ensure the UI matches the cluster's specific version.
+
+### Implementation Steps for New Features
+
 To add a feature in a new release, follow these steps:
 
-    Register: Add a unique [Feature Name] to the corresponding release array in the configuration.
+1. **Register**: Add a unique `[Feature Name]` to the corresponding release array in the configuration.
+2. **Check**: Use the following getter to verify if the feature is enabled for the current version:
 
-    Check: Use the following getter to verify if the feature is enabled for the current version:
+   ```js
+   computed: {
+     newFeatureEnabled() {
+       return this.$store.getters['harvester-common/getFeatureEnabled']('[Feature Name]');
+     },
+   },
+   ```
 
-    ```
-    computed: {
-      newFeatureEnabled() {
-        return this.$store.getters['harvester-common/getFeatureEnabled']('[Feature Name]');
-      },
-    },
-    ```
-    Render: Use the result of the check to conditionally render the UI components.
+3. **Render**: Use the result of the check to conditionally render the UI components.
 
 
 ## E2E Tests (Cypress)

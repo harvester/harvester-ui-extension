@@ -6,9 +6,7 @@
   - Run `yarn lint:fix` before commits.
     - Use conventional commit format: 
     ```
-    <type>:
-
-    <description>
+    <type>(<scope>): <description>
     ```
   - Follow existing naming conventions (PascalCase for components, camelCase for functions).
   - After changing a Vue, JS, or TS file, make sure it's automatically formatted with ESLint.
