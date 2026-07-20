@@ -249,6 +249,10 @@ export default {
     },
 
     validateCloudInit() {
+      if (this.isWindows) {
+        return;
+      }
+
       if (this.userScript) {
         try {
           jsyaml.load(this.userScript);
