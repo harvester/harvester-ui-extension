@@ -826,10 +826,12 @@ harvester:
         label: User Data Template
         title: "User Data:"
         tip: "You can specify user data to configure an instance or run a configuration script during launch. If you launch more than one instance at a time, the user data is available to all the instances in that reservation. <a href='https://cloudinit.readthedocs.io/en/latest/topics/examples.html' target='_blank'>Learn more</a>"
+        invalidYaml: 'Invalid User Data YAML syntax'
       network:
         label: Network Data Template
         title: "Network Data:"
         tip: "The network-data configuration allows you to customize the instance's networking interfaces by assigning subnet configuration, virtual device creation (bonds, bridges, VLANs) routes and DNS configuration. <a href='https://cloudinit.readthedocs.io/en/latest/reference/network-config-format-v1.html' target='_blank'>Learn more</a>"
+        invalidYaml: 'Invalid Network Data YAML syntax'
     sysprep:
       title: Windows Sysprep Configuration
       description: "Configure Windows automated installation using autounattend.xml. The configuration will be stored in a Kubernetes Secret and mounted as a CD-ROM during installation. <a href='https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/automate-windows-setup' target='_blank'>Learn more</a>"

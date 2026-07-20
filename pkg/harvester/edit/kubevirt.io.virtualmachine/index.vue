@@ -1,4 +1,5 @@
 <script>
+import jsyaml from 'js-yaml';
 import { isEqual } from 'lodash';
 import { mapGetters } from 'vuex';
 import Tabbed from '@shell/components/Tabbed';
@@ -379,6 +380,7 @@ export default {
 
       this.validateCPUMemory();
       this.validateWindowsSysprep();
+      this.validateCloudInit();
 
       // block create VM flow if has validation errors
       if (this.errors.length) {
@@ -421,6 +423,28 @@ export default {
 
       if (sysprepValidationError) {
         this.errors.push(sysprepValidationError);
+      }
+    },
+
+    validateCloudInit() {
+      if (this.isWindows) {
+        return;
+      }
+
+      if (this.userScript) {
+        try {
+          jsyaml.load(this.userScript);
+        } catch (e) {
+          this.errors.push(this.t('harvester.virtualMachine.cloudConfig.user.invalidYaml'));
+        }
+      }
+
+      if (this.networkScript) {
+        try {
+          jsyaml.load(this.networkScript);
+        } catch (e) {
+          this.errors.push(this.t('harvester.virtualMachine.cloudConfig.network.invalidYaml'));
+        }
       }
     },
 
