@@ -55,6 +55,18 @@ watch([planName, targetNamespace], ([name, namespace]) => {
   emit('ready', !!name && !!namespace);
 }, { immediate: true });
 
+const formatNetworkTarget = (target = '') => {
+  if (target === 'pod') {
+    return t('harvester.addons.vmMigration.configureMappings.networkMapping.options.podNetworking');
+  }
+
+  if (target === 'ignored') {
+    return t('harvester.addons.vmMigration.generic.ignored');
+  }
+
+  return target;
+};
+
 const totalVCpu = computed(() => vms.value.reduce((sum, vm) => sum + (vm.cpuCount || vm.numCPU || 0), 0));
 
 const totalMemoryGB = computed(() => {
@@ -331,7 +343,7 @@ defineExpose({ startMigration: startMigrationAction });
                   </span>
                 </div>
                 <MappingsCell
-                  :network-entries="vm.networkMappings.map(m => `${m.source} → ${m.target}`)"
+                  :network-entries="vm.networkMappings.map(m => `${m.source} → ${formatNetworkTarget(m.target)}`)"
                   :storage-entries="vm.storageMappings.map(m => `${m.source} → ${m.target}`)"
                 />
               </div>
