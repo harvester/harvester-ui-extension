@@ -16,6 +16,8 @@ import { GIBIBYTE } from '../../../../utils/unit';
 import { isInternalStorageClass } from '../../../../utils/storage-class';
 import { VOLUME_MODE, ACCESS_MODE } from '@pkg/harvester/config/types';
 
+const { READ_WRITE_MANY, READ_WRITE_ONCE } = ACCESS_MODE;
+
 export default {
   name: 'HarvesterEditVolume',
 
@@ -205,7 +207,7 @@ export default {
 
     getAccessMode(storageClassName) {
       if (!this.longhornV2LVMSupport) {
-        return ACCESS_MODE.READ_WRITE_MANY;
+        return READ_WRITE_MANY;
       }
 
       const storageClass = this.storageClasses.find((sc) => sc.name === storageClassName);
@@ -216,7 +218,7 @@ export default {
         readWriteOnce = storageClass.provisioner === LVM_DRIVER || (!this.thirdPartyStorageClassEnabled && storageClass.parameters?.dataEngine === DATA_ENGINE_V2);
       }
 
-      return readWriteOnce ? ACCESS_MODE.READ_WRITE_ONCE : ACCESS_MODE.READ_WRITE_MANY;
+      return readWriteOnce ? READ_WRITE_ONCE : READ_WRITE_MANY;
     },
 
     update() {

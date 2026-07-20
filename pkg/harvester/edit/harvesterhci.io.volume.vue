@@ -27,6 +27,8 @@ import { LVM_DRIVER } from '../models/harvester/storage.k8s.io.storageclass';
 import { DATA_ENGINE_V2 } from '../models/harvester/persistentvolumeclaim';
 import { GIBIBYTE } from '../utils/unit';
 import { VOLUME_MODE, ACCESS_MODE } from '@pkg/harvester/config/types';
+
+const { READ_WRITE_MANY, READ_WRITE_ONCE, READ_ONLY_MANY } = ACCESS_MODE;
 import { isInternalStorageClass } from '../utils/storage-class';
 
 export default {
@@ -83,7 +85,7 @@ export default {
     if (this.mode === _CREATE) {
       // default volumeMode to Block
       this.value.spec.volumeMode = VOLUME_MODE.BLOCK;
-      this.value.spec.accessModes = [ACCESS_MODE.READ_WRITE_MANY];
+      this.value.spec.accessModes = [READ_WRITE_MANY];
     }
 
     const storage = this.value?.spec?.resources?.requests?.storage || null;
@@ -160,7 +162,7 @@ export default {
     },
 
     accessModeOptions() {
-      return [ACCESS_MODE.READ_WRITE_ONCE, ACCESS_MODE.READ_WRITE_MANY, ACCESS_MODE.READ_ONLY_MANY];
+      return [READ_WRITE_ONCE, READ_WRITE_MANY, READ_ONLY_MANY];
     },
 
     imageOption() {
@@ -355,7 +357,7 @@ export default {
 
     getAccessMode() {
       if (!this.longhornV2LVMSupport) {
-        return [ACCESS_MODE.READ_WRITE_MANY];
+        return [READ_WRITE_MANY];
       }
 
       if (this.value?.spec?.accessModes && this.value?.spec?.accessModes?.length > 0) {
@@ -371,7 +373,7 @@ export default {
         readWriteOnce = storageClass.provisioner === LVM_DRIVER || (!this.value.thirdPartyStorageFeatureEnabled && storageClass.parameters?.dataEngine === DATA_ENGINE_V2);
       }
 
-      return readWriteOnce ? [ACCESS_MODE.READ_WRITE_ONCE] : [ACCESS_MODE.READ_WRITE_MANY];
+      return readWriteOnce ? [READ_WRITE_ONCE] : [READ_WRITE_MANY];
     },
     buildDataVolumeObj() {
       const storage = {

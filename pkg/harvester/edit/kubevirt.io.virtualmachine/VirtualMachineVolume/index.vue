@@ -17,6 +17,8 @@ import { VOLUME_HOTPLUG_ACTION, SOURCE_TYPE } from '../../../config/harvester-ma
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../../config/harvester';
 import { HCI } from '../../../types';
 import { VOLUME_MODE, ACCESS_MODE } from '@pkg/harvester/config/types';
+
+const { READ_WRITE_MANY } = ACCESS_MODE;
 import { OFF } from '../../../models/kubevirt.io.virtualmachine';
 import { EMPTY_IMAGE } from '../../../utils/vm';
 
@@ -69,7 +71,7 @@ export default {
 
     customAccessMode: {
       type:    String,
-      default: ACCESS_MODE.READ_WRITE_MANY
+      default: READ_WRITE_MANY
     },
 
     resourceType: {

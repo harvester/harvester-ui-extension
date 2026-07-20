@@ -27,6 +27,8 @@ import impl, { QGA_JSON, USB_TABLET } from './impl';
 import { GIBIBYTE } from '../../utils/unit';
 import { VOLUME_MODE, ACCESS_MODE, FILESYSTEM_SOURCE_TYPE } from '@pkg/harvester/config/types';
 
+const { READ_WRITE_MANY } = ACCESS_MODE;
+
 const LONGHORN_V2_DATA_ENGINE = 'longhorn-system/v2-data-engine';
 
 export const MANAGEMENT_NETWORK = 'management Network';
@@ -276,7 +278,7 @@ export default {
     },
 
     customAccessMode() {
-      return this.storageClassSetting.accessModes || ACCESS_MODE.READ_WRITE_MANY;
+      return this.storageClassSetting.accessModes || READ_WRITE_MANY;
     },
 
     isWindows() {
@@ -504,7 +506,7 @@ export default {
           id:               randomStr(5),
           source:           SOURCE_TYPE.IMAGE,
           name:             'disk-0',
-          accessMode:       ACCESS_MODE.READ_WRITE_MANY, // root disk only support LHv1 volume, should be RWX
+          accessMode:       READ_WRITE_MANY, // root disk only support LHv1 volume, should be RWX
           bus,
           volumeName:       '',
           size,
@@ -570,7 +572,7 @@ export default {
               const pvcResource = allPVCs.find( (O) => O.id === `${ namespace }/${ volume?.persistentVolumeClaim?.claimName }`);
 
               source = SOURCE_TYPE.ATTACH_VOLUME;
-              accessMode = pvcResource?.spec?.accessModes?.[0] || ACCESS_MODE.READ_WRITE_MANY;
+              accessMode = pvcResource?.spec?.accessModes?.[0] || READ_WRITE_MANY;
               size = pvcResource?.spec?.resources?.requests?.storage || '10Gi';
               storageClassName = pvcResource?.spec?.storageClassName;
               volumeMode = pvcResource?.spec?.volumeMode || VOLUME_MODE.BLOCK;
