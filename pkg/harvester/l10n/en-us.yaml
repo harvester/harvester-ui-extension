@@ -331,7 +331,8 @@ harvester:
     message: Message
     phase: Phase
     attachedVM: Attached Virtual Machine
-    cpuManager: CPU Manager
+    cpuManager: CPU<br>Manager
+    diskState: Disk
     routeConnectivityTooltip: Connectivity between the VM network and the management network, which the Harvester nodes are connected to.
     fingerprint: Fingerprint
     value: Value

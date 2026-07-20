@@ -84,7 +84,7 @@ export default {
         },
         {
           ...NAME,
-          width: 130,
+          width: 150,
         },
         {
           name:      'host-ip',
@@ -136,14 +136,14 @@ export default {
           value:         'id',
           formatter:     'HarvesterCPUPinning',
           formatterOpts: { rows: this.rows },
-          width:         150,
+          width:         75,
           align:         'center',
         });
       }
       if (this.hasLonghornSchema) {
         out.push({
           name:      'diskState',
-          labelKey:  'tableHeaders.diskState',
+          labelKey:  'harvester.tableHeaders.diskState',
           value:     'diskState',
           formatter: 'HarvesterDiskState',
           width:     130,
@@ -156,7 +156,6 @@ export default {
         name:  'console',
         label: ' ',
         align: 'right',
-        width: 80,
       });
 
       return out;
@@ -239,6 +238,7 @@ export default {
             v-if="!row.consoleUrl"
             :href="consoleDocLink"
             target="_blank"
+            class="console-info"
           ><i class="icon icon-info" /></a>
         </div>
       </template>
@@ -249,5 +249,13 @@ export default {
 <style lang="scss" scoped>
   .console-button {
     display: flex;
+    position: relative;
+    justify-content: flex-end;
+  }
+
+  .console-info {
+    position: absolute;
+    top: -8px;
+    right: -3px;
   }
 </style>
