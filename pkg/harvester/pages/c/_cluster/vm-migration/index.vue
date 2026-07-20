@@ -268,7 +268,7 @@ const headers = [
     labelKey: 'harvester.addons.vmMigration.dashboard.columns.duration',
     value:    'duration',
     sort:     'durationSeconds',
-    width:    120,
+    width:    90,
   },
   { ...AGE },
 ];
