@@ -914,7 +914,7 @@ export default {
         }
       }
 
-      if (!disks.find( (D) => D.name === 'cloudinitdisk') && (this.userData || this.networkData)) {
+      if (!disks.find( (D) => D.name === 'cloudinitdisk') && (this.userData || this.networkScript)) {
         if (!this.isWindows) {
           disks.push({
             name: 'cloudinitdisk',
