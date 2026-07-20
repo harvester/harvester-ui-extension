@@ -25,7 +25,7 @@ For Harvester UI extension installation instructions, please refer to the page *
 
 ## Development Setup
 
-Ensure **Node.js v20 or later** is installed for development and debugging.
+Ensure **Node.js v24 or later** is installed for development and debugging.
 
 ### Standalone Mode
 
