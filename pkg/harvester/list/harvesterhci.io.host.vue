@@ -238,6 +238,7 @@ export default {
             v-if="!row.consoleUrl"
             :href="consoleDocLink"
             target="_blank"
+            rel="noopener noreferrer"
             class="console-info"
           ><i class="icon icon-info" /></a>
         </div>
