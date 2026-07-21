@@ -26,7 +26,7 @@
 ### Commit Message Format
 All commit messages must follow the conventional commit format:
 ```
-<type>[optional scope]: <description>
+<type>: <description>
 
 [optional body]
 
