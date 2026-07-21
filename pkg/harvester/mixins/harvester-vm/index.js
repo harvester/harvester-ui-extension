@@ -1354,13 +1354,22 @@ export default {
      */
     deleteYamlDocProp(doc, paths) {
       try {
-        const item = doc.getIn([])?.items[0];
-        const key = item?.key;
-        const hasCloudConfigComment = !!key?.commentBefore?.includes('cloud-config');
-        const isMatchProp = key.source === paths[paths.length - 1];
+        const items = doc.getIn([])?.items;
+        const firstKey = items?.[0]?.key;
+        const hasCloudConfigComment = !!firstKey?.commentBefore?.includes('cloud-config');
+        const isFirstProp = firstKey?.source === paths[paths.length - 1];
 
-        if (key && hasCloudConfigComment && isMatchProp) {
-          // Comments are mounted on the next node and we should not delete the node containing cloud-config
+        if (firstKey && hasCloudConfigComment && isFirstProp) {
+          const comment = firstKey.commentBefore;
+
+          doc.deleteIn(paths);
+
+          // Move the comment to the new first key; if no keys remain the comment is lost.
+          const newFirstKey = doc.getIn([])?.items?.[0]?.key;
+
+          if (newFirstKey) {
+            newFirstKey.commentBefore = comment;
+          }
         } else {
           doc.deleteIn(paths);
         }
@@ -1411,7 +1420,6 @@ export default {
       if (packages.length > 0) {
         userDataDoc.setIn(['packages'], packages);
       } else {
-        userDataDoc.setIn(['packages'], []); // It needs to be set empty first, as it is possible that cloud-init comments are mounted on this node
         this.deleteYamlDocProp(userDataDoc, ['packages']);
         this.deleteYamlDocProp(userDataDoc, ['package_update']);
       }
@@ -1426,7 +1434,7 @@ export default {
     },
 
     deleteQGA(config) {
-      const { osType, userDataDoc, deletePackage = false } = config;
+      const { osType, userDataDoc } = config;
 
       const userDataTemplateValue = this.$store.getters['harvester/byId'](CONFIG_MAP, this.userDataTemplateId)?.data?.cloudInit || '';
 
@@ -1434,6 +1442,15 @@ export default {
       const userDataJSON = YAML.parse(userDataYAML);
       const packages = userDataJSON?.packages || [];
       const runcmd = userDataJSON?.runcmd || [];
+
+      // Special handling of OS types.
+      let deletePackage = config.deletePackage ?? false;
+
+      switch (osType) {
+      case 'windows':
+        deletePackage = true;
+        break;
+      }
 
       if (Array.isArray(packages) && deletePackage) {
         const templateHasQGAPackage = this.convertToJson(userDataTemplateValue);
@@ -1460,7 +1477,6 @@ export default {
       if (packages.length > 0) {
         userDataDoc.setIn(['packages'], packages);
       } else {
-        userDataDoc.setIn(['packages'], []);
         this.deleteYamlDocProp(userDataDoc, ['packages']);
         this.deleteYamlDocProp(userDataDoc, ['package_update']);
       }
@@ -1494,21 +1510,6 @@ export default {
 
     async saveSecret(vm) {
       if (!vm?.spec || !this.secretName) {
-        return true;
-      }
-
-      // Don't create a Secret unless the VM spec actually references it.
-      // A cloudinitdisk can carry user/network data either inline (clear
-      // text) or via secretRef/networkDataSecretRef — only in the latter
-      // cases does saveSecret need to run. Preserve the existing edit-mode
-      // cleanup path so a previously-populated secret still gets its data
-      // cleared when the user removes the Cloud Config content.
-      const cloudInitVol = vm.spec?.template?.spec?.volumes?.find((v) => v.name === 'cloudinitdisk');
-      const referencesSecret =
-        cloudInitVol?.cloudInitNoCloud?.secretRef?.name === this.secretName ||
-        cloudInitVol?.cloudInitNoCloud?.networkDataSecretRef?.name === this.secretName;
-
-      if (!referencesSecret && !(this.isEdit && this.secretRef)) {
         return true;
       }
 
@@ -1988,9 +1989,8 @@ export default {
 
     osType(neu, old) {
       this.installAgent = old === 'windows' ? true : this.installAgent;
-      const out = old === 'windows' ? this.getInitUserData({ osType: neu }) : this.getUserData({ installAgent: this.installAgent, osType: neu });
+      this.userScript = this.getUserData({ installAgent: this.installAgent, osType: neu });
 
-      this['userScript'] = out;
       this.refreshYamlEditor();
     },
 
