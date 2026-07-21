@@ -1,5 +1,5 @@
 <script>
-import { VOLUME_MODE } from '@pkg/harvester/config/types';
+import { VOLUME_MODE, ACCESS_MODE } from '@pkg/harvester/config/types';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import ArrayList from '@shell/components/form/ArrayList';
 import { Checkbox } from '@components/Form/Checkbox';
@@ -9,6 +9,10 @@ import { VOLUME_SNAPSHOT_CLASS, HCI } from '../../types';
 import { HCI_SETTING } from '../../config/settings';
 import { allHash } from '@shell/utils/promise';
 import { _EDIT, _CREATE } from '@shell/config/query-params';
+
+const {
+  READ_WRITE_ONCE, READ_ONLY_MANY, READ_WRITE_MANY, READ_WRITE_ONCE_POD
+} = ACCESS_MODE;
 
 export default {
   name: 'CDISettings',
@@ -90,10 +94,10 @@ export default {
 
     accessModeOptions() {
       return [
-        { label: 'ReadWriteOnce', value: 'ReadWriteOnce' },
-        { label: 'ReadOnlyMany', value: 'ReadOnlyMany' },
-        { label: 'ReadWriteMany', value: 'ReadWriteMany' },
-        { label: 'ReadWriteOncePod', value: 'ReadWriteOncePod' },
+        { label: READ_WRITE_ONCE, value: READ_WRITE_ONCE },
+        { label: READ_ONLY_MANY, value: READ_ONLY_MANY },
+        { label: READ_WRITE_MANY, value: READ_WRITE_MANY },
+        { label: READ_WRITE_ONCE_POD, value: READ_WRITE_ONCE_POD },
       ];
     },
 

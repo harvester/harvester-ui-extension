@@ -15,6 +15,13 @@ export const VOLUME_MODE = {
   FILE_SYSTEM: 'Filesystem'
 };
 
+export const ACCESS_MODE = {
+  READ_WRITE_MANY:     'ReadWriteMany',
+  READ_WRITE_ONCE:     'ReadWriteOnce',
+  READ_ONLY_MANY:      'ReadOnlyMany',
+  READ_WRITE_ONCE_POD: 'ReadWriteOncePod',
+};
+
 export const NETWORK_PROTOCOL = {
   IPv4: 'IPv4',
   IPv6: 'IPv6',
