@@ -1,0 +1,2 @@
+"use strict";(("undefined"!==typeof self?self:this)["webpackChunkharvester_1_9_0_rc3"]=("undefined"!==typeof self?self:this)["webpackChunkharvester_1_9_0_rc3"]||[]).push([[277],{28277:function(e,n,r){r.r(n),r.d(n,{default:function(){return f}});var t=r(9274);function s(e,n,r,s,c,o){const u=(0,t.resolveComponent)("ResourceDetail");return(0,t.openBlock)(),(0,t.createBlock)(u)}var c=r(71407),o={name:"ClusterResourceNamespaceId",components:{ResourceDetail:c.A}},u=r(47433);const a=(0,u.A)(o,[["render",s]]);var f=a}}]);
+//# sourceMappingURL=harvester-1.9.0-rc3.umd.min.277.js.map
