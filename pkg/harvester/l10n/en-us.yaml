@@ -1985,16 +1985,33 @@ harvester:
         planName: Name
         planNamePlaceholder: "e.g. my-migration-plan"
         migrationDetails: Migration Details
+        migrationDetailsDescription: Name this plan and choose the namespace where migrated VMs will be created.
         totalVms: Total VMs
         vcpu: vCPU
         memory: Memory
         storage: Storage
         source: Source
+        provider: Provider
         targetNamespace: Namespace
         targetNamespacePlaceholder: "Select target namespace"
         migrationMode: Migration Mode
         coldMigration: Cold Migration
+        coldMigrationDescription: All source VMs will be powered off during migration.
+        coldMigrationHint: Plan a maintenance window and notify relevant stakeholders before starting.
         virtualMachines: Virtual Machines
+        editSelection: Edit selection
+        columns:
+          vmName: VM Name
+          os: Operating System
+          resources: Resources
+          powerState: Power State
+          networkMapping: Network Mapping
+          storageMapping: Storage Mapping
+          sourceTarget: "Source \u2192 Target"
+        actions:
+          menuLabel: Actions
+          editMappings: Edit Mappings
+          removeFromPlan: Remove from Plan
         warningTitle: "Cold Migration Warning"
         warningMessage: "All source VMs will be powered off, and downtime will occur during migration. Plan your maintenance window accordingly and notify relevant stakeholders"
         startMigration: Start Migration Plan

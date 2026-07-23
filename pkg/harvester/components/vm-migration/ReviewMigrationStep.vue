@@ -2,11 +2,12 @@
 import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import Loading from '@shell/components/Loading';
+import SortableTable from '@shell/components/SortableTable';
 import { Banner } from '@components/Banner';
-import { RcItemCard } from '@components/RcItemCard';
+import { BadgeState } from '@components/BadgeState';
+import { RcDropdown, RcDropdownItem, RcDropdownTrigger } from '@components/RcDropdown';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
-import MappingsCell from '../MappingsCell';
 import { useI18n } from '@shell/composables/useI18n';
 import { NAMESPACE } from '@shell/config/types';
 import { HCI } from '../../types';
@@ -23,12 +24,12 @@ const props = defineProps({
   stepData:        { type: Object, required: true },
 });
 
-const emit = defineEmits(['ready']);
+const emit = defineEmits(['ready', 'edit-selection', 'edit-mappings', 'remove-vm']);
 
 const store = useStore();
 const { t } = useI18n(store);
 
-const vms = ref([]);
+const vms = computed(() => props.selectedVms);
 const networkMappings = ref([]);
 const storageMappings = ref([]);
 const planName = ref('');
@@ -87,7 +88,7 @@ const totalStorageGB = computed(() => {
   return bytesToGB(totalBytes);
 });
 
-const vmCards = computed(() => {
+const vmRows = computed(() => {
   return vms.value.map((vm) => {
     const cpus = vm.cpuCount || vm.numCPU || 0;
     const memMB = vm.memoryMB || vm.memory || 0;
@@ -101,22 +102,89 @@ const vmCards = computed(() => {
 
     const diskDisplay = totalDiskBytes ? t('harvester.addons.vmMigration.generic.memoryGb', { value: bytesToGB(totalDiskBytes) }) : '-';
     const os = vm.guestName || vm.guestOS || vm.os || '-';
+    const rawPowerState = vm.powerState || vm.status?.phase || '-';
+    const powerState = rawPowerState.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
+    const powerStateClass = powerState.toLowerCase().includes('on') || powerState.toLowerCase().includes('running') ? 'power-on' : 'power-off';
 
     const vmNetworkMappings = networkMappings.value.filter((m) => m.usedBy && m.usedBy.includes(vm.name || vm.id));
     const vmStorageMappings = storageMappings.value.filter((m) => m.usedBy && m.usedBy.includes(vm.name || vm.id));
 
+    const networkMappingSort = vmNetworkMappings.map((m) => `${ m.source } ${ formatNetworkTarget(m.target) }`).join(', ');
+    const storageMappingSort = vmStorageMappings.map((m) => `${ m.source } ${ m.target }`).join(', ');
+
     return {
+      _key:            vm.id || vm.vmId || vm.metadata?.name,
       id:              vm.id,
       name:            vm.name || vm.id,
+      identifier:      vm.id || vm.vmId || vm.metadata?.name || '-',
       os,
-      cpus,
-      memGB,
-      diskDisplay,
+      resources:       t('harvester.addons.vmMigration.generic.vCpu', { count: cpus }),
+      resourcesSub:    `${ memGB } • ${ diskDisplay }`,
+      powerState,
+      powerStateClass,
       networkMappings: vmNetworkMappings,
       storageMappings: vmStorageMappings,
+      networkMapping:  networkMappingSort,
+      storageMapping:  storageMappingSort,
     };
   });
 });
+
+const vmHeaders = [
+  {
+    name:     'vmName',
+    labelKey: 'harvester.addons.vmMigration.reviewMigration.columns.vmName',
+    value:    'name',
+    sort:     ['name'],
+    subLabel: t('harvester.addons.vmMigration.generic.identifier'),
+  },
+  {
+    name:     'os',
+    labelKey: 'harvester.addons.vmMigration.reviewMigration.columns.os',
+    value:    'os',
+    sort:     ['os'],
+    width:    180,
+  },
+  {
+    name:     'resources',
+    labelKey: 'harvester.addons.vmMigration.reviewMigration.columns.resources',
+    value:    'resources',
+    sort:     false,
+    width:    140,
+  },
+  {
+    name:     'powerState',
+    labelKey: 'harvester.addons.vmMigration.reviewMigration.columns.powerState',
+    value:    'powerState',
+    sort:     ['powerState'],
+    width:    130,
+  },
+  {
+    name:     'networkMapping',
+    labelKey: 'harvester.addons.vmMigration.reviewMigration.columns.networkMapping',
+    value:    'networkMapping',
+    sort:     ['networkMapping'],
+    subLabel: t('harvester.addons.vmMigration.reviewMigration.columns.sourceTarget'),
+  },
+  {
+    name:     'storageMapping',
+    labelKey: 'harvester.addons.vmMigration.reviewMigration.columns.storageMapping',
+    value:    'storageMapping',
+    sort:     ['storageMapping'],
+    subLabel: t('harvester.addons.vmMigration.reviewMigration.columns.sourceTarget'),
+  },
+  {
+    name:  'actions',
+    label: ' ',
+    align: 'right',
+    sort:  false,
+    width: 40,
+  },
+];
+
+const onEditSelection = () => emit('edit-selection');
+const onEditMappings = () => emit('edit-mappings');
+const onRemoveVm = (id) => emit('remove-vm', id);
 
 const startMigrationAction = async() => {
   const inStore = store.getters['currentProduct'].inStore;
@@ -201,8 +269,6 @@ const startMigrationAction = async() => {
 };
 
 const init = async() => {
-  vms.value = props.selectedVms;
-
   const inStore = store.getters['currentProduct'].inStore;
 
   try {
@@ -246,10 +312,23 @@ defineExpose({ startMigration: startMigrationAction });
     >
       <!-- Migration Details Summary -->
       <div class="migration-details">
-        <h3 class="section-title m-0">
-          {{ t('harvester.addons.vmMigration.reviewMigration.migrationDetails') }}
-        </h3>
+        <div class="section-header">
+          <h3 class="section-title m-0">
+            {{ t('harvester.addons.vmMigration.reviewMigration.migrationDetails') }}
+          </h3>
+          <span class="section-description text-deemphasized">
+            {{ t('harvester.addons.vmMigration.reviewMigration.migrationDetailsDescription') }}
+          </span>
+        </div>
+
         <div class="name-row">
+          <LabeledInput
+            v-model:value="planName"
+            class="name-input"
+            :label="t('harvester.addons.vmMigration.reviewMigration.planName')"
+            :placeholder="t('harvester.addons.vmMigration.reviewMigration.planNamePlaceholder')"
+            required
+          />
           <LabeledSelect
             v-model:value="targetNamespace"
             class="namespace-select"
@@ -258,110 +337,129 @@ defineExpose({ startMigration: startMigrationAction });
             :options="namespaceOptions"
             required
           />
-          <LabeledInput
-            v-model:value="planName"
-            class="name-input"
-            :label="t('harvester.addons.vmMigration.reviewMigration.planName')"
-            :placeholder="t('harvester.addons.vmMigration.reviewMigration.planNamePlaceholder')"
-            required
-          />
         </div>
-        <div class="details-grid span-9">
-          <div class="detail-column">
-            <div class="detail-item">
-              <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.totalVms') }}</span>
-              <span class="detail-value detail-value-large">{{ vms.length }}</span>
-            </div>
+
+        <div class="summary-row">
+          <div class="migration-mode-column">
+            <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.migrationMode') }}</span>
+            <span class="cold-migration-badge">{{ t('harvester.addons.vmMigration.reviewMigration.coldMigration') }}</span>
+            <span class="text-deemphasized">{{ t('harvester.addons.vmMigration.reviewMigration.coldMigrationDescription') }}</span>
+            <span class="text-deemphasized">{{ t('harvester.addons.vmMigration.reviewMigration.coldMigrationHint') }}</span>
           </div>
-          <div class="detail-column">
-            <div class="detail-item">
-              <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.source') }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-value">{{ providerName }}</span>
-            </div>
-          </div>
-          <div class="detail-column">
-            <div class="detail-item">
-              <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.targetNamespace') }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-value">{{ targetNamespace }}</span>
-            </div>
-          </div>
-          <div class="detail-column">
-            <div class="detail-item">
-              <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.vcpu') }}</span>
-              <span class="detail-value">{{ totalVCpu }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.memory') }}</span>
-              <span class="detail-value">{{ t('harvester.addons.vmMigration.generic.memoryGb', { value: totalMemoryGB }) }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.storage') }}</span>
-              <span class="detail-value">{{ t('harvester.addons.vmMigration.generic.memoryGb', { value: totalStorageGB }) }}</span>
-            </div>
-          </div>
-          <div class="detail-column grid-column-2">
-            <div class="detail-item">
-              <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.migrationMode') }}</span>
-            </div>
-            <div class="detail-item">
-              <span class="detail-value">
-                {{ t('harvester.addons.vmMigration.reviewMigration.coldMigration') }}
-              </span>
-            </div>
+
+          <div class="stats-column">
+            <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.provider') }}</span>
+            <span class="detail-value">{{ providerName }}</span>
+            <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.totalVms') }}</span>
+            <span class="detail-value">{{ vms.length }}</span>
+            <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.vcpu') }}</span>
+            <span class="detail-value">{{ totalVCpu }}</span>
+            <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.memory') }}</span>
+            <span class="detail-value">{{ t('harvester.addons.vmMigration.generic.memoryGb', { value: totalMemoryGB }) }}</span>
+            <span class="detail-label">{{ t('harvester.addons.vmMigration.reviewMigration.storage') }}</span>
+            <span class="detail-value">{{ t('harvester.addons.vmMigration.generic.memoryGb', { value: totalStorageGB }) }}</span>
           </div>
         </div>
       </div>
 
       <!-- Virtual Machines -->
       <div class="vm-section">
-        <h3 class="section-title m-0">
-          {{ t('harvester.addons.vmMigration.reviewMigration.virtualMachines') }} ({{ vms.length }})
-        </h3>
-
-        <div class="vm-cards-grid">
-          <RcItemCard
-            v-for="vm in vmCards"
-            :id="vm.id"
-            :key="vm.id"
-            :variant="'small'"
-            :header="{ title: { text: vm.name } }"
-          >
-            <template #item-card-content>
-              <div class="vm-card-content">
-                <div class="vm-card-specs">
-                  <span class="vm-os text-deemphasized">{{ vm.os }}</span>
-                  <span class="vm-resources">
-                    <i
-                      class="icon icon-disk"
-                      aria-hidden="true"
-                    />
-                    {{ t('harvester.addons.vmMigration.generic.vCpu', { count: vm.cpus }) }} &bull; {{ vm.memGB }} &bull; {{ vm.diskDisplay }}
-                  </span>
-                </div>
-                <MappingsCell
-                  :network-entries="vm.networkMappings.map(m => `${m.source} → ${formatNetworkTarget(m.target)}`)"
-                  :storage-entries="vm.storageMappings.map(m => `${m.source} → ${m.target}`)"
-                />
+        <SortableTable
+          class="vm-sortable-table"
+          :rows="vmRows"
+          :headers="vmHeaders"
+          :search="false"
+          :table-actions="false"
+          :row-actions="false"
+          :groupable="false"
+          :paging="true"
+          key-field="_key"
+        >
+          <template #header-left>
+            <h3 class="section-title m-0">
+              {{ t('harvester.addons.vmMigration.reviewMigration.virtualMachines') }} ({{ vms.length }})
+            </h3>
+          </template>
+          <template #header-right>
+            <a
+              role="button"
+              class="edit-selection-link"
+              @click="onEditSelection"
+            >
+              {{ t('harvester.addons.vmMigration.reviewMigration.editSelection') }}
+            </a>
+          </template>
+          <template #cell:vmName="{ row }">
+            <div class="vm-name-cell">
+              <span class="vm-name">{{ row.name }}</span>
+              <span class="vm-id text-deemphasized">{{ row.identifier }}</span>
+            </div>
+          </template>
+          <template #cell:resources="{ row }">
+            <span>{{ row.resources }}</span><br>
+            <span class="text-deemphasized">{{ row.resourcesSub }}</span>
+          </template>
+          <template #cell:powerState="{ row }">
+            <BadgeState
+              :label="row.powerState"
+              :color="row.powerStateClass === 'power-on' ? 'bg-warning' : 'bg-darker'"
+            />
+          </template>
+          <template #cell:networkMapping="{ row }">
+            <template v-if="row.networkMappings.length">
+              <div
+                v-for="(m, i) in row.networkMappings"
+                :key="'net-' + i"
+                class="mapping-cell"
+              >
+                <span class="mapping-source">{{ m.source }}</span>
+                <span class="mapping-target text-deemphasized">&rarr; {{ formatNetworkTarget(m.target) }}</span>
               </div>
             </template>
-          </RcItemCard>
-        </div>
+            <span
+              v-else
+              class="text-deemphasized"
+            >-</span>
+          </template>
+          <template #cell:storageMapping="{ row }">
+            <template v-if="row.storageMappings.length">
+              <div
+                v-for="(m, i) in row.storageMappings"
+                :key="'stor-' + i"
+                class="mapping-cell"
+              >
+                <span class="mapping-source">{{ m.source }}</span>
+                <span class="mapping-target text-deemphasized">&rarr; {{ m.target }}</span>
+              </div>
+            </template>
+            <span
+              v-else
+              class="text-deemphasized"
+            >-</span>
+          </template>
+          <template #cell:actions="{ row }">
+            <rc-dropdown :aria-label="t('harvester.addons.vmMigration.reviewMigration.actions.menuLabel')">
+              <rc-dropdown-trigger
+                variant="ghost"
+                :aria-label="t('harvester.addons.vmMigration.reviewMigration.actions.menuLabel')"
+              >
+                <i class="icon icon-actions" />
+              </rc-dropdown-trigger>
+              <template #dropdownCollection>
+                <rc-dropdown-item @click="onEditMappings">
+                  {{ t('harvester.addons.vmMigration.reviewMigration.actions.editMappings') }}
+                </rc-dropdown-item>
+                <rc-dropdown-item
+                  class="text-error"
+                  @click="onRemoveVm(row.id)"
+                >
+                  {{ t('harvester.addons.vmMigration.reviewMigration.actions.removeFromPlan') }}
+                </rc-dropdown-item>
+              </template>
+            </rc-dropdown>
+          </template>
+        </SortableTable>
       </div>
-
-      <!-- Cold Migration Warning -->
-      <Banner
-        color="warning"
-        class="m-0"
-      >
-        <div>
-          <span class="banner-title">{{ t('harvester.addons.vmMigration.reviewMigration.warningTitle') }}</span><br>
-          {{ t('harvester.addons.vmMigration.reviewMigration.warningMessage') }}
-        </div>
-      </Banner>
 
       <!-- Error banner -->
       <Banner
@@ -390,89 +488,112 @@ defineExpose({ startMigration: startMigrationAction });
   }
 
   .name-row {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 12px;
-
-    .namespace-select {
-      max-width: 280px;
-      flex-shrink: 0;
-    }
-
-    .name-input {
-      flex: 1;
-    }
-  }
-
-  .details-grid {
     display: grid;
-    grid-template-columns: minmax(230px, 1fr) 1fr 1fr;
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 12px clamp(64px, 8vw, 128px);
-    line-height: 20px;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px clamp(12px, 1vw, 96px);
+    align-items: start;
   }
 
-  .detail-column {
+  .summary-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px clamp(12px, 1vw, 96px);
+    line-height: 20px;
+    margin-top: 12px;
+  }
+
+  .section-header {
     display: flex;
     flex-direction: column;
     gap: 4px;
 
-    &.grid-column-2 {
-        grid-column: span 2;
+    .section-description {
+      font-size: 14px;
     }
   }
 
-  .detail-item {
+  .migration-mode-column {
     display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 14px;
 
-    .detail-label {
-      font-size: 14px;
-      color: var(--muted);
-    }
-
-    .detail-value {
+    .cold-migration-badge {
+      padding: 2px 10px;
+      border-radius: 4px;
+      opacity: 0.8;
       font-weight: 600;
-      font-size: 14px;
+      background: rgba(224, 191, 90, 0.16);
+      color: #E0BF5A;
+      font-size: 12px;
+      line-height: 18px;
+      font-weight: 600;
 
-      &.detail-value-large {
-        font-size: 24px;
+      .theme-light & {
+        background: rgba(168, 128, 26, 0.16);
       }
     }
   }
 
-  .vm-cards-grid {
+  .stats-column {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-    gap: 16px;
+    grid-template-columns: auto auto;
+    justify-content: start;
+    align-content: start;
+    column-gap: clamp(24px, 4vw, 64px);
+    row-gap: 8px;
   }
 
-  .vm-card-content {
+  .detail-label {
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .detail-value {
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .edit-selection-link {
+    cursor: pointer;
+    color: var(--link);
+    font-size: 14px;
+  }
+
+  .vm-sortable-table {
+    :deep(td) {
+      vertical-align: middle;
+    }
+
+    :deep(th:first-child),
+    :deep(td:first-child) {
+      padding-left: 16px;
+    }
+  }
+
+  .vm-name-cell {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    line-height: 20px;
+
+    .vm-name {
+      font-weight: 600;
+    }
+
+    .vm-id {
+      font-size: 12px;
+    }
   }
 
-  .vm-card-specs {
-    display: flex;
-    flex-direction: row;
-    gap: 16px;
-    align-items: center;
-
-    .vm-os {
-      font-size: 14px;
+  .mapping-cell {
+    .mapping-target {
+      margin-left: 4px;
+      white-space: nowrap;
     }
+  }
 
-    .vm-resources {
-      font-size: 14px;
-      color: var(--muted);
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
+  .mapping-cell + .mapping-cell {
+    margin-top: 8px;
   }
 
   .banner-title {
