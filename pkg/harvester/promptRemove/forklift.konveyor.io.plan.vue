@@ -68,40 +68,28 @@ export default defineComponent({
       return (this.value || []).map((plan) => {
         const planName = plan?.metadata?.name || '-';
         const namespace = plan?.metadata?.namespace || '';
-        const networkMap = plan?.spec?.map?.network;
-        const storageMap = plan?.spec?.map?.storage;
-        const history = plan?.status?.migration?.history || [];
 
-        const migrationsMap = new Map();
+        const migrations = existing[HCI.FORKLIFT_MIGRATION]
+          .filter((resource) => this.ownedByPlan(resource, plan))
+          .map((resource) => ({
+            name:      resource?.metadata?.name,
+            namespace: resource?.metadata?.namespace || namespace,
+          }));
 
-        history
-          .map((entry) => ({
-            name:      entry?.migration?.name,
-            namespace: entry?.migration?.namespace || namespace,
-          }))
-          .filter((entry) => !!entry.name)
-          .forEach((entry) => {
-            const matched = existing[HCI.FORKLIFT_MIGRATION].find((resource) => resource?.metadata?.name === entry.name && resource?.metadata?.namespace === entry.namespace);
-
-            if (matched) {
-              migrationsMap.set(`${ entry.namespace }/${ entry.name }`, entry);
-            }
-          });
-
-        const matchedNetworkMap = networkMap?.name && existing[HCI.FORKLIFT_NETWORK_MAP].find((resource) => resource?.metadata?.name === networkMap.name && resource?.metadata?.namespace === (networkMap.namespace || namespace));
-        const matchedStorageMap = storageMap?.name && existing[HCI.FORKLIFT_STORAGE_MAP].find((resource) => resource?.metadata?.name === storageMap.name && resource?.metadata?.namespace === (storageMap.namespace || namespace));
+        const matchedNetworkMap = existing[HCI.FORKLIFT_NETWORK_MAP].find((resource) => this.ownedByPlan(resource, plan));
+        const matchedStorageMap = existing[HCI.FORKLIFT_STORAGE_MAP].find((resource) => this.ownedByPlan(resource, plan));
 
         return {
           planName,
           namespace,
-          migrations: [...migrationsMap.values()],
+          migrations,
           networkMap: matchedNetworkMap ? {
-            namespace: networkMap.namespace || namespace,
-            name:      networkMap.name,
+            namespace: matchedNetworkMap?.metadata?.namespace || namespace,
+            name:      matchedNetworkMap?.metadata?.name,
           } : null,
           storageMap: matchedStorageMap ? {
-            namespace: storageMap.namespace || namespace,
-            name:      storageMap.name,
+            namespace: matchedStorageMap?.metadata?.namespace || namespace,
+            name:      matchedStorageMap?.metadata?.name,
           } : null,
         };
       });
@@ -125,53 +113,57 @@ export default defineComponent({
   methods: {
     resourceNames,
 
+    /**
+     * Determine whether a related resource (migration / network map / storage map)
+     * is owned by the given plan by inspecting its `metadata.ownerReferences`.
+     * Matches on `kind: Plan` and the plan name; when both sides expose a uid it
+     * must match too, to disambiguate same-named plans.
+     */
+    ownedByPlan(resource, plan) {
+      const planName = plan?.metadata?.name;
+      const planUid = plan?.metadata?.uid;
+      const owners = resource?.metadata?.ownerReferences || [];
+
+      if (!planName) {
+        return false;
+      }
+
+      return owners.some((owner) => owner?.kind === 'Plan' &&
+        owner?.name === planName &&
+        (!planUid || !owner?.uid || owner.uid === planUid));
+    },
+
     buildDeleteTargets() {
+      const existing = this.existingRelatedResources;
       const targets = new Map();
 
+      const addTarget = (type, resource) => {
+        const name = resource?.metadata?.name;
+        const ns = resource?.metadata?.namespace;
+
+        if (!name) {
+          return;
+        }
+
+        const key = `${ type }|${ ns }|${ name }`;
+
+        targets.set(key, {
+          type, name, namespace: ns
+        });
+      };
+
       for (const plan of this.value || []) {
-        const namespace = plan?.metadata?.namespace || '';
-        const networkMap = plan?.spec?.map?.network;
-        const storageMap = plan?.spec?.map?.storage;
-        const history = plan?.status?.migration?.history || [];
+        existing[HCI.FORKLIFT_NETWORK_MAP]
+          .filter((resource) => this.ownedByPlan(resource, plan))
+          .forEach((resource) => addTarget(HCI.FORKLIFT_NETWORK_MAP, resource));
 
-        if (networkMap?.name) {
-          const ns = networkMap.namespace || namespace;
-          const key = `${ HCI.FORKLIFT_NETWORK_MAP }|${ ns }|${ networkMap.name }`;
+        existing[HCI.FORKLIFT_STORAGE_MAP]
+          .filter((resource) => this.ownedByPlan(resource, plan))
+          .forEach((resource) => addTarget(HCI.FORKLIFT_STORAGE_MAP, resource));
 
-          targets.set(key, {
-            type:      HCI.FORKLIFT_NETWORK_MAP,
-            name:      networkMap.name,
-            namespace: ns,
-          });
-        }
-
-        if (storageMap?.name) {
-          const ns = storageMap.namespace || namespace;
-          const key = `${ HCI.FORKLIFT_STORAGE_MAP }|${ ns }|${ storageMap.name }`;
-
-          targets.set(key, {
-            type:      HCI.FORKLIFT_STORAGE_MAP,
-            name:      storageMap.name,
-            namespace: ns,
-          });
-        }
-
-        for (const entry of history) {
-          const migrationName = entry?.migration?.name;
-
-          if (!migrationName) {
-            continue;
-          }
-
-          const migrationNs = entry?.migration?.namespace || namespace;
-          const key = `${ HCI.FORKLIFT_MIGRATION }|${ migrationNs }|${ migrationName }`;
-
-          targets.set(key, {
-            type:      HCI.FORKLIFT_MIGRATION,
-            name:      migrationName,
-            namespace: migrationNs,
-          });
-        }
+        existing[HCI.FORKLIFT_MIGRATION]
+          .filter((resource) => this.ownedByPlan(resource, plan))
+          .forEach((resource) => addTarget(HCI.FORKLIFT_MIGRATION, resource));
       }
 
       return [...targets.values()];
