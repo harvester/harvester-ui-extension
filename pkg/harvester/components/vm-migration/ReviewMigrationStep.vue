@@ -137,27 +137,28 @@ const vmHeaders = [
     value:    'name',
     sort:     ['name'],
     subLabel: t('harvester.addons.vmMigration.generic.identifier'),
+    width:    200,
   },
   {
     name:     'os',
     labelKey: 'harvester.addons.vmMigration.reviewMigration.columns.os',
     value:    'os',
     sort:     ['os'],
-    width:    180,
+    width:    140,
   },
   {
     name:     'resources',
     labelKey: 'harvester.addons.vmMigration.reviewMigration.columns.resources',
     value:    'resources',
     sort:     false,
-    width:    140,
+    width:    120,
   },
   {
     name:     'powerState',
     labelKey: 'harvester.addons.vmMigration.reviewMigration.columns.powerState',
     value:    'powerState',
     sort:     ['powerState'],
-    width:    130,
+    width:    100,
   },
   {
     name:     'networkMapping',
@@ -165,6 +166,7 @@ const vmHeaders = [
     value:    'networkMapping',
     sort:     ['networkMapping'],
     subLabel: t('harvester.addons.vmMigration.reviewMigration.columns.sourceTarget'),
+    width:    220,
   },
   {
     name:     'storageMapping',
@@ -172,6 +174,7 @@ const vmHeaders = [
     value:    'storageMapping',
     sort:     ['storageMapping'],
     subLabel: t('harvester.addons.vmMigration.reviewMigration.columns.sourceTarget'),
+    width:    220,
   },
   {
     name:  'actions',
@@ -577,8 +580,14 @@ defineExpose({ startMigration: startMigrationAction });
   }
 
   .vm-sortable-table {
+    :deep(table) {
+      table-layout: fixed;
+    }
+
     :deep(td) {
       vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     :deep(th:first-child),
