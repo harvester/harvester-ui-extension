@@ -179,8 +179,10 @@ const rows = computed(() => {
 
       overallProgress = Math.round(overallProgress * 10) / 10;
 
-      // If no step-level error but the plan itself is failed, surface it
-      if (!errorMsg && plan.planFailed) {
+      // If no step-level error but the plan itself is failed, surface it.
+      // Skip VMs that already reached 100% (they finished successfully before
+      // the plan failed) so their bar stays green instead of turning red.
+      if (!errorMsg && plan.planFailed && overallProgress < 100) {
         errorMsg = `${ currentStep || t('harvester.addons.vmMigration.dashboard.progress.migration') }: ${ t('harvester.addons.vmMigration.dashboard.progress.failed') }`;
       }
 
@@ -190,7 +192,11 @@ const rows = computed(() => {
       const cluster = routeParams.cluster || store.getters['clusterId'];
       const vmNameCandidates = [vm.targetName, vm.name, vm.id].filter(Boolean);
       const targetVm = allVMs.value.find((item) => vmNameCandidates.includes(item.metadata?.name) && (!vmNamespace || item.metadata?.namespace === vmNamespace));
-      const canNavigateToVm = overallProgress >= 100 && !errorMsg && !plan.planFailed && !plan.planCanceled && !!targetVm && !!product && !!cluster;
+      // A VM that individually reached 100% without error should be navigable
+      // even when the overall plan failed (other VMs in the plan may have
+      // failed); `overallProgress >= 100 && !errorMsg && targetVm` already
+      // guarantees this VM migrated successfully.
+      const canNavigateToVm = overallProgress >= 100 && !errorMsg && !plan.planCanceled && !!targetVm && !!product && !!cluster;
       const vmDetailLocation = canNavigateToVm ? {
         name:   `${ PRODUCT_NAME }-c-cluster-resource-namespace-id`,
         params: {

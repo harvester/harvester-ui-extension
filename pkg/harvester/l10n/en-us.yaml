@@ -1893,7 +1893,7 @@ harvester:
         providerSelect: Provider
         createNew: Create new provider
         requirementsTitle: Requirements
-        requirementsText: "To migrate virtual machines from VMware, you will need a vCenter Server running version 6.5 or higher with a user account that has at least read permissions, and the source environment must be network-accessible from Rancher."
+        requirementsText: "To migrate virtual machines from VMware, you will need a vCenter Server running version 6.5 or higher with a user account that has at least read permissions, and the source environment must be network-accessible from Harvester Node."
         name: Name
         urlLabel: vCenter/ESXi URL
         urlPlaceholder: "https://vcenter.example.com/sdk"
@@ -1965,7 +1965,7 @@ harvester:
         description: Map VMware networks and datastores to Harvester and Longhorn target resources
         save: Save Mappings and Continue
         noTemplate: Start from scratch
-        removeMap: Remove Map
+        removeMap: Remove mapping
         networkMapping:
           title: Network Mapping
           description: Map VMware port groups to Harvester networks
@@ -1977,7 +1977,7 @@ harvester:
         storageMapping:
           title: Storage Mapping
           description: Map VMware datastores to Harvester storage classes
-          placeholder: Choose a Longhorn Storage Volume
+          placeholder: Choose a Harvester Storage Class
           template: Use existing storage mapping as template
       reviewMigration:
         title: Review Migration Plan
