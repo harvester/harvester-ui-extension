@@ -1,5 +1,4 @@
 <script setup>
-import { computed } from 'vue';
 import { useStore } from 'vuex';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { RcItemCard } from '@components/RcItemCard';
@@ -18,8 +17,10 @@ const props = defineProps({
   clearable:   { type: Boolean, default: false },
 });
 
-const selectOptions = computed(() => {
-  if (!props.clearable) {
+// Only offer "Remove Map" for entries that already have a target selected;
+// entries without a selection just show the regular options.
+const optionsFor = (entry) => {
+  if (!props.clearable || !entry.target) {
     return props.options;
   }
 
@@ -34,14 +35,9 @@ const selectOptions = computed(() => {
       disabled: true,
       kind:     'divider',
     },
-    {
-      label:    `${ props.placeholder }:`,
-      disabled: true,
-      kind:     'title',
-    },
     ...props.options,
   ];
-});
+};
 </script>
 
 <template>
@@ -85,7 +81,7 @@ const selectOptions = computed(() => {
             <div class="mapping-target">
               <LabeledSelect
                 v-model:value="entry.target"
-                :options="selectOptions"
+                :options="optionsFor(entry)"
                 :placeholder="placeholder+'...'"
                 :searchable="true"
               />
