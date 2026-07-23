@@ -591,7 +591,6 @@ defineExpose({ startMigration: startMigrationAction });
     :deep(td) {
       vertical-align: middle;
       overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     :deep(th:first-child),
