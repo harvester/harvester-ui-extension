@@ -379,9 +379,9 @@ defineExpose({ startMigration: startMigrationAction });
           key-field="_key"
         >
           <template #header-left>
-            <h3 class="section-title m-0">
+            <h4 class="section-title m-0">
               {{ t('harvester.addons.vmMigration.reviewMigration.virtualMachines') }} ({{ vms.length }})
-            </h3>
+            </h4>
           </template>
           <template #header-right>
             <a
@@ -580,6 +580,10 @@ defineExpose({ startMigration: startMigrationAction });
   }
 
   .vm-sortable-table {
+    :deep(.fixed-header-actions) {
+      align-items: end;
+    }
+
     :deep(table) {
       table-layout: fixed;
     }
