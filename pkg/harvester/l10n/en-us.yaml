@@ -2000,6 +2000,8 @@ harvester:
         coldMigrationHint: Plan a maintenance window and notify relevant stakeholders before starting.
         virtualMachines: Virtual Machines
         editSelection: Edit selection
+        noVmSelected: "No VMs selected. Return to "
+        noVmSelectedLink: "Step 2 to select virtual machines."
         columns:
           vmName: VM Name
           os: Operating System

@@ -184,6 +184,11 @@ const onEditMappings = () => {
 const onRemoveVm = (id) => {
   selectedVMs.value = selectedVMs.value.filter((vm) => vm.id !== id);
   stepData.vms.selectedVMIds.delete(id);
+
+  vmsReady.value = selectedVMs.value.length > 0;
+  if (!vmsReady.value) {
+    reviewReady.value = false;
+  }
 };
 
 // Clear downstream data when provider changes

@@ -382,9 +382,9 @@ defineExpose({ startMigration: startMigrationAction });
           </template>
           <template #header-right>
             <a
-              role="button"
+              href="#"
               class="edit-selection-link"
-              @click="onEditSelection"
+              @click.prevent="onEditSelection"
             >
               {{ t('harvester.addons.vmMigration.reviewMigration.editSelection') }}
             </a>
@@ -457,6 +457,21 @@ defineExpose({ startMigration: startMigrationAction });
                 </rc-dropdown-item>
               </template>
             </rc-dropdown>
+          </template>
+          <template #no-rows>
+            <tr class="no-rows">
+              <td
+                :colspan="vmHeaders.length"
+                class="text-center"
+              >
+                {{ t('harvester.addons.vmMigration.reviewMigration.noVmSelected') }}
+                <a
+                  href="#"
+                  class="edit-selection-link"
+                  @click.prevent="onEditSelection"
+                >{{ t('harvester.addons.vmMigration.reviewMigration.noVmSelectedLink') }}</a>
+              </td>
+            </tr>
           </template>
         </SortableTable>
       </div>
