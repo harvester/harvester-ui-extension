@@ -173,6 +173,24 @@ const onReviewReady = (ready) => {
   reviewReady.value = ready;
 };
 
+const onEditSelection = () => {
+  wizardComponent.value?.goToStep(2);
+};
+
+const onEditMappings = () => {
+  wizardComponent.value?.goToStep(3);
+};
+
+const onRemoveVm = (id) => {
+  selectedVMs.value = selectedVMs.value.filter((vm) => vm.id !== id);
+  stepData.vms.selectedVMIds.delete(id);
+
+  vmsReady.value = selectedVMs.value.length > 0;
+  if (!vmsReady.value) {
+    reviewReady.value = false;
+  }
+};
+
 // Clear downstream data when provider changes
 watch(() => stepData.provider.providerName, (newVal, oldVal) => {
   if (oldVal && newVal !== oldVal) {
@@ -191,13 +209,13 @@ watch(() => stepData.provider.providerName, (newVal, oldVal) => {
   }
 });
 
-// Clear mappings and review when VM selection changes
+// Clear mappings and review when VMs are added to the selection. Pure removals
+// (e.g. "Remove from Plan" on the review step) keep the existing mappings and plan name.
 watch(selectedVMs, (newVal, oldVal) => {
-  const newIds = new Set(newVal.map((v) => v.id));
   const oldIds = new Set(oldVal.map((v) => v.id));
-  const changed = newIds.size !== oldIds.size || [...newIds].some((id) => !oldIds.has(id));
+  const added = newVal.some((v) => !oldIds.has(v.id));
 
-  if (oldVal.length > 0 && changed) {
+  if (oldVal.length > 0 && added) {
     stepData.mappings.networkEntries = [];
     stepData.mappings.storageEntries = [];
     mappingsReady.value = false;
@@ -290,6 +308,9 @@ const onCancel = () => {
         :mapping-entries="stepData.mappings"
         :step-data="stepData.review"
         @ready="onReviewReady"
+        @edit-selection="onEditSelection"
+        @edit-mappings="onEditMappings"
+        @remove-vm="onRemoveVm"
       />
     </template>
   </CruResource>
