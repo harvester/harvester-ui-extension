@@ -5,10 +5,12 @@ import LabelValue from '@shell/components/LabelValue';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import InputOrDisplay from '@shell/components/InputOrDisplay';
 import { Banner } from '@components/Banner';
+import { Checkbox } from '@components/Form/Checkbox';
 import { sortBy } from '@shell/utils/sort';
-import { PVC } from '@shell/config/types';
+import { PVC, STORAGE_CLASS, LONGHORN_DRIVER } from '@shell/config/types';
 import { _CREATE } from '@shell/config/query-params';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
+import { VOLUME_MODE } from '@pkg/harvester/config/types';
 import { HCI } from '../../../../types';
 import { VOLUME_TYPE, InterfaceOption } from '../../../../config/harvester-map';
 import { GIBIBYTE } from '../../../../utils/unit';
@@ -19,7 +21,7 @@ export default {
   emits: ['update'],
 
   components: {
-    UnitInput, LabeledInput, LabeledSelect, InputOrDisplay, LabelValue, Banner
+    UnitInput, LabeledInput, LabeledSelect, InputOrDisplay, LabelValue, Banner, Checkbox
   },
 
   props: {
@@ -94,6 +96,30 @@ export default {
       return this.allPVCs.find( (P) => P.metadata.name === this.value.volumeName );
     },
 
+    storageClasses() {
+      return this.$store.getters['harvester/all'](STORAGE_CLASS) || [];
+    },
+
+    isShareableCapable() {
+      const pvcSpec = this.pvcResource?.spec;
+
+      if (!pvcSpec) {
+        return false;
+      }
+
+      const isRWX = (pvcSpec.accessModes || []).includes('ReadWriteMany');
+      const isBlock = pvcSpec.volumeMode === VOLUME_MODE.BLOCK;
+      const storageClass = this.storageClasses.find((sc) => sc.name === pvcSpec.storageClassName);
+
+      // fail closed: without a resolved StorageClass the provisioner
+      // requirement cannot be evaluated
+      if (!storageClass) {
+        return false;
+      }
+
+      return isRWX && isBlock && storageClass.provisioner !== LONGHORN_DRIVER;
+    },
+
     volumeOption() {
       return sortBy(
         this.allPVCs
@@ -145,12 +171,20 @@ export default {
       this.value.size = pvcResource.spec.resources.requests.storage;
       this.value.storageClassName = pvcResource.spec.storageClassName;
       this.value.volumeMode = pvcResource.spec.volumeMode;
+      this.value.shareable = false;
       this.update();
     },
 
     'value.type'(neu) {
       if (neu === 'cd-rom') {
         this.value['bus'] = 'sata';
+        this.update();
+      }
+    },
+
+    isShareableCapable(neu) {
+      if (!neu && this.value.shareable) {
+        this.value.shareable = false;
         this.update();
       }
     },
@@ -302,6 +336,21 @@ export default {
             @update:value="update"
           />
         </InputOrDisplay>
+      </div>
+      <div
+        v-if="isShareableCapable"
+        data-testid="input-hee-shareable"
+        class="col span-6"
+      >
+        <Checkbox
+          v-model:value="value.shareable"
+          class="check"
+          type="checkbox"
+          label-key="harvester.virtualMachine.volume.shareable.label"
+          tooltip-key="harvester.virtualMachine.volume.shareable.tip"
+          :mode="mode"
+          @update:value="update"
+        />
       </div>
       <div
         v-if="value.volumeBackups"

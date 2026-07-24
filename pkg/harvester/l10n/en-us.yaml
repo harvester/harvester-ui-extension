@@ -798,6 +798,9 @@ harvester:
       setFirst: Set as root volume
       saveVolume: Update Volume
       encryption: Encryption
+      shareable:
+        label: Shareable
+        tip: Allow multiple virtual machines to attach and write to this volume simultaneously. The guest operating systems must coordinate writes (e.g. a cluster filesystem). Host cache and hypervisor disk locking are disabled.
       vmImageVolumeTip: Disk size ({diskSize}) should greater than selected image virtual size ({imageVirtualSize})
       lockTooltip:
         all: All volumes are encrypted.
