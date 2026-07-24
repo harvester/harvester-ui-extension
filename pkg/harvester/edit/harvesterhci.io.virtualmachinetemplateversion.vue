@@ -1,4 +1,5 @@
 <script>
+import jsyaml from 'js-yaml';
 import { mapGetters } from 'vuex';
 import Tabbed from '@shell/components/Tabbed';
 import Tab from '@shell/components/Tabbed/Tab';
@@ -177,7 +178,16 @@ export default {
     },
 
     async saveVMT(buttonCb) {
+      this.errors = [];
       this.parseVM();
+
+      this.validateCloudInit();
+
+      if (this.errors.length) {
+        buttonCb(false);
+
+        return;
+      }
 
       const templates = await this.$store.dispatch('harvester/findAll', { type: HCI.VM_TEMPLATE });
       const template = templates.find( (O) => O.metadata.name === this.templateValue.metadata.name);
@@ -235,6 +245,28 @@ export default {
     onTabChanged({ tab }) {
       if (tab.name === 'advanced') {
         this.$refs.yamlEditor?.refresh();
+      }
+    },
+
+    validateCloudInit() {
+      if (this.isWindows) {
+        return;
+      }
+
+      if (this.userScript) {
+        try {
+          jsyaml.load(this.userScript);
+        } catch (e) {
+          this.errors.push(this.t('harvester.virtualMachine.cloudConfig.user.invalidYaml'));
+        }
+      }
+
+      if (this.networkScript) {
+        try {
+          jsyaml.load(this.networkScript);
+        } catch (e) {
+          this.errors.push(this.t('harvester.virtualMachine.cloudConfig.network.invalidYaml'));
+        }
       }
     },
   },
