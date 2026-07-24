@@ -1984,6 +1984,8 @@ harvester:
         description: Confirm your migration settings before starting the transfer of VMs to the target cluster.
         planName: Name
         planNamePlaceholder: "e.g. my-migration-plan"
+        planNameProviderConflict: 'The name “{name}” is already used by an existing provider. Please input a different plan name.'
+        planNamePlanConflict: 'The name “{name}” is already used by an existing migration plan. Please input a different plan name.'
         migrationDetails: Migration Details
         migrationDetailsDescription: Name this plan and choose the namespace where migrated VMs will be created.
         totalVms: Total VMs
