@@ -35,6 +35,8 @@ const storageMappings = ref([]);
 const planName = ref('');
 const targetNamespace = ref('');
 const namespaceOptions = ref([]);
+const existingProviderNames = ref([]);
+const existingPlanNames = ref([]);
 const errors = ref([]);
 const loading = ref(true);
 
@@ -44,6 +46,24 @@ targetNamespace.value = props.stepData.targetNamespace || '';
 
 const NS = FORKLIFT_NAMESPACE;
 
+const nameConflictError = computed(() => {
+  const name = (planName.value || '').trim();
+
+  if (!name) {
+    return '';
+  }
+
+  if (existingProviderNames.value.includes(name)) {
+    return t('harvester.addons.vmMigration.reviewMigration.planNameProviderConflict', { name });
+  }
+
+  if (existingPlanNames.value.includes(name)) {
+    return t('harvester.addons.vmMigration.reviewMigration.planNamePlanConflict', { name });
+  }
+
+  return '';
+});
+
 watch(planName, (val) => {
   props.stepData.planName = val;
 }, { immediate: true });
@@ -52,8 +72,8 @@ watch(targetNamespace, (val) => {
   props.stepData.targetNamespace = val;
 });
 
-watch([planName, targetNamespace], ([name, namespace]) => {
-  emit('ready', !!name && !!namespace);
+watch([planName, targetNamespace, nameConflictError], () => {
+  emit('ready', !!planName.value && !!targetNamespace.value && !nameConflictError.value);
 }, { immediate: true });
 
 const formatNetworkTarget = (target = '') => {
@@ -282,6 +302,22 @@ const init = async() => {
     namespaceOptions.value = [];
   }
 
+  try {
+    await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_PROVIDER });
+  } catch (e) {}
+
+  existingProviderNames.value = (store.getters[`${ inStore }/all`](HCI.FORKLIFT_PROVIDER) || [])
+    .map((p) => p.metadata?.name)
+    .filter(Boolean);
+
+  try {
+    await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_PLAN });
+  } catch (e) {}
+
+  existingPlanNames.value = (store.getters[`${ inStore }/all`](HCI.FORKLIFT_PLAN) || [])
+    .map((p) => p.metadata?.name)
+    .filter(Boolean);
+
   if (props.mappingEntries) {
     networkMappings.value = (props.mappingEntries.networkEntries || []).map((entry) => ({
       source: entry.name || entry.id,
@@ -313,6 +349,12 @@ defineExpose({ startMigration: startMigrationAction });
     <div
       class="review-migration-content"
     >
+      <Banner
+        v-if="nameConflictError"
+        color="error"
+        :label="nameConflictError"
+      />
+
       <!-- Migration Details Summary -->
       <div class="migration-details">
         <div class="section-header">
