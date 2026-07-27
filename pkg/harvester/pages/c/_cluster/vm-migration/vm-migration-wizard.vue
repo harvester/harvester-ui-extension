@@ -41,6 +41,7 @@ const stepData = reactive({
     username:         '',
     password:         '',
     skipTlsVerify:    false,
+    vddkInitImage:    '',
     testPassed:       false,
     testResult:       null,
     testError:        null,
