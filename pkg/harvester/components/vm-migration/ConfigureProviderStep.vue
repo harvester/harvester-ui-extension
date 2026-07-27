@@ -131,7 +131,7 @@ watch(selectedProvider, (val) => {
 });
 
 // Reset test state when any field changes (only for create new)
-watch([providerName, url, username, password, vddkInitImage], () => {
+watch([providerName, url, username, password], () => {
   if (!isExistingProvider.value) {
     testPassed.value = false;
     testResult.value = null;
