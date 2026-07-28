@@ -2463,8 +2463,8 @@ typeLabel:
     }
   harvesterhci.io.host: |-
     {count, plural,
-      one { Host }
-      other { Hosts }
+      one { Andy Host }
+      other { Andy Hosts }
     }
   harvesterhci.io.networkattachmentdefinition: |-
     {count, plural,
