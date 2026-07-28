@@ -915,32 +915,30 @@ export default {
       }
 
       if (!disks.find( (D) => D.name === 'cloudinitdisk') && (this.userData || this.networkScript)) {
-        if (!this.isWindows) {
-          disks.push({
-            name: 'cloudinitdisk',
-            disk: { bus: 'virtio' }
-          });
+        disks.push({
+          name: 'cloudinitdisk',
+          disk: { bus: 'virtio' }
+        });
 
-          const userData = this.getUserData({ osType: this.osType, installAgent: this.installAgent });
-          const cloudinitdisk = {
-            name:             'cloudinitdisk',
-            cloudInitNoCloud: {}
-          };
+        const userData = this.getUserData({ osType: this.osType, installAgent: this.installAgent });
+        const cloudinitdisk = {
+          name:             'cloudinitdisk',
+          cloudInitNoCloud: {}
+        };
 
-          if (this.saveUserDataAsClearText) {
-            cloudinitdisk.cloudInitNoCloud.userData = userData;
-          } else {
-            cloudinitdisk.cloudInitNoCloud.secretRef = { name: this.secretName };
-          }
-
-          if (this.saveNetworkDataAsClearText) {
-            cloudinitdisk.cloudInitNoCloud.networkData = this.networkScript;
-          } else {
-            cloudinitdisk.cloudInitNoCloud.networkDataSecretRef = { name: this.secretName };
-          }
-
-          volumes.push(cloudinitdisk);
+        if (this.saveUserDataAsClearText) {
+          cloudinitdisk.cloudInitNoCloud.userData = userData;
+        } else {
+          cloudinitdisk.cloudInitNoCloud.secretRef = { name: this.secretName };
         }
+
+        if (this.saveNetworkDataAsClearText) {
+          cloudinitdisk.cloudInitNoCloud.networkData = this.networkScript;
+        } else {
+          cloudinitdisk.cloudInitNoCloud.networkDataSecretRef = { name: this.secretName };
+        }
+
+        volumes.push(cloudinitdisk);
       }
 
       const specDisks = this.spec?.template?.spec?.domain?.devices?.disks;
@@ -1142,6 +1140,16 @@ export default {
     },
 
     getInitUserData(config) {
+      // Windows guests don't use qemu-guest-agent via systemd (VMDP installs
+      // the QGA as a Windows service), and the Linux `runcmd` recipe would
+      // fail on Cloudbase-Init. Return an empty string so `this.userData`
+      // stays falsy on Windows until the user actually enters cloud-config
+      // content — this prevents emitting a spurious cloudinitdisk volume
+      // and Secret for every Windows VM (Copilot review comment on #984).
+      if (config.osType === 'windows') {
+        return '';
+      }
+
       const _QGA_JSON = this.getMatchQGA(config.osType);
 
       const out = jsyaml.dump(_QGA_JSON);
@@ -1344,13 +1352,22 @@ export default {
      */
     deleteYamlDocProp(doc, paths) {
       try {
-        const item = doc.getIn([])?.items[0];
-        const key = item?.key;
-        const hasCloudConfigComment = !!key?.commentBefore?.includes('cloud-config');
-        const isMatchProp = key.source === paths[paths.length - 1];
+        const items = doc.getIn([])?.items;
+        const firstKey = items?.[0]?.key;
+        const hasCloudConfigComment = !!firstKey?.commentBefore?.includes('cloud-config');
+        const isFirstProp = firstKey?.source === paths[paths.length - 1];
 
-        if (key && hasCloudConfigComment && isMatchProp) {
-          // Comments are mounted on the next node and we should not delete the node containing cloud-config
+        if (firstKey && hasCloudConfigComment && isFirstProp) {
+          const comment = firstKey.commentBefore;
+
+          doc.deleteIn(paths);
+
+          // Move the comment to the new first key; if no keys remain the comment is lost.
+          const newFirstKey = doc.getIn([])?.items?.[0]?.key;
+
+          if (newFirstKey) {
+            newFirstKey.commentBefore = comment;
+          }
         } else {
           doc.deleteIn(paths);
         }
@@ -1401,7 +1418,6 @@ export default {
       if (packages.length > 0) {
         userDataDoc.setIn(['packages'], packages);
       } else {
-        userDataDoc.setIn(['packages'], []); // It needs to be set empty first, as it is possible that cloud-init comments are mounted on this node
         this.deleteYamlDocProp(userDataDoc, ['packages']);
         this.deleteYamlDocProp(userDataDoc, ['package_update']);
       }
@@ -1416,7 +1432,7 @@ export default {
     },
 
     deleteQGA(config) {
-      const { osType, userDataDoc, deletePackage = false } = config;
+      const { osType, userDataDoc } = config;
 
       const userDataTemplateValue = this.$store.getters['harvester/byId'](CONFIG_MAP, this.userDataTemplateId)?.data?.cloudInit || '';
 
@@ -1424,6 +1440,15 @@ export default {
       const userDataJSON = YAML.parse(userDataYAML);
       const packages = userDataJSON?.packages || [];
       const runcmd = userDataJSON?.runcmd || [];
+
+      // Special handling of OS types.
+      let deletePackage = config.deletePackage ?? false;
+
+      switch (osType) {
+      case 'windows':
+        deletePackage = true;
+        break;
+      }
 
       if (Array.isArray(packages) && deletePackage) {
         const templateHasQGAPackage = this.convertToJson(userDataTemplateValue);
@@ -1450,7 +1475,6 @@ export default {
       if (packages.length > 0) {
         userDataDoc.setIn(['packages'], packages);
       } else {
-        userDataDoc.setIn(['packages'], []);
         this.deleteYamlDocProp(userDataDoc, ['packages']);
         this.deleteYamlDocProp(userDataDoc, ['package_update']);
       }
@@ -1483,7 +1507,7 @@ export default {
     },
 
     async saveSecret(vm) {
-      if (!vm?.spec || !this.secretName || this.isWindows) {
+      if (!vm?.spec || !this.secretName) {
         return true;
       }
 
@@ -1904,8 +1928,6 @@ export default {
     isWindows(val) {
       if (val) {
         this['sshKey'] = [];
-        this['userScript'] = undefined;
-        this['networkScript'] = undefined;
         this['installAgent'] = false;
       }
     },
@@ -1965,9 +1987,8 @@ export default {
 
     osType(neu, old) {
       this.installAgent = old === 'windows' ? true : this.installAgent;
-      const out = old === 'windows' ? this.getInitUserData({ osType: neu }) : this.getUserData({ installAgent: this.installAgent, osType: neu });
+      this.userScript = this.getUserData({ installAgent: this.installAgent, osType: neu });
 
-      this['userScript'] = out;
       this.refreshYamlEditor();
     },
 

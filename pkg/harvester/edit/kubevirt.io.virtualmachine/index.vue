@@ -1062,7 +1062,6 @@ export default {
         </div>
 
         <CloudConfig
-          v-if="!isWindows"
           ref="yamlEditor"
           :user-script="userScript"
           :mode="mode"
