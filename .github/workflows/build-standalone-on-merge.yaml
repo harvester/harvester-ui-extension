@@ -28,4 +28,8 @@ jobs:
       packages: write
       id-token: write
     with:
+<<<<<<< HEAD
       CI_BRANCH: ${{github.ref_name}}
+=======
+      CI_BRANCH: ${{ github.event_name == 'push' && github.ref_name || '' }}
+>>>>>>> 719c33f (ci: fix CI_BRANCH ternary so PR builds skip upload gate (#1062))
