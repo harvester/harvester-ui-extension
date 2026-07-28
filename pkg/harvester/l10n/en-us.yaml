@@ -2448,8 +2448,8 @@ advancedSettings:
 typeLabel:
   kubevirt.io.virtualmachine: |-
     {count, plural,
-      one { Virtual Machine }
-      other { Virtual Machines }
+      one { Andy Virtual Machine }
+      other { Andy Virtual Machines }
     }
   harvesterhci.io.virtualmachineimage: |-
     {count, plural,
