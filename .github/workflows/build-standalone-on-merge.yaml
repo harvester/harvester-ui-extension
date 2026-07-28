@@ -39,6 +39,9 @@ jobs:
       id-token: write
     with:
       # For PR-triggered runs github.ref_name is "<prNumber>/merge" (not a real
-      # branch), which breaks the upload gate. Leave CI_BRANCH empty for PRs so
-      # the gate is skipped; use the real branch name for push events.
-      CI_BRANCH: ${{ github.event_name == 'pull_request' && '' || github.ref_name }}
+      # branch), which breaks the upload gate. Only pass a branch for push
+      # events (github.ref_name is truthy there); PRs get '' so the gate skips.
+      # Note: the A && B || C ternary requires B to be truthy, so the push
+      # branch must be on the && side (an empty string on the && side would
+      # always fall through to C).
+      CI_BRANCH: ${{ github.event_name == 'push' && github.ref_name || '' }}
