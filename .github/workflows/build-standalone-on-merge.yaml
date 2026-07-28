@@ -41,4 +41,4 @@ jobs:
       # For PR-triggered runs github.ref_name is "<prNumber>/merge" (not a real
       # branch), which breaks the upload gate. Leave CI_BRANCH empty for PRs so
       # the gate is skipped; use the real branch name for push events.
-      CI_BRANCH: ${{ github.event_name == 'pull_request' && '' || github.ref_name }}
+      CI_BRANCH: ${{ github.event_name == 'push' && github.ref_name || '' }}
