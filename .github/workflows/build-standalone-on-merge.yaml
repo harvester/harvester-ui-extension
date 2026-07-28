@@ -13,13 +13,23 @@ on:
       - '*-dev'
     types:
       - merged
+      - labeled
 
 jobs:
   build-validation:
     name: Build Test
+    # allow triggering when a PR is labeled with "build-artifact"
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.action != 'labeled' ||
+      github.event.label.name == 'build-artifact'
     uses: ./.github/workflows/run-lint.yaml
   build:
     name: Build and Upload Package
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.action != 'labeled' ||
+      github.event.label.name == 'build-artifact'
     uses: ./.github/workflows/build-and-publish-standalone.yaml
     needs:
       - build-validation
@@ -28,4 +38,7 @@ jobs:
       packages: write
       id-token: write
     with:
-      CI_BRANCH: ${{github.ref_name}}
+      # For PR-triggered runs github.ref_name is "<prNumber>/merge" (not a real
+      # branch), which breaks the upload gate. Leave CI_BRANCH empty for PRs so
+      # the gate is skipped; use the real branch name for push events.
+      CI_BRANCH: ${{ github.event_name == 'pull_request' && '' || github.ref_name }}
