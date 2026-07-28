@@ -46,6 +46,7 @@ const stepData = reactive({
     username:         '',
     password:         '',
     skipTlsVerify:    false,
+    vddkInitImage:    '',
     testPassed:       false,
     testResult:       null,
     testError:        null,
@@ -193,6 +194,7 @@ const init = async() => {
     stepData.provider.selectedProvider = fetchedProvider.metadata.name;
     stepData.provider.providerName = fetchedProvider.metadata.name;
     stepData.provider.url = fetchedProvider.spec?.url || '';
+    stepData.provider.vddkInitImage = fetchedProvider.spec?.settings?.vddkInitImage || '';
     stepData.provider.createdProvider = fetchedProvider;
 
     const secretRef = fetchedProvider.spec?.secret;

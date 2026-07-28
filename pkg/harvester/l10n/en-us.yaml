@@ -1898,6 +1898,9 @@ harvester:
         urlLabel: vCenter/ESXi URL
         urlPlaceholder: "https://vcenter.example.com/sdk"
         urlHint: Enter the full URL including https://
+        vddkImageLabel: VMware VDDK Image
+        vddkImagePlaceholder: "[your-private-registry]/vddk-image:latest"
+        vddkImageTooltip: Specify the VMware VDDK (Virtual Disk Development Kit) Image to accelerate and optimize VMware virtual machine migration.
         skipSsl: Skip SSL certificate verification
         skipSslHint: Not recommended for production environments
         testConnection:
