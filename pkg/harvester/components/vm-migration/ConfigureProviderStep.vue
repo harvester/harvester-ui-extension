@@ -42,6 +42,7 @@ const {
   username,
   password,
   skipTlsVerify,
+  vddkInitImage,
   testPassed,
   testResult,
   testError,
@@ -97,6 +98,7 @@ watch(selectedProvider, (val) => {
     username.value = '';
     password.value = '';
     skipTlsVerify.value = false;
+    vddkInitImage.value = '';
     createdProvider.value = null;
     createdSecret.value = null;
   } else {
@@ -107,6 +109,7 @@ watch(selectedProvider, (val) => {
     if (provider) {
       providerName.value = provider.metadata.name;
       url.value = provider.spec?.url || '';
+      vddkInitImage.value = provider.spec?.settings?.vddkInitImage || '';
 
       const secretRef = provider.spec?.secret;
 
@@ -239,6 +242,18 @@ const testConnection = async(buttonCb) => {
   if (props.editMode && createdProvider.value) {
     try {
       createdProvider.value.spec.url = url.value;
+
+      const vddkImage = vddkInitImage.value?.trim();
+
+      if (vddkImage) {
+        createdProvider.value.spec.settings = {
+          ...(createdProvider.value.spec.settings || {}),
+          vddkInitImage: vddkImage,
+        };
+      } else if (createdProvider.value.spec.settings) {
+        delete createdProvider.value.spec.settings.vddkInitImage;
+      }
+
       await createdProvider.value.save();
 
       const secretRef = createdProvider.value.spec?.secret;
@@ -283,20 +298,28 @@ const testConnection = async(buttonCb) => {
     const namespace = FORKLIFT_NAMESPACE;
     const secretName = `${ providerName.value }-creds-${ randomStr(4).toLowerCase() }`;
 
+    const spec = {
+      type:   'vsphere',
+      url:    url.value,
+      secret: {
+        name: secretName,
+        namespace,
+      },
+    };
+
+    const vddkImage = vddkInitImage.value?.trim();
+
+    if (vddkImage) {
+      spec.settings = { vddkInitImage: vddkImage };
+    }
+
     const provider = await store.dispatch(`${ inStore }/create`, {
       type:     HCI.FORKLIFT_PROVIDER,
       metadata: {
         name: providerName.value,
         namespace,
       },
-      spec: {
-        type:   'vsphere',
-        url:    url.value,
-        secret: {
-          name: secretName,
-          namespace,
-        },
-      }
+      spec,
     });
 
     await provider.save();
@@ -420,17 +443,28 @@ defineExpose({ testConnection, clickTestButton });
           />
         </div>
 
-        <div>
-          <LabeledInput
-            v-model:value="url"
-            :label="t('harvester.addons.vmMigration.configureProvider.urlLabel')"
-            :placeholder="t('harvester.addons.vmMigration.configureProvider.urlPlaceholder')"
-            :disabled="isExistingProvider && !editMode"
-            required
-          />
-          <p class="text-deemphasized mt-5">
-            {{ t('harvester.addons.vmMigration.configureProvider.urlHint') }}
-          </p>
+        <div class="row">
+          <div class="col span-6">
+            <LabeledInput
+              v-model:value="url"
+              :label="t('harvester.addons.vmMigration.configureProvider.urlLabel')"
+              :placeholder="t('harvester.addons.vmMigration.configureProvider.urlPlaceholder')"
+              :disabled="isExistingProvider && !editMode"
+              required
+            />
+            <p class="text-deemphasized mt-5">
+              {{ t('harvester.addons.vmMigration.configureProvider.urlHint') }}
+            </p>
+          </div>
+          <div class="col span-6">
+            <LabeledInput
+              v-model:value="vddkInitImage"
+              :label="t('harvester.addons.vmMigration.configureProvider.vddkImageLabel')"
+              :placeholder="t('harvester.addons.vmMigration.configureProvider.vddkImagePlaceholder')"
+              :tooltip="t('harvester.addons.vmMigration.configureProvider.vddkImageTooltip')"
+              :disabled="isExistingProvider && !editMode"
+            />
+          </div>
         </div>
 
         <div class="row">
