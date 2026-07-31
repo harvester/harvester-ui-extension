@@ -132,16 +132,28 @@ export default {
 </script>
 
 <template>
-  <div v-if="showIP">
-    <span
+  <div
+    v-if="showIP"
+    class="ip-list"
+  >
+    <div
       v-for="{ ip, name, isCustom } in ips"
       :key="`${ip}-${name}`"
+      class="ip-item"
     >
       <CopyToClipboardText
         v-clean-tooltip="isCustom ? t('harvester.formatters.harvesterIpAddress.customIpTooltip') : name"
         :text="ip"
         :plain="isCustom"
       />
-    </span>
+    </div>
   </div>
 </template>
+
+<style lang="scss" scoped>
+.ip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+</style>
