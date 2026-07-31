@@ -791,17 +791,40 @@ export default {
       }
 
       const staticIpPrefix = `${ HCI_ANNOTATIONS.STATIC_IP }/`;
+      const annotations = vm.metadata.annotations;
 
-      Object.keys(vm.metadata.annotations).forEach((key) => {
-        if (key.startsWith(staticIpPrefix)) {
-          delete vm.metadata.annotations[key];
-        }
-      });
+      const desired = {};
 
       this.networkRows.forEach((row) => {
         if (row.name && row.staticIp) {
-          vm.metadata.annotations[`${ staticIpPrefix }${ row.name }`] = row.staticIp;
+          desired[`${ staticIpPrefix }${ row.name }`] = row.staticIp;
         }
+      });
+
+      const current = {};
+
+      Object.keys(annotations).forEach((key) => {
+        if (key.startsWith(staticIpPrefix)) {
+          current[key] = annotations[key];
+        }
+      });
+
+      // Skip mutation when already in sync to avoid triggering a reactive update loop.
+      const desiredKeys = Object.keys(desired);
+      const currentKeys = Object.keys(current);
+      const isSame = desiredKeys.length === currentKeys.length &&
+        desiredKeys.every((key) => current[key] === desired[key]);
+
+      if (isSame) {
+        return;
+      }
+
+      currentKeys.forEach((key) => {
+        delete annotations[key];
+      });
+
+      Object.entries(desired).forEach(([key, value]) => {
+        annotations[key] = value;
       });
     },
 
