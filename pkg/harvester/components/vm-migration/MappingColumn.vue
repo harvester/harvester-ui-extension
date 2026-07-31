@@ -108,7 +108,7 @@ const formatModes = (entry) => {
               <div class="storage-defaults-info">
                 <span class="storage-defaults-summary">{{ formatModes(entry) }}</span>
                 <span
-                  v-if="inheritedProviderName && !entry.overridden"
+                  v-if="inheritedProviderName && entry.inheritedFromProvider && !entry.overridden"
                   class="text-deemphasized storage-defaults-inherited"
                 >
                   {{ t('harvester.addons.vmMigration.storageDefaults.inherited', { provider: inheritedProviderName }) }}
