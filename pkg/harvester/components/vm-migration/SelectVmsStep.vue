@@ -94,7 +94,7 @@ const showSelectAllBanner = computed(() => {
 
 const theadElement = computed(() => sortableTableRef.value?.$el?.querySelector('thead'));
 
-const headers = [
+const headers = ref([
   {
     name:     'vmName',
     labelKey: 'harvester.addons.vmMigration.selectVms.columns.vmName',
@@ -139,7 +139,7 @@ const headers = [
     subLabel: t('harvester.addons.vmMigration.generic.identifier'),
     width:    200,
   },
-];
+]);
 
 const buildTableRows = () => {
   return discoveredVMs.value.map((vm) => {
@@ -190,6 +190,7 @@ const buildTableRows = () => {
     return {
       _original:        vm,
       _key:             vm.id || vm.vmId || vm.metadata?.name,
+      selectedSort:     selectedVMIds.value.has(vm.id) ? 0 : 1,
       vmName:           vm.name || vm.metadata?.name || '-',
       vmId:             vm.id || vm.vmId || vm.metadata?.name || '-',
       os:               vm.guestName || vm.guestOS || vm.os || '-',
@@ -239,6 +240,29 @@ const clearSelection = () => {
 
     if (table) {
       table.clearSelection();
+    }
+  });
+};
+
+// Re-sorts the table so currently-selected VMs appear on the first pages.
+const showSelectedFirst = () => {
+  if (selectedVMIds.value.size === 0) {
+    return;
+  }
+
+  tableRows.value.forEach((row) => {
+    row.selectedSort = selectedVMIds.value.has(row._original?.id) ? 0 : 1;
+  });
+
+  headers.value = headers.value.map((h) => (
+    h.name === 'vmName' ? { ...h, sort: ['selectedSort', 'vmName'] } : h
+  ));
+
+  nextTick(() => {
+    const table = sortableTableRef.value;
+
+    if (table) {
+      table.page = 1;
     }
   });
 };
@@ -450,7 +474,24 @@ init();
           <h3 class="m-0">
             {{ t('harvester.addons.vmMigration.selectVms.availableVms') }}
           </h3>
-          <span class="text-deemphasized">{{ selectedCount }} {{ t('harvester.addons.vmMigration.selectVms.selected') }}</span>
+          <span class="selected-actions">
+            <a
+              role="button"
+              :class="{ disabled: selectedCount === 0 }"
+              @click.prevent="showSelectedFirst"
+            >
+              {{ selectedCount }} {{ t('harvester.addons.vmMigration.selectVms.selected') }}
+            </a>
+            <template v-if="selectedCount > 0">
+              <span class="text-deemphasized">|</span>
+              <a
+                role="button"
+                @click.prevent="clearSelection"
+              >
+                {{ t('harvester.addons.vmMigration.selectVms.clearAll') }}
+              </a>
+            </template>
+          </span>
         </div>
       </template>
       <template #cell:vmName="{ row }">
@@ -466,7 +507,7 @@ init();
       <template #cell:powerState="{ row }">
         <BadgeState
           :label="row.powerState"
-          :color="row.powerStateClass === 'power-on' ? 'bg-warning' : 'bg-darker'"
+          :color="row.powerStateClass === 'power-on' ? 'bg-success' : 'bg-darker'"
         />
       </template>
       <template #cell:network="{ row }">
@@ -532,6 +573,23 @@ init();
   .vm-table-title {
     .text-deemphasized {
       font-size: 13px;
+    }
+
+    .selected-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+
+      a {
+        cursor: pointer;
+
+        &.disabled {
+          color: var(--muted);
+          cursor: default;
+          pointer-events: none;
+        }
+      }
     }
   }
 

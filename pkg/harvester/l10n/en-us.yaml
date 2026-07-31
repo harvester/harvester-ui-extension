@@ -1922,6 +1922,7 @@ harvester:
         refreshNow: Refresh now
         availableVms: Available Virtual Machines
         selected: selected
+        clearAll: Clear All
         saveSelection: Save Selection and Continue
         selectAllBanner:
           pageOnly: "Your current selection includes only VMs currently shown on the page."
