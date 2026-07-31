@@ -8,14 +8,20 @@ const store = useStore();
 const { t } = useI18n(store);
 
 const props = defineProps({
-  title:       { type: String, required: true },
-  description: { type: String, default: '' },
-  entries:     { type: Array, default: () => [] },
-  options:     { type: Array, default: () => [] },
-  placeholder: { type: String, default: '' },
-  showUsedBy:  { type: Boolean, default: false },
-  clearable:   { type: Boolean, default: false },
+  title:                 { type: String, required: true },
+  description:           { type: String, default: '' },
+  entries:               { type: Array, default: () => [] },
+  options:               { type: Array, default: () => [] },
+  placeholder:           { type: String, default: '' },
+  showUsedBy:            { type: Boolean, default: false },
+  clearable:             { type: Boolean, default: false },
+  // Storage-specific: show the volume/access mode defaults row with an Edit action.
+  showVolumeSettings:    { type: Boolean, default: false },
+  // When set, the defaults row shows an "Inherited from provider" hint (migration plan wizard only).
+  inheritedProviderName: { type: String, default: '' },
 });
+
+const emit = defineEmits(['edit-defaults']);
 
 // Only offer "Remove Map" for entries that already have a target selected;
 // entries without a selection just show the regular options.
@@ -37,6 +43,13 @@ const optionsFor = (entry) => {
     },
     ...props.options,
   ];
+};
+
+const formatModes = (entry) => {
+  const volumeMode = entry.volumeMode || 'Filesystem';
+  const accessModes = (entry.accessModes || []).join(', ');
+
+  return t('harvester.addons.vmMigration.storageDefaults.summary', { volumeMode, accessModes });
 };
 </script>
 
@@ -85,6 +98,29 @@ const optionsFor = (entry) => {
                 :placeholder="placeholder+'...'"
                 :searchable="true"
               />
+            </div>
+          </div>
+          <div
+            v-if="showVolumeSettings && entry.target"
+            class="storage-defaults-row"
+          >
+            <div class="storage-defaults">
+              <div class="storage-defaults-info">
+                <span class="storage-defaults-summary">{{ formatModes(entry) }}</span>
+                <span
+                  v-if="inheritedProviderName && !entry.overridden"
+                  class="text-deemphasized storage-defaults-inherited"
+                >
+                  {{ t('harvester.addons.vmMigration.storageDefaults.inherited', { provider: inheritedProviderName }) }}
+                </span>
+              </div>
+              <a
+                role="button"
+                class="storage-defaults-edit"
+                @click.prevent="emit('edit-defaults', entry)"
+              >
+                {{ t('harvester.addons.vmMigration.storageDefaults.edit') }}
+              </a>
             </div>
           </div>
           <div v-if="showUsedBy && entry.usedBy && entry.usedBy.length">
@@ -171,6 +207,41 @@ const optionsFor = (entry) => {
 
   .line-height-20 {
     line-height: 20px;
+  }
+
+  .storage-defaults-row {
+    width: 100%;
+  }
+
+  .storage-defaults {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background-color: var(--body-bg);
+
+    .storage-defaults-info {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .storage-defaults-summary {
+      font-size: 13px;
+      line-height: 20px;
+    }
+
+    .storage-defaults-inherited {
+      font-size: 12px;
+      line-height: 18px;
+    }
+
+    .storage-defaults-edit {
+      flex-shrink: 0;
+      cursor: pointer;
+    }
   }
 
   .bg-light-gray {

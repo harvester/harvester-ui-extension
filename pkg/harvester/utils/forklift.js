@@ -73,8 +73,21 @@ export function buildNetworkMapEntries(entries = [], defaultNamespace) {
 export function buildStorageMapEntries(entries = []) {
   return entries
     .filter((entry) => !!entry.target)
-    .map((entry) => ({
-      source:      { name: entry.name, id: entry.id },
-      destination: { storageClass: entry.target },
-    }));
+    .map((entry) => {
+      const destination = { storageClass: entry.target };
+
+      if (entry.volumeMode) {
+        destination.volumeMode = entry.volumeMode;
+      }
+
+      // Forklift StorageMap destination expects a single `accessMode` value.
+      if (Array.isArray(entry.accessModes) && entry.accessModes.length) {
+        destination.accessMode = entry.accessModes[0];
+      }
+
+      return {
+        source: { name: entry.name, id: entry.id },
+        destination,
+      };
+    });
 }
