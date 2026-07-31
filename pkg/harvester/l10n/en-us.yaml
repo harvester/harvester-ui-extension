@@ -781,6 +781,10 @@ harvester:
       setFirst: Set as root volume
       saveVolume: Update Volume
       encryption: Encryption
+      shareable:
+        label: Shareable
+        tip: Allow multiple virtual machines to attach and write to this volume simultaneously.
+        warning: Multiple virtual machines can write to this volume at the same time. The guest workloads must coordinate access to the shared block device, otherwise concurrent writes will corrupt the data. Workloads that fence through SCSI-3 Persistent Reservations (e.g. Windows Server Failover Clustering) also require persistent reservation support from the storage backend. Host cache and hypervisor disk locking are disabled, and backup or snapshot operations are rejected while the volume is shareable.
       vmImageVolumeTip: Disk size ({diskSize}) should greater than selected image virtual size ({imageVirtualSize})
       lockTooltip:
         all: All volumes are encrypted.
