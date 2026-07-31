@@ -6,6 +6,7 @@ on:
       - main
       - 'release-harvester-v*'
       - '*-dev'
+      - forklift_access_volume_mode_demo
   pull_request:
     branches:
       - main
