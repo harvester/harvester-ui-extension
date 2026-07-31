@@ -5,6 +5,7 @@ import CruResource from '@shell/components/CruResource';
 import Loading from '@shell/components/Loading';
 import { SECRET } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
+import { exceptionToErrorsArray, stringify } from '@shell/utils/error';
 import ConfigureProviderStep from '@pkg/harvester/components/vm-migration/ConfigureProviderStep.vue';
 import ConfigureMappingsStep from '@pkg/harvester/components/vm-migration/ConfigureMappingsStep.vue';
 import { PRODUCT_NAME } from '@pkg/harvester/config/harvester';
@@ -163,7 +164,7 @@ const onFinish = async(buttonCb) => {
     buttonCb(true);
     currentRouter().push(providerListLocation);
   } catch (err) {
-    errors.value = [err instanceof Error ? err.message : String(err)];
+    errors.value = exceptionToErrorsArray(err).map((e) => (typeof e === 'string' ? e : stringify(e)));
     buttonCb(false);
   }
 };
@@ -233,7 +234,7 @@ const init = async() => {
       // Maps may not exist yet
     }
   } catch (err) {
-    errors.value = [t('harvester.addons.vmMigration.errors.failedLoadProvider', { error: err.message || err })];
+    errors.value = [t('harvester.addons.vmMigration.errors.failedLoadProvider', { error: err.message || stringify(err) })];
   }
 
   initialLoading.value = false;
