@@ -126,6 +126,10 @@ const applyStorageMapTargets = (mapSpec, { markOverridden = false, captureInheri
     if (match?.destination?.storageClass) {
       entry.target = match.destination.storageClass;
 
+      if (captureInherited) {
+        entry.inheritedFromProvider = true;
+      }
+
       if (match.destination.volumeMode) {
         entry.volumeMode = match.destination.volumeMode;
 
@@ -252,18 +256,19 @@ const buildStorageEntries = () => {
         if (ds && ds.id) {
           if (!datastoreMap[ds.id]) {
             datastoreMap[ds.id] = {
-              name:                 ds.name || t('harvester.addons.vmMigration.generic.unknown'),
-              id:                   ds.id,
-              type:                 ds.type || '',
-              capacity:             0,
-              target:               '',
-              volumeMode:           DEFAULT_VOLUME_MODE,
-              accessModes:          [...DEFAULT_ACCESS_MODES],
-              inheritedVolumeMode:  DEFAULT_VOLUME_MODE,
-              inheritedAccessModes: [...DEFAULT_ACCESS_MODES],
-              overridden:           false,
-              usedBy:               [],
-              _key:                 `stor-${ ds.id }`,
+              name:                  ds.name || t('harvester.addons.vmMigration.generic.unknown'),
+              id:                    ds.id,
+              type:                  ds.type || '',
+              capacity:              0,
+              target:                '',
+              volumeMode:            DEFAULT_VOLUME_MODE,
+              accessModes:           [...DEFAULT_ACCESS_MODES],
+              inheritedVolumeMode:   DEFAULT_VOLUME_MODE,
+              inheritedAccessModes:  [...DEFAULT_ACCESS_MODES],
+              inheritedFromProvider: false,
+              overridden:            false,
+              usedBy:                [],
+              _key:                  `stor-${ ds.id }`,
             };
           }
 
@@ -293,18 +298,19 @@ const buildNetworkEntriesFromProvider = (networksData) => {
 
 const buildStorageEntriesFromProvider = (datastoresData) => {
   storageEntries.value = (Array.isArray(datastoresData) ? datastoresData : []).map((ds) => ({
-    name:                 ds.name || ds.id,
-    id:                   ds.id || '',
-    type:                 ds.type || '',
-    capacity:             ds.capacity || 0,
-    target:               '',
-    volumeMode:           DEFAULT_VOLUME_MODE,
-    accessModes:          [...DEFAULT_ACCESS_MODES],
-    inheritedVolumeMode:  DEFAULT_VOLUME_MODE,
-    inheritedAccessModes: [...DEFAULT_ACCESS_MODES],
-    overridden:           false,
-    usedBy:               [],
-    _key:                 `stor-${ ds.id || ds.name }`,
+    name:                  ds.name || ds.id,
+    id:                    ds.id || '',
+    type:                  ds.type || '',
+    capacity:              ds.capacity || 0,
+    target:                '',
+    volumeMode:            DEFAULT_VOLUME_MODE,
+    accessModes:           [...DEFAULT_ACCESS_MODES],
+    inheritedVolumeMode:   DEFAULT_VOLUME_MODE,
+    inheritedAccessModes:  [...DEFAULT_ACCESS_MODES],
+    inheritedFromProvider: false,
+    overridden:            false,
+    usedBy:                [],
+    _key:                  `stor-${ ds.id || ds.name }`,
   }));
 };
 

@@ -136,6 +136,7 @@ const cancel = () => {
 
   .storage-defaults-card {
     margin: 0;
+    padding: 20px;
   }
 
   .description {

@@ -25,8 +25,9 @@ const { discoveredVMs, selectedVMIds, tableRows } = toRefs(props.stepData);
 
 const selectedVMs = ref([]);
 const loading = ref(true);
-const networkMap = ref({});
-const datastoreMap = ref({});
+// Restored from stepData so friendly names survive step navigation / remount.
+const networkMap = ref(props.stepData.networkMap || {});
+const datastoreMap = ref(props.stepData.datastoreMap || {});
 const sortableTableRef = ref(null);
 const allVMsSelected = ref(false);
 const errors = ref([]);
@@ -240,12 +241,22 @@ const clearSelection = () => {
 
     if (table) {
       table.clearSelection();
+
+      if (typeof table.setPage === 'function') {
+        table.setPage(1);
+      }
     }
   });
 };
 
-// Re-sorts the table so currently-selected VMs appear on the first pages.
-const showSelectedFirst = () => {
+const selectAllVMs = () => {
+  allVMsSelected.value = true;
+  selectedVMIds.value = new Set(discoveredVMs.value.map((vm) => vm.id));
+  selectedVMs.value = discoveredVMs.value.slice();
+};
+
+// Moves currently-selected VMs to the first page(s) and re-checks them.
+const sortSelectedToFront = () => {
   if (selectedVMIds.value.size === 0) {
     return;
   }
@@ -258,19 +269,33 @@ const showSelectedFirst = () => {
     h.name === 'vmName' ? { ...h, sort: ['selectedSort', 'vmName'] } : h
   ));
 
+  skipNextSelectionEvent = true;
+
   nextTick(() => {
     const table = sortableTableRef.value;
 
-    if (table) {
-      table.page = 1;
-    }
-  });
-};
+    if (!table) {
+      skipNextSelectionEvent = false;
 
-const selectAllVMs = () => {
-  allVMsSelected.value = true;
-  selectedVMIds.value = new Set(discoveredVMs.value.map((vm) => vm.id));
-  selectedVMs.value = discoveredVMs.value.slice();
+      return;
+    }
+
+    if (typeof table.changeSort === 'function') {
+      table.changeSort('vmName', false);
+    } else if (typeof table.setPage === 'function') {
+      table.setPage(1);
+    }
+
+    nextTick(() => {
+      const rowsToReselect = (table.pagedRows || []).filter((row) => selectedVMIds.value.has(row._original?.id));
+
+      if (rowsToReselect.length > 0) {
+        table.update(rowsToReselect, []);
+      }
+
+      skipNextSelectionEvent = false;
+    });
+  });
 };
 
 watch(
@@ -342,6 +367,9 @@ const fetchVMs = async() => {
     return map;
   }, {});
 
+  props.stepData.networkMap = networkMap.value;
+  props.stepData.datastoreMap = datastoreMap.value;
+
   lastFetchedAt.value = Date.now();
   tableRows.value = buildTableRows();
 };
@@ -397,6 +425,10 @@ const init = async() => {
     }
     tableRows.value = buildTableRows();
     loading.value = false;
+
+    // Returning to the step with an existing selection: bring selected VMs forward and re-check them.
+    await nextTick();
+    sortSelectedToFront();
 
     return;
   }
@@ -465,7 +497,6 @@ init();
       :row-actions="false"
       :groupable="false"
       :paging="true"
-      :rows-per-page="20"
       key-field="_key"
       @selection="onSelect"
     >
@@ -475,13 +506,9 @@ init();
             {{ t('harvester.addons.vmMigration.selectVms.availableVms') }}
           </h3>
           <span class="selected-actions">
-            <a
-              role="button"
-              :class="{ disabled: selectedCount === 0 }"
-              @click.prevent="showSelectedFirst"
-            >
+            <span class="text-deemphasized">
               {{ selectedCount }} {{ t('harvester.addons.vmMigration.selectVms.selected') }}
-            </a>
+            </span>
             <template v-if="selectedCount > 0">
               <span class="text-deemphasized">|</span>
               <a
