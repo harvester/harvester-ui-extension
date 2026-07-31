@@ -5,18 +5,19 @@ import { Card } from '@components/Card';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import AppModal from '@shell/components/AppModal';
 import { useI18n } from '@shell/composables/useI18n';
+import { VOLUME_MODE, ACCESS_MODE } from '../../config/types';
 
-const VOLUME_MODE_OPTIONS = ['Filesystem', 'Block'];
-const ACCESS_MODE_OPTIONS = ['ReadWriteOnce', 'ReadWriteMany', 'ReadOnlyMany'];
+const VOLUME_MODE_OPTIONS = [VOLUME_MODE.FILE_SYSTEM, VOLUME_MODE.BLOCK];
+const ACCESS_MODE_OPTIONS = [ACCESS_MODE.READ_WRITE_ONCE, ACCESS_MODE.READ_WRITE_MANY, ACCESS_MODE.READ_ONLY_MANY];
 
 const props = defineProps({
   storageClassName:     { type: String, default: '' },
   providerName:         { type: String, default: '' },
   showInherited:        { type: Boolean, default: false },
-  volumeMode:           { type: String, default: 'Filesystem' },
-  accessModes:          { type: Array, default: () => ['ReadWriteMany'] },
-  inheritedVolumeMode:  { type: String, default: 'Filesystem' },
-  inheritedAccessModes: { type: Array, default: () => ['ReadWriteMany'] },
+  volumeMode:           { type: String, default: VOLUME_MODE.FILE_SYSTEM },
+  accessModes:          { type: Array, default: () => [ACCESS_MODE.READ_WRITE_MANY] },
+  inheritedVolumeMode:  { type: String, default: VOLUME_MODE.FILE_SYSTEM },
+  inheritedAccessModes: { type: Array, default: () => [ACCESS_MODE.READ_WRITE_MANY] },
 });
 
 const emit = defineEmits(['apply', 'close']);
@@ -24,8 +25,8 @@ const emit = defineEmits(['apply', 'close']);
 const store = useStore();
 const { t } = useI18n(store);
 
-const localVolumeMode = ref(props.volumeMode || 'Filesystem');
-const localAccessMode = ref(props.accessModes?.[0] || 'ReadWriteMany');
+const localVolumeMode = ref(props.volumeMode || VOLUME_MODE.FILE_SYSTEM);
+const localAccessMode = ref(props.accessModes?.[0] || ACCESS_MODE.READ_WRITE_MANY);
 
 const volumeModeOptions = VOLUME_MODE_OPTIONS.map((value) => ({ label: value, value }));
 const accessModeOptions = ACCESS_MODE_OPTIONS.map((value) => ({ label: value, value }));
@@ -40,8 +41,8 @@ const apply = () => {
 
 // Repopulate the dropdowns with the provider default values; the user then applies.
 const reset = () => {
-  localVolumeMode.value = props.inheritedVolumeMode || 'Filesystem';
-  localAccessMode.value = props.inheritedAccessModes?.[0] || 'ReadWriteMany';
+  localVolumeMode.value = props.inheritedVolumeMode || VOLUME_MODE.FILE_SYSTEM;
+  localAccessMode.value = props.inheritedAccessModes?.[0] || ACCESS_MODE.READ_WRITE_MANY;
 };
 
 const cancel = () => {

@@ -7,14 +7,15 @@ import { STORAGE_CLASS, NETWORK_ATTACHMENT } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
 import { randomStr } from '@shell/utils/string';
 import { HCI } from '../../types';
+import { VOLUME_MODE, ACCESS_MODE } from '../../config/types';
 import { FORKLIFT_NAMESPACE } from '../../config/harvester-map';
 import { buildNetworkMapEntries, buildStorageMapEntries } from '../../utils/forklift';
 import { isInternalStorageClass } from '../../utils/storage-class';
 import MappingColumn from './MappingColumn.vue';
 import StorageDefaultsModal from './StorageDefaultsModal.vue';
 
-const DEFAULT_VOLUME_MODE = 'Filesystem';
-const DEFAULT_ACCESS_MODES = ['ReadWriteMany'];
+const DEFAULT_VOLUME_MODE = VOLUME_MODE.FILE_SYSTEM;
+const DEFAULT_ACCESS_MODES = [ACCESS_MODE.READ_WRITE_MANY];
 
 const props = defineProps({
   providerName:       { type: String, default: '' },
@@ -190,7 +191,12 @@ const applyStorageDefaults = ({ volumeMode, accessModes }) => {
   if (editingStorageEntry.value) {
     editingStorageEntry.value.volumeMode = volumeMode;
     editingStorageEntry.value.accessModes = accessModes;
-    editingStorageEntry.value.overridden = true;
+
+    const inheritedVolumeMode = editingStorageEntry.value.inheritedVolumeMode;
+    const inheritedAccessMode = editingStorageEntry.value.inheritedAccessModes?.[0];
+    const selectedAccessMode = accessModes?.[0];
+
+    editingStorageEntry.value.overridden = volumeMode !== inheritedVolumeMode || selectedAccessMode !== inheritedAccessMode;
   }
 };
 

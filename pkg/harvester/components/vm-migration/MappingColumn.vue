@@ -3,6 +3,7 @@ import { useStore } from 'vuex';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { RcItemCard } from '@components/RcItemCard';
 import { useI18n } from '@shell/composables/useI18n';
+import { VOLUME_MODE } from '../../config/types';
 
 const store = useStore();
 const { t } = useI18n(store);
@@ -46,7 +47,7 @@ const optionsFor = (entry) => {
 };
 
 const formatModes = (entry) => {
-  const volumeMode = entry.volumeMode || 'Filesystem';
+  const volumeMode = entry.volumeMode || VOLUME_MODE.FILE_SYSTEM;
   const accessModes = (entry.accessModes || []).join(', ');
 
   return t('harvester.addons.vmMigration.storageDefaults.summary', { volumeMode, accessModes });

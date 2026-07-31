@@ -1987,7 +1987,7 @@ harvester:
         title: 'Storage defaults — {name}'
         description: 'Set the volume mode and access modes applied to every datastore in this storage map that maps to {name}.'
         descriptionInherited: 'Applies to every datastore in this storage map that maps to {name}. The provider default for {provider} stays unchanged.'
-        summary: 'Volume mode : {volumeMode} · Access mode : {accessModes}'
+        summary: 'Volume mode: {volumeMode} · Access mode: {accessModes}'
         inherited: 'Inherited from provider {provider}'
         volumeMode: Volume Mode
         accessMode: Access Mode
