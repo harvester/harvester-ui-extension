@@ -38,16 +38,32 @@ export default {
 </script>
 
 <template>
-  <Loading v-if="$fetchState.pending" />
-  <SerialConsole
-    v-else
-    ref="serialConsole"
-    v-model:value="vmi"
-  />
+  <div class="serial-console-page">
+    <Loading v-if="$fetchState.pending" />
+    <SerialConsole
+      v-else
+      ref="serialConsole"
+      v-model:value="vmi"
+    />
+  </div>
 </template>
 
-<style lang="scss" scoped>
-  body, #__nuxt, #__layout, main {
+<style lang="scss">
+  html,
+  body,
+  #__nuxt,
+  #__layout,
+  main {
     height: 100%;
+  }
+
+  .serial-console-page {
+    position: fixed;
+    inset: 0;
+    min-height: 0;
+
+    .harvester-shell-container {
+      height: 100%;
+    }
   }
 </style>

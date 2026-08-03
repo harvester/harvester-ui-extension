@@ -55,6 +55,10 @@ export default {
       const host = window.location.host;
       const prefix = window.location.pathname.replace(this.$route.path, '');
       const params = this.$route?.params;
+      const popupWidth = Math.max(800, screen.width - 200);
+      const popupHeight = Math.max(600, screen.height - 200);
+      const popupLeft = Math.max(0, window.screenX + Math.floor((window.outerWidth - popupWidth) / 2));
+      const popupTop = Math.max(0, window.screenY + Math.floor((window.outerHeight - popupHeight) / 2));
 
       const url = `https://${ host }${ prefix }/${ PRODUCT_NAME }/c/${ params.cluster }/console/${ uid }/${ type }`;
 
@@ -63,7 +67,7 @@ export default {
         window.open(
           url,
           '_blank',
-          `toolbars=0,width=${ screen.width - 200 },height=${ screen.height - 200 },left=0,top=0,noreferrer`
+          `toolbars=0,width=${ popupWidth },height=${ popupHeight },left=${ popupLeft },top=${ popupTop },noreferrer`
         );
       });
     },

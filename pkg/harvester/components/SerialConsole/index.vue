@@ -1,7 +1,6 @@
 <script>
 import { allHash } from '@shell/utils/promise';
 import debounce from 'lodash/debounce';
-
 import Socket, {
   EVENT_CONNECTED,
   EVENT_CONNECTING,
@@ -24,14 +23,17 @@ export default {
     return {
       socket:      null,
       terminal:    null,
+      textDecoder: null,
       fitAddon:    null,
       searchAddon: null,
       webglAddon:  null,
+      onResize:    null,
       isOpen:      false,
       isOpening:   false,
       backlog:     [],
       firstTime:   true,
-      queue:       []
+      queue:       [],
+      isDraining:  false,
     };
   },
 
@@ -40,29 +42,14 @@ export default {
       return {
         allowProposedApi: true,
         cursorBlink:      true,
+        cursorStyle:      'bar',
+        cursorWidth:      2,
         useStyle:         true,
-        fontSize:         12,
+        fontFamily:       'JetBrains Mono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+        fontSize:         16,
+        lineHeight:       1.3,
       };
     },
-  },
-
-  watch: {
-    queue: {
-      handler: debounce(async function(neu) {
-        if (neu.length === 0) {
-          return;
-        }
-
-        const msg = await Promise.all(neu);
-
-        (msg || []).forEach((m) => {
-          this.terminal.write(m);
-        });
-
-        this.queue = [];
-      }, 10),
-      deep: true
-    }
   },
 
   beforeUnmount() {
@@ -70,8 +57,12 @@ export default {
   },
 
   async mounted() {
+    this.textDecoder = new TextDecoder('utf-8');
     await this.setupTerminal();
     await this.connect();
+    this.onResize = debounce(() => this.fit(), 100);
+    window.addEventListener('resize', this.onResize);
+    this.scheduleFit();
   },
 
   methods: {
@@ -84,12 +75,13 @@ export default {
         webgl:    import(/* webpackChunkName: "xterm" */ '@xterm/addon-webgl'),
         weblinks: import(/* webpackChunkName: "xterm" */ '@xterm/addon-web-links'),
         search:   import(/* webpackChunkName: "xterm" */ '@xterm/addon-search'),
+        canvas:   import(/* webpackChunkName: "xterm" */ '@xterm/addon-canvas'),
       });
 
       const terminal = new xterm.Terminal({
         theme: {
           background: docStyle.getPropertyValue('--terminal-bg').trim(),
-          cursor:     docStyle.getPropertyValue('--terminal-cursor').trim(),
+          cursor:     docStyle.getPropertyValue('--terminal-text').trim(),
           foreground: docStyle.getPropertyValue('--terminal-text').trim()
         },
         ...this.xtermConfig,
@@ -97,34 +89,43 @@ export default {
 
       this.fitAddon = new addons.fit.FitAddon();
       this.searchAddon = new addons.search.SearchAddon();
-
-      // if user is using Safari with webGPU disabled, webglAddon will silently fail
-      // and we do not have a way to detect that.
-      // To avoid it, default to DOM rendering for Safari browsers
-      try {
-        const ua = window.navigator.userAgent.toLowerCase();
-        const isSafari = ua.includes('safari') &&
-           !ua.includes('crios') && // Chrome iOS
-           !ua.includes('fxios') && // Firefox iOS
-           !ua.includes('edgios') && // Edge iOS
-           !ua.includes('opr'); // Opera
-
-        if (!isSafari) {
-          this.webglAddon = new addons.webgl.WebglAddon();
-          terminal.loadAddon(this.webglAddon);
-        }
-      } catch (e) {
-        // Some browsers (Safari) don't support the webgl renderer, so don't use it.
-        this.webglAddon = null;
-      }
-
       terminal.loadAddon(this.fitAddon);
       terminal.loadAddon(this.searchAddon);
       terminal.loadAddon(new addons.weblinks.WebLinksAddon());
       terminal.open(this.$refs.xterm);
 
-      if ( this.webglAddon ) {
+      // The webgl renderer can fail without throwing: the context may be lost
+      // mid-session, or it can attach but silently never paint, leaving the
+      // terminal's helper textarea at 0x0. Detect both cases and fall back to the
+      // canvas renderer so the terminal stays interactive.
+      try {
+        this.webglAddon = new addons.webgl.WebglAddon();
+
+        this.webglAddon.onContextLoss(() => {
+          if (!this.isUnmounted && this.terminal) {
+            this.fallbackToCanvas(terminal, addons);
+          }
+        });
+
         terminal.loadAddon(this.webglAddon);
+
+        // Detect the silent "attaches but never paints" failure after a render frame.
+        requestAnimationFrame(() => {
+          if (this.isUnmounted || !this.terminal) {
+            return;
+          }
+
+          const textarea = this.$refs.xterm?.querySelector('.xterm-helper-textarea');
+          const hasPainted = textarea && textarea.getBoundingClientRect().height > 0;
+
+          if (this.webglAddon && !hasPainted) {
+            this.fallbackToCanvas(terminal, addons);
+            this.fit();
+          }
+        });
+      } catch (e) {
+        // Some browsers (e.g. Safari) don't support the webgl renderer, so don't use it.
+        this.fallbackToCanvas(terminal, addons);
       }
 
       this.fit();
@@ -139,6 +140,34 @@ export default {
       this.terminal = terminal;
     },
 
+    scheduleFit() {
+      this.$nextTick(() => {
+        requestAnimationFrame(() => {
+          this.fit();
+
+          // Re-fit after layout settles to avoid undersized rows on first paint.
+          setTimeout(() => this.fit(), 120);
+        });
+      });
+    },
+
+    // Dispose the webgl renderer (if any) and switch to the canvas renderer.
+    // Used when webgl fails to construct, loses its context, or silently never paints.
+    fallbackToCanvas(terminal, addons) {
+      if (this.isUnmounted) {
+        return;
+      }
+
+      this.webglAddon?.dispose();
+      this.webglAddon = null;
+
+      if (!this.canvasAddon) {
+        this.canvasAddon = new addons.canvas.CanvasAddon();
+        terminal.loadAddon(this.canvasAddon);
+      }
+      this.fit();
+    },
+
     str2ab(str) {
       const enc = new TextEncoder();
 
@@ -150,6 +179,71 @@ export default {
         this.socket.send(msg);
       } else {
         this.backlog.push(msg);
+      }
+    },
+
+    enqueueMessage(messagePromise) {
+      this.queue.push(messagePromise);
+      this.drainQueue();
+    },
+
+    async decodeMessageData(data) {
+      if (typeof data === 'string') {
+        return data;
+      }
+
+      if (!this.textDecoder) {
+        this.textDecoder = new TextDecoder('utf-8');
+      }
+
+      if (data instanceof Blob) {
+        const buffer = await data.arrayBuffer();
+
+        return this.textDecoder.decode(new Uint8Array(buffer), { stream: true });
+      }
+
+      if (data instanceof ArrayBuffer) {
+        return this.textDecoder.decode(new Uint8Array(data), { stream: true });
+      }
+
+      if (ArrayBuffer.isView(data)) {
+        const view = data;
+        const bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+
+        return this.textDecoder.decode(bytes, { stream: true });
+      }
+
+      return String(data || '');
+    },
+
+    async drainQueue() {
+      if (this.isDraining || !this.terminal) {
+        return;
+      }
+
+      this.isDraining = true;
+
+      try {
+        while (this.queue.length > 0) {
+          const pendingMessages = this.queue.splice(0, this.queue.length);
+          const settledMessages = await Promise.allSettled(pendingMessages);
+          const messages = settledMessages
+            .filter((result) => result.status === 'fulfilled')
+            .map((result) => result.value);
+          const output = messages.filter(Boolean).join('');
+
+          if (output) {
+            this.terminal.write(output);
+          }
+        }
+      } finally {
+        this.isDraining = false;
+
+        // If data arrived between the last while-check and releasing the lock,
+        // immediately schedule another drain so output never gets stuck.
+        if (this.queue.length > 0 && this.terminal) {
+          this.drainQueue();
+        }
       }
     },
 
@@ -194,6 +288,7 @@ export default {
           this.fit();
           this.flush();
         }
+        this.scheduleFit();
 
         if (this.firstTime) {
           this.socket.send(this.str2ab('\n'));
@@ -208,7 +303,7 @@ export default {
       });
 
       this.socket.addEventListener(EVENT_MESSAGE, (e) => {
-        this.queue.push(e.detail.data.text());
+        this.enqueueMessage(this.decodeMessageData(e.detail.data));
       });
 
       this.socket.connect();
@@ -231,22 +326,14 @@ export default {
       }
 
       this.fitAddon.fit();
-
-      const { rows, cols } = this.fitAddon.proposeDimensions();
-
-      if ( !this.isOpen ) {
-        return;
-      }
-
-      const message = JSON.stringify({
-        Width:  cols,
-        Height: rows
-      });
-
-      this.socket.send(this.str2ab(message));
     },
 
     close() {
+      if (this.onResize) {
+        window.removeEventListener('resize', this.onResize);
+        this.onResize = null;
+      }
+
       if ( this.socket ) {
         this.socket.disconnect();
       }
@@ -277,10 +364,25 @@ export default {
   }
 
   .harvester-shell-container {
+    display: flex;
+    flex-direction: column;
     height: 100%;
+    min-height: 0;
     overflow: hidden;
 
-    .shell-body, .terminal.xterm {
+    .resize-observer {
+      display: none;
+    }
+
+    .shell-body {
+      flex: 1 1 auto;
+      height: 100%;
+      min-height: 0;
+      padding: 0 10px;
+      box-sizing: border-box;
+    }
+
+    .terminal.xterm {
       height: 100%;
     }
   }
