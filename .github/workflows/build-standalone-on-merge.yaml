@@ -6,6 +6,7 @@ on:
       - main
       - 'release-harvester-v*'
       - '*-dev'
+      - bump_shell_rc7_demo
   pull_request:
     branches:
       - main
