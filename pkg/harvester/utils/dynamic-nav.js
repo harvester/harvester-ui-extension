@@ -24,13 +24,14 @@ export function registerAddonSideNav(store, productName, {
   const kickSideNav = () => {
     const TRIGGER = 'ui.refresh.trigger';
 
-    store.dispatch('type-map/addFavorite', TRIGGER);
-
-    // SideNav component seem to ignore rapid state changes.
-    // Wait 600ms to ensure the toggle event triggers a re-render.
-    setTimeout(() => {
-      store.dispatch('type-map/removeFavorite', TRIGGER);
-    }, 600);
+    // Toggle the trigger a few times so an early kick (fired before the SideNav
+    // has mounted on first login) is retried once the component is listening.
+    [0, 600, 1500].forEach((delay) => {
+      setTimeout(() => {
+        store.dispatch('type-map/addFavorite', TRIGGER);
+        setTimeout(() => store.dispatch('type-map/removeFavorite', TRIGGER), 300);
+      }, delay);
+    });
   };
 
   const hasAccessibleSchema = (t) => {
@@ -92,16 +93,25 @@ export function registerAddonSideNav(store, productName, {
         // Store is ready. Stop polling.
         clearInterval(waitForStore);
 
-        // Watch the specific addon resource for changes to its enabled status.
+        // Watch the addon's enabled status together with the schema availability
+        // of the gated types. Schemas (e.g. forklift CRDs) can load after the
+        // addon is already enabled, so the watcher must also re-run when they
+        // become accessible; otherwise the menu never updates until a refresh.
         store.watch(
           (state, getters) => {
             const addons = getters[`${ productName }/all`](resourceType);
             const addon = addons.find((a) => a.metadata.name === addonName);
+            const isEnabled = addon?.spec?.enabled === true;
 
-            return addon?.spec?.enabled === true;
+            const schemaReady = requireSchema ? types.every(hasAccessibleSchema) : true;
+
+            return `${ isEnabled }:${ schemaReady }`;
           },
-          (isEnabled) => {
-            setMenuVisibility(isEnabled);
+          () => {
+            const addons = store.getters[`${ productName }/all`](resourceType);
+            const addon = addons.find((a) => a.metadata.name === addonName);
+
+            setMenuVisibility(addon?.spec?.enabled === true);
           },
           { immediate: true, deep: true }
         );
