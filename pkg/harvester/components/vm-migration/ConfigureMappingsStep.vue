@@ -7,10 +7,15 @@ import { STORAGE_CLASS, NETWORK_ATTACHMENT } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
 import { randomStr } from '@shell/utils/string';
 import { HCI } from '../../types';
+import { VOLUME_MODE, ACCESS_MODE } from '../../config/types';
 import { FORKLIFT_NAMESPACE } from '../../config/harvester-map';
 import { buildNetworkMapEntries, buildStorageMapEntries } from '../../utils/forklift';
 import { isInternalStorageClass } from '../../utils/storage-class';
 import MappingColumn from './MappingColumn.vue';
+import StorageDefaultsModal from './StorageDefaultsModal.vue';
+
+const DEFAULT_VOLUME_MODE = VOLUME_MODE.FILE_SYSTEM;
+const DEFAULT_ACCESS_MODES = [ACCESS_MODE.READ_WRITE_MANY];
 
 const props = defineProps({
   providerName:       { type: String, default: '' },
@@ -34,6 +39,10 @@ const allNetworkMaps = ref([]);
 const allStorageMaps = ref([]);
 const errors = ref([]);
 const loading = ref(true);
+
+// Storage defaults edit modal state.
+const showStorageDefaultsModal = ref(false);
+const editingStorageEntry = ref(null);
 
 const { networkEntries, storageEntries } = toRefs(props.stepData);
 
@@ -105,7 +114,7 @@ const applyNetworkMapTargets = (mapSpec) => {
   });
 };
 
-const applyStorageMapTargets = (mapSpec) => {
+const applyStorageMapTargets = (mapSpec, { markOverridden = false, captureInherited = false } = {}) => {
   if (!mapSpec) {
     return;
   }
@@ -117,6 +126,30 @@ const applyStorageMapTargets = (mapSpec) => {
 
     if (match?.destination?.storageClass) {
       entry.target = match.destination.storageClass;
+
+      if (captureInherited) {
+        entry.inheritedFromProvider = true;
+      }
+
+      if (match.destination.volumeMode) {
+        entry.volumeMode = match.destination.volumeMode;
+
+        if (captureInherited) {
+          entry.inheritedVolumeMode = match.destination.volumeMode;
+        }
+      }
+
+      if (match.destination.accessMode) {
+        entry.accessModes = [match.destination.accessMode];
+
+        if (captureInherited) {
+          entry.inheritedAccessModes = [match.destination.accessMode];
+        }
+      }
+
+      if (markOverridden) {
+        entry.overridden = true;
+      }
     }
   });
 };
@@ -134,11 +167,38 @@ const applyDefaultStorageMap = () => {
     (sm) => sm.metadata.name === `${ props.providerName }-storage-map-default`
   );
 
-  applyStorageMapTargets(defaultMap?.spec?.map);
+  applyStorageMapTargets(defaultMap?.spec?.map, { captureInherited: true });
 };
 
 const allNetworksMapped = computed(() => networkEntries.value.length > 0 && networkEntries.value.every((e) => !!e.target));
 const allStorageMapped = computed(() => storageEntries.value.length > 0 && storageEntries.value.every((e) => !!e.target));
+
+// The "Inherited from provider" hint only appears in the migration plan wizard
+// (where mappings inherit from the provider default), not on the provider creation page.
+const inheritedProviderName = computed(() => (props.useAllProviderData ? '' : props.providerName));
+
+const openStorageDefaults = (entry) => {
+  editingStorageEntry.value = entry;
+  showStorageDefaultsModal.value = true;
+};
+
+const closeStorageDefaults = () => {
+  showStorageDefaultsModal.value = false;
+  editingStorageEntry.value = null;
+};
+
+const applyStorageDefaults = ({ volumeMode, accessModes }) => {
+  if (editingStorageEntry.value) {
+    editingStorageEntry.value.volumeMode = volumeMode;
+    editingStorageEntry.value.accessModes = accessModes;
+
+    const inheritedVolumeMode = editingStorageEntry.value.inheritedVolumeMode;
+    const inheritedAccessMode = editingStorageEntry.value.inheritedAccessModes?.[0];
+    const selectedAccessMode = accessModes?.[0];
+
+    editingStorageEntry.value.overridden = volumeMode !== inheritedVolumeMode || selectedAccessMode !== inheritedAccessMode;
+  }
+};
 
 const canSave = computed(() => {
   if (props.useAllProviderData) {
@@ -202,13 +262,19 @@ const buildStorageEntries = () => {
         if (ds && ds.id) {
           if (!datastoreMap[ds.id]) {
             datastoreMap[ds.id] = {
-              name:     ds.name || t('harvester.addons.vmMigration.generic.unknown'),
-              id:       ds.id,
-              type:     ds.type || '',
-              capacity: 0,
-              target:   '',
-              usedBy:   [],
-              _key:     `stor-${ ds.id }`,
+              name:                  ds.name || t('harvester.addons.vmMigration.generic.unknown'),
+              id:                    ds.id,
+              type:                  ds.type || '',
+              capacity:              0,
+              target:                '',
+              volumeMode:            DEFAULT_VOLUME_MODE,
+              accessModes:           [...DEFAULT_ACCESS_MODES],
+              inheritedVolumeMode:   DEFAULT_VOLUME_MODE,
+              inheritedAccessModes:  [...DEFAULT_ACCESS_MODES],
+              inheritedFromProvider: false,
+              overridden:            false,
+              usedBy:                [],
+              _key:                  `stor-${ ds.id }`,
             };
           }
 
@@ -238,13 +304,19 @@ const buildNetworkEntriesFromProvider = (networksData) => {
 
 const buildStorageEntriesFromProvider = (datastoresData) => {
   storageEntries.value = (Array.isArray(datastoresData) ? datastoresData : []).map((ds) => ({
-    name:     ds.name || ds.id,
-    id:       ds.id || '',
-    type:     ds.type || '',
-    capacity: ds.capacity || 0,
-    target:   '',
-    usedBy:   [],
-    _key:     `stor-${ ds.id || ds.name }`,
+    name:                  ds.name || ds.id,
+    id:                    ds.id || '',
+    type:                  ds.type || '',
+    capacity:              ds.capacity || 0,
+    target:                '',
+    volumeMode:            DEFAULT_VOLUME_MODE,
+    accessModes:           [...DEFAULT_ACCESS_MODES],
+    inheritedVolumeMode:   DEFAULT_VOLUME_MODE,
+    inheritedAccessModes:  [...DEFAULT_ACCESS_MODES],
+    inheritedFromProvider: false,
+    overridden:            false,
+    usedBy:                [],
+    _key:                  `stor-${ ds.id || ds.name }`,
   }));
 };
 
@@ -461,7 +533,7 @@ const init = async() => {
 
   if (!hasExistingStorageTargets) {
     if (props.existingStorageMap?.spec?.map) {
-      applyStorageMapTargets(props.existingStorageMap.spec.map);
+      applyStorageMapTargets(props.existingStorageMap.spec.map, { markOverridden: true });
     } else {
       applyDefaultStorageMap();
     }
@@ -511,6 +583,9 @@ init();
         :placeholder="t('harvester.addons.vmMigration.configureMappings.storageMapping.placeholder')"
         :show-used-by="!useAllProviderData"
         :clearable="useAllProviderData"
+        :show-volume-settings="true"
+        :inherited-provider-name="inheritedProviderName"
+        @edit-defaults="openStorageDefaults"
       >
         <template #source-detail="{ entry }">
           <span
@@ -520,6 +595,19 @@ init();
         </template>
       </MappingColumn>
     </div>
+
+    <StorageDefaultsModal
+      v-if="showStorageDefaultsModal && editingStorageEntry"
+      :storage-class-name="editingStorageEntry.target"
+      :provider-name="providerName"
+      :show-inherited="!!inheritedProviderName"
+      :volume-mode="editingStorageEntry.volumeMode"
+      :access-modes="editingStorageEntry.accessModes"
+      :inherited-volume-mode="editingStorageEntry.inheritedVolumeMode"
+      :inherited-access-modes="editingStorageEntry.inheritedAccessModes"
+      @apply="applyStorageDefaults"
+      @close="closeStorageDefaults"
+    />
   </div>
 </template>
 

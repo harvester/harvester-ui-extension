@@ -25,8 +25,9 @@ const { discoveredVMs, selectedVMIds, tableRows } = toRefs(props.stepData);
 
 const selectedVMs = ref([]);
 const loading = ref(true);
-const networkMap = ref({});
-const datastoreMap = ref({});
+// Restored from stepData so friendly names survive step navigation / remount.
+const networkMap = ref(props.stepData.networkMap || {});
+const datastoreMap = ref(props.stepData.datastoreMap || {});
 const sortableTableRef = ref(null);
 const allVMsSelected = ref(false);
 const errors = ref([]);
@@ -94,7 +95,7 @@ const showSelectAllBanner = computed(() => {
 
 const theadElement = computed(() => sortableTableRef.value?.$el?.querySelector('thead'));
 
-const headers = [
+const headers = ref([
   {
     name:     'vmName',
     labelKey: 'harvester.addons.vmMigration.selectVms.columns.vmName',
@@ -139,7 +140,7 @@ const headers = [
     subLabel: t('harvester.addons.vmMigration.generic.identifier'),
     width:    200,
   },
-];
+]);
 
 const buildTableRows = () => {
   return discoveredVMs.value.map((vm) => {
@@ -190,6 +191,7 @@ const buildTableRows = () => {
     return {
       _original:        vm,
       _key:             vm.id || vm.vmId || vm.metadata?.name,
+      selectedSort:     selectedVMIds.value.has(vm.id) ? 0 : 1,
       vmName:           vm.name || vm.metadata?.name || '-',
       vmId:             vm.id || vm.vmId || vm.metadata?.name || '-',
       os:               vm.guestName || vm.guestOS || vm.os || '-',
@@ -239,6 +241,10 @@ const clearSelection = () => {
 
     if (table) {
       table.clearSelection();
+
+      if (typeof table.setPage === 'function') {
+        table.setPage(1);
+      }
     }
   });
 };
@@ -247,6 +253,49 @@ const selectAllVMs = () => {
   allVMsSelected.value = true;
   selectedVMIds.value = new Set(discoveredVMs.value.map((vm) => vm.id));
   selectedVMs.value = discoveredVMs.value.slice();
+};
+
+// Moves currently-selected VMs to the first page(s) and re-checks them.
+const sortSelectedToFront = () => {
+  if (selectedVMIds.value.size === 0) {
+    return;
+  }
+
+  tableRows.value.forEach((row) => {
+    row.selectedSort = selectedVMIds.value.has(row._original?.id) ? 0 : 1;
+  });
+
+  headers.value = headers.value.map((h) => (
+    h.name === 'vmName' ? { ...h, sort: ['selectedSort', 'vmName'] } : h
+  ));
+
+  skipNextSelectionEvent = true;
+
+  nextTick(() => {
+    const table = sortableTableRef.value;
+
+    if (!table) {
+      skipNextSelectionEvent = false;
+
+      return;
+    }
+
+    if (typeof table.changeSort === 'function') {
+      table.changeSort('vmName', false);
+    } else if (typeof table.setPage === 'function') {
+      table.setPage(1);
+    }
+
+    nextTick(() => {
+      const rowsToReselect = (table.pagedRows || []).filter((row) => selectedVMIds.value.has(row._original?.id));
+
+      if (rowsToReselect.length > 0) {
+        table.update(rowsToReselect, []);
+      }
+
+      skipNextSelectionEvent = false;
+    });
+  });
 };
 
 watch(
@@ -318,6 +367,9 @@ const fetchVMs = async() => {
     return map;
   }, {});
 
+  props.stepData.networkMap = networkMap.value;
+  props.stepData.datastoreMap = datastoreMap.value;
+
   lastFetchedAt.value = Date.now();
   tableRows.value = buildTableRows();
 };
@@ -373,6 +425,10 @@ const init = async() => {
     }
     tableRows.value = buildTableRows();
     loading.value = false;
+
+    // Returning to the step with an existing selection: bring selected VMs forward and re-check them.
+    await nextTick();
+    sortSelectedToFront();
 
     return;
   }
@@ -441,7 +497,6 @@ init();
       :row-actions="false"
       :groupable="false"
       :paging="true"
-      :rows-per-page="20"
       key-field="_key"
       @selection="onSelect"
     >
@@ -450,7 +505,20 @@ init();
           <h3 class="m-0">
             {{ t('harvester.addons.vmMigration.selectVms.availableVms') }}
           </h3>
-          <span class="text-deemphasized">{{ selectedCount }} {{ t('harvester.addons.vmMigration.selectVms.selected') }}</span>
+          <span class="selected-actions">
+            <span class="text-deemphasized">
+              {{ selectedCount }} {{ t('harvester.addons.vmMigration.selectVms.selected') }}
+            </span>
+            <template v-if="selectedCount > 0">
+              <span class="text-deemphasized">|</span>
+              <a
+                role="button"
+                @click.prevent="clearSelection"
+              >
+                {{ t('harvester.addons.vmMigration.selectVms.clearAll') }}
+              </a>
+            </template>
+          </span>
         </div>
       </template>
       <template #cell:vmName="{ row }">
@@ -466,7 +534,7 @@ init();
       <template #cell:powerState="{ row }">
         <BadgeState
           :label="row.powerState"
-          :color="row.powerStateClass === 'power-on' ? 'bg-warning' : 'bg-darker'"
+          :color="row.powerStateClass === 'power-on' ? 'bg-success' : 'bg-darker'"
         />
       </template>
       <template #cell:network="{ row }">
@@ -532,6 +600,23 @@ init();
   .vm-table-title {
     .text-deemphasized {
       font-size: 13px;
+    }
+
+    .selected-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+
+      a {
+        cursor: pointer;
+
+        &.disabled {
+          color: var(--muted);
+          cursor: default;
+          pointer-events: none;
+        }
+      }
     }
   }
 
