@@ -68,6 +68,10 @@ export default class HarvesterResource extends SteveModel {
       return this.hasLink('self') && this.$rootGetters['prefs/get'](DEV);
     }
   }
+  // Disable Resources/ Extras cards in resource details pages
+  get resourcesCardRows() {
+    return [];
+  }
 
   cleanForSave(data, _forNew) {
     return data;

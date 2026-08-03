@@ -77,13 +77,13 @@ export default {
   methods: {
     async setupTerminal() {
       const docStyle = getComputedStyle(document.querySelector('body'));
-      const xterm = await import(/* webpackChunkName: "xterm" */ 'xterm');
+      const xterm = await import(/* webpackChunkName: "xterm" */ '@xterm/xterm');
 
       const addons = await allHash({
-        fit:      import(/* webpackChunkName: "xterm" */ 'xterm-addon-fit'),
-        webgl:    import(/* webpackChunkName: "xterm" */ 'xterm-addon-webgl'),
-        weblinks: import(/* webpackChunkName: "xterm" */ 'xterm-addon-web-links'),
-        search:   import(/* webpackChunkName: "xterm" */ 'xterm-addon-search'),
+        fit:      import(/* webpackChunkName: "xterm" */ '@xterm/addon-fit'),
+        webgl:    import(/* webpackChunkName: "xterm" */ '@xterm/addon-webgl'),
+        weblinks: import(/* webpackChunkName: "xterm" */ '@xterm/addon-web-links'),
+        search:   import(/* webpackChunkName: "xterm" */ '@xterm/addon-search'),
       });
 
       const terminal = new xterm.Terminal({
@@ -98,8 +98,21 @@ export default {
       this.fitAddon = new addons.fit.FitAddon();
       this.searchAddon = new addons.search.SearchAddon();
 
+      // if user is using Safari with webGPU disabled, webglAddon will silently fail
+      // and we do not have a way to detect that.
+      // To avoid it, default to DOM rendering for Safari browsers
       try {
-        this.webglAddon = new addons.webgl.WebGlAddon();
+        const ua = window.navigator.userAgent.toLowerCase();
+        const isSafari = ua.includes('safari') &&
+           !ua.includes('crios') && // Chrome iOS
+           !ua.includes('fxios') && // Firefox iOS
+           !ua.includes('edgios') && // Edge iOS
+           !ua.includes('opr'); // Opera
+
+        if (!isSafari) {
+          this.webglAddon = new addons.webgl.WebglAddon();
+          terminal.loadAddon(this.webglAddon);
+        }
       } catch (e) {
         // Some browsers (Safari) don't support the webgl renderer, so don't use it.
         this.webglAddon = null;
@@ -257,7 +270,7 @@ export default {
 </template>
 
 <style lang="scss">
-  @import '../../../../node_modules/xterm/css/xterm.css';
+  @import '../../../../node_modules/@xterm/xterm/css/xterm.css';
 
   body, #__nuxt, #__layout, MAIN {
     height: 100%;
