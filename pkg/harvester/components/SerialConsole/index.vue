@@ -191,6 +191,7 @@ export default {
 
     closeSearch() {
       this.showSearch = false;
+      this.searchAddon?.clearDecorations();
       this.terminal?.focus();
     },
 
@@ -212,6 +213,8 @@ export default {
 
     onSearchInput() {
       if (!this.searchQuery) {
+        this.searchAddon?.clearDecorations();
+
         return;
       }
 
