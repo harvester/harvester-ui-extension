@@ -271,4 +271,9 @@ export default {
 .filter-label .v-popper__arrow-container {
   display: none;
 }
+
+.fixed-header-actions .middle .filter + .btn-group {
+  display: inline-flex;
+  vertical-align: middle;
+}
 </style>

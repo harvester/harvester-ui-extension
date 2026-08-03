@@ -116,6 +116,11 @@ export default {
 .vm-schedule-dropdown .v-popper__arrow-container {
   display: none;
 }
+
+.fixed-header-actions .middle .vm-schedule-filter + .btn-group {
+  display: inline-flex;
+  vertical-align: middle;
+}
 </style>
 
 <style lang="scss" scoped>
