@@ -195,7 +195,7 @@ export default {
       this.isQuotasValid = isValid;
     },
 
-    onQuotasInput({ projectLimit, nsLimit }) {
+    onQuotasInput({ projectLimit, nsLimit } = {}) {
       this.value.spec.resourceQuota = { ...this.value.spec.resourceQuota, limit: projectLimit };
       this.value.spec.namespaceDefaultResourceQuota = { ...this.value.spec.namespaceDefaultResourceQuota, limit: nsLimit };
     }
