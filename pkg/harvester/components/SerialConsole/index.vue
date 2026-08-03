@@ -21,22 +21,24 @@ export default {
 
   data() {
     return {
-      socket:        null,
-      terminal:      null,
-      textDecoder:   null,
-      fitAddon:      null,
-      searchAddon:   null,
-      webglAddon:    null,
-      onResize:      null,
-      isOpen:        false,
-      isOpening:     false,
-      backlog:       [],
-      firstTime:     true,
-      queue:         [],
-      isDraining:    false,
-      showSearch:    false,
-      searchQuery:   '',
-      searchOptions: {
+      socket:         null,
+      terminal:       null,
+      textDecoder:    null,
+      fitAddon:       null,
+      searchAddon:    null,
+      webglAddon:     null,
+      onResize:       null,
+      isOpen:         false,
+      isOpening:      false,
+      backlog:        [],
+      firstTime:      true,
+      queue:          [],
+      isDraining:     false,
+      drainScheduled: false,
+      drainTimer:     null,
+      showSearch:     false,
+      searchQuery:    '',
+      searchOptions:  {
         caseSensitive: false,
         regex:         false,
         wholeWord:     false,
@@ -54,12 +56,17 @@ export default {
   },
 
   computed: {
+    serialConsoleUrl() {
+      return this.value?.getSerialConsolePath || '';
+    },
+
     xtermConfig() {
       return {
         allowProposedApi: true,
         cursorBlink:      true,
         cursorStyle:      'bar',
         cursorWidth:      2,
+        scrollback:       5000,
         useStyle:         true,
         fontFamily:       'JetBrains Mono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
         fontSize:         16,
@@ -70,6 +77,14 @@ export default {
 
   beforeUnmount() {
     this.close();
+  },
+
+  watch: {
+    serialConsoleUrl() {
+      if (this.terminal) {
+        this.connect();
+      }
+    },
   },
 
   async mounted() {
@@ -146,6 +161,7 @@ export default {
 
       this.fit();
       this.flush();
+      this.scheduleDrainQueue();
 
       terminal.onData((input) => {
         const msg = this.str2ab(input);
@@ -191,8 +207,15 @@ export default {
 
     closeSearch() {
       this.showSearch = false;
-      this.searchAddon?.clearDecorations();
+      this.searchQuery = '';
+      this.clearSearchHighlights();
       this.terminal?.focus();
+    },
+
+    clearSearchHighlights() {
+      this.terminal?.clearSelection();
+      this.searchAddon?.clearActiveDecoration();
+      this.searchAddon?.clearDecorations();
     },
 
     findNext() {
@@ -213,7 +236,7 @@ export default {
 
     onSearchInput() {
       if (!this.searchQuery) {
-        this.searchAddon?.clearDecorations();
+        this.clearSearchHighlights();
 
         return;
       }
@@ -282,7 +305,31 @@ export default {
 
     enqueueMessage(messagePromise) {
       this.queue.push(messagePromise);
-      this.drainQueue();
+      this.scheduleDrainQueue();
+    },
+
+    scheduleDrainQueue() {
+      if (this.drainScheduled || this.isDraining || !this.terminal) {
+        return;
+      }
+
+      this.drainScheduled = true;
+
+      const shouldDrainImmediately = this.queue.length <= 3;
+
+      const runDrain = () => {
+        this.drainScheduled = false;
+        this.drainTimer = null;
+        this.drainQueue();
+      };
+
+      if (shouldDrainImmediately) {
+        runDrain();
+
+        return;
+      }
+
+      this.drainTimer = requestAnimationFrame(runDrain);
     },
 
     async decodeMessageData(data) {
@@ -331,7 +378,11 @@ export default {
           const output = messages.filter(Boolean).join('');
 
           if (output) {
-            this.terminal.write(output);
+            await this.writeOutputInChunks(output);
+          }
+
+          if (this.queue.length > 0) {
+            await this.nextFrame();
           }
         }
       } finally {
@@ -340,9 +391,35 @@ export default {
         // If data arrived between the last while-check and releasing the lock,
         // immediately schedule another drain so output never gets stuck.
         if (this.queue.length > 0 && this.terminal) {
-          this.drainQueue();
+          this.scheduleDrainQueue();
         }
       }
+    },
+
+    async writeOutputInChunks(output) {
+      if (!output) {
+        return;
+      }
+
+      const chunkSize = output.length > 20000 ? 16000 : output.length > 8000 ? 8000 : output.length;
+
+      if (chunkSize === output.length) {
+        this.terminal.write(output);
+
+        return;
+      }
+
+      for (let index = 0; index < output.length; index += chunkSize) {
+        this.terminal.write(output.slice(index, index + chunkSize));
+
+        if (index + chunkSize < output.length) {
+          await this.nextFrame();
+        }
+      }
+    },
+
+    nextFrame() {
+      return new Promise((resolve) => requestAnimationFrame(resolve));
     },
 
     clear() {
@@ -350,7 +427,7 @@ export default {
     },
 
     getSocketUrl() {
-      return `${ this.value?.getSerialConsolePath }`;
+      return this.serialConsoleUrl;
     },
 
     async connect() {
@@ -430,6 +507,11 @@ export default {
       if (this.onResize) {
         window.removeEventListener('resize', this.onResize);
         this.onResize = null;
+      }
+
+      if (this.drainTimer) {
+        cancelAnimationFrame(this.drainTimer);
+        this.drainTimer = null;
       }
 
       if ( this.socket ) {
@@ -544,13 +626,22 @@ export default {
     .shell-body {
       flex: 1 1 auto;
       height: 100%;
+      width: 100%;
       min-height: 0;
       padding: 0 10px;
       box-sizing: border-box;
     }
 
-    .terminal.xterm {
+    .terminal.xterm,
+    .terminal.xterm .xterm-viewport,
+    .terminal.xterm .xterm-screen,
+    .terminal.xterm .xterm-scrollable-element {
+      width: 100%;
       height: 100%;
+    }
+
+    .terminal.xterm .xterm-scrollable-element {
+      min-height: 100%;
     }
   }
 </style>
