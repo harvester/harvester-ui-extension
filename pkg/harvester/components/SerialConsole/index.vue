@@ -21,19 +21,35 @@ export default {
 
   data() {
     return {
-      socket:      null,
-      terminal:    null,
-      textDecoder: null,
-      fitAddon:    null,
-      searchAddon: null,
-      webglAddon:  null,
-      onResize:    null,
-      isOpen:      false,
-      isOpening:   false,
-      backlog:     [],
-      firstTime:   true,
-      queue:       [],
-      isDraining:  false,
+      socket:        null,
+      terminal:      null,
+      textDecoder:   null,
+      fitAddon:      null,
+      searchAddon:   null,
+      webglAddon:    null,
+      onResize:      null,
+      isOpen:        false,
+      isOpening:     false,
+      backlog:       [],
+      firstTime:     true,
+      queue:         [],
+      isDraining:    false,
+      showSearch:    false,
+      searchQuery:   '',
+      searchOptions: {
+        caseSensitive: false,
+        regex:         false,
+        wholeWord:     false,
+        incremental:   true,
+        decorations:   {
+          matchBackground:               '#B45309',
+          matchBorder:                   '#FDBA74',
+          matchOverviewRuler:            '#FDBA74',
+          activeMatchBackground:         '#EA580C',
+          activeMatchBorder:             '#FED7AA',
+          activeMatchColorOverviewRuler: '#FED7AA',
+        },
+      },
     };
   },
 
@@ -137,7 +153,86 @@ export default {
         this.write(msg);
       });
 
+      terminal.attachCustomKeyEventHandler((event) => {
+        const key = event.key?.toLowerCase();
+
+        if ((event.ctrlKey || event.metaKey) && key === 'f') {
+          event.preventDefault();
+          this.openSearch();
+
+          return false;
+        }
+
+        if (key === 'escape' && this.showSearch) {
+          event.preventDefault();
+          this.closeSearch();
+
+          return false;
+        }
+
+        return true;
+      });
+
       this.terminal = terminal;
+    },
+
+    openSearch() {
+      this.showSearch = true;
+
+      this.$nextTick(() => {
+        const input = this.$refs.searchInput;
+
+        if (input) {
+          input.focus();
+          input.select();
+        }
+      });
+    },
+
+    closeSearch() {
+      this.showSearch = false;
+      this.terminal?.focus();
+    },
+
+    findNext() {
+      if (!this.searchAddon || !this.searchQuery) {
+        return;
+      }
+
+      this.searchAddon.findNext(this.searchQuery, this.searchOptions);
+    },
+
+    findPrevious() {
+      if (!this.searchAddon || !this.searchQuery) {
+        return;
+      }
+
+      this.searchAddon.findPrevious(this.searchQuery, this.searchOptions);
+    },
+
+    onSearchInput() {
+      if (!this.searchQuery) {
+        return;
+      }
+
+      this.findNext();
+    },
+
+    onSearchKeydown(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+
+        if (event.shiftKey) {
+          this.findPrevious();
+        } else {
+          this.findNext();
+        }
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this.closeSearch();
+      }
     },
 
     scheduleFit() {
@@ -349,6 +444,44 @@ export default {
 <template>
   <div class="harvester-shell-container">
     <div
+      v-if="showSearch"
+      class="shell-search"
+    >
+      <input
+        ref="searchInput"
+        v-model="searchQuery"
+        type="text"
+        class="shell-search-input"
+        placeholder="Search in terminal"
+        @input="onSearchInput"
+        @keydown="onSearchKeydown"
+      >
+      <button
+        class="btn role-secondary btn-sm shell-search-btn"
+        type="button"
+        title="Shift+Enter"
+        @click="findPrevious"
+      >
+        Prev
+      </button>
+      <button
+        class="btn role-secondary btn-sm shell-search-btn"
+        type="button"
+        title="Enter"
+        @click="findNext"
+      >
+        Next
+      </button>
+      <button
+        class="btn role-secondary btn-sm shell-search-btn"
+        type="button"
+        title="Esc"
+        @click="closeSearch"
+      >
+        Close
+      </button>
+    </div>
+    <div
       ref="xterm"
       class="shell-body"
     />
@@ -366,12 +499,43 @@ export default {
   .harvester-shell-container {
     display: flex;
     flex-direction: column;
+    position: relative;
     height: 100%;
     min-height: 0;
     overflow: hidden;
 
     .resize-observer {
       display: none;
+    }
+
+    .shell-search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: flex-end;
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      z-index: 5;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--body-bg) 88%, transparent);
+    }
+
+    .shell-search-input {
+      min-width: 220px;
+      max-width: 420px;
+      flex: 0 1 320px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--body-bg);
+      color: var(--body-text);
+      padding: 6px 8px;
+    }
+
+    .shell-search-btn {
+      min-width: 64px;
     }
 
     .shell-body {
