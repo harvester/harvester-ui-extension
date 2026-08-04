@@ -69,6 +69,11 @@ export default class HarvesterResource extends SteveModel {
     }
   }
 
+  // Disable Resources/ Extras cards in resource details pages
+  get resourcesCardRows() {
+    return [];
+  }
+
   cleanForSave(data, _forNew) {
     return data;
   }
