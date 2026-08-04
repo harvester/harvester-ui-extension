@@ -213,9 +213,15 @@ export default {
     },
 
     clearSearchHighlights() {
-      this.terminal?.clearSelection();
       this.searchAddon?.clearActiveDecoration();
       this.searchAddon?.clearDecorations();
+      this.terminal?.clearSelection();
+
+      // Disposing the search decorations doesn't repaint the webgl/canvas
+      // layer, so force a refresh to remove the lingering highlight.
+      if (this.terminal) {
+        this.terminal.refresh(0, this.terminal.rows - 1);
+      }
     },
 
     findNext() {
