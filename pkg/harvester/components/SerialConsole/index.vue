@@ -1,7 +1,6 @@
 <script>
 import { allHash } from '@shell/utils/promise';
 import debounce from 'lodash/debounce';
-
 import Socket, {
   EVENT_CONNECTED,
   EVENT_CONNECTING,
@@ -22,74 +21,98 @@ export default {
 
   data() {
     return {
-      socket:      null,
-      terminal:    null,
-      fitAddon:    null,
-      searchAddon: null,
-      webglAddon:  null,
-      isOpen:      false,
-      isOpening:   false,
-      backlog:     [],
-      firstTime:   true,
-      queue:       []
+      socket:         null,
+      terminal:       null,
+      textDecoder:    null,
+      fitAddon:       null,
+      searchAddon:    null,
+      webglAddon:     null,
+      onResize:       null,
+      isOpen:         false,
+      isOpening:      false,
+      backlog:        [],
+      firstTime:      true,
+      queue:          [],
+      isDraining:     false,
+      drainScheduled: false,
+      drainTimer:     null,
+      showSearch:     false,
+      searchQuery:    '',
+      searchOptions:  {
+        caseSensitive: false,
+        regex:         false,
+        wholeWord:     false,
+        incremental:   true,
+        decorations:   {
+          matchBackground:               '#B45309',
+          matchBorder:                   '#FDBA74',
+          matchOverviewRuler:            '#FDBA74',
+          activeMatchBackground:         '#EA580C',
+          activeMatchBorder:             '#FED7AA',
+          activeMatchColorOverviewRuler: '#FED7AA',
+        },
+      },
     };
   },
 
   computed: {
+    serialConsoleUrl() {
+      return this.value?.getSerialConsolePath || '';
+    },
+
     xtermConfig() {
       return {
         allowProposedApi: true,
         cursorBlink:      true,
+        cursorStyle:      'bar',
+        cursorWidth:      2,
+        scrollback:       5000,
         useStyle:         true,
-        fontSize:         12,
+        fontFamily:       'JetBrains Mono, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+        fontSize:         16,
+        lineHeight:       1.3,
       };
     },
-  },
-
-  watch: {
-    queue: {
-      handler: debounce(async function(neu) {
-        if (neu.length === 0) {
-          return;
-        }
-
-        const msg = await Promise.all(neu);
-
-        (msg || []).forEach((m) => {
-          this.terminal.write(m);
-        });
-
-        this.queue = [];
-      }, 10),
-      deep: true
-    }
   },
 
   beforeUnmount() {
     this.close();
   },
 
+  watch: {
+    serialConsoleUrl() {
+      if (this.terminal) {
+        this.connect();
+      }
+    },
+  },
+
   async mounted() {
+    this.textDecoder = new TextDecoder('utf-8');
     await this.setupTerminal();
     await this.connect();
+    this.onResize = debounce(() => this.fit(), 100);
+    window.addEventListener('resize', this.onResize);
+    this.scheduleFit();
   },
 
   methods: {
     async setupTerminal() {
       const docStyle = getComputedStyle(document.querySelector('body'));
-      const xterm = await import(/* webpackChunkName: "xterm" */ 'xterm');
+      const xterm = await import(/* webpackChunkName: "xterm" */ '@xterm/xterm');
 
       const addons = await allHash({
-        fit:      import(/* webpackChunkName: "xterm" */ 'xterm-addon-fit'),
-        webgl:    import(/* webpackChunkName: "xterm" */ 'xterm-addon-webgl'),
-        weblinks: import(/* webpackChunkName: "xterm" */ 'xterm-addon-web-links'),
-        search:   import(/* webpackChunkName: "xterm" */ 'xterm-addon-search'),
+        fit:      import(/* webpackChunkName: "xterm" */ '@xterm/addon-fit'),
+        webgl:    import(/* webpackChunkName: "xterm" */ '@xterm/addon-webgl'),
+        weblinks: import(/* webpackChunkName: "xterm" */ '@xterm/addon-web-links'),
+        search:   import(/* webpackChunkName: "xterm" */ '@xterm/addon-search'),
+        canvas:   import(/* webpackChunkName: "xterm" */ '@xterm/addon-canvas'),
       });
 
       const terminal = new xterm.Terminal({
         theme: {
           background: docStyle.getPropertyValue('--terminal-bg').trim(),
-          cursor:     docStyle.getPropertyValue('--terminal-cursor').trim(),
+          cursor:     docStyle.getPropertyValue('--terminal-text').trim(),
           foreground: docStyle.getPropertyValue('--terminal-text').trim()
         },
         ...this.xtermConfig,
@@ -97,25 +120,48 @@ export default {
 
       this.fitAddon = new addons.fit.FitAddon();
       this.searchAddon = new addons.search.SearchAddon();
-
-      try {
-        this.webglAddon = new addons.webgl.WebGlAddon();
-      } catch (e) {
-        // Some browsers (Safari) don't support the webgl renderer, so don't use it.
-        this.webglAddon = null;
-      }
-
       terminal.loadAddon(this.fitAddon);
       terminal.loadAddon(this.searchAddon);
       terminal.loadAddon(new addons.weblinks.WebLinksAddon());
       terminal.open(this.$refs.xterm);
 
-      if ( this.webglAddon ) {
+      // The webgl renderer can fail without throwing: the context may be lost
+      // mid-session, or it can attach but silently never paint, leaving the
+      // terminal's helper textarea at 0x0. Detect both cases and fall back to the
+      // canvas renderer so the terminal stays interactive.
+      try {
+        this.webglAddon = new addons.webgl.WebglAddon();
+
+        this.webglAddon.onContextLoss(() => {
+          if (!this.isUnmounted && this.terminal) {
+            this.fallbackToCanvas(terminal, addons);
+          }
+        });
+
         terminal.loadAddon(this.webglAddon);
+
+        // Detect the silent "attaches but never paints" failure after a render frame.
+        requestAnimationFrame(() => {
+          if (this.isUnmounted || !this.terminal) {
+            return;
+          }
+
+          const textarea = this.$refs.xterm?.querySelector('.xterm-helper-textarea');
+          const hasPainted = textarea && textarea.getBoundingClientRect().height > 0;
+
+          if (this.webglAddon && !hasPainted) {
+            this.fallbackToCanvas(terminal, addons);
+            this.fit();
+          }
+        });
+      } catch (e) {
+        // Some browsers (e.g. Safari) don't support the webgl renderer, so don't use it.
+        this.fallbackToCanvas(terminal, addons);
       }
 
       this.fit();
       this.flush();
+      this.scheduleDrainQueue();
 
       terminal.onData((input) => {
         const msg = this.str2ab(input);
@@ -123,7 +169,124 @@ export default {
         this.write(msg);
       });
 
+      terminal.attachCustomKeyEventHandler((event) => {
+        const key = event.key?.toLowerCase();
+
+        if ((event.ctrlKey || event.metaKey) && key === 'f') {
+          event.preventDefault();
+          this.openSearch();
+
+          return false;
+        }
+
+        if (key === 'escape' && this.showSearch) {
+          event.preventDefault();
+          this.closeSearch();
+
+          return false;
+        }
+
+        return true;
+      });
+
       this.terminal = terminal;
+    },
+
+    openSearch() {
+      this.showSearch = true;
+
+      this.$nextTick(() => {
+        const input = this.$refs.searchInput;
+
+        if (input) {
+          input.focus();
+          input.select();
+        }
+      });
+    },
+
+    closeSearch() {
+      this.showSearch = false;
+      this.searchQuery = '';
+      this.clearSearchHighlights();
+      this.terminal?.focus();
+    },
+
+    clearSearchHighlights() {
+      this.terminal?.clearSelection();
+      this.searchAddon?.clearActiveDecoration();
+      this.searchAddon?.clearDecorations();
+    },
+
+    findNext() {
+      if (!this.searchAddon || !this.searchQuery) {
+        return;
+      }
+
+      this.searchAddon.findNext(this.searchQuery, this.searchOptions);
+    },
+
+    findPrevious() {
+      if (!this.searchAddon || !this.searchQuery) {
+        return;
+      }
+
+      this.searchAddon.findPrevious(this.searchQuery, this.searchOptions);
+    },
+
+    onSearchInput() {
+      if (!this.searchQuery) {
+        this.clearSearchHighlights();
+
+        return;
+      }
+
+      this.findNext();
+    },
+
+    onSearchKeydown(event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+
+        if (event.shiftKey) {
+          this.findPrevious();
+        } else {
+          this.findNext();
+        }
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        this.closeSearch();
+      }
+    },
+
+    scheduleFit() {
+      this.$nextTick(() => {
+        requestAnimationFrame(() => {
+          this.fit();
+
+          // Re-fit after layout settles to avoid undersized rows on first paint.
+          setTimeout(() => this.fit(), 120);
+        });
+      });
+    },
+
+    // Dispose the webgl renderer (if any) and switch to the canvas renderer.
+    // Used when webgl fails to construct, loses its context, or silently never paints.
+    fallbackToCanvas(terminal, addons) {
+      if (this.isUnmounted) {
+        return;
+      }
+
+      this.webglAddon?.dispose();
+      this.webglAddon = null;
+
+      if (!this.canvasAddon) {
+        this.canvasAddon = new addons.canvas.CanvasAddon();
+        terminal.loadAddon(this.canvasAddon);
+      }
+      this.fit();
     },
 
     str2ab(str) {
@@ -140,12 +303,131 @@ export default {
       }
     },
 
+    enqueueMessage(messagePromise) {
+      this.queue.push(messagePromise);
+      this.scheduleDrainQueue();
+    },
+
+    scheduleDrainQueue() {
+      if (this.drainScheduled || this.isDraining || !this.terminal) {
+        return;
+      }
+
+      this.drainScheduled = true;
+
+      const shouldDrainImmediately = this.queue.length <= 3;
+
+      const runDrain = () => {
+        this.drainScheduled = false;
+        this.drainTimer = null;
+        this.drainQueue();
+      };
+
+      if (shouldDrainImmediately) {
+        runDrain();
+
+        return;
+      }
+
+      this.drainTimer = requestAnimationFrame(runDrain);
+    },
+
+    async decodeMessageData(data) {
+      if (typeof data === 'string') {
+        return data;
+      }
+
+      if (!this.textDecoder) {
+        this.textDecoder = new TextDecoder('utf-8');
+      }
+
+      if (data instanceof Blob) {
+        const buffer = await data.arrayBuffer();
+
+        return this.textDecoder.decode(new Uint8Array(buffer), { stream: true });
+      }
+
+      if (data instanceof ArrayBuffer) {
+        return this.textDecoder.decode(new Uint8Array(data), { stream: true });
+      }
+
+      if (ArrayBuffer.isView(data)) {
+        const view = data;
+        const bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+
+        return this.textDecoder.decode(bytes, { stream: true });
+      }
+
+      return String(data || '');
+    },
+
+    async drainQueue() {
+      if (this.isDraining || !this.terminal) {
+        return;
+      }
+
+      this.isDraining = true;
+
+      try {
+        while (this.queue.length > 0) {
+          const pendingMessages = this.queue.splice(0, this.queue.length);
+          const settledMessages = await Promise.allSettled(pendingMessages);
+          const messages = settledMessages
+            .filter((result) => result.status === 'fulfilled')
+            .map((result) => result.value);
+          const output = messages.filter(Boolean).join('');
+
+          if (output) {
+            await this.writeOutputInChunks(output);
+          }
+
+          if (this.queue.length > 0) {
+            await this.nextFrame();
+          }
+        }
+      } finally {
+        this.isDraining = false;
+
+        // If data arrived between the last while-check and releasing the lock,
+        // immediately schedule another drain so output never gets stuck.
+        if (this.queue.length > 0 && this.terminal) {
+          this.scheduleDrainQueue();
+        }
+      }
+    },
+
+    async writeOutputInChunks(output) {
+      if (!output) {
+        return;
+      }
+
+      const chunkSize = output.length > 20000 ? 16000 : output.length > 8000 ? 8000 : output.length;
+
+      if (chunkSize === output.length) {
+        this.terminal.write(output);
+
+        return;
+      }
+
+      for (let index = 0; index < output.length; index += chunkSize) {
+        this.terminal.write(output.slice(index, index + chunkSize));
+
+        if (index + chunkSize < output.length) {
+          await this.nextFrame();
+        }
+      }
+    },
+
+    nextFrame() {
+      return new Promise((resolve) => requestAnimationFrame(resolve));
+    },
+
     clear() {
       this.terminal.clear();
     },
 
     getSocketUrl() {
-      return `${ this.value?.getSerialConsolePath }`;
+      return this.serialConsoleUrl;
     },
 
     async connect() {
@@ -181,6 +463,7 @@ export default {
           this.fit();
           this.flush();
         }
+        this.scheduleFit();
 
         if (this.firstTime) {
           this.socket.send(this.str2ab('\n'));
@@ -195,7 +478,7 @@ export default {
       });
 
       this.socket.addEventListener(EVENT_MESSAGE, (e) => {
-        this.queue.push(e.detail.data.text());
+        this.enqueueMessage(this.decodeMessageData(e.detail.data));
       });
 
       this.socket.connect();
@@ -218,22 +501,19 @@ export default {
       }
 
       this.fitAddon.fit();
-
-      const { rows, cols } = this.fitAddon.proposeDimensions();
-
-      if ( !this.isOpen ) {
-        return;
-      }
-
-      const message = JSON.stringify({
-        Width:  cols,
-        Height: rows
-      });
-
-      this.socket.send(this.str2ab(message));
     },
 
     close() {
+      if (this.onResize) {
+        window.removeEventListener('resize', this.onResize);
+        this.onResize = null;
+      }
+
+      if (this.drainTimer) {
+        cancelAnimationFrame(this.drainTimer);
+        this.drainTimer = null;
+      }
+
       if ( this.socket ) {
         this.socket.disconnect();
       }
@@ -249,6 +529,44 @@ export default {
 <template>
   <div class="harvester-shell-container">
     <div
+      v-if="showSearch"
+      class="shell-search"
+    >
+      <input
+        ref="searchInput"
+        v-model="searchQuery"
+        type="text"
+        class="shell-search-input"
+        placeholder="Search in terminal"
+        @input="onSearchInput"
+        @keydown="onSearchKeydown"
+      >
+      <button
+        class="btn role-secondary btn-sm shell-search-btn"
+        type="button"
+        title="Shift+Enter"
+        @click="findPrevious"
+      >
+        Prev
+      </button>
+      <button
+        class="btn role-secondary btn-sm shell-search-btn"
+        type="button"
+        title="Enter"
+        @click="findNext"
+      >
+        Next
+      </button>
+      <button
+        class="btn role-secondary btn-sm shell-search-btn"
+        type="button"
+        title="Esc"
+        @click="closeSearch"
+      >
+        Close
+      </button>
+    </div>
+    <div
       ref="xterm"
       class="shell-body"
     />
@@ -257,18 +575,73 @@ export default {
 </template>
 
 <style lang="scss">
-  @import '../../../../node_modules/xterm/css/xterm.css';
+  @import '../../../../node_modules/@xterm/xterm/css/xterm.css';
 
   body, #__nuxt, #__layout, MAIN {
     height: 100%;
   }
 
   .harvester-shell-container {
+    display: flex;
+    flex-direction: column;
+    position: relative;
     height: 100%;
+    min-height: 0;
     overflow: hidden;
 
-    .shell-body, .terminal.xterm {
+    .resize-observer {
+      display: none;
+    }
+
+    .shell-search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: flex-end;
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      z-index: 5;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: color-mix(in srgb, var(--body-bg) 88%, transparent);
+    }
+
+    .shell-search-input {
+      min-width: 220px;
+      max-width: 420px;
+      flex: 0 1 320px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--body-bg);
+      color: var(--body-text);
+      padding: 6px 8px;
+    }
+
+    .shell-search-btn {
+      min-width: 64px;
+    }
+
+    .shell-body {
+      flex: 1 1 auto;
       height: 100%;
+      width: 100%;
+      min-height: 0;
+      padding: 0 10px;
+      box-sizing: border-box;
+    }
+
+    .terminal.xterm,
+    .terminal.xterm .xterm-viewport,
+    .terminal.xterm .xterm-screen,
+    .terminal.xterm .xterm-scrollable-element {
+      width: 100%;
+      height: 100%;
+    }
+
+    .terminal.xterm .xterm-scrollable-element {
+      min-height: 100%;
     }
   }
 </style>
