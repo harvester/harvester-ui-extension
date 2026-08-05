@@ -34,8 +34,8 @@ jobs:
     name: Comment build result on PR
     # Only for manual runs so the existing push / pull_request flows are untouched.
     if: github.event_name == 'workflow_dispatch'
-    #needs:
-    #  - build
+    needs:
+      - build
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
@@ -62,11 +62,9 @@ jobs:
               : branch.replace(/[^a-zA-Z0-9.-]+/g, '-');
             const url = `https://releases.rancher.com/harvester-ui/dashboard/${dir}/index.html`;
             const body = [
-              'Successfully build UI artifact as below',
-              '```',
-              `ui-index: ${url}`,
-              'ui-source : external',
-              '```',
+              '🚀 **UI Artifact Build Status:** `SUCCESS` ✅',
+              `> ui-index: ${url}`,
+              `> ui-source: external`
             ].join('\n');
             for (const pr of prs) {
               await github.rest.issues.createComment({
