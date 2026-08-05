@@ -1,7 +1,7 @@
 name: Build Standalone on PR Merge
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # manually trigger on Github Actions only support PR branch pushed to harvester/harvester-ui-extension
   push:
     branches:
       - main
@@ -41,36 +41,24 @@ jobs:
       pull-requests: write
     steps:
       - name: Add build artifact comment to the PR opened from this branch
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const branch = context.ref.replace('refs/heads/', '');
-            const { data: prs } = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              head: `${context.repo.owner}:${branch}`,
-              base: 'main',
-            });
-            if (prs.length === 0) {
-              core.info(`No open PR found for branch ${branch}, skipping comment.`);
-              return;
-            }
-            // Match scripts/version: sanitize the branch and map main -> latest.
-            const dir = branch === 'main'
-              ? 'latest'
-              : branch.replace(/[^a-zA-Z0-9.-]+/g, '-');
-            const url = `https://releases.rancher.com/harvester-ui/dashboard/${dir}/index.html`;
-            const body = [
-              '🚀 **UI Artifact Build Status:** `SUCCESS` ✅',
-              `> ui-index: ${url}`,
-              `> ui-source: external`
-            ].join('\n');
-            for (const pr of prs) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: pr.number,
-                body,
-              });
-            }
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          # Match scripts/version: sanitize the branch and map main -> latest.
+          if [ "$BRANCH" = "main" ]; then
+            DIR="latest"
+          else
+            DIR=$(printf '%s' "$BRANCH" | sed -E 's/[^a-zA-Z0-9.-]+/-/g')
+          fi
+          URL="https://releases.rancher.com/harvester-ui/dashboard/${DIR}/index.html"
+
+          PR=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --base main --head "$BRANCH" --json number --jq '.[0].number // empty')
+          if [ -z "$PR" ]; then
+            echo "No open PR found for branch $BRANCH, skipping comment."
+            exit 0
+          fi
+
+          BODY=$(printf '🚀 **UI Artifact Build Status:** `SUCCESS` ✅\n> ui-index: %s\n> ui-source: external' "$URL")
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body "$BODY"
