@@ -8,12 +8,16 @@
     - [ ] Yes, the backend owner is @
     - [ ] No, frontend-only.
 
-### Related Issue #
+### Related Issue
  <!-- Link the issue as harvester/harvester#<issue_number> -->
  harvester/harvester#<issue_number>
 
 
-### Test screenshot or video (Required)
-<!-- Attach screenshot or video of the changes and eventual comparison if you find it necessary -->
+### Test Steps
+ <!-- Provide the test steps for reviewer to verify the issue -->
+1. Go to ... page
+
+### Test screenshot or video
+<!-- Attach screenshot or video of the changes and eventual comparison -->
 
 
