@@ -9,7 +9,7 @@ import Loading from '@shell/components/Loading';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { RadioGroup } from '@components/Form/Radio';
 import { NETWORK_PROTOCOL, NETWORK_TYPE } from '@pkg/harvester/config/types';
-import { set } from '@shell/utils/object';
+import { set, remove } from '@shell/utils/object';
 import ArrayList from '@shell/components/form/ArrayList';
 import { allHash } from '@shell/utils/promise';
 import { HCI } from '../../types';
@@ -142,10 +142,12 @@ export default {
       const inStore = this.$store.getters['currentProduct'].inStore;
       const vlans = this.$store.getters[`${ inStore }/all`](HCI.VLAN) || [];
 
-      return vlans.map((vlan) => ({
+      const options = vlans.map((vlan) => ({
         label: vlan.id,
         value: vlan.id,
       }));
+
+      return [{ label: this.t('generic.none'), value: '' }, ...options];
     }
   },
 
@@ -160,6 +162,14 @@ export default {
     }
   },
   methods: {
+    onVlanChange(value) {
+      if (value === '') {
+        remove(this.value.spec, 'vlan');
+      } else {
+        set(this.value, 'spec.vlan', value);
+      }
+    },
+
     async saveSubnet(buttonCb) {
       const errors = [];
       const name = this.value?.metadata?.name;
@@ -283,12 +293,13 @@ export default {
           </div>
           <div class="col span-6">
             <LabeledSelect
-              v-model:value="value.spec.vlan"
+              :value="value.spec.vlan ?? ''"
               class="mb-20"
               :options="vlanOptions"
               :placeholder="t('harvester.subnet.vlan.placeholder')"
               :label="t('harvester.subnet.vlan.label')"
               :mode="mode"
+              @update:value="onVlanChange"
             />
           </div>
         </div>
