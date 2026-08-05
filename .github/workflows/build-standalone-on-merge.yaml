@@ -1,6 +1,7 @@
 name: Build Standalone on PR Merge
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -29,3 +30,49 @@ jobs:
       id-token: write
     with:
       CI_BRANCH: ${{github.ref_name}}
+  comment-on-pr:
+    name: Comment build result on PR
+    # Only for manual runs so the existing push / pull_request flows are untouched.
+    if: github.event_name == 'workflow_dispatch'
+    #needs:
+    #  - build
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Add build artifact comment to the PR opened from this branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const branch = context.ref.replace('refs/heads/', '');
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: `${context.repo.owner}:${branch}`,
+              base: 'main',
+            });
+            if (prs.length === 0) {
+              core.info(`No open PR found for branch ${branch}, skipping comment.`);
+              return;
+            }
+            // Match scripts/version: sanitize the branch and map main -> latest.
+            const dir = branch === 'main'
+              ? 'latest'
+              : branch.replace(/[^a-zA-Z0-9.-]+/g, '-');
+            const url = `https://releases.rancher.com/harvester-ui/dashboard/${dir}/index.html`;
+            const body = [
+              'Successfully build UI artifact as below',
+              '```',
+              `ui-index: ${url}`,
+              'ui-source : external',
+              '```',
+            ].join('\n');
+            for (const pr of prs) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                body,
+              });
+            }
