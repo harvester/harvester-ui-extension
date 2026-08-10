@@ -273,19 +273,6 @@ const startMigrationAction = async() => {
 
   await plan.save();
 
-  const planOwnerRef = {
-    apiVersion:         FORKLIFT_API_VERSION,
-    kind:               'Plan',
-    name:               plan.metadata.name,
-    uid:                plan.metadata.uid,
-    blockOwnerDeletion: true,
-  };
-
-  networkMap.metadata.ownerReferences = [planOwnerRef];
-  await networkMap.save();
-  storageMap.metadata.ownerReferences = [planOwnerRef];
-  await storageMap.save();
-
   // Kick off the first migration through the model so the Migration payload
   // lives in a single place (also reused by the dashboard start/restart action).
   await plan.startMigration();
