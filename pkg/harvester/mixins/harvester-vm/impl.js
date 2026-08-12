@@ -38,6 +38,10 @@ export const SSH_EXISTING_TYPE = {
 export default {
   methods: {
     hasCloudConfigComment(userScript) {
+      if (typeof userScript === 'string' && /^\s*#cloud-config(\s|$)/.test(userScript)) {
+        return true;
+      }
+
       // Check that userData contains: #cloud-config
       const userDataDoc = userScript ? YAML.parseDocument(userScript) : YAML.parseDocument({});
       const items = userDataDoc?.contents?.items || [];
@@ -49,6 +53,14 @@ export default {
       }
 
       if (userDataDoc?.commentBefore === 'cloud-config' || userDataDoc?.commentBefore?.includes('cloud-config\n')) {
+        exist = true;
+      }
+
+      if (userDataDoc?.contents?.commentBefore === 'cloud-config' || userDataDoc?.contents?.commentBefore?.includes('cloud-config\n')) {
+        exist = true;
+      }
+
+      if (userDataDoc?.contents?.comment === 'cloud-config' || userDataDoc?.contents?.comment?.includes('cloud-config\n')) {
         exist = true;
       }
 

@@ -1209,9 +1209,10 @@ export default {
 
         userDataDoc = config.installAgent ? this.mergeQGA({ userDataDoc, ...config }) : this.deleteQGA({ userDataDoc, ...config });
         const userDataYaml = userDataDoc.toString();
+        const userDataValue = userDataDoc.toJSON();
 
-        if (userDataYaml === '{}\n') {
-          // When the YAML parsed value is '{}\n', it means that the userData is empty, then undefined is returned.
+        if (userDataValue === null || (typeof userDataValue === 'object' && !Array.isArray(userDataValue) && isEmpty(userDataValue))) {
+          // Empty userData should not create cloud-init content like `null`.
           return undefined;
         }
 
