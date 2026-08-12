@@ -38,7 +38,7 @@ export const SSH_EXISTING_TYPE = {
 export default {
   methods: {
     hasCloudConfigComment(userScript) {
-      if (typeof userScript === 'string' && /(^|\n)\s*#cloud-config(\s|$)/.test(userScript)) {
+      if (typeof userScript === 'string' && /^\s*#cloud-config(\s|$)/.test(userScript)) {
         return true;
       }
 
