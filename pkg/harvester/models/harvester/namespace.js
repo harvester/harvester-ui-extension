@@ -5,6 +5,7 @@ import SYSTEM_NAMESPACES from '@shell/config/system-namespaces';
 import { get } from '@shell/utils/object';
 import { NAMESPACE } from '@shell/config/types';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '@pkg/harvester/config/harvester';
+import { FORKLIFT_NAMESPACE } from '@pkg/harvester/config/harvester-map';
 import { HCI } from '../../types';
 
 const OBSCURE_NAMESPACE_PREFIX = [
@@ -93,6 +94,10 @@ export default class HciNamespace extends namespace {
   }
 
   get isSystem() {
+    if (this.metadata?.name === FORKLIFT_NAMESPACE) {
+      return false;
+    }
+
     const systemNamespaces = ['fleet-default'];
 
     if (systemNamespaces.includes(this.metadata.name)) {
