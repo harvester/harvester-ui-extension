@@ -390,14 +390,17 @@ export default {
           :vmi-resource="vmi"
           :vmim-resource="vmim"
         />
-        <DashboardMetrics
+        <div
           v-if="showVmMetrics && liveMigrationProgressEnabled"
-          :detail-url="VM_MIGRATION_DETAIL_URL"
-          graph-height="640px"
-          :has-summary-and-detail="false"
-          :vars="graphVars"
-          class="mb-30"
-        />
+          class="migration-metrics-scroll mb-30"
+        >
+          <DashboardMetrics
+            :detail-url="VM_MIGRATION_DETAIL_URL"
+            graph-height="960px"
+            :has-summary-and-detail="false"
+            :vars="graphVars"
+          />
+        </div>
         <Events
           v-if="liveMigrationProgressEnabled"
           :resource="vmi"
@@ -436,3 +439,10 @@ export default {
     </Tabbed>
   </div>
 </template>
+
+<style lang="scss" scoped>
+.migration-metrics-scroll {
+  max-height: 640px;
+  overflow-y: auto;
+}
+</style>
