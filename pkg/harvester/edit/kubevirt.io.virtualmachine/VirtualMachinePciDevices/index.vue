@@ -5,6 +5,7 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import Banner from '@components/Banner/Banner.vue';
 import remove from 'lodash/remove';
 import { set } from '@shell/utils/object';
+import { uniq } from '@shell/utils/array';
 import { HCI } from '../../../types';
 import DeviceList from './DeviceList';
 import CompatibilityMatrix from '../CompatibilityMatrix';
@@ -60,7 +61,15 @@ export default {
       row.allowDisable = !vmDeviceNames.includes(row.metadata.name);
     });
 
-    vmDevices.forEach(({ name }) => {
+    // When off, read from spec; otherwise the spec name is a placeholder ('provisioned'),
+    // so read the real allocated device names from the deviceAllocationDetails annotation.
+    const hostDeviceNames = this.vm.isOff ? [
+      ...vmDevices.map(({ name }) => name),
+    ] : [
+      ...Object.values(this.vm?.provisionedHostDevices || {}).reduce((acc, devices) => [...acc, ...devices], []),
+    ];
+
+    uniq(hostDeviceNames).forEach((name) => {
       if (this.enabledDevices.find((device) => device?.metadata?.name === name)) {
         selectedDevices.push(name);
       }

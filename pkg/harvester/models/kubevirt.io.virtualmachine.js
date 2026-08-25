@@ -1315,6 +1315,18 @@ export default class VirtVm extends HarvesterResource {
     }
   }
 
+  get provisionedHostDevices() {
+    // Rancher-provisioned VMs store hostDevices.name as a placeholder ('provisioned'); the
+    // real allocated PCI device names live in this annotation, keyed by resourceName.
+    try {
+      const deviceAllocationDetails = JSON.parse(this.metadata?.annotations[HCI_ANNOTATIONS.VM_DEVICE_ALLOCATION_DETAILS] || '{}');
+
+      return deviceAllocationDetails?.hostdevices || {};
+    } catch (error) {
+      return {};
+    }
+  }
+
   get schedulingVMBackupFeatureEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('schedulingVMBackup');
   }
