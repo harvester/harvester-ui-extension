@@ -240,6 +240,13 @@ export default {
             >
               Experimental
             </span>
+            <span
+              v-if="setting.preview"
+              v-clean-tooltip="t('advancedSettings.preview')"
+              class="preview"
+            >
+              Preview
+            </span>
           </h1>
           <h2 v-clean-html="t(setting.description, getDocLinkParams(setting) || {}, true)">
           </h2>
@@ -363,6 +370,14 @@ export default {
 .experimental {
   margin-left: 10px;
   border: 1px solid var(--error);
+  border-radius: 5px;
+  padding: 2px 10px;
+  font-size: 12px;
+}
+
+.preview {
+  margin-left: 10px;
+  border: 1px solid var(--warning);
   border-radius: 5px;
   padding: 2px 10px;
   font-size: 12px;

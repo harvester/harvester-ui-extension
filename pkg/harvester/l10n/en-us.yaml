@@ -2418,6 +2418,7 @@ typeDescription:
 
 advancedSettings:
   experimental: 'Experimental features allow users to test and evaluate early-access functionality prior to official supported releases'
+  preview: 'Preview features allow users to test and evaluate early-access functionality prior to official supported releases'
   descriptions:
     'harv-vlan': Default Network Interface name of the VLAN network.
     'harv-backup-target': Custom backup target to store virtual machine backups.
