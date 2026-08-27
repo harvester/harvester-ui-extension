@@ -359,29 +359,19 @@ export default {
   flex: 1;
 }
 
-.modified {
-  margin-left: 10px;
-  border: 1px solid var(--primary);
-  border-radius: 5px;
-  padding: 2px 10px;
-  font-size: 12px;
-}
-
-.experimental {
-  margin-left: 10px;
-  border: 1px solid var(--error);
-  border-radius: 5px;
-  padding: 2px 10px;
-  font-size: 12px;
-}
-
+.modified,
+.experimental,
 .preview {
   margin-left: 10px;
-  border: 1px solid var(--warning);
+  border: 1px solid;
   border-radius: 5px;
   padding: 2px 10px;
   font-size: 12px;
 }
+
+.modified { border-color: var(--primary); }
+.experimental { border-color: var(--error); }
+.preview { border-color: var(--warning); }
 
 .no-search-match {
   text-align: center;
