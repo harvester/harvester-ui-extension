@@ -245,7 +245,7 @@ export default {
               v-clean-tooltip="t('advancedSettings.preview')"
               class="preview"
             >
-              Preview
+              Technical Preview
             </span>
           </h1>
           <h2 v-clean-html="t(setting.description, getDocLinkParams(setting) || {}, true)">
