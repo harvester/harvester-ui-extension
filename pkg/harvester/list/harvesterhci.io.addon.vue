@@ -72,7 +72,7 @@ export default {
           />
 
           <a
-            v-if="scope.row.metadata.name === 'rancher-vcluster' && scope.row.spec.enabled"
+            v-if="['rancher-vcluster', 'k3k'].includes(scope.row.metadata.name) && scope.row.spec.enabled"
             v-tooltip="t('harvester.addons.rancherVcluster.accessRancher')"
             class="ml-5"
             rel="nofollow noopener noreferrer"
