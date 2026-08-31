@@ -1,4 +1,4 @@
-wizard:
+advancedSettingswizard:
   create: Create
   next: Proceed
   previous: Back
@@ -1825,6 +1825,7 @@ harvester:
       'harvester-system/pcidevices-controller': pcidevices-controller is an add-on to help discover PCI devices for nodes in your cluster and allow users to prepare devices for PCI Passthrough, for use with Harvester virtual machine and guest clusters.
       'cattle-logging-system/rancher-logging': rancher-logging is an add-on to collect versatile logs, events, and audits from the Harvester cluster and route them to many kinds of servers based on flows.
       'harvester-system/rancher-vcluster': rancher-vcluster deploys a virtual cluster (vcluster) with Rancher installed.
+      'k3k-system/k3k': k3k deploys a k3k virtual cluster with Rancher installed.
       'cattle-monitoring-system/rancher-monitoring': rancher-monitoring is an add-on that collects Harvester cluster and virtual machine metrics and allows you to view the metrics on an embedded dashboard and send alert(s) to remote servers.
       'vm-import-controller': vm-import-controller is an add-on to help migrate virtual machine workloads from other source clusters to an existing Harvester cluster.
       'pcidevices-controller': pcidevices-controller is an add-on to help discover PCI devices for nodes in your cluster and allow users to prepare devices for PCI Passthrough, for use with Harvester virtual machines and guest clusters.
@@ -1832,6 +1833,7 @@ harvester:
       'rancher-logging': rancher-logging is an add-on to collect versatile logs, events, and audits from the Harvester cluster and route them to many kinds of servers based on flows.
       'rancher-monitoring': rancher-monitoring is an add-on to collect Harvester cluster and virtual machine metrics, view them on the embedded dashboard, and send alert(s) to remote servers.
       'rancher-vcluster': rancher-vcluster deploys a virtual cluster (vcluster) with Rancher installed.
+      'k3k': k3k deploys a k3k virtual cluster with Rancher installed.
       'harvester-seeder': harvester-seeder is an add-on that uses IPMI and Redfish to discover hardware information and perform out-of-band operations.
       'harvester-system/harvester-seeder': harvester-seeder is an add-on that uses IPMI and Redfish to discover hardware information and perform out-of-band operations.
       'harvester-csi-driver-lvm': harvester-csi-driver-lvm is an add-on allowing users to create PVC through the LVM with local devices.
@@ -2135,6 +2137,11 @@ harvester:
       accessRancher: Access the Rancher Dashboard
       hostname: Hostname
       rancherVersion: Rancher Version
+      password: Bootstrap Password
+    rancherK3k:
+      accessRancher: Access the Rancher Dashboard
+      hostname: Hostname
+      version: Rancher Version
       password: Bootstrap Password
     switchFailed: "{action} {name} failed!"
     nvidiaDriverToolkit:
