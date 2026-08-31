@@ -231,21 +231,21 @@ export default {
               v-if="setting.customized"
               class="modified"
             >
-              Modified
+              {{ t('advancedSettings.tags.modified.label') }}
             </span>
             <span
               v-if="setting.experimental"
-              v-clean-tooltip="t('advancedSettings.experimental')"
+              v-clean-tooltip="t('advancedSettings.tags.experimental.description')"
               class="experimental"
             >
-              Experimental
+              {{ t('advancedSettings.tags.experimental.label') }}
             </span>
             <span
               v-if="setting.preview"
-              v-clean-tooltip="t('advancedSettings.preview')"
+              v-clean-tooltip="t('advancedSettings.tags.preview.description')"
               class="preview"
             >
-              Technical Preview
+              {{ t('advancedSettings.tags.preview.label') }}
             </span>
           </h1>
           <h2 v-clean-html="t(setting.description, getDocLinkParams(setting) || {}, true)">
