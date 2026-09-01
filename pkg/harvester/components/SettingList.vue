@@ -231,14 +231,21 @@ export default {
               v-if="setting.customized"
               class="modified"
             >
-              Modified
+              {{ t('advancedSettings.tags.modified.label') }}
             </span>
             <span
               v-if="setting.experimental"
-              v-clean-tooltip="t('advancedSettings.experimental')"
+              v-clean-tooltip="t('advancedSettings.tags.experimental.description')"
               class="experimental"
             >
-              Experimental
+              {{ t('advancedSettings.tags.experimental.label') }}
+            </span>
+            <span
+              v-if="setting.preview"
+              v-clean-tooltip="t('advancedSettings.tags.preview.description')"
+              class="preview"
+            >
+              {{ t('advancedSettings.tags.preview.label') }}
             </span>
           </h1>
           <h2 v-clean-html="t(setting.description, getDocLinkParams(setting) || {}, true)">
@@ -352,21 +359,19 @@ export default {
   flex: 1;
 }
 
-.modified {
+.modified,
+.experimental,
+.preview {
   margin-left: 10px;
-  border: 1px solid var(--primary);
+  border: 1px solid;
   border-radius: 5px;
   padding: 2px 10px;
   font-size: 12px;
 }
 
-.experimental {
-  margin-left: 10px;
-  border: 1px solid var(--error);
-  border-radius: 5px;
-  padding: 2px 10px;
-  font-size: 12px;
-}
+.modified { border-color: var(--primary); }
+.experimental { border-color: var(--error); }
+.preview { border-color: var(--warning); }
 
 .no-search-match {
   text-align: center;
