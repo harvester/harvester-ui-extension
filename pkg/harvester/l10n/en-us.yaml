@@ -2417,7 +2417,15 @@ typeDescription:
   harvester: "Branding allows administrators to globally re-brand the UI by customizing the Harvester product name, logos and color scheme."
 
 advancedSettings:
-  experimental: 'Experimental features allow users to test and evaluate early-access functionality prior to official supported releases'
+  tags:
+    modified:
+      label: Modified
+    experimental:
+      label: Experimental
+      description: 'Experimental: The feature is incomplete but its essential functionality is operational. The feature is not recommended for use in production environments.'
+    preview:
+      label: Technical Preview
+      description: 'Technical Preview: The feature is almost complete and its functionality is not expected to change significantly. Explore the feature extensively before using in production environments.'
   descriptions:
     'harv-vlan': Default Network Interface name of the VLAN network.
     'harv-backup-target': Custom backup target to store virtual machine backups.

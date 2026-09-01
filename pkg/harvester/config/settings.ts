@@ -111,15 +111,17 @@ export const HCI_ALLOWED_SETTINGS = {
   [HCI_SETTING.KUBECONFIG_DEFAULT_TOKEN_TTL_MINUTES]:   { kind: 'number', featureFlag: 'kubeconfigDefaultTokenTTLMinutesSetting' },
   [HCI_SETTING.LONGHORN_V2_DATA_ENGINE_ENABLED]:        {
     kind:         'boolean',
-    experimental: true,
+    preview:      true,
     featureFlag:  'longhornV2LVMSupport'
   },
   [HCI_SETTING.LONGHORN_V2_DATA_ENGINE_HUGEPAGE_ENABLED]: {
     kind:         'boolean',
+    preview:      true,
     featureFlag:  'longhornV2HugepageSettings'
   },
   [HCI_SETTING.LONGHORN_V2_DATA_ENGINE_MEMORY_SIZE]: {
     kind:         'number',
+    preview:      true,
     featureFlag:  'longhornV2HugepageSettings'
   },
   [HCI_SETTING.ADDITIONAL_GUEST_MEMORY_OVERHEAD_RATIO]: { kind: 'string', from: 'import' },
