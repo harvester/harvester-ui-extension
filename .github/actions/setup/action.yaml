@@ -12,4 +12,15 @@ runs:
 
     - name: Install packages
       shell: bash
-      run: yarn install
+      run: |
+        for attempt in 1 2 3; do
+          if yarn install --frozen-lockfile; then
+            exit 0
+          fi
+
+          if [ "$attempt" -lt 3 ]; then
+            sleep 10
+          fi
+        done
+
+        exit 1
