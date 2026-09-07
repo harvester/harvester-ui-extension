@@ -1,4 +1,4 @@
-advancedSettingswizard:
+wizard:
   create: Create
   next: Proceed
   previous: Back
@@ -1834,6 +1834,7 @@ harvester:
       'rancher-monitoring': rancher-monitoring is an add-on to collect Harvester cluster and virtual machine metrics, view them on the embedded dashboard, and send alert(s) to remote servers.
       'rancher-vcluster': rancher-vcluster deploys a virtual cluster (vcluster) with Rancher installed.
       'k3k': k3k deploys a k3k virtual cluster with Rancher installed.
+      'rancher-k3k/rancher-k3k': rancher-k3k deploys a k3k virtual cluster with Rancher installed.
       'harvester-seeder': harvester-seeder is an add-on that uses IPMI and Redfish to discover hardware information and perform out-of-band operations.
       'harvester-system/harvester-seeder': harvester-seeder is an add-on that uses IPMI and Redfish to discover hardware information and perform out-of-band operations.
       'harvester-csi-driver-lvm': harvester-csi-driver-lvm is an add-on allowing users to create PVC through the LVM with local devices.

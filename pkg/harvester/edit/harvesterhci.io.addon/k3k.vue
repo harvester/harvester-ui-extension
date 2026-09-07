@@ -75,6 +75,10 @@ export default {
         errors.push(this.t('validation.required', { key: this.t('harvester.addons.rancherK3k.hostname') }, true));
       }
 
+      if (!this.valuesContentJson.rancher.version) {
+        errors.push(this.t('validation.required', { key: this.t('harvester.addons.rancherK3k.version') }, true));
+      }
+
       if (!this.valuesContentJson.rancher.bootstrapPassword) {
         errors.push(this.t('validation.required', { key: this.t('harvester.addons.rancherK3k.password') }, true));
       }
@@ -131,7 +135,7 @@ export default {
             v-model:value="valuesContentJson.rancher.version"
             label-key="harvester.addons.rancherK3k.version"
             :required="true"
-            :disabled="false"
+            :mode="mode"
             placeholder="v1.14.0"
           />
         </div>
