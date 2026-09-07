@@ -52,7 +52,7 @@ export default {
     buttonDisabled() {
       const { rancher } = this.valuesContentJson;
 
-      return !(rancher?.hostname || '').trim() || !(rancher?.bootstrapPassword || '').trim();
+      return !(rancher?.hostname || '').trim() || !(rancher?.version || '').trim() || !(rancher?.bootstrapPassword || '').trim();
     }
   },
 
