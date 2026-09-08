@@ -22,7 +22,7 @@ export const HCI = {
   VM_NAME_PREFIX:                   'harvesterhci.io/vmNamePrefix',
   VM_DISPLAY_NAME:                  'harvesterhci.io/vmDisplayName',
   VM_RESERVED_MEMORY:               'harvesterhci.io/reservedMemory',
-  MAINTENANCE_STATUS:               'harvesterhci.io/maintain-status',
+  MAINTENANCE_STATUS:               'harvesterhci.io/maintain-status', // Deprecated >= v1.10.0
   HOST_CUSTOM_NAME:                 'harvesterhci.io/host-custom-name',
   HOST_CONSOLE_URL:                 'harvesterhci.io/host-console-url',
   RESTORE_NAME:                     'restore.harvesterhci.io/name',
