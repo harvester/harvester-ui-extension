@@ -46,7 +46,7 @@ export default {
     try {
       valuesContentJson = merge({}, DEFAULT_VALUE, jsyaml.load(this.value.spec.valuesContent));
     } catch (err) {
-      valuesContentJson = DEFAULT_VALUE;
+      valuesContentJson = merge({}, DEFAULT_VALUE);
 
       this.$store.dispatch('growl/fromError', {
         title: this.$store.getters['i18n/t']('generic.notification.title.error'),
