@@ -1317,8 +1317,9 @@ export default {
       case SOURCE_TYPE.IMAGE: {
         const image = this.images.find( (I) => R.image === I.id);
 
+        out.spec.storageClassName = R.realName ? R.storageClassName : (R.storageClassName || image?.storageClassName);
+
         if (image) {
-          out.spec.storageClassName = image.storageClassName;
           out.metadata.annotations = { [HCI_ANNOTATIONS.IMAGE_ID]: image.id };
         } else {
           out.metadata.annotations = { [HCI_ANNOTATIONS.IMAGE_ID]: '' };
