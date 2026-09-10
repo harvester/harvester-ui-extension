@@ -1,3 +1,5 @@
+import { FAVORITE_TYPES } from '@shell/store/prefs';
+
 /**
  * Dynamically toggles SideNav entries based on the enabled status of a specific Addon.
  *
@@ -26,10 +28,13 @@ export function registerAddonSideNav(store, productName, {
 
     // Toggle the trigger a few times so an early kick (fired before the SideNav
     // has mounted on first login) is retried once the component is listening.
+    // Use the prefs/load mutation (in-memory only)
     [0, 600, 1500].forEach((delay) => {
       setTimeout(() => {
-        store.dispatch('type-map/addFavorite', TRIGGER);
-        setTimeout(() => store.dispatch('type-map/removeFavorite', TRIGGER), 300);
+        const base = (store.getters['prefs/get'](FAVORITE_TYPES) || []).filter((t) => t !== TRIGGER);
+
+        store.commit('prefs/load', { key: FAVORITE_TYPES, value: [...base, TRIGGER] });
+        setTimeout(() => store.commit('prefs/load', { key: FAVORITE_TYPES, value: [...base] }), 300);
       }, delay);
     });
   };
