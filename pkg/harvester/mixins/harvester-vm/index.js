@@ -195,6 +195,10 @@ export default {
       cpuPinning:                    false,
       cpuModel:                      '',
       sysprep:                       { secretName: '', xmlContent: '' },
+      // KubeVirt high-performance VM-level features
+      blockMultiQueue:               false,
+      ioThreadsPolicy:               '',
+      ioThreadCount:                 2,
     };
   },
 
@@ -409,6 +413,10 @@ export default {
       const cpuPinning = this.isCpuPinning(spec);
       const cpuModel = spec.template.spec.domain.cpu?.model || '';
 
+      const blockMultiQueue = spec.template.spec.domain?.devices?.blockMultiQueue || false;
+      const ioThreadsPolicy = spec.template.spec.domain?.ioThreadsPolicy || '';
+      const ioThreadCount = spec.template.spec.domain?.ioThreads?.supplementalPoolThreadCount || 2;
+
       const secretRef = this.getSecret(spec);
       const accessCredentials = this.getAccessCredentials(spec);
 
@@ -446,6 +454,10 @@ export default {
       this['secureBoot'] = secureBoot;
       this['cpuPinning'] = cpuPinning;
       this['cpuModel'] = cpuModel;
+
+      this['blockMultiQueue'] = blockMultiQueue;
+      this['ioThreadsPolicy'] = ioThreadsPolicy;
+      this['ioThreadCount'] = ioThreadCount;
 
       this['hasCreateVolumes'] = hasCreateVolumes;
       this['networkRows'] = networkRows;
@@ -503,17 +515,20 @@ export default {
         }
 
         out.push({
-          id:               randomStr(5),
-          source:           SOURCE_TYPE.IMAGE,
-          name:             'disk-0',
-          accessMode:       READ_WRITE_MANY, // root disk only support LHv1 volume, should be RWX
+          id:                randomStr(5),
+          source:            SOURCE_TYPE.IMAGE,
+          name:              'disk-0',
+          accessMode:        READ_WRITE_MANY, // root disk only support LHv1 volume, should be RWX
           bus,
-          volumeName:       '',
+          volumeName:        '',
           size,
           type,
-          storageClassName: '',
-          image:            this.imageId,
-          volumeMode:       VOLUME_MODE.BLOCK,
+          storageClassName:  '',
+          image:             this.imageId,
+          volumeMode:        VOLUME_MODE.BLOCK,
+          cache:             '',
+          io:                '',
+          dedicatedIOThread: false,
           isEncrypted,
           volumeBackups,
         });
@@ -603,22 +618,25 @@ export default {
           const volumeBackups = volBackups?.find((vBackup) => vBackup.volumeName === DISK.name) || null;
 
           return {
-            id:         randomStr(5),
+            id:                randomStr(5),
             bootOrder,
             source,
-            name:       DISK.name,
+            name:              DISK.name,
             realName,
             bus,
             volumeName,
             container,
             accessMode,
-            size:       `${ formatSize }${ GIBIBYTE }`,
-            volumeMode: volumeMode || this.customVolumeMode,
+            size:              `${ formatSize }${ GIBIBYTE }`,
+            volumeMode:        volumeMode || this.customVolumeMode,
             image,
             type,
             storageClassName,
             hotpluggable,
-            shareable:  DISK.shareable || false,
+            cache:             DISK?.cache || '',
+            io:                DISK?.io || '',
+            dedicatedIOThread: DISK?.dedicatedIOThread || false,
+            shareable:         DISK.shareable || false,
             volumeStatus,
             dataSource,
             namespace,
@@ -973,8 +991,24 @@ export default {
       // `shareable` is an attachment-level opt-in, remove the field
       // inherited from the old spec when the disk row no longer requests it
       mergedDisks.forEach((disk) => {
-        if (disk.shareable && !disks.find((D) => D.name === disk.name)?.shareable) {
+        const parsed = disks.find((D) => D.name === disk.name);
+
+        if (disk.shareable && !parsed?.shareable) {
           delete disk.shareable;
+        }
+
+        // High-performance fields are only serialized when requested (see
+        // parseDisk). When editing, mergeDeviceList would otherwise keep the
+        // previous spec's cache/io/dedicatedIOThread even after the row is
+        // switched back to "Default" or the dedicated I/O thread is unchecked,
+        // silently preserving stale values — strip them so the disk matches
+        // what the row actually requests.
+        if (parsed) {
+          ['cache', 'io', 'dedicatedIOThread'].forEach((field) => {
+            if (!parsed[field] && field in disk) {
+              delete disk[field];
+            }
+          });
         }
       });
 
@@ -1010,6 +1044,35 @@ export default {
 
       if (volumes.length === 0) {
         delete spec.template.spec.volumes;
+      }
+
+      // KubeVirt high-performance VM-level features (I/O threads & block multi-queue).
+      const domainRef = spec.template.spec.domain;
+      const hasDedicatedIOThread = mergedDisks.some((D) => D.dedicatedIOThread);
+      // If any disk requests a dedicated I/O thread, KubeVirt requires a policy;
+      // default it to "shared" so the dedicated thread is honored.
+      let ioThreadsPolicy = this.ioThreadsPolicy;
+
+      if (hasDedicatedIOThread && !ioThreadsPolicy) {
+        ioThreadsPolicy = 'shared';
+      }
+
+      if (ioThreadsPolicy) {
+        domainRef.ioThreadsPolicy = ioThreadsPolicy;
+      } else {
+        delete domainRef.ioThreadsPolicy;
+      }
+
+      if (ioThreadsPolicy === 'supplementalPool') {
+        domainRef.ioThreads = { supplementalPoolThreadCount: Number(this.ioThreadCount) || 1 };
+      } else {
+        delete domainRef.ioThreads;
+      }
+
+      if (this.blockMultiQueue) {
+        domainRef.devices.blockMultiQueue = true;
+      } else {
+        delete domainRef.devices.blockMultiQueue;
       }
 
       if (this.resourceType === HCI.VM) {
@@ -1259,6 +1322,19 @@ export default {
 
       if (R.type === HARD_DISK) {
         out.disk = { bus: R.bus };
+
+        // KubeVirt high-performance per-disk features. `cache`, `io` and
+        // `dedicatedIOThread` live at the Disk level (siblings of `disk`), not
+        // inside the DiskTarget. See disks_and_volumes.md#high-performance-features.
+        if (R.cache) {
+          out.cache = R.cache;
+        }
+        if (R.io) {
+          out.io = R.io;
+        }
+        if (R.dedicatedIOThread) {
+          out.dedicatedIOThread = true;
+        }
       } else if (R.type === CD_ROM) {
         out.cdrom = { bus: R.bus };
       }

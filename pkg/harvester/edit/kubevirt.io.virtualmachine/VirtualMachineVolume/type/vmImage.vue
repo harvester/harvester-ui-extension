@@ -15,6 +15,7 @@ import LabelValue from '@shell/components/LabelValue';
 import { ucFirst } from '@shell/utils/string';
 import { GIBIBYTE } from '../../../../utils/unit';
 import { EMPTY_IMAGE } from '../../../../utils/vm';
+import DiskPerformanceOptions from '../DiskPerformanceOptions';
 
 export default {
   name: 'HarvesterEditVMImage',
@@ -22,7 +23,7 @@ export default {
   emits: ['update'],
 
   components: {
-    UnitInput, LabeledInput, LabeledSelect, InputOrDisplay, LabelValue, Banner
+    UnitInput, LabeledInput, LabeledSelect, InputOrDisplay, LabelValue, Banner, DiskPerformanceOptions
   },
 
   props: {
@@ -481,6 +482,12 @@ export default {
       v-if="!isView && showDiskTooSmallError"
       color="error"
       :label="t('harvester.virtualMachine.volume.vmImageVolumeTip', {diskSize: diskSize, imageVirtualSize: imageVirtualSize})"
+    />
+
+    <DiskPerformanceOptions
+      :value="value"
+      :mode="mode"
+      @update="update"
     />
   </div>
 </template>

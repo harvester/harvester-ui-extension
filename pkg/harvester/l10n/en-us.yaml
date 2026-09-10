@@ -798,6 +798,54 @@ harvester:
       setFirst: Set as root volume
       saveVolume: Update Volume
       encryption: Encryption
+      performance:
+        title: Storage Performance Options
+        expand: Show high-performance options
+        collapse: Hide high-performance options
+        profile:
+          label: Performance Profile
+          tip: "\"High Performance\" applies a tuned preset (no host cache, native AIO, a dedicated I/O thread on the virtio bus). Choose \"Custom\" to set each option yourself."
+          default: Default (Balanced)
+          highPerformance: High Performance
+          custom: Custom
+        highProfileTip: This disk will use the virtio bus with host cache disabled, native AIO and a dedicated I/O thread.
+        cacheMode:
+          label: Cache Mode
+          tip: "How the host caches disk I/O. \"None\" (host cache disabled) is best for high-throughput guests on block storage; \"WriteBack\" favours performance; \"WriteThrough\" favours durability."
+          default: Default (hypervisor)
+          none: None (no host cache)
+          writeback: WriteBack
+          writethrough: WriteThrough
+          filesystemWarning: "\"None\" (O_DIRECT) requires storage that supports direct I/O. It is recommended only for Block volume mode; on Filesystem volumes the VM may fail to start."
+        ioMode:
+          label: I/O Mode
+          tip: "How QEMU submits I/O. \"Native\" (Linux AIO) offers the lowest overhead but requires host cache set to \"None\"; \"Threads\" uses a host thread pool."
+          default: Default (hypervisor)
+          native: Native (AIO)
+          threads: Threads
+          nativeRequiresNoCacheTip: Native I/O mode requires cache mode "None"; it has been set for you.
+        dedicatedIOThread:
+          label: Dedicated I/O Thread
+          tip: Allocate an exclusive libvirt I/O thread to this disk instead of sharing one. Useful for disks with heavy I/O. Enabling this on any disk turns on the VM's I/O threads policy.
+        busTip: High-performance features work best on the virtio bus.
+      diskPerformance:
+        title: High Performance (I/O Threads and Multi-Queue)
+        description: These settings apply to all volumes in the Virtual Machine and complement the per-volume options above.
+        blockMultiQueue:
+          label: Virtio Block Multi-Queue
+          tip: Map disk I/O to multiple queues so it is processed across multiple CPUs. Applies to virtio disks and requires a fixed CPU allocation (Harvester always sets one).
+          noVirtioTip: Add at least one disk on the virtio bus to enable Block Multi-Queue.
+        ioThreadsPolicy:
+          label: I/O Threads Policy
+          tip: "How libvirt allocates I/O threads. \"Shared\" uses one thread for all disks; \"Auto\" pools threads round-robin (up to ~2x vCPUs); \"Supplemental Pool\" lets you pick a fixed thread count and adds matching CPUs to the pod."
+          default: "Disabled (default)"
+          shared: Shared
+          auto: Auto
+          supplementalPool: Supplemental Pool
+          autoEnabledTip: A disk requests a dedicated I/O thread, so the policy is enabled (defaults to "Shared").
+        ioThreadCount:
+          label: I/O Thread Count
+          tip: Number of I/O threads for the supplemental pool. 4-8 is a common range depending on workload.
       shareable:
         label: Shareable
         tip: Allow multiple virtual machines to attach and write to this volume simultaneously.
@@ -995,6 +1043,8 @@ harvester:
     createWithDataVolumeTooltip: Create Volume with Kubevirt/Containerized Data Importer way. It can fill accessMode/volumeMode automatically.
     showAdvanced: Show Advanced Options
     hideAdvanced: Hide Advanced Options
+    performance:
+      pvcTip: These high-performance options are saved as defaults on the volume and applied when it is attached to a virtual machine as a disk.
     source: Source
     kind: Kind
     sourceOptions:

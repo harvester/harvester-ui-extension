@@ -308,6 +308,9 @@ export default {
       >
         <Volume
           v-model:value="diskRows"
+          v-model:block-multi-queue="blockMultiQueue"
+          v-model:io-threads-policy="ioThreadsPolicy"
+          v-model:io-thread-count="ioThreadCount"
           :mode="mode"
           :namespace="value.metadata.namespace"
           :existing-volume-disabled="true"
