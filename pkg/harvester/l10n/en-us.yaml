@@ -953,15 +953,33 @@ harvester:
       console:
         down: This virtual machine is down. Please start it to access its console.
         shortcutKeys: Shortcut Keys
-        customShortcutKeys: Custom Shortcut Keys
-        management: Management Shortcut Keys
-        record:
-          start: Record
-          recording: Recording
-          stop: Stop Recording
-          tips: Press the record button to capture your keyboard inputs.
-          send: Send
-          preferredKeys: Preferred Custom Shortcut Keys
+        settings:
+          label: Settings
+          viewMode:
+            label: Display
+            scale: Scale the display to fit the window
+            resize: Resize the virtual machine display to the window
+            none: Manual zoom
+          zoom: Zoom
+          clipViewport: Clip to the window instead of showing scrollbars
+          viewOnly: View only
+          quality: JPEG quality
+          compression: Compression level
+          reset: Reset to defaults
+        fullscreen:
+          enter: Full Screen
+          exit: Exit Full Screen
+        takeOver:
+          label: Take Over
+          confirm: Take over this console? Any existing VNC session for this virtual machine will be disconnected.
+        status:
+          connecting: Connecting
+          connected: Connected
+          disconnected: Disconnected
+          failed: Connection failed
+          reconnecting: 'Reconnecting {retryTimes} of {maximumRetryTimes}'
+          credentialsRequired: This console requires credentials that the dashboard cannot provide.
+          unavailable: Unable to connect. Another VNC session may be active, or the console may be unavailable.
     terminationGracePeriodSeconds:
       label: Termination Grace Period
     affinity:
