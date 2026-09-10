@@ -2,12 +2,25 @@
 
 import KeyValue from '@shell/components/form/KeyValue';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
+import RadioGroup from '@components/Form/Radio/RadioGroup';
 
 import { allHash } from '@shell/utils/promise';
 import { clone } from '@shell/utils/object';
 import { HCI } from '../../../types';
-import { NODE } from '@shell/config/types';
+import { NODE, SECRET } from '@shell/config/types';
+import { CSI_SECRETS } from '@pkg/harvester/config/harvester-map';
 import { LVM_TOPOLOGY_LABEL } from '../index.vue';
+
+const {
+  CSI_PROVISIONER_SECRET_NAME,
+  CSI_PROVISIONER_SECRET_NAMESPACE,
+  CSI_NODE_PUBLISH_SECRET_NAME,
+  CSI_NODE_PUBLISH_SECRET_NAMESPACE,
+  CSI_NODE_STAGE_SECRET_NAME,
+  CSI_NODE_STAGE_SECRET_NAMESPACE,
+  CSI_NODE_EXPAND_SECRET_NAME,
+  CSI_NODE_EXPAND_SECRET_NAMESPACE
+} = CSI_SECRETS;
 
 const DEFAULT_PARAMETERS = [
   'type',
@@ -25,6 +38,7 @@ export default {
   components: {
     KeyValue,
     LabeledSelect,
+    RadioGroup,
   },
 
   props: {
@@ -45,10 +59,16 @@ export default {
   async fetch() {
     const inStore = this.$store.getters['currentProduct'].inStore;
 
-    await allHash({
+    const hash = {
       nodes:           this.$store.dispatch(`${ inStore }/findAll`, { type: NODE }),
       lvmVolumeGroups: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.LVM_VOLUME_GROUP }),
-    });
+    };
+
+    if (this.value.lvmVolumeEncryptionFeatureEnabled) {
+      hash.secrets = this.$store.dispatch(`${ inStore }/findAll`, { type: SECRET });
+    }
+
+    await allHash(hash);
   },
 
   data() {
@@ -69,7 +89,7 @@ export default {
       allowedTopologies[0].matchLabelExpressions[0].values = [value];
 
       this.value.allowedTopologies = allowedTopologies;
-    }
+    },
   },
 
   computed: {
@@ -89,11 +109,87 @@ export default {
         .map((g) => g.spec.vgName);
     },
 
+    secrets() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const allSecrets = this.$store.getters[`${ inStore }/all`](SECRET) || [];
+
+      // only show non-system secret to user to select
+      return allSecrets.filter((secret) => secret.isSystem === false);
+    },
+
+    secretOptions() {
+      return this.secrets.map((secret) => secret.id);
+    },
+
+    volumeEncryptionOptions() {
+      return [{
+        label: this.t('generic.yes'),
+        value: 'true'
+      }, {
+        label: this.t('generic.no'),
+        value: 'false'
+      }];
+    },
+
+    volumeEncryption: {
+      set(neu) {
+        this.value['parameters'] = {
+          ...this.value.parameters,
+          encrypted: neu
+        };
+      },
+
+      get() {
+        return this.value?.parameters?.encrypted || 'false';
+      }
+    },
+
+    secret: {
+      get() {
+        const selectedNs = this.value.parameters[CSI_PROVISIONER_SECRET_NAMESPACE];
+        const selectedName = this.value.parameters[CSI_PROVISIONER_SECRET_NAME];
+
+        if (selectedNs && selectedName) {
+          return `${ selectedNs }/${ selectedName }`;
+        }
+
+        return '';
+      },
+
+      // All four references point at the same secret. The LVM driver needs the
+      // passphrase when it provisions the volume, when it opens the dm-crypt
+      // device at publish, and when it resizes that device at expand - the
+      // node-expand reference is what makes external-resizer send the
+      // credential, so without it an encrypted volume can never grow, online or
+      // offline. The node-stage reference is not read by the driver, but the
+      // Harvester StorageClass webhook requires it on an encrypted class.
+      set(selectedSecret) {
+        const [namespace, name] = selectedSecret.split('/');
+
+        this.value['parameters'] = {
+          ...this.value.parameters,
+          [CSI_PROVISIONER_SECRET_NAME]:       name,
+          [CSI_NODE_PUBLISH_SECRET_NAME]:      name,
+          [CSI_NODE_STAGE_SECRET_NAME]:        name,
+          [CSI_NODE_EXPAND_SECRET_NAME]:       name,
+          [CSI_PROVISIONER_SECRET_NAMESPACE]:  namespace,
+          [CSI_NODE_PUBLISH_SECRET_NAMESPACE]: namespace,
+          [CSI_NODE_STAGE_SECRET_NAMESPACE]:   namespace,
+          [CSI_NODE_EXPAND_SECRET_NAMESPACE]:  namespace,
+        };
+      }
+    },
+
     parameters: {
       get() {
         const parameters = clone(this.value?.parameters) || {};
 
-        DEFAULT_PARAMETERS.map((key) => {
+        const managedKeys = [
+          ...DEFAULT_PARAMETERS,
+          ...(this.value.lvmVolumeEncryptionFeatureEnabled ? ['encrypted', ...Object.values(CSI_SECRETS)] : []),
+        ];
+
+        managedKeys.forEach((key) => {
           delete parameters[key];
         });
 
@@ -158,6 +254,31 @@ export default {
         />
       </div>
     </div>
+    <template v-if="value.lvmVolumeEncryptionFeatureEnabled">
+      <div class="row mt-20">
+        <RadioGroup
+          v-model:value="volumeEncryption"
+          name="volumeEncryption"
+          :label="t('harvester.storage.volumeEncryption')"
+          :mode="mode"
+          :options="volumeEncryptionOptions"
+        />
+      </div>
+      <div
+        v-if="value.parameters.encrypted === 'true'"
+        class="row mt-20"
+      >
+        <div class="col span-6">
+          <LabeledSelect
+            v-model:value="secret"
+            :label="t('harvester.storage.secret')"
+            :options="secretOptions"
+            :mode="mode"
+            :required="true"
+          />
+        </div>
+      </div>
+    </template>
     <KeyValue
       v-model:value="parameters"
       :add-label="t('storageClass.longhorn.addLabel')"
