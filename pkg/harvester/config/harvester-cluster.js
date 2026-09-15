@@ -58,6 +58,7 @@ import {
 import { ADD_ONS } from './harvester-map';
 import { registerAddonSideNav } from '../utils/dynamic-nav';
 import { setVendor } from '@shell/config/private-label';
+import { createCssVars } from '@shell/utils/color';
 
 const TEMPLATE = HCI.VM_VERSION;
 const MONITORING_GROUP = 'Monitoring & Logging::Monitoring';
@@ -111,15 +112,35 @@ export function init($plugin, store) {
     };
 
     store.watch(
-      (_state, getters) => ({
-        isHarvesterPrime: !!getters['harvester-common/isHarvesterPrime'],
-        isDark:           getters['prefs/theme'] === 'dark',
-        privateLabel:     getters['harvester-common/privateLabel']
-      }),
-      ({ isHarvesterPrime, isDark, privateLabel }) => {
+      (_state, getters) => JSON.stringify([
+        !!getters['harvester-common/isHarvesterPrime'],
+        getters['prefs/theme'] === 'dark',
+        getters['harvester-common/privateLabel']
+      ]),
+      (value) => {
+        const [isHarvesterPrime, isDark, privateLabel] = JSON.parse(value);
         const primeLogo = isDark ? require('../assets/images/dark/suse-virtualization.svg') : require('../assets/images/suse-virtualization.svg');
 
         setVendor(privateLabel || '');
+
+        let primaryColorStyle = document.getElementById('harvester-prime-primary-color');
+
+        // set harvester prime primary color style to #4dd192 (Cyan Green)
+        if (isHarvesterPrime) {
+          if (!primaryColorStyle) {
+            primaryColorStyle = document.createElement('style');
+            primaryColorStyle.id = 'harvester-prime-primary-color';
+            document.head.appendChild(primaryColorStyle);
+            primaryColorStyle.sheet.insertRule('body.theme-light, body.theme-dark {}', 0);
+          }
+
+          const colors = createCssVars('#4dd192', isDark ? 'dark' : 'light');
+          const rule = primaryColorStyle.sheet.cssRules[0];
+
+          Object.entries(colors).forEach(([property, color]) => rule.style.setProperty(property.trim(), color));
+        } else {
+          primaryColorStyle?.remove();
+        }
 
         const primeLabelKey = privateLabel ? 'harvester.branding.primeLabel' : 'harvester.branding.primeEmptyLabel';
 
