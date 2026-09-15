@@ -57,6 +57,7 @@ import {
 } from './table-headers';
 import { ADD_ONS } from './harvester-map';
 import { registerAddonSideNav } from '../utils/dynamic-nav';
+import { setVendor } from '@shell/config/private-label';
 
 const TEMPLATE = HCI.VM_VERSION;
 const MONITORING_GROUP = 'Monitoring & Logging::Monitoring';
@@ -109,15 +110,31 @@ export function init($plugin, store) {
       }
     };
 
-    store.dispatch('setIsSingleProduct', {
-      productName:       PRODUCT_NAME,
-      logo:              require(`@shell/assets/images/providers/harvester.svg`),
-      productNameKey:    'harvester.productLabel',
-      getVersionInfo:    (store) => store.getters[`${ PRODUCT_NAME }/byId`]?.(HCI.SETTING, 'server-version')?.value || 'unknown',
-      afterLoginRoute:   home,
-      logoRoute:         home,
-      supportCustomLogo: true
-    });
+    store.watch(
+      (_state, getters) => ({
+        isHarvesterPrime: !!getters['harvester-common/isHarvesterPrime'],
+        isDark:           getters['prefs/theme'] === 'dark',
+        privateLabel:     getters['harvester-common/privateLabel']
+      }),
+      ({ isHarvesterPrime, isDark, privateLabel }) => {
+        const primeLogo = isDark ? require('../assets/images/dark/suse-virtualization.svg') : require('../assets/images/suse-virtualization.svg');
+
+        setVendor(privateLabel || '');
+
+        const primeLabelKey = privateLabel ? 'harvester.branding.primeLabel' : 'harvester.branding.primeEmptyLabel';
+
+        store.dispatch('setIsSingleProduct', {
+          productName:       PRODUCT_NAME,
+          logo:              isHarvesterPrime ? primeLogo : require(`@shell/assets/images/providers/harvester.svg`),
+          productNameKey:    isHarvesterPrime ? primeLabelKey : 'harvester.productLabel',
+          getVersionInfo:    (store) => store.getters[`${ PRODUCT_NAME }/byId`]?.(HCI.SETTING, 'server-version')?.value || 'unknown',
+          afterLoginRoute:   home,
+          logoRoute:         home,
+          supportCustomLogo: !isHarvesterPrime
+        });
+      },
+      { immediate: true }
+    );
   }
 
   product({
