@@ -10,6 +10,7 @@ import { docLink } from '../utils/feature-flags';
 const CATEGORY = {
   ui: [
     'branding',
+    HCI_SETTING.SERVER_FLAVOR,
     'ui-source',
     'ui-index',
   ]
