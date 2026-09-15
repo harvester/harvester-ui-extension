@@ -7,10 +7,11 @@ import harvesterStore from './store/harvester-store';
 import customValidators from './validators';
 import { PRODUCT_NAME } from './config/harvester';
 import { defineAsyncComponent } from 'vue';
+import semver from 'semver';
 import './styles/vue-flow.scss';
 
 // Init the package
-export default function (plugin: IPlugin) {
+export default function(plugin: IPlugin) {
   const isDev = process.env.NODE_ENV !== 'production';
   const isSingleVirtualCluster = process.env.rancherEnv === PRODUCT_NAME;
 
@@ -20,8 +21,19 @@ export default function (plugin: IPlugin) {
   // Provide plugin metadata from package.json
   plugin.metadata = require('./package.json');
 
-  // Built-in icon
-  plugin.metadata.icon = require('./icon.svg');
+  const version = semver.parse(plugin.metadata.version);
+  const isHarvesterPrime = (version?.patch ?? 0) > 0;
+  const rancher = typeof plugin.metadata.rancher === 'object' ? plugin.metadata.rancher : {};
+
+  plugin.metadata.description = isHarvesterPrime ? 'Rancher UI Extension for Harvester Prime' : 'Rancher UI Extension for Harvester';
+  plugin.metadata.rancher = {
+    ...rancher,
+    annotations: {
+      ...rancher?.annotations,
+      'catalog.cattle.io/display-name': isHarvesterPrime ? 'SUSE Virtualization' : 'Harvester',
+    },
+  };
+  plugin.metadata.icon = isHarvesterPrime ? require('./harvester-prime.svg') : require('./icon.svg');
 
   plugin.addProduct(require('./config/harvester-cluster'));
 
