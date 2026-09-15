@@ -197,9 +197,15 @@ export default {
       get() {
         const parameters = clone(this.value?.parameters) || {};
 
+        // Always managed, regardless of the feature flag: the raw editor must
+        // not let a user set `encrypted`/CSI secret params by hand on a
+        // cluster where the flag is off, since the driver would silently
+        // ignore `encrypted: "true"` and the dashboard would still present
+        // the volume as encrypted.
         const managedKeys = [
           ...DEFAULT_PARAMETERS,
-          ...(this.value.lvmVolumeEncryptionFeatureEnabled ? ['encrypted', ...Object.values(CSI_SECRETS)] : []),
+          'encrypted',
+          ...Object.values(CSI_SECRETS),
         ];
 
         managedKeys.forEach((key) => {
@@ -232,7 +238,7 @@ export default {
               v-if="!searching"
               class="text-muted"
             >
-              {{ t('harvester.storage.parameters.diskSelector.no-options', null, true) }}
+              {{ t('harvester.storage.parameters.node.no-options', null, true) }}
             </span>
           </template>
         </LabeledSelect>
