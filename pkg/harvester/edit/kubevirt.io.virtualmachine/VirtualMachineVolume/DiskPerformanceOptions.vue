@@ -35,8 +35,11 @@ export default {
 
     return {
       DISK_PERFORMANCE_PROFILE,
-      expanded: hasPerf,
-      profile:  this.detectProfile(),
+      expanded:             hasPerf,
+      profile:              this.detectProfile(),
+      // Bus the disk used before the "High Performance" preset switched it to
+      // virtio, so returning to "Default" can put it back.
+      busBeforeHighProfile: null,
     };
   },
 
@@ -134,19 +137,35 @@ export default {
     },
 
     onProfileChange(profile) {
+      const previous = this.profile;
+
       this.profile = profile;
 
       if (profile === DEFAULT) {
         this.value.cache = '';
         this.value.io = '';
         this.value.dedicatedIOThread = false;
+
+        // "Default" means no overrides, so also undo the virtio bus that the
+        // "High Performance" preset applied. Skip it if the user has since
+        // picked a different bus themselves — that choice is theirs to keep.
+        if (this.busBeforeHighProfile !== null) {
+          if (this.value.bus === 'virtio') {
+            this.value.bus = this.busBeforeHighProfile;
+          }
+          this.busBeforeHighProfile = null;
+        }
       } else if (profile === HIGH) {
         this.value.cache = 'none';
         this.value.io = 'native';
         this.value.dedicatedIOThread = true;
+
+        if (previous !== HIGH) {
+          this.busBeforeHighProfile = this.value.bus || '';
+        }
         this.value.bus = 'virtio';
       }
-      // CUSTOM keeps whatever is currently set.
+      // CUSTOM keeps whatever is currently set, including the bus.
 
       this.update();
     },

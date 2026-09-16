@@ -831,6 +831,8 @@ harvester:
       diskPerformance:
         title: High Performance (I/O Threads and Multi-Queue)
         description: These settings apply to all volumes in the Virtual Machine and complement the per-volume options above.
+        expand: Show VM-wide high-performance options
+        collapse: Hide VM-wide high-performance options
         blockMultiQueue:
           label: Virtio Block Multi-Queue
           tip: Map disk I/O to multiple queues so it is processed across multiple CPUs. Applies to virtio disks and requires a fixed CPU allocation (Harvester always sets one).

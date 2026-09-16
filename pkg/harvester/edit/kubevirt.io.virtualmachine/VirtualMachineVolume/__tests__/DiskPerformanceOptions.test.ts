@@ -3,14 +3,17 @@ import { _EDIT } from '@shell/config/query-params';
 import DiskPerformanceOptions from '../DiskPerformanceOptions.vue';
 
 const mountOptions = (value, { featureEnabled = true } = {}) => ({
-  propsData: { value, mode: _EDIT },
-  mocks:     {
-    $store: {
-      getters: {
-        'harvester-common/getFeatureEnabled': () => featureEnabled,
-        'i18n/t':                             (key) => key,
-        'i18n/exists':                        () => true,
-      }
+  props:  { value, mode: _EDIT },
+  global: {
+    mocks: {
+      $store: {
+        getters: {
+          'harvester-common/getFeatureEnabled': () => featureEnabled,
+          'i18n/t':                             (key) => key,
+          'i18n/exists':                        () => true,
+        }
+      },
+      t: (key) => key,
     },
   }
 });
@@ -57,6 +60,38 @@ describe('component: DiskPerformanceOptions', () => {
     expect(value.io).toBe('');
     expect(value.dedicatedIOThread).toBe(false);
     expect(wrapper.emitted('update')).toHaveLength(1);
+  });
+
+  it('restores the original bus when leaving High Performance for Default', () => {
+    const value = hardDisk({ bus: 'sata' });
+    const wrapper = mount(DiskPerformanceOptions, mountOptions(value));
+
+    wrapper.vm.onProfileChange('highPerformance');
+    expect(value.bus).toBe('virtio');
+
+    wrapper.vm.onProfileChange('default');
+    expect(value.bus).toBe('sata');
+  });
+
+  it('keeps a bus the user picked themselves after High Performance', () => {
+    const value = hardDisk({ bus: 'sata' });
+    const wrapper = mount(DiskPerformanceOptions, mountOptions(value));
+
+    wrapper.vm.onProfileChange('highPerformance');
+    value.bus = 'scsi';
+
+    wrapper.vm.onProfileChange('default');
+    expect(value.bus).toBe('scsi');
+  });
+
+  it('leaves the bus alone for a disk that never used the High Performance preset', () => {
+    const value = hardDisk({
+      bus: 'sata', cache: 'writeback', io: 'threads'
+    });
+    const wrapper = mount(DiskPerformanceOptions, mountOptions(value));
+
+    wrapper.vm.onProfileChange('default');
+    expect(value.bus).toBe('sata');
   });
 
   it.each([
