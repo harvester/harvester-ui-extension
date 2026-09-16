@@ -3,6 +3,7 @@ export const HCI_SETTING = {
   CONTAINERD_REGISTRY:                      'containerd-registry',
   LOG_LEVEL:                                'log-level',
   SERVER_VERSION:                           'server-version',
+  SERVER_FLAVOR:                            'server-flavor',
   UI_INDEX:                                 'ui-index',
   UPGRADE_CHECKER_ENABLED:                  'upgrade-checker-enabled',
   UPGRADE_CHECKER_URL:                      'upgrade-checker-url',
@@ -68,6 +69,7 @@ export const HCI_ALLOWED_SETTINGS = {
     kind: 'json', from: 'import', featureFlag: 'csiOnlineExpandValidation'
   },
   [HCI_SETTING.SERVER_VERSION]:               { readOnly: true },
+  [HCI_SETTING.SERVER_FLAVOR]:                { readOnly: true },
   [HCI_SETTING.UPGRADE_CHECKER_ENABLED]:      { kind: 'boolean' },
   [HCI_SETTING.UPGRADE_CHECKER_URL]:          { kind: 'url' },
   [HCI_SETTING.HTTP_PROXY]:                   { kind: 'json', from: 'import' },

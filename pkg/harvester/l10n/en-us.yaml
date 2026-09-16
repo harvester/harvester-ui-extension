@@ -84,6 +84,8 @@ dialog:
 
 harvester:
   branding:
+    primeLabel: '{vendor}'
+    primeEmptyLabel: ''
     logos:
       tip: 'Upload a logo to replace the Harvester logo in the top-level navigation header. Image height should be 21 pixels with a max width of 200 pixels. Max file size is 20KB. Accepted formats: JPEG, PNG, SVG.'
     favicon:
@@ -2445,6 +2447,7 @@ advancedSettings:
     'harv-containerd-registry': Containerd Registry Configuration to connect private registries.
     'harv-log-level': Configure Harvester server log level. Defaults to Info.
     'harv-server-version': Harvester server version.
+    'harv-server-flavor': "Indicates the Harvester edition: Prime or Community."
     'harv-upgrade-checker-enabled': Specifies whether to enable Harvester upgrade check or not. Default is True.
     'harv-upgrade-checker-url': Default Harvester upgrade check url. Only used when the <code>upgrade-checker-enabled</code> is equal to True.
     'harv-ui-source': Configure how to load the UI source. The `External` option is used to load the UI from a ui-index URL, while the `Bundled` option loads the UI from the local Harvester server.
