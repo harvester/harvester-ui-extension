@@ -72,5 +72,7 @@ plugin/img/icon.42954c0f.svg
 plugin/img/pagerduty.9871fbd3.svg
 plugin/img/prometheus.be8ac54d.svg
 plugin/img/slack.34dfd73f.svg
+plugin/img/suse-virtualization.997bbcc3.svg
+plugin/img/suse-virtualization.a5ab2c15.svg
 plugin/img/webhook.f86c012b.svg
 plugin/package.json
