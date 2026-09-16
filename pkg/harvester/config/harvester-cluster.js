@@ -57,6 +57,8 @@ import {
 } from './table-headers';
 import { ADD_ONS } from './harvester-map';
 import { registerAddonSideNav } from '../utils/dynamic-nav';
+import { setVendor } from '@shell/config/private-label';
+import { createCssVars } from '@shell/utils/color';
 
 const TEMPLATE = HCI.VM_VERSION;
 const MONITORING_GROUP = 'Monitoring & Logging::Monitoring';
@@ -109,15 +111,51 @@ export function init($plugin, store) {
       }
     };
 
-    store.dispatch('setIsSingleProduct', {
-      productName:       PRODUCT_NAME,
-      logo:              require(`@shell/assets/images/providers/harvester.svg`),
-      productNameKey:    'harvester.productLabel',
-      getVersionInfo:    (store) => store.getters[`${ PRODUCT_NAME }/byId`]?.(HCI.SETTING, 'server-version')?.value || 'unknown',
-      afterLoginRoute:   home,
-      logoRoute:         home,
-      supportCustomLogo: true
-    });
+    store.watch(
+      (_state, getters) => JSON.stringify([
+        !!getters['harvester-common/isHarvesterPrime'],
+        getters['prefs/theme'] === 'dark',
+        getters['harvester-common/privateLabel']
+      ]),
+      (value) => {
+        const [isHarvesterPrime, isDark, privateLabel] = JSON.parse(value);
+        const primeLogo = isDark ? require('../assets/images/dark/suse-virtualization.svg') : require('../assets/images/suse-virtualization.svg');
+
+        setVendor(privateLabel || '');
+
+        let primaryColorStyle = document.getElementById('harvester-prime-primary-color');
+
+        // set harvester prime primary color style to #4dd192 (Cyan Green)
+        if (isHarvesterPrime) {
+          if (!primaryColorStyle) {
+            primaryColorStyle = document.createElement('style');
+            primaryColorStyle.id = 'harvester-prime-primary-color';
+            document.head.appendChild(primaryColorStyle);
+            primaryColorStyle.sheet.insertRule('body.theme-light, body.theme-dark {}', 0);
+          }
+
+          const colors = createCssVars('#4dd192', isDark ? 'dark' : 'light');
+          const rule = primaryColorStyle.sheet.cssRules[0];
+
+          Object.entries(colors).forEach(([property, color]) => rule.style.setProperty(property.trim(), color));
+        } else {
+          primaryColorStyle?.remove();
+        }
+
+        const primeLabelKey = privateLabel ? 'harvester.branding.primeLabel' : 'harvester.branding.primeEmptyLabel';
+
+        store.dispatch('setIsSingleProduct', {
+          productName:       PRODUCT_NAME,
+          logo:              isHarvesterPrime ? primeLogo : require(`@shell/assets/images/providers/harvester.svg`),
+          productNameKey:    isHarvesterPrime ? primeLabelKey : 'harvester.productLabel',
+          getVersionInfo:    (store) => store.getters[`${ PRODUCT_NAME }/byId`]?.(HCI.SETTING, 'server-version')?.value || 'unknown',
+          afterLoginRoute:   home,
+          logoRoute:         home,
+          supportCustomLogo: !isHarvesterPrime
+        });
+      },
+      { immediate: true }
+    );
   }
 
   product({

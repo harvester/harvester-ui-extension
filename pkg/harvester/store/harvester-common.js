@@ -1,4 +1,6 @@
 import Parse from 'url-parse';
+import { MANAGEMENT } from '@shell/config/types';
+import { SETTING } from '@shell/config/settings';
 import { HCI } from '../types';
 import { PRODUCT_NAME } from '../config/harvester';
 import { featureEnabled, getVersion } from '../utils/feature-flags';
@@ -64,6 +66,23 @@ const mutations = {
 };
 
 const getters = {
+  isHarvesterPrime: (_state, _getters, _rootState, rootGetters) => {
+    const setting = rootGetters['harvester/byId']?.(HCI.SETTING, 'server-flavor');
+
+    return (setting?.value || setting?.default) === 'prime';
+  },
+
+  privateLabel: (_state, getters, _rootState, rootGetters) => {
+    const setting = rootGetters['management/byId']?.(MANAGEMENT.SETTING, SETTING.PL);
+    const value = setting?.value || '';
+
+    if (getters.isHarvesterPrime && value === (setting?.default || 'Harvester')) {
+      return '';
+    }
+
+    return value;
+  },
+
   getBundleId(state) {
     return state.latestBundleId;
   },
