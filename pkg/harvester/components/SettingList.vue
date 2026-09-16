@@ -10,6 +10,7 @@ import { docLink } from '../utils/feature-flags';
 const CATEGORY = {
   ui: [
     'branding',
+    HCI_SETTING.SERVER_FLAVOR,
     'ui-source',
     'ui-index',
   ]
@@ -53,7 +54,7 @@ export default {
     };
   },
 
-  computed: { ...mapGetters({ t: 'i18n/t' }) },
+  computed: { ...mapGetters({ t: 'i18n/t', isHarvesterPrime: 'harvester-common/isHarvesterPrime' }) },
 
   watch: {
     settings: {
@@ -269,7 +270,8 @@ export default {
           v-if="!setting.hide"
           class="settings-value"
         >
-          <pre v-if="setting.kind === 'json'">{{ setting.json }}</pre>
+          <pre v-if="setting.id === 'branding' && isHarvesterPrime">{{ $store.getters['harvester-common/privateLabel'] }}</pre>
+          <pre v-else-if="setting.kind === 'json'">{{ setting.json }}</pre>
           <pre v-else-if="setting.kind === 'multiline'">{{ setting.data.value || setting.data.default }}</pre>
           <pre v-else-if="setting.kind === 'enum'">{{ t(setting.enum) }}</pre>
           <pre v-else-if="setting.kind === 'custom' && setting.custom">{{ setting.custom }}</pre>
