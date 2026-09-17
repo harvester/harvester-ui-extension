@@ -513,6 +513,25 @@ harvester:
         label: Events
       vmMetrics:
         label: Virtual Machine Metrics
+      healthSummary:
+        label: Health Summary
+        component: Component
+        severity: Severity
+        errorCount: Errors
+        warningCount: Warnings
+        lastUpdatedAt: Last Updated
+      componentHealth:
+        label: Component Health
+        component: Component
+        node: Node
+        check: Check
+        severity: Severity
+        message: Message
+        affectedCount: Affected Resources
+        lastUpdatedAt: Last Updated
+        noAffectedResources: No affected resources
+        moreAffectedResources: '+{count} more'
+        noIssues: No issues detected
 
     version: Version
   host:

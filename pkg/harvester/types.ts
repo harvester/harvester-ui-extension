@@ -37,6 +37,8 @@ export const HCI = {
   NETWORK_ATTACHMENT:   'harvesterhci.io.networkattachmentdefinition',
   CLUSTER:              'harvesterhci.io.management.cluster',
   DASHBOARD:            'harvesterhci.io.dashboard',
+  COMPONENT_HEALTH:     'harvesterhci.io.componenthealth',
+  HEALTH_SUMMARY:       'harvesterhci.io.healthsummary',
   BLOCK_DEVICE:         'harvesterhci.io.blockdevice',
   CLOUD_TEMPLATE:       'harvesterhci.io.cloudtemplate',
   HOST:                 'harvesterhci.io.host',
