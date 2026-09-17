@@ -7,6 +7,7 @@ import Loading from '@shell/components/Loading';
 import Banner from '@components/Banner/Banner.vue';
 import MessageLink from '@shell/components/MessageLink';
 import SortableTable from '@shell/components/SortableTable';
+import { BadgeState } from '@components/BadgeState';
 import { allHash, setPromiseResult } from '@shell/utils/promise';
 import { parseSi, formatSi, exponentNeeded, UNITS } from '@shell/utils/units';
 import { REASON } from '@shell/config/table-headers';
@@ -112,6 +113,19 @@ const VM_DASHBOARD_METRICS_URL = '/api/v1/namespaces/cattle-monitoring-system/se
 
 const MONITORING_ID = 'cattle-monitoring-system/rancher-monitoring';
 
+const COMPONENT_LABEL = 'health.harvesterhci.io/component';
+const NODE_LABEL = 'health.harvesterhci.io/node';
+const AFFECTED_RESOURCES_TRUNCATE_COUNT = 5;
+const MESSAGE_TRUNCATE_LENGTH = 100;
+
+const SEVERITY_COLORS = {
+  Critical: 'bg-error',
+  Error:    'bg-error',
+  Warning:  'bg-warning',
+  Info:     'bg-info',
+  Healthy:  'bg-success',
+};
+
 export default {
   mixins:     [metricPoller],
   components: {
@@ -125,6 +139,7 @@ export default {
     DashboardMetrics,
     Banner,
     MessageLink,
+    BadgeState,
   },
 
   async fetch() {
@@ -141,6 +156,8 @@ export default {
       metric:           this.fetchClusterResources(METRIC.NODE),
       longhornNodes:    this.fetchClusterResources(LONGHORN.NODES),
       longhornSettings: this.fetchClusterResources(LONGHORN.SETTINGS),
+      componentHealths: this.fetchClusterResources(HCI.COMPONENT_HEALTH),
+      healthSummaries:  this.fetchClusterResources(HCI.HEALTH_SUMMARY),
       _pods:            this.$store.dispatch('harvester/findAll', { type: POD }),
     };
 
@@ -214,8 +231,98 @@ export default {
       },
     ];
 
+    const healthSummaryHeaders = [
+      {
+        name:     'severity',
+        labelKey: 'harvester.dashboard.sections.healthSummary.severity',
+        value:    'severity',
+        sort:     'severity',
+        width:    110,
+      },
+      {
+        name:     'component',
+        labelKey: 'harvester.dashboard.sections.healthSummary.component',
+        value:    'component',
+        sort:     'component',
+      },
+      {
+        align:    'right',
+        name:     'errorCount',
+        labelKey: 'harvester.dashboard.sections.healthSummary.errorCount',
+        value:    'errorCount',
+        sort:     'errorCount',
+        width:    120,
+      },
+      {
+        align:    'right',
+        name:     'warningCount',
+        labelKey: 'harvester.dashboard.sections.healthSummary.warningCount',
+        value:    'warningCount',
+        sort:     'warningCount',
+        width:    120,
+      },
+      {
+        align:         'right',
+        name:          'lastUpdatedAt',
+        labelKey:      'harvester.dashboard.sections.healthSummary.lastUpdatedAt',
+        value:         'lastUpdatedAt',
+        sort:          'lastUpdatedAt:desc',
+        formatter:     'LiveDate',
+        formatterOpts: { addSuffix: true },
+        width:         140,
+      },
+    ];
+
+    const componentHealthHeaders = [
+      {
+        name:     'severity',
+        labelKey: 'harvester.dashboard.sections.componentHealth.severity',
+        value:    'severity',
+        sort:     'severity',
+        width:    110,
+      },
+      {
+        name:     'node',
+        labelKey: 'harvester.dashboard.sections.componentHealth.node',
+        value:    'node',
+        sort:     'node',
+      },
+      {
+        name:     'checkName',
+        labelKey: 'harvester.dashboard.sections.componentHealth.check',
+        value:    'checkName',
+        sort:     'checkName',
+      },
+      {
+        name:          'message',
+        labelKey:      'harvester.dashboard.sections.componentHealth.message',
+        value:         'message',
+        canBeVariable: true,
+      },
+      {
+        name:          'affectedCount',
+        labelKey:      'harvester.dashboard.sections.componentHealth.affectedCount',
+        value:         'affectedCount',
+        sort:          'affectedCount',
+        width:         260,
+        canBeVariable: true,
+      },
+      {
+        align:         'right',
+        name:          'lastUpdatedAt',
+        labelKey:      'harvester.dashboard.sections.componentHealth.lastUpdatedAt',
+        value:         'lastUpdatedAt',
+        sort:          'lastUpdatedAt:desc',
+        formatter:     'LiveDate',
+        formatterOpts: { addSuffix: true },
+        width:         140,
+      },
+    ];
+
     return {
       eventHeaders,
+      componentHealthHeaders,
+      healthSummaryHeaders,
       constraints:            [],
       events:                 [],
       nodeMetrics:            [],
@@ -223,6 +330,8 @@ export default {
       metricNodes:            [],
       vms:                    [],
       pvcs:                   [],
+      componentHealths:       [],
+      healthSummaries:        [],
       monitoring:             {},
       VM_DASHBOARD_METRICS_URL,
       CLUSTER_METRICS_SUMMARY_URL,
@@ -231,6 +340,7 @@ export default {
       showVmMetrics:          false,
       enabledMonitoringAddon: false,
       hasLonghornSchema:      false,
+      expandedMessageIds:     [],
     };
   },
 
@@ -434,6 +544,78 @@ export default {
       return this.events.filter( (E) => ['VirtualMachineImage'].includes(E.involvedObject.kind));
     },
 
+    healthSummaryRows() {
+      const rows = [];
+
+      (this.healthSummaries || []).forEach((healthSummary) => {
+        const components = healthSummary?.status?.components || {};
+        const lastUpdatedAt = healthSummary?.status?.lastUpdatedAt;
+
+        Object.entries(components).forEach(([component, counts]) => {
+          rows.push({
+            id:           `${ healthSummary.id }/${ component }`,
+            component,
+            errorCount:   counts?.errorCount || 0,
+            warningCount: counts?.warningCount || 0,
+            lastUpdatedAt,
+          });
+        });
+      });
+
+      return rows;
+    },
+
+    componentHealthRows() {
+      const rows = [];
+
+      (this.componentHealths || []).forEach((componentHealth) => {
+        const labels = componentHealth?.metadata?.labels || {};
+        const component = labels[COMPONENT_LABEL] || componentHealth?.metadata?.name;
+        const node = labels[NODE_LABEL] || '';
+        const checks = componentHealth?.status?.checks || {};
+        const lastUpdatedAt = componentHealth?.status?.lastUpdatedAt;
+
+        Object.entries(checks).forEach(([checkName, check]) => {
+          rows.push({
+            id:                 `${ componentHealth.id }/${ checkName }`,
+            component,
+            node,
+            checkName,
+            severity:           check.severity,
+            message:            check.message,
+            affectedCount:      check.affectedCount,
+            affectedResources:  check.affectedResources,
+            lastUpdatedAt,
+          });
+        });
+      });
+
+      return rows;
+    },
+
+    componentHealthGroups() {
+      const rowsByComponent = {};
+
+      this.componentHealthRows.forEach((row) => {
+        rowsByComponent[row.component] = rowsByComponent[row.component] || [];
+        rowsByComponent[row.component].push(row);
+      });
+
+      const components = new Set(Object.keys(rowsByComponent));
+
+      (this.componentHealths || []).forEach((componentHealth) => {
+        const labels = componentHealth?.metadata?.labels || {};
+        const component = labels[COMPONENT_LABEL] || componentHealth?.metadata?.name;
+
+        components.add(component);
+      });
+
+      return Array.from(components).sort().map((component) => ({
+        component,
+        rows: rowsByComponent[component] || [],
+      }));
+    },
+
     hasMetricsTabs() {
       return this.showClusterMetrics || this.showVmMetrics;
     },
@@ -589,6 +771,78 @@ export default {
 
     async loadMetrics() {
       this.nodeMetrics = await this.fetchClusterResources(METRIC.NODE, { force: true } );
+    },
+
+    severityColor(severity) {
+      return SEVERITY_COLORS[severity] || 'bg-info';
+    },
+
+    healthSummarySeverity(row) {
+      if (row.errorCount > 0) {
+        return 'Critical';
+      }
+
+      if (row.warningCount > 0) {
+        return 'Warning';
+      }
+
+      return 'Healthy';
+    },
+
+    affectedResourceKind(row) {
+      const { apiVersion, kind } = row?.affectedResources || {};
+
+      if (!kind) {
+        return '';
+      }
+
+      return apiVersion ? `${ apiVersion }, ${ kind }` : kind;
+    },
+
+    affectedResourceNames(row) {
+      return Object.keys(row?.affectedResources?.names || {});
+    },
+
+    truncatedAffectedResourceNames(row) {
+      return this.affectedResourceNames(row).slice(0, AFFECTED_RESOURCES_TRUNCATE_COUNT);
+    },
+
+    remainingAffectedResourcesCount(row) {
+      return Math.max(this.affectedResourceNames(row).length - AFFECTED_RESOURCES_TRUNCATE_COUNT, 0);
+    },
+
+    affectedResourcesTooltip(row) {
+      return this.affectedResourceNames(row).join(', ');
+    },
+
+    componentHealthHeadersFor(rows) {
+      const hasNode = (rows || []).some((row) => row.node);
+
+      return this.componentHealthHeaders.filter((header) => header.name !== 'node' || hasNode);
+    },
+
+    truncatedMessage(message) {
+      if (!message || message.length <= MESSAGE_TRUNCATE_LENGTH) {
+        return message;
+      }
+
+      return message.slice(0, MESSAGE_TRUNCATE_LENGTH);
+    },
+
+    isMessageTruncated(message) {
+      return !!message && message.length > MESSAGE_TRUNCATE_LENGTH;
+    },
+
+    isMessageExpanded(rowId) {
+      return this.expandedMessageIds.includes(rowId);
+    },
+
+    toggleMessage(rowId) {
+      if (this.isMessageExpanded(rowId)) {
+        this.expandedMessageIds = this.expandedMessageIds.filter((id) => id !== rowId);
+      } else {
+        this.expandedMessageIds = [...this.expandedMessageIds, rowId];
+      }
     },
   }
 };
@@ -818,6 +1072,118 @@ export default {
               <div v-if="row.message">
                 {{ row.displayMessage }}
               </div>
+            </template>
+          </SortableTable>
+        </Tab>
+      </Tabbed>
+    </div>
+
+    <div
+      v-if="healthSummaryRows.length"
+      class="mb-40 mt-40"
+    >
+      <h3>
+        {{ t('harvester.dashboard.sections.healthSummary.label') }}
+      </h3>
+      <SortableTable
+        :rows="healthSummaryRows"
+        :headers="healthSummaryHeaders"
+        key-field="id"
+        :search="false"
+        :table-actions="false"
+        :row-actions="false"
+        :paging="true"
+        :rows-per-page="10"
+        default-sort-by="severity"
+      >
+        <template #cell:severity="{row}">
+          <BadgeState
+            :color="severityColor(healthSummarySeverity(row))"
+            :label="healthSummarySeverity(row)"
+          />
+        </template>
+      </SortableTable>
+    </div>
+
+    <div
+      v-if="componentHealthGroups.length"
+      class="mb-40 mt-40"
+    >
+      <h3>
+        {{ t('harvester.dashboard.sections.componentHealth.label') }}
+      </h3>
+      <Tabbed
+        class="mt-20"
+        :side-tabs="true"
+        :use-hash="false"
+      >
+        <Tab
+          v-for="group in componentHealthGroups"
+          :key="group.component"
+          :name="group.component"
+          :label="group.component"
+        >
+          <div
+            v-if="!group.rows.length"
+            class="text-muted"
+          >
+            {{ t('harvester.dashboard.sections.componentHealth.noIssues') }}
+          </div>
+          <SortableTable
+            v-else
+            :rows="group.rows"
+            :headers="componentHealthHeadersFor(group.rows)"
+            key-field="id"
+            :search="false"
+            :table-actions="false"
+            :row-actions="false"
+            :paging="true"
+            :rows-per-page="10"
+            default-sort-by="severity"
+          >
+            <template #cell:severity="{row}">
+              <BadgeState
+                :color="severityColor(row.severity)"
+                :label="row.severity"
+              />
+            </template>
+            <template #cell:node="{value}">
+              {{ value || '-' }}
+            </template>
+            <template #cell:message="{row, value}">
+              <span>
+                {{ isMessageExpanded(row.id) ? value : truncatedMessage(value) }}
+                <a
+                  v-if="isMessageTruncated(value)"
+                  class="text-info"
+                  @click="toggleMessage(row.id)"
+                >
+                  {{ isMessageExpanded(row.id) ? t('harvester.generic.hideMore') : t('harvester.generic.showMore') }}
+                </a>
+              </span>
+            </template>
+            <template #cell:affectedCount="{row, value}">
+              <div v-if="affectedResourceNames(row).length">
+                <div class="text-muted">
+                  {{ affectedResourceKind(row) }} ({{ value }})
+                </div>
+                <div
+                  v-for="name in truncatedAffectedResourceNames(row)"
+                  :key="name"
+                >
+                  {{ name }}
+                </div>
+                <div
+                  v-if="remainingAffectedResourcesCount(row)"
+                  v-clean-tooltip="affectedResourcesTooltip(row)"
+                  class="text-info"
+                >
+                  {{ t('harvester.dashboard.sections.componentHealth.moreAffectedResources', { count: remainingAffectedResourcesCount(row) }) }}
+                </div>
+              </div>
+              <span v-else>
+                {{ t('harvester.dashboard.sections.componentHealth.noAffectedResources') }}
+              </span>
             </template>
           </SortableTable>
         </Tab>
