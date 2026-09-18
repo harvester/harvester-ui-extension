@@ -14,6 +14,7 @@ import { VOLUME_MODE } from '@pkg/harvester/config/types';
 import { HCI } from '../../../../types';
 import { VOLUME_TYPE, InterfaceOption } from '../../../../config/harvester-map';
 import { GIBIBYTE } from '../../../../utils/unit';
+import DiskPerformanceOptions from '../DiskPerformanceOptions';
 
 export default {
   name: 'HarvesterEditExisting',
@@ -21,7 +22,7 @@ export default {
   emits: ['update'],
 
   components: {
-    UnitInput, LabeledInput, LabeledSelect, InputOrDisplay, LabelValue, Banner, Checkbox
+    UnitInput, LabeledInput, LabeledSelect, InputOrDisplay, LabelValue, Banner, Checkbox, DiskPerformanceOptions
   },
 
   props: {
@@ -172,6 +173,14 @@ export default {
       this.value.storageClassName = pvcResource.spec.storageClassName;
       this.value.volumeMode = pvcResource.spec.volumeMode;
       this.value.shareable = false;
+
+      // Adopt the volume's default high-performance profile (if any) as a starting point.
+      const ann = pvcResource.metadata?.annotations || {};
+
+      this.value.cache = ann[HCI_ANNOTATIONS.DISK_CACHE_MODE] || '';
+      this.value.io = ann[HCI_ANNOTATIONS.DISK_IO_MODE] || '';
+      this.value.dedicatedIOThread = ann[HCI_ANNOTATIONS.DISK_DEDICATED_IOTHREAD] === 'true';
+
       this.update();
     },
 
@@ -378,6 +387,12 @@ export default {
       color="error"
       class="mb-20"
       :label="value.volumeBackups.error.message"
+    />
+
+    <DiskPerformanceOptions
+      :value="value"
+      :mode="mode"
+      @update="update"
     />
   </div>
 </template>
