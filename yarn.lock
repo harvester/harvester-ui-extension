@@ -2097,10 +2097,10 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@novnc/novnc@1.2.0":
-  version "1.2.0"
-  resolved "https://registry.yarnpkg.com/@novnc/novnc/-/novnc-1.2.0.tgz#535ffd7d074022d35205deae2753100f1f2b29f3"
-  integrity sha512-FaUckOedGhSbwQBXk/KGyxKt9ngskg4wPw6ghbHWXOUEmQscAZr3467lTU5DSfppwHJt5k+lQiHoeYUuY90l2Q==
+"@novnc/novnc@1.2.0", "@novnc/novnc@1.7.0":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@novnc/novnc/-/novnc-1.7.0.tgz#7f832cf07c66475a81a25708b8e5299a5c4efec5"
+  integrity sha512-ucEJOx4T2avIRCleodk7YobZj5O2Ga2AeLfQ69A/yjG9HHba2+PDgwSkN3FttrmG+70ZGx21sElNFouK13RzyA==
 
 "@one-ini/wasm@0.1.1":
   version "0.1.1"
