@@ -76,6 +76,7 @@ const FEATURE_FLAGS = {
     'longhornV2HugepageSettings',
     'staticIPForVM',
     'fsFreezeDeadline',
+    'lvmVolumeEncryption',
   ],
   'v1.9.1':  [],
   'v1.10.0': [],
