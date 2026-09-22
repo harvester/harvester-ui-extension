@@ -58,6 +58,12 @@ jobs:
       - name: Setup Nodejs with yarn install
         uses: ./.github/actions/setup
 
+        # The catalog image is tagged with the package.json version. Sprint tags
+        # (vX.Y.Z-dev-YYYYMMDD) only share its prefix, so pin it to the tag here.
+      - name: Pin package version to tag
+        if: ${{ github.ref_type == 'tag' }}
+        run: ./scripts/bump_version.sh "${{ github.ref_name }}"
+
       - name: Build and push UI image
         run: |
           publish="yarn publish-pkgs -cp -r ${{ inputs.registry_target }} -o ${{ inputs.registry_user }}"

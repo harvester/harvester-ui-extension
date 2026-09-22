@@ -125,6 +125,13 @@ jobs:
           node-version-file: '.nvmrc'
           cache: 'yarn'
 
+        # Tag builds (RC, formal and sprint releases) ship the tag as the package
+        # version. RC/formal tags already match package.json; sprint tags
+        # (vX.Y.Z-dev-YYYYMMDD) only share its prefix, so pin it here for the build.
+      - name: Pin package version to tag
+        if: ${{ inputs.CI_BUILD_TAG != '' }}
+        run: ./scripts/bump_version.sh "${{ inputs.CI_BUILD_TAG }}"
+
       - id: ci-build-pkg
         name: Build pkg
         run: ./scripts/ci-build-pkg.sh harvester
