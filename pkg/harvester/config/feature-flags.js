@@ -77,7 +77,9 @@ const FEATURE_FLAGS = {
     'staticIPForVM',
     'fsFreezeDeadline',
   ],
-  'v1.9.1':  [],
+  'v1.9.1': [
+    'lvmDmThinOnly',
+  ],
   'v1.10.0': [],
 };
 
