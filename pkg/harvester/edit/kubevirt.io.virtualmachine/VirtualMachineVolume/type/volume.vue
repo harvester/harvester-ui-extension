@@ -9,6 +9,7 @@ import { formatSi, parseSi } from '@shell/utils/units';
 import { VOLUME_TYPE, InterfaceOption } from '../../../../config/harvester-map';
 import { _VIEW } from '@shell/config/query-params';
 import LabelValue from '@shell/components/LabelValue';
+import DiskPerformanceOptions from '../DiskPerformanceOptions';
 import { ucFirst } from '@shell/utils/string';
 import { LVM_DRIVER } from '../../../../models/harvester/storage.k8s.io.storageclass';
 import { DATA_ENGINE_V2 } from '../../../../models/harvester/persistentvolumeclaim';
@@ -24,7 +25,7 @@ export default {
   emits: ['update'],
 
   components: {
-    InputOrDisplay, Loading, LabeledInput, LabeledSelect, UnitInput, LabelValue
+    InputOrDisplay, Loading, LabeledInput, LabeledSelect, UnitInput, LabelValue, DiskPerformanceOptions
   },
 
   props: {
@@ -362,6 +363,11 @@ export default {
         </InputOrDisplay>
       </div>
     </div>
+    <DiskPerformanceOptions
+      :value="value"
+      :mode="mode"
+      @update="update"
+    />
     <div class="row mb-20">
       <div
         v-if="value.volumeEncryptionFeatureEnabled && isView"

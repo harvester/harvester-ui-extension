@@ -214,6 +214,14 @@ export default {
 
         this['diskRows'] = diskRows;
         this['networkRows'] = this.getNetworkRows(neu, { fromTemplate: false, init: false });
+
+        // getInitConfig() seeds these on created(); refresh them here too so the
+        // VM-wide performance panel does not go stale when the spec changes.
+        const domain = neu?.spec?.template?.spec?.domain;
+
+        this['blockMultiQueue'] = domain?.devices?.blockMultiQueue || false;
+        this['ioThreadsPolicy'] = domain?.ioThreadsPolicy || '';
+        this['ioThreadCount'] = domain?.ioThreads?.supplementalPoolThreadCount || 2;
       },
       deep: true
     }
@@ -254,6 +262,9 @@ export default {
           :namespace="value.metadata.namespace"
           :vm="value"
           :resource-type="value.type"
+          :block-multi-queue="blockMultiQueue"
+          :io-threads-policy="ioThreadsPolicy"
+          :io-thread-count="ioThreadCount"
         />
       </Tab>
 
