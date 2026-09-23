@@ -1319,11 +1319,7 @@ export default {
 
         out.spec.storageClassName = R.realName ? R.storageClassName : (R.storageClassName || image?.storageClassName);
 
-        if (image) {
-          out.metadata.annotations = { [HCI_ANNOTATIONS.IMAGE_ID]: image.id };
-        } else {
-          out.metadata.annotations = { [HCI_ANNOTATIONS.IMAGE_ID]: '' };
-        }
+        out.metadata.annotations = { [HCI_ANNOTATIONS.IMAGE_ID]: image?.id || (R.realName ? R.image || '' : '') };
 
         break;
       }

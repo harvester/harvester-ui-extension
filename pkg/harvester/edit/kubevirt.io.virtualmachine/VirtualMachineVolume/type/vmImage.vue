@@ -5,7 +5,7 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import InputOrDisplay from '@shell/components/InputOrDisplay';
 import { Banner } from '@components/Banner';
-import { PVC } from '@shell/config/types';
+import { PVC, STORAGE_CLASS } from '@shell/config/types';
 import { formatSi, parseSi } from '@shell/utils/units';
 import { HCI } from '../../../../types';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
@@ -160,6 +160,13 @@ export default {
       return allPVCs.find((P) => {
         return this.namespace ? P.id === `${ this.namespace }/${ this.value.volumeName }` : true;
       });
+    },
+
+    isExistingThirdPartyVolume() {
+      const storageClass = this.$store.getters['harvester/all'](STORAGE_CLASS)?.find((sc) => sc.name === this.value.storageClassName);
+
+      return this.isVirtualType && !this.isCreate && !!this.value.realName &&
+        this.pvcsResource?.status?.phase === 'Bound' && storageClass && !storageClass.isLonghorn;
     },
 
     thirdPartyStorageEnabled() {
@@ -321,7 +328,7 @@ export default {
     },
 
     checkImageExists(imageId) {
-      if (imageId === EMPTY_IMAGE) {
+      if (imageId === EMPTY_IMAGE || this.isExistingThirdPartyVolume) {
         return;
       }
 
