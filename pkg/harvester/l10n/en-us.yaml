@@ -1727,6 +1727,7 @@ harvester:
         no-options: No available Volume Groups, please add in the `Host > Storage` page
       node:
         label: Node
+        no-options: No nodes labeled for LVM topology, please add in the `Host > Storage` page
     allowedTopologies:
       title: Allowed Topologies
       tooltip: Allowed Topologies helps scheduling virtual machines on hosts which match all of below expressions.
