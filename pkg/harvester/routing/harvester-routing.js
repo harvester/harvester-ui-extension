@@ -19,6 +19,7 @@ import HarvesterUnsupported from '../pages/c/_cluster/unsupported/index.vue';
 import ForkliftDashboard from '../pages/c/_cluster/vm-migration/index.vue';
 import ForkliftVmMigrationWizard from '../pages/c/_cluster/vm-migration/vm-migration-wizard.vue';
 import ForkliftProviderWizard from '../pages/c/_cluster/vm-migration/provider-wizard.vue';
+import HarvesterVmCatalog from '../pages/c/_cluster/catalog/index.vue';
 
 const routes = [
   {
@@ -86,6 +87,10 @@ const routes = [
     name:      `${ PRODUCT_NAME }-c-cluster-projectsnamespaces`,
     path:      `/:product/c/:cluster/projectsnamespaces`,
     component: ProjectNamespaces,
+  }, {
+    name:      `${ PRODUCT_NAME }-c-cluster-catalog`,
+    path:      `/:product/c/:cluster/catalog`,
+    component: HarvesterVmCatalog,
   }, {
     name:      `${ PRODUCT_NAME }-c-cluster-vm-migration`,
     path:      `/:product/c/:cluster/vm-migration`,
