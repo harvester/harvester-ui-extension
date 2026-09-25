@@ -80,6 +80,7 @@ export const ADD_ONS = {
   LVM_DRIVER:                       'lvm.driver.harvesterhci.io',
   KUBEOVN_OPERATOR:                 'kubeovn-operator',
   FORKLIFT_OPERATOR:                'forklift-operator',
+  VM_CATALOG:                       'vm-catalog',
 };
 
 export const CSI_SECRETS = {

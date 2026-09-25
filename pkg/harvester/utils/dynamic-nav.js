@@ -20,6 +20,8 @@ export function registerAddonSideNav(store, productName, {
     return;
   }
 
+  const CACHE_KEY = `harvester.addon.${ addonName }.enabled`;
+
   // Forces the SideNav component to re-render by toggling a dummy user preference.
   // Necessary because the menu component does not automatically detect
   // changes to the allowed types list.
@@ -65,6 +67,10 @@ export function registerAddonSideNav(store, productName, {
 
   // Adds or removes the resource IDs from the product visibility whitelist.
   const setMenuVisibility = (visible) => {
+    try {
+      window.localStorage.setItem(CACHE_KEY, String(visible));
+    } catch (e) {}
+
     const accessibleTypes = visible ? (requireSchema ? types.filter(hasAccessibleSchema) : types) : [];
 
     // Always clear first to remove any previously-registered types that are
@@ -78,11 +84,23 @@ export function registerAddonSideNav(store, productName, {
     kickSideNav();
   };
 
-  // Start polling to check if the store is ready.
-  let attempts = 0;
-  const MAX_ATTEMPTS = 60;
+  // Fast-path: check session cache for last known enabled state to eliminate cold-reload lag
+  try {
+    if (window.localStorage.getItem(CACHE_KEY) === 'true') {
+      const accessibleTypes = requireSchema ? types.filter(hasAccessibleSchema) : types;
 
-  const waitForStore = setInterval(() => {
+      if (accessibleTypes.length > 0) {
+        showTypes(accessibleTypes);
+      }
+    }
+  } catch (e) {}
+
+  // Start checking if the store is ready.
+  let attempts = 0;
+  const MAX_ATTEMPTS = 150;
+  let waitForStore = null;
+
+  const checkStore = () => {
     attempts++;
 
     try {
@@ -96,7 +114,9 @@ export function registerAddonSideNav(store, productName, {
 
       if (hasSchema && hasData) {
         // Store is ready. Stop polling.
-        clearInterval(waitForStore);
+        if (waitForStore) {
+          clearInterval(waitForStore);
+        }
 
         // Watch the addon's enabled status together with the schema availability
         // of the gated types. Schemas (e.g. forklift CRDs) can load after the
@@ -105,7 +125,7 @@ export function registerAddonSideNav(store, productName, {
         store.watch(
           (state, getters) => {
             const addons = getters[`${ productName }/all`](resourceType);
-            const addon = addons.find((a) => a.metadata.name === addonName);
+            const addon = addons.find((a) => a.metadata?.name === addonName);
             const isEnabled = addon?.spec?.enabled === true;
 
             const schemaReady = requireSchema ? types.every(hasAccessibleSchema) : true;
@@ -114,23 +134,36 @@ export function registerAddonSideNav(store, productName, {
           },
           () => {
             const addons = store.getters[`${ productName }/all`](resourceType);
-            const addon = addons.find((a) => a.metadata.name === addonName);
+            const addon = addons.find((a) => a.metadata?.name === addonName);
 
             setMenuVisibility(addon?.spec?.enabled === true);
           },
           { immediate: true, deep: true }
         );
+
+        return true;
       } else if (hasSchema && !hasData) {
         // If the schema is ready but the data is missing, request the list from the API.
         // Ensures the script does not wait indefinitely if the UI has not loaded the addons yet.
         store.dispatch(`${ productName }/findAll`, { type: resourceType });
       } else if (attempts >= MAX_ATTEMPTS) {
         // Stop checking if the store does not load within the timeout limit.
-        clearInterval(waitForStore);
+        if (waitForStore) {
+          clearInterval(waitForStore);
+        }
       }
     } catch (e) {
       // Ignore errors if the store module is not yet registered and wait for the next attempt.
-      if (attempts >= MAX_ATTEMPTS) clearInterval(waitForStore);
+      if (attempts >= MAX_ATTEMPTS && waitForStore) {
+        clearInterval(waitForStore);
+      }
     }
-  }, 1000);
+
+    return false;
+  };
+
+  // Run initial check immediately (0ms). If store is already populated, ready immediately!
+  if (!checkStore()) {
+    waitForStore = setInterval(checkStore, 200);
+  }
 }
