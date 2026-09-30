@@ -8,6 +8,7 @@ import Banner from '@components/Banner/Banner.vue';
 import MessageLink from '@shell/components/MessageLink';
 import SortableTable from '@shell/components/SortableTable';
 import { BadgeState } from '@components/BadgeState';
+import { Checkbox } from '@components/Form/Checkbox';
 import { allHash, setPromiseResult } from '@shell/utils/promise';
 import { parseSi, formatSi, exponentNeeded, UNITS } from '@shell/utils/units';
 import { REASON } from '@shell/config/table-headers';
@@ -126,6 +127,8 @@ const SEVERITY_COLORS = {
   Healthy:  'bg-success',
 };
 
+const COMPONENT_HEALTH_SEVERITIES = ['Error', 'Warning', 'Info'];
+
 export default {
   mixins:     [metricPoller],
   components: {
@@ -140,6 +143,7 @@ export default {
     Banner,
     MessageLink,
     BadgeState,
+    Checkbox,
   },
 
   async fetch() {
@@ -341,6 +345,7 @@ export default {
       enabledMonitoringAddon: false,
       hasLonghornSchema:      false,
       expandedMessageIds:     [],
+      componentHealthFilters: {},
     };
   },
 
@@ -844,6 +849,31 @@ export default {
         this.expandedMessageIds = [...this.expandedMessageIds, rowId];
       }
     },
+
+    componentHealthFiltersFor(component) {
+      return this.componentHealthFilters[component] || COMPONENT_HEALTH_SEVERITIES;
+    },
+
+    componentHealthSeverityFiltersFor(rows) {
+      return COMPONENT_HEALTH_SEVERITIES.map((severity) => ({
+        severity,
+        count: rows.filter((row) => row.severity === severity).length,
+      }));
+    },
+
+    componentHealthRowsFor(component, rows) {
+      return rows.filter((row) => this.componentHealthFiltersFor(component).includes(row.severity));
+    },
+
+    toggleComponentHealthSeverity(component, severity, enabled) {
+      const filters = this.componentHealthFiltersFor(component);
+      const updatedFilters = enabled ? [...filters, severity] : filters.filter((filter) => filter !== severity);
+
+      this.componentHealthFilters = {
+        ...this.componentHealthFilters,
+        [component]: updatedFilters,
+      };
+    },
   }
 };
 </script>
@@ -1123,16 +1153,41 @@ export default {
           :name="group.component"
           :label="group.component"
         >
+          <div class="component-health-filter mb-20">
+            <v-dropdown
+              popper-class="component-health-filter-dropdown"
+              :triggers="['click']"
+              placement="bottom-start"
+              :distance="20"
+            >
+              <button class="btn bg-primary">
+                {{ t('harvester.dashboard.sections.componentHealth.filter') }}
+              </button>
+
+              <template #popper>
+                <div class="filter-popup">
+                  <Checkbox
+                    v-for="filter in componentHealthSeverityFiltersFor(group.rows)"
+                    :key="filter.severity"
+                    :value="componentHealthFiltersFor(group.component).includes(filter.severity)"
+                    type="checkbox"
+                    :label="`${ filter.severity } (${ filter.count })`"
+                    @update:value="toggleComponentHealthSeverity(group.component, filter.severity, $event)"
+                  />
+                </div>
+              </template>
+            </v-dropdown>
+          </div>
           <div
-            v-if="!group.rows.length"
+            v-if="!componentHealthRowsFor(group.component, group.rows).length"
             class="text-muted"
           >
             {{ t('harvester.dashboard.sections.componentHealth.noIssues') }}
           </div>
           <SortableTable
             v-else
-            :rows="group.rows"
-            :headers="componentHealthHeadersFor(group.rows)"
+            :rows="componentHealthRowsFor(group.component, group.rows)"
+            :headers="componentHealthHeadersFor(componentHealthRowsFor(group.component, group.rows))"
             key-field="id"
             :search="false"
             :table-actions="false"
@@ -1210,5 +1265,11 @@ export default {
 
   .events {
     margin-top: 30px;
+  }
+
+  .component-health-filter-dropdown .filter-popup {
+    display: grid;
+    gap: 10px;
+    padding: 10px;
   }
 </style>
