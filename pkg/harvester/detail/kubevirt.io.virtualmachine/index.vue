@@ -214,6 +214,7 @@ export default {
 
         this['diskRows'] = diskRows;
         this['networkRows'] = this.getNetworkRows(neu, { fromTemplate: false, init: false });
+        this['networkBootFirst'] = this.isNetworkBootFirst(neu.spec);
 
         // getInitConfig() seeds these on created(); refresh them here too so the
         // VM-wide performance panel does not go stale when the spec changes.
@@ -276,6 +277,7 @@ export default {
       >
         <Network
           v-model:value="networkRows"
+          :network-boot-first="networkBootFirst"
           mode="view"
           :vm="value"
         />

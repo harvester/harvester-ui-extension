@@ -11,3 +11,12 @@ export function parseVolumeClaimTemplates(data) {
 }
 
 export const EMPTY_IMAGE = 'EMPTY_IMAGE';
+
+/**
+ * Disks and interfaces that take part in the boot sequence, sorted by boot order.
+ */
+export function getBootDevices(devices = {}) {
+  return [...(devices.disks || []), ...(devices.interfaces || [])]
+    .filter((device) => !!device.bootOrder)
+    .sort((a, b) => a.bootOrder - b.bootOrder);
+}

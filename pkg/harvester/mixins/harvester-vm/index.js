@@ -160,6 +160,7 @@ export default {
       imageId:                       '',
       diskRows:                      [],
       networkRows:                   [],
+      networkBootFirst:              true,
       filesystemRows:                [],
       machineType:                   '',
       machineTypes:                  [],
@@ -384,6 +385,7 @@ export default {
       const diskRows = this.getDiskRows(vm, volumeBackups);
 
       const networkRows = this.getNetworkRows(vm, { fromTemplate, init });
+      const networkBootFirst = this.isNetworkBootFirst(spec);
       const hasCreateVolumes = this.getHasCreatedVolumes(spec) || [];
 
       let { userData = undefined, networkData = undefined } = this.getCloudInitNoCloud(spec);
@@ -461,6 +463,7 @@ export default {
 
       this['hasCreateVolumes'] = hasCreateVolumes;
       this['networkRows'] = networkRows;
+      this['networkBootFirst'] = networkBootFirst;
       this['imageId'] = imageId;
 
       this['diskRows'] = diskRows;
@@ -676,10 +679,27 @@ export default {
           model:       I.model,
           networkName: isPod ? MANAGEMENT_NETWORK : network?.multus?.networkName,
           staticIp:    annotations[`${ staticIpPrefix }${ I.name }`] || '',
+          networkBoot: !!I.bootOrder,
         };
       });
 
       return out;
+    },
+
+    /**
+     * Network boot devices are placed either before or after all volumes in the boot sequence.
+     * Derive which one from an existing spec, so a round trip through the form keeps it.
+     */
+    isNetworkBootFirst(spec) {
+      const devices = spec?.template?.spec?.domain?.devices || {};
+      const nicOrders = (devices.interfaces || []).map((I) => I.bootOrder).filter(Boolean);
+      const diskOrders = (devices.disks || []).map((D) => D.bootOrder).filter(Boolean);
+
+      if (nicOrders.length === 0 || diskOrders.length === 0) {
+        return true;
+      }
+
+      return Math.min(...nicOrders) < Math.min(...diskOrders);
     },
 
     parseVM() {
@@ -894,9 +914,10 @@ export default {
       const disks = [];
       const volumes = [];
       const volumeClaimTemplates = [];
+      const bootOrderOffset = this.networkBootFirst ? this.networkRows.filter((R) => R.networkBoot).length : 0;
 
       disk.forEach( (R, index) => {
-        const _disk = this.parseDisk(R, index);
+        const _disk = this.parseDisk(R, index + bootOrderOffset);
 
         disks.push(_disk);
 
@@ -1154,9 +1175,11 @@ export default {
       const networks = [];
       const interfaces = [];
 
+      let bootOrder = this.networkBootFirst ? 1 : this.diskRows.length + 1;
+
       networkRow.forEach( (R) => {
         const _network = this.parseNetwork(R);
-        const _interface = this.parseInterface(R);
+        const _interface = this.parseInterface(R, R.networkBoot ? bootOrder++ : undefined);
 
         networks.push(_network);
         interfaces.push(_interface);
@@ -1412,7 +1435,7 @@ export default {
       return arr.map( (id) => this.getSSHValue(id)).filter( (O) => O !== undefined);
     },
 
-    parseInterface(R) {
+    parseInterface(R, bootOrder) {
       const _interface = {};
       const type = R.type;
 
@@ -1420,6 +1443,10 @@ export default {
 
       if (R.macAddress) {
         _interface.macAddress = R.macAddress;
+      }
+
+      if (bootOrder) {
+        _interface.bootOrder = bootOrder;
       }
 
       _interface.model = R.model;
@@ -1927,6 +1954,11 @@ export default {
             delete merged['masquerade'];
           } else {
             delete merged['bridge'];
+          }
+
+          // boot order is owned by the form, don't inherit a stale one from the old spec
+          if (!iface.bootOrder) {
+            delete merged.bootOrder;
           }
 
           return merged;

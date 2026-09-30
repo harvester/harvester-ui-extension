@@ -324,6 +324,7 @@ export default {
       >
         <Network
           v-model:value="networkRows"
+          v-model:network-boot-first="networkBootFirst"
           :mode="mode"
         />
       </Tab>

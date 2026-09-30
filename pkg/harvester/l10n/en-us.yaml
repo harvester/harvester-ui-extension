@@ -871,6 +871,12 @@ harvester:
       title: Network
       addNetwork: Add Network
       addPort:  Add Port
+      networkBoot:
+        label: Enable network boot (PXE)
+        tip: Adds this interface to the VM boot order so the guest firmware can boot from the network. Requires a DHCP/TFTP (PXE) server reachable on the selected network; the management network does not provide one.
+        order: Network boot order
+        first: Before volumes
+        last: After volumes
     cloudConfig:
       title: Cloud Configuration
       createTemplateTitle: 'Create {name}'
