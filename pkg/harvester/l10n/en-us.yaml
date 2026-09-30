@@ -522,6 +522,7 @@ harvester:
         lastUpdatedAt: Last Updated
       componentHealth:
         label: Component Health
+        filter: Filter
         component: Component
         node: Node
         check: Check
