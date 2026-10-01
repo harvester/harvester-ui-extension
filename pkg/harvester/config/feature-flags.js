@@ -76,12 +76,13 @@ const FEATURE_FLAGS = {
     'longhornV2HugepageSettings',
     'staticIPForVM',
     'fsFreezeDeadline',
-    'lvmVolumeEncryption',
   ],
   'v1.9.1': [
     'lvmDmThinOnly',
   ],
-  'v1.10.0': [],
+  'v1.10.0': [
+    'lvmVolumeEncryption',
+  ],
 };
 
 const generateFeatureFlags = () => {
