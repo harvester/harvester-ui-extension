@@ -91,6 +91,7 @@ const FEATURE_FLAGS = {
     'vmListPagination',
     'kubeovnBgp',
     'thirdPartyVMBackup',
+    'sessionTimeoutSettings',
   ],
 };
 
