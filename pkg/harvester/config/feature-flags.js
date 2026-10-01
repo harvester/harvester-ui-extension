@@ -80,7 +80,9 @@ const FEATURE_FLAGS = {
   'v1.9.1': [
     'lvmDmThinOnly',
   ],
-  'v1.10.0': [],
+  'v1.10.0': [
+    'sessionTimeoutSettings',
+  ],
 };
 
 const generateFeatureFlags = () => {

@@ -83,6 +83,11 @@ dialog:
     protip: "Tip: Hold the {alternateLabel} key while clicking Delete to bypass the confirmation step."
 
 harvester:
+  connectionStatus:
+    label: Disconnected
+    reconnecting: The UI lost its connection to the Harvester cluster and is trying to reconnect. Resource states shown on this page may be outdated until the connection is restored. This does not indicate a problem with the cluster.
+    gaveUp: The UI lost its connection to the Harvester cluster and stopped trying to reconnect. Resource states shown on this page may be outdated. Check your network connection and reload the page.
+    reload: Reload
   branding:
     primeLabel: '{vendor}'
     primeEmptyLabel: ''
@@ -1554,6 +1559,9 @@ harvester:
         evaluation: Interval between consecutive evaluations
         retention: How long to retain metrics
         retentionSize: Maximum size of metrics
+    sessionTTL:
+      invalid: The value must be a whole number of minutes greater than 0.
+      idleExceedsTTL: 'The idle timeout ({idle} minutes) cannot be greater than the session timeout ({ttl} minutes). Increase auth-user-session-ttl-minutes first, or use a lower idle timeout.'
     clusterRegistrationUrl:
       url: URL
       insecureSkipTLSVerify: Insecure Skip TLS Verify
@@ -2471,6 +2479,8 @@ advancedSettings:
     'harv-default-vm-termination-grace-period-seconds': Configure the virtual machine termination grace period for virtual machine stop.
     'harv-ntp-servers': Configure NTP server. You can configure multiple IPv4 addresses or host addresses.
     'harv-auto-rotate-rke2-certs': The certificate rotation mechanism relies on Rancher. Harvester will automatically update certificates generation to trigger rotation.
+    'auth-user-session-ttl-minutes': 'Maximum lifetime (in minutes) of a UI login session, regardless of activity. When it ends, the user is logged out and must log in again. Default is 960 (16 hours).'
+    'auth-user-session-idle-ttl-minutes': 'Time (in minutes) a UI login session can stay idle before the user is logged out. A warning dialog with a countdown appears shortly before the logout, and any activity resets the timer. The idle timeout only applies when it is lower than <code>auth-user-session-ttl-minutes</code>. Default is 960 (16 hours).'
     'harv-kubeconfig-default-token-ttl-minutes': 'TTL (in minutes) applied on Harvester administration kubeconfig files. Default is 0, which means to never expire.'
     'harv-longhorn-v2-data-engine-enabled': 'Enable the Longhorn V2 data engine. Default is false. <ul><li>Changing this setting will restart RKE2 on all nodes. This will not affect running VM workloads.</li><li>If you see "not enough hugepages-2Mi capacity" errors when enabling this setting, wait a minute for the error to clear. If the error remains, reboot the affected node.</li></ul>'
     'harv-longhorn-v2-data-engine-hugepage-enabled': 'Enable hugepages when using the Longhorn V2 data engine. Default is true. Disabling hugepages reduces memory pressure on low-spec nodes and increases deployment flexibility. However, performance may be lower compared to running with hugepages.'

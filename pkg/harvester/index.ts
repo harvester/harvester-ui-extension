@@ -32,6 +32,6 @@ export default function (plugin: IPlugin) {
   plugin.addRoutes(extensionRoutes);
 
   plugin.register('component', 'NavHeaderRight', defineAsyncComponent(() =>
-    import('./components/HarvesterUpgradeHeader.vue')
+    import('./components/HarvesterNavHeaderRight.vue')
   ));
 }
