@@ -77,7 +77,6 @@ const FEATURE_FLAGS = {
     'longhornV2HugepageSettings',
     'staticIPForVM',
     'fsFreezeDeadline',
-    'lvmVolumeEncryption',
   ],
   'v1.9.1': [
     'lvmDmThinOnly',
@@ -86,6 +85,7 @@ const FEATURE_FLAGS = {
   'v1.10.0': [
     'maintenanceModeConditions',
     'maintenanceModeDrainTimeoutSetting',
+    'lvmVolumeEncryption',
   ],
 };
 
