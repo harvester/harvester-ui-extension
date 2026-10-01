@@ -94,7 +94,10 @@ export default {
     this.instancetypes = types;
     this.networks = nads.filter((n) => n.metadata?.labels?.['network.harvesterhci.io/type']);
     this.sshKeys = keys;
-    this.namespaces = ns.map((n) => n.metadata.name).filter((n) => !SYSTEM_NS.test(n));
+    this.namespaces = ns.filter((n) => !n.isSystem).map((n) => n.metadata.name);
+    if (!this.namespaces.includes(this.namespace)) {
+      this.namespace = this.namespaces[0] || null;
+    }
     this.loading = false;
   },
 
@@ -142,7 +145,10 @@ export default {
     },
 
     minDiskGi() {
-      const bytes = this.image?.status?.virtualSize || 0;
+      const bytes = Math.max(
+        this.image?.status?.size || 0,
+        this.image?.status?.virtualSize || 0
+      );
 
       return Math.max(1, Math.ceil(bytes / 2 ** 30));
     },
@@ -212,7 +218,11 @@ export default {
     },
 
     canCreate() {
-      return !!(this.image && this.instancetype && this.name && !this.nameError && this.namespace && this.diskGi && !this.diskError);
+      const vmSchema = this.$store.getters['harvester/schemaFor'](HCI.VM);
+      const canCreateVm = vmSchema?.collectionMethods?.some((method) => method.toLowerCase() === 'post');
+
+      return !!(canCreateVm && this.image && this.instancetype && this.name && !this.nameError && this.namespace && this.diskGi && !this.diskError);
+    }
     },
 
     summary() {
@@ -275,9 +285,13 @@ export default {
       }
     },
 
-    series() {
+    series(series) {
       this.showAllSizes = false;
-    },
+
+      if (this.selectedSize && this.selectedSize.series !== series) {
+        this.instancetype = null;
+      }
+    }
   },
 
   methods: {
