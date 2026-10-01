@@ -89,13 +89,16 @@ const reload = () => window.location.reload();
 <template>
   <div
     v-if="enabled && disconnected"
-    v-clean-tooltip="{ content: tooltip, placement: 'bottom' }"
+    v-clean-tooltip="{ content: tooltip, placement: 'bottom', triggers: ['hover', 'focus'] }"
     class="connection-status"
     role="alert"
+    tabindex="0"
     data-testid="harvester-connection-status"
   >
     <i class="icon icon-warning" />
     <span>{{ t('harvester.connectionStatus.label') }}</span>
+    <!-- The tooltip is not announced, so give screen readers the explanation as part of the alert -->
+    <span class="sr-only">{{ tooltip }}</span>
     <button
       v-if="gaveUp"
       class="btn btn-sm role-link"
