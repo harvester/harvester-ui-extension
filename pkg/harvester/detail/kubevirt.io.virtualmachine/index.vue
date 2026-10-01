@@ -15,6 +15,9 @@ import LabelValue from '@shell/components/LabelValue';
 import { HCI } from '../../types';
 import VM_MIXIN from '../../mixins/harvester-vm';
 import { getLatestMigration } from '../../utils/vm';
+import CLONE_PROGRESS_MIXIN from '../../mixins/vm-clone-progress';
+import { Banner } from '@components/Banner';
+import HarvesterBackupProgressBar from '../../formatters/HarvesterBackupProgressBar';
 
 import CloudConfig from '../../edit/kubevirt.io.virtualmachine/VirtualMachineCloudConfig';
 import Volume from '../../edit/kubevirt.io.virtualmachine/VirtualMachineVolume';
@@ -50,9 +53,11 @@ export default {
     PodAffinity,
     KeyValue,
     Labels,
+    Banner,
+    HarvesterBackupProgressBar,
   },
 
-  mixins: [CreateEditView, VM_MIXIN],
+  mixins: [CreateEditView, VM_MIXIN, CLONE_PROGRESS_MIXIN],
 
   props: {
     value: {
@@ -102,6 +107,10 @@ export default {
 
   computed: {
     ...mapGetters(['currentCluster']),
+
+    cloneProgressVMs() {
+      return [this.value];
+    },
 
     totalSnapshotSize() {
       if (this.value.snapshotSizeQuota === undefined || this.value.snapshotSizeQuota === null) {
@@ -222,6 +231,18 @@ export default {
 
 <template>
   <div>
+    <Banner
+      v-if="value.isCloningVolumes"
+      color="info"
+    >
+      <div class="clone-progress">
+        <span>{{ t(`harvester.${ value.cloneProgress.type || 'clone' }.progress.banner`) }}</span>
+        <HarvesterBackupProgressBar
+          class="clone-progress-bar"
+          :value="value.cloneProgress"
+        />
+      </div>
+    </Banner>
     <Tabbed
       v-bind="$attrs"
       class="mt-15"
@@ -444,6 +465,18 @@ export default {
 </template>
 
 <style lang="scss" scoped>
+.clone-progress {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+
+  .clone-progress-bar {
+    flex: 1;
+    max-width: 400px;
+  }
+}
+
 .migration-metrics-scroll {
   max-height: 640px;
   overflow-y: auto;
