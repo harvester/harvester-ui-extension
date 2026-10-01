@@ -4,7 +4,9 @@ import {
 } from 'vue';
 import { useStore } from 'vuex';
 import { useI18n } from '@shell/composables/useI18n';
-import { EVENT_CONNECTED, EVENT_DISCONNECTED, EVENT_CONNECT_ERROR, EVENT_DISCONNECT_ERROR } from '@shell/utils/socket';
+import {
+  EVENT_CONNECTING, EVENT_CONNECTED, EVENT_DISCONNECTED, EVENT_CONNECT_ERROR, EVENT_DISCONNECT_ERROR
+} from '@shell/utils/socket';
 import { PRODUCT_NAME as HARVESTER } from '../config/harvester';
 
 // Steve closes the websocket every 30 minutes and reconnects right away, so only report outages that last longer than this
@@ -46,7 +48,10 @@ const onGaveUp = () => {
   gaveUp.value = true;
 };
 
+// An unexpected close that will be retried emits 'connecting' rather than 'disconnected', so treat any
+// (re)connect attempt that does not succeed within the grace period as an outage
 const listeners = {
+  [EVENT_CONNECTING]:       onDisconnected,
   [EVENT_CONNECTED]:        onConnected,
   [EVENT_DISCONNECTED]:     onDisconnected,
   [EVENT_CONNECT_ERROR]:    onDisconnected,
