@@ -6,6 +6,7 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { TextAreaAutoGrow } from '@components/Form/TextArea';
 import UnitInput from '@shell/components/form/UnitInput';
 import CreateEditView from '@shell/mixins/create-edit-view';
+import { MANAGEMENT } from '@shell/config/types';
 import { DOC } from '../config/doc-links';
 import { docLink } from '../utils/feature-flags';
 
@@ -144,7 +145,54 @@ export default {
         this.value.value = isNaN(num) ? 0 : `${ num }`;
       }
 
+      const sessionTTLError = await this.validateSessionTTL();
+
+      if (sessionTTLError) {
+        this.errors = [sessionTTLError];
+
+        return done(false);
+      }
+
       this.save(done);
+    },
+
+    // Rancher does not validate the session TTL settings in Harvester, so a bad value would only surface as a broken login session
+    async validateSessionTTL() {
+      const { AUTH_USER_SESSION_TTL_MINUTES: TTL, AUTH_USER_SESSION_IDLE_TTL_MINUTES: IDLE_TTL } = HCI_SETTING;
+      const id = this.value.metadata.name;
+
+      if (![TTL, IDLE_TTL].includes(id)) {
+        return null;
+      }
+
+      const t = this.$store.getters['i18n/t'];
+      const minutes = Number(this.value.value);
+
+      if (!Number.isInteger(minutes) || minutes < 1) {
+        return t('harvester.setting.sessionTTL.invalid');
+      }
+
+      const otherId = id === TTL ? IDLE_TTL : TTL;
+      let other;
+
+      try {
+        other = await this.$store.dispatch('management/find', { type: MANAGEMENT.SETTING, id: otherId });
+      } catch {}
+
+      const otherMinutes = parseInt(other?.value || other?.default, 10);
+
+      if (isNaN(otherMinutes)) {
+        return null;
+      }
+
+      const idle = id === IDLE_TTL ? minutes : otherMinutes;
+      const ttl = id === TTL ? minutes : otherMinutes;
+
+      if (idle > ttl) {
+        return t('harvester.setting.sessionTTL.idleExceedsTTL', { idle, ttl });
+      }
+
+      return null;
     },
 
     clusterRegistrationUrlTip() {
