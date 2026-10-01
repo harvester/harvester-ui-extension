@@ -363,6 +363,7 @@ harvester:
     totalSnapshotQuota: Total Snapshot Quota
     storageClass: Storage Class
     restore: Restore
+    clone: Clone
     vmImportSourceVm: Source VM
     vmImportSourceCluster: Source Cluster
     vmImportStatus: Import Status
@@ -1194,6 +1195,14 @@ harvester:
         starting: Restore initiating
         progress: Restore in progress
         complete: Restore completed
+  clone:
+    progress:
+      details: Copying volume data
+      banner: Cloning volumes. The virtual machine starts once the volume data has been copied.
+  cloneRebuild:
+    progress:
+      details: Rebuilding volume replicas
+      banner: Rebuilding cloned volume replicas. The volumes stay degraded until all replicas are rebuilt.
 
   subnet:
     cidrBlock:
