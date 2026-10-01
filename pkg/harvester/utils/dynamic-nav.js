@@ -101,7 +101,7 @@ export function registerAddonSideNav(store, productName, {
 
   // Start checking if the store is ready.
   let attempts = 0;
-  const MAX_ATTEMPTS = 150;
+  const MAX_ATTEMPTS = 300;
   let waitForStore = null;
 
   const checkStore = () => {

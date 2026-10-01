@@ -275,6 +275,8 @@ describe('catalog.js unit tests', () => {
       assert.equal(vm.spec.instancetype.name, 'u1.medium');
       assert.equal(vm.spec.preference.name, 'opensuse.leap');
       assert.equal(vm.spec.runStrategy, 'RerunOnFailure');
+      assert.equal(vm.metadata.annotations['harvesterhci.io/sshNames'], JSON.stringify(['default/key1']));
+      assert.equal(vm.spec.template.metadata.annotations['harvesterhci.io/sshNames'], JSON.stringify(['default/key1']));
 
       // Verify cloud-init disk exists and contains quoted SSH key without password
       const cloudInitDisk = vm.spec.template.spec.domain.devices.disks.find((d) => d.name === 'cloudinitdisk');

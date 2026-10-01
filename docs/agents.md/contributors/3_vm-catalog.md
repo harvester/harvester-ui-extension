@@ -119,7 +119,7 @@ Run `node --test pkg/harvester/utils/__tests__/catalog.test.mjs` to test catalog
 ### Known gaps / backlog (in priority order)
 
 1. **Firmware.** The catalog leaves firmware to the preference. If an image needs UEFI and its preference doesn't set it, it will fail to boot. Either set `firmware.bootloader.efi` when an image label asks for it, or rely on the `*.efi` preference variants.
-2. **CDI-backed images.** The root disk template hardcodes `ReadWriteMany` + `Block`, which is correct for Longhorn backing images only. Derive the access mode and volume mode from the image's StorageClass or backend.
+2. **CDI-backed images.** Volume mode and access modes are resolved dynamically from CDI StorageProfiles and StorageClass annotations (defaulting to Block and ReadWriteMany).
 3. **"Customize" handoff** to the full VM form, prefilled. The existing form cannot represent instancetype refs, so the handoff must pass the *expanded* spec.
 4. **Icons.** The brand logos are trademarks; they need a legal check before any upstream contribution.
 5. **Upstream issue (not filed yet).** Harvester should (a) accept instancetype-backed VMs in the memory validator, (b) make the `maxSockets` mutator use `add` or check that the path exists, and (c) show memory from `memory.guest` when limits are absent. Once fixed, switch to reference mode and delete `harvesterShim()`.

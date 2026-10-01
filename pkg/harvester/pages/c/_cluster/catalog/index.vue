@@ -47,7 +47,6 @@ export default {
   data() {
     return {
       loading:         true,
-      addonEnabled:    true,
       loadErrors:      [],
       errors:          [],
       images:          [],
@@ -83,15 +82,12 @@ export default {
       return [];
     });
 
-    const [images, prefs, types, nads, keys, ns, addons, profiles, storageClasses] = await Promise.all([
+    const [images, prefs, types, nads, keys, ns, , profiles, storageClasses] = await Promise.all([
       load(HCI.IMAGE), load(CLUSTER_PREFERENCE), load(CLUSTER_INSTANCETYPE),
       load(NETWORK_ATTACHMENT), load(HCI.SSH), load(NAMESPACE), load(HCI.ADD_ONS),
       load(HCI.STORAGE_PROFILE), load(STORAGE_CLASS),
     ]);
 
-    const catalogAddon = (addons || []).find((a) => a.metadata?.name === ADD_ONS.VM_CATALOG);
-
-    this.addonEnabled = catalogAddon?.spec?.enabled === true;
     this.images = images.filter(isCatalogImage);
     this.preferences = prefs;
     this.instancetypes = types;
@@ -107,6 +103,13 @@ export default {
   },
 
   computed: {
+    addonEnabled() {
+      const addons = this.$store.getters['harvester/all'](HCI.ADD_ONS) || [];
+      const catalogAddon = addons.find((a) => a.metadata?.name === ADD_ONS.VM_CATALOG);
+
+      return catalogAddon?.spec?.enabled === true;
+    },
+
     prefByName() {
       return Object.fromEntries(this.preferences.map((p) => [p.metadata.name, p]));
     },
@@ -440,19 +443,14 @@ export default {
         {{ t('harvester.catalog.emptyImages') }}
       </p>
 
-      <div
-        class="distro-grid"
-        role="radiogroup"
-        :aria-label="t('harvester.catalog.steps.os')"
-      >
+      <div class="distro-grid">
         <button
           v-for="d in distros"
           :key="d.key"
           type="button"
-          role="radio"
           class="distro"
           :class="{ 'is-selected': d.key === distroKey }"
-          :aria-checked="d.key === distroKey"
+          :aria-pressed="d.key === distroKey"
           @click="distroKey = d.key"
         >
           <svg
@@ -517,19 +515,14 @@ export default {
         </button>
       </div>
 
-      <div
-        class="size-grid"
-        role="radiogroup"
-        :aria-label="t('harvester.catalog.steps.size')"
-      >
+      <div class="size-grid">
         <button
           v-for="s in sizes"
           :key="s.name"
           type="button"
-          role="radio"
           class="size"
           :class="{ 'is-selected': s.name === instancetype }"
-          :aria-checked="s.name === instancetype"
+          :aria-pressed="s.name === instancetype"
           @click="selectSize(s.name)"
         >
           <span class="size__tier">{{ s.tier }}</span>

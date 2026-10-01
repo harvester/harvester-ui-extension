@@ -501,6 +501,8 @@ export function buildCatalogVm({
     volumes.push({ name: 'cloudinitdisk', cloudInitNoCloud: { userData } });
   }
 
+  const sshNames = JSON.stringify(sshKeys.map((k) => `${ k.metadata.namespace }/${ k.metadata.name }`));
+
   const vm = {
     apiVersion: 'kubevirt.io/v1',
     kind:       'VirtualMachine',
@@ -514,7 +516,7 @@ export function buildCatalogVm({
       annotations: {
         'harvesterhci.io/vmRunStrategy':        'RerunOnFailure',
         'harvesterhci.io/volumeClaimTemplates': JSON.stringify(volumeClaimTemplates),
-        'harvesterhci.io/sshNames':             JSON.stringify(sshKeys.map((k) => `${ k.metadata.namespace }/${ k.metadata.name }`)),
+        'harvesterhci.io/sshNames':             sshNames,
         [CATALOG_ANNOTATIONS.INSTANCETYPE]:     instancetype,
         [CATALOG_ANNOTATIONS.IMAGE]:            imageId,
         ...(preference ? { [CATALOG_ANNOTATIONS.PREFERENCE]: preference } : {}),
@@ -527,8 +529,11 @@ export function buildCatalogVm({
       instancetype: { kind: 'VirtualMachineClusterInstancetype', name: instancetype },
       ...(preference ? { preference: { kind: 'VirtualMachineClusterPreference', name: preference } } : {}),
       template:     {
-        metadata: { labels: { 'harvesterhci.io/vmName': name } },
-        spec:     {
+        metadata: {
+          labels:      { 'harvesterhci.io/vmName': name },
+          annotations: { 'harvesterhci.io/sshNames': sshNames },
+        },
+        spec: {
           ...(affinity ? { affinity } : {}),
           domain: {
             devices: {
