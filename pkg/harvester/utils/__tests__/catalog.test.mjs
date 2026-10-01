@@ -10,6 +10,8 @@ import {
   preferenceDisplayName,
   resolvePreferenceName,
   isCatalogImage,
+  cloudInit,
+  resolveStorageSettings,
   buildCatalogVm,
   expandPath,
   cleanExpanded,
@@ -111,7 +113,7 @@ describe('catalog.js unit tests', () => {
   describe('resolvePreferenceName', () => {
     const prefNames = [
       'sles.15.5', 'sles.15.6', 'sles.15.6.virtio',
-      'opensuse.leap.15.5', 'opensuse.tumbleweed',
+      'opensuse.leap.15.5', 'opensuse.leap.15.6', 'opensuse.tumbleweed',
       'ubuntu', 'debian.12', 'fedora', 'windows.2k25', 'windows.2k25.efi',
     ];
 
@@ -135,6 +137,14 @@ describe('catalog.js unit tests', () => {
         spec:     { displayName: 'openSUSE-Tumbleweed-Minimal-VM.qcow2' },
       };
       assert.equal(resolvePreferenceName(tw, prefNames), 'opensuse.tumbleweed');
+    });
+
+    it('resolves exact minor version instead of picking highest major (e.g. SLES-15.5 over 15.6)', () => {
+      const sles = {
+        metadata: { labels: { 'harvesterhci.io/os-type': 'SLEs' } },
+        spec:     { displayName: 'SLES-15.5.qcow2' },
+      };
+      assert.equal(resolvePreferenceName(sles, prefNames), 'sles.15.5');
     });
 
     it('resolves EFI variants when UEFI/EFI is requested in the image hint', () => {
@@ -174,8 +184,78 @@ describe('catalog.js unit tests', () => {
     });
   });
 
+  describe('cloudInit', () => {
+    it('returns empty string when no SSH keys are provided', () => {
+      assert.equal(cloudInit({ sshKeys: [] }), '');
+      assert.equal(cloudInit(), '');
+    });
+
+    it('serializes SSH keys safely with JSON quoting to prevent YAML corruption from colon comments', () => {
+      const keys = [
+        { spec: { publicKey: 'ssh-ed25519 AAAAC3... user: laptop\n' } },
+        { spec: { publicKey: 'ssh-rsa AAAAB3... admin@domain.com' } },
+      ];
+      const output = cloudInit({ sshKeys: keys });
+      assert.match(output, /^#cloud-config\n/);
+      assert.match(output, /ssh_authorized_keys:\n/);
+      assert.match(output, / - "ssh-ed25519 AAAAC3\.\.\. user: laptop"/);
+      assert.match(output, / - "ssh-rsa AAAAB3\.\.\. admin@domain\.com"/);
+    });
+  });
+
+  describe('resolveStorageSettings', () => {
+    it('returns Block and ReadWriteMany from StorageProfile status.claimPropertySets', () => {
+      const storageProfiles = [{
+        metadata: { name: 'longhorn' },
+        status:   {
+          claimPropertySets: [
+            { accessModes: ['ReadWriteMany', 'ReadWriteOnce'], volumeMode: 'Block' },
+          ],
+        },
+      }];
+
+      const settings = resolveStorageSettings('longhorn', { storageProfiles });
+      assert.deepEqual(settings, { volumeMode: 'Block', accessModes: ['ReadWriteMany'] });
+    });
+
+    it('returns Filesystem and ReadWriteOnce from StorageProfile when only Filesystem/RWO is supported', () => {
+      const storageProfiles = [{
+        metadata: { name: 'nfs-csi' },
+        status:   {
+          claimPropertySets: [
+            { accessModes: ['ReadWriteOnce'], volumeMode: 'Filesystem' },
+          ],
+        },
+      }];
+
+      const settings = resolveStorageSettings('nfs-csi', { storageProfiles });
+      assert.deepEqual(settings, { volumeMode: 'Filesystem', accessModes: ['ReadWriteOnce'] });
+    });
+
+    it('falls back to StorageClass CDI annotation when StorageProfile is absent', () => {
+      const storageClasses = [{
+        metadata: {
+          name:        'custom-sc',
+          annotations: {
+            'cdi.harvesterhci.io/storageProfileVolumeModeAccessModes': JSON.stringify({
+              Filesystem: ['ReadWriteOnce'],
+            }),
+          },
+        },
+      }];
+
+      const settings = resolveStorageSettings('custom-sc', { storageClasses });
+      assert.deepEqual(settings, { volumeMode: 'Filesystem', accessModes: ['ReadWriteOnce'] });
+    });
+
+    it('falls back to default Block and ReadWriteMany when neither is found', () => {
+      const settings = resolveStorageSettings('unknown-sc');
+      assert.deepEqual(settings, { volumeMode: 'Block', accessModes: ['ReadWriteMany'] });
+    });
+  });
+
   describe('buildCatalogVm', () => {
-    it('builds a valid VirtualMachine referencing instancetype and preference with cloud-init', () => {
+    it('builds a valid VirtualMachine referencing instancetype and preference with cloud-init when SSH keys exist', () => {
       const vm = buildCatalogVm({
         name:         'test-vm',
         namespace:    'default',
@@ -184,8 +264,7 @@ describe('catalog.js unit tests', () => {
         preference:   'opensuse.leap',
         diskGi:       20,
         network:      MANAGEMENT_NETWORK,
-        sshKeys:      [{ metadata: { namespace: 'default', name: 'key1' }, spec: { publicKey: 'ssh-ed25519 AAAAC3... user@host\n' } }],
-        password:     'secret123',
+        sshKeys:      [{ metadata: { namespace: 'default', name: 'key1' }, spec: { publicKey: 'ssh-ed25519 AAAAC3... user: laptop\n' } }],
         start:        true,
       });
 
@@ -197,12 +276,50 @@ describe('catalog.js unit tests', () => {
       assert.equal(vm.spec.preference.name, 'opensuse.leap');
       assert.equal(vm.spec.runStrategy, 'RerunOnFailure');
 
-      // Verify sanitized cloud-init user-data
+      // Verify cloud-init disk exists and contains quoted SSH key without password
+      const cloudInitDisk = vm.spec.template.spec.domain.devices.disks.find((d) => d.name === 'cloudinitdisk');
+      assert.ok(cloudInitDisk);
       const cloudInitVol = vm.spec.template.spec.volumes.find((v) => v.name === 'cloudinitdisk');
       assert.ok(cloudInitVol?.cloudInitNoCloud?.userData);
       const ud = cloudInitVol.cloudInitNoCloud.userData;
-      assert.match(ud, /ssh-ed25519 AAAAC3\.\.\. user@host/);
-      assert.match(ud, /password: "secret123"/);
+      assert.match(ud, /"ssh-ed25519 AAAAC3\.\.\. user: laptop"/);
+      assert.doesNotMatch(ud, /password/);
+    });
+
+    it('does not emit cloudinitdisk disk or volume when no SSH keys are provided', () => {
+      const vm = buildCatalogVm({
+        name:         'no-ssh-vm',
+        namespace:    'default',
+        image:        { metadata: { namespace: 'default', name: 'img-1' }, status: { storageClassName: 'longhorn' } },
+        instancetype: 'u1.medium',
+        preference:   'opensuse.leap',
+        diskGi:       20,
+        network:      MANAGEMENT_NETWORK,
+        sshKeys:      [],
+        start:        true,
+      });
+
+      const cloudInitDisk = vm.spec.template.spec.domain.devices.disks.find((d) => d.name === 'cloudinitdisk');
+      assert.equal(cloudInitDisk, undefined);
+      const cloudInitVol = vm.spec.template.spec.volumes.find((v) => v.name === 'cloudinitdisk');
+      assert.equal(cloudInitVol, undefined);
+    });
+
+    it('sets resolved volumeMode and accessModes on root volume claim template', () => {
+      const vm = buildCatalogVm({
+        name:         'custom-storage-vm',
+        namespace:    'default',
+        image:        { metadata: { namespace: 'default', name: 'img-1' }, status: { storageClassName: 'nfs' } },
+        instancetype: 'u1.medium',
+        diskGi:       25,
+        volumeMode:   'Filesystem',
+        accessModes:  ['ReadWriteOnce'],
+      });
+
+      const claims = JSON.parse(vm.metadata.annotations['harvesterhci.io/volumeClaimTemplates']);
+      assert.equal(claims[0].spec.volumeMode, 'Filesystem');
+      assert.deepEqual(claims[0].spec.accessModes, ['ReadWriteOnce']);
+      assert.equal(claims[0].spec.resources.requests.storage, '25Gi');
     });
   });
 

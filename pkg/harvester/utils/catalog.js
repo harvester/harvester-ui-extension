@@ -23,6 +23,7 @@ export const CATALOG_ANNOTATIONS = {
 const HCI_OS_TYPE = 'harvesterhci.io/os-type';
 const HCI_IMAGE_TYPE = 'harvesterhci.io/image-type';
 const HCI_CLUSTER_NETWORK = 'network.harvesterhci.io/clusternetwork';
+const HCI_VOLUME_MODE_ACCESS_MODES = 'cdi.harvesterhci.io/storageProfileVolumeModeAccessModes';
 
 export const MANAGEMENT_NETWORK = '__management__';
 export const FEATURED_SIZES = ['small', 'medium', 'large', 'xlarge'];
@@ -117,6 +118,60 @@ export function preferenceDisplayName(pref) {
   return `${ bases[base] || base.charAt(0).toUpperCase() + base.slice(1) } ${ v }`.trim();
 }
 
+function extractVersion(name, prefixes) {
+  const sortedPrefixes = [...prefixes].sort((a, b) => b.length - a.length);
+  const matched = sortedPrefixes.find((p) => name === p || name.startsWith(`${ p }.`));
+
+  if (!matched || name === matched) {
+    return { fullVersion: '', majorVersion: '' };
+  }
+
+  const rawVersion = name.slice(matched.length + 1);
+  const cleanVersion = rawVersion.replace(/\.(virtio|efi|arm64|s390x|desktop|dpdk|realtime)(\.|$)/g, '$2').replace(/\.$/, '');
+  const majorVersion = cleanVersion.split('.')[0];
+
+  return { fullVersion: cleanVersion, majorVersion };
+}
+
+function scoreCandidate(name, prefixes, h) {
+  const { fullVersion, majorVersion } = extractVersion(name, prefixes);
+
+  if (!fullVersion) {
+    return 0;
+  }
+
+  const fullAliases = [
+    fullVersion,
+    fullVersion.replace(/^2k/, '20'),
+    fullVersion.replace(/^stream/, ''),
+  ];
+
+  const fullPatterns = fullAliases.map((v) => {
+    const escaped = v.replace(/\./g, '[._-]');
+
+    return new RegExp(`(^|[^a-z0-9])${ escaped }([^a-z0-9]|$)`, 'i');
+  });
+
+  if (fullPatterns.some((re) => re.test(h))) {
+    return 2;
+  }
+
+  if (majorVersion) {
+    const majorAliases = [
+      majorVersion,
+      majorVersion.replace(/^2k/, '20'),
+      majorVersion.replace(/^stream/, ''),
+    ];
+    const majorPatterns = majorAliases.map((v) => new RegExp(`(^|[^a-z0-9])${ v }([^a-z0-9]|$)`, 'i'));
+
+    if (majorPatterns.some((re) => re.test(h))) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
 // Among candidate preferences, prefer one whose version token appears in the
 // image name (e.g. "rhel-9.4" -> rhel.9), else the highest version.
 function pickPreference(prefNames, prefixes, hint = '') {
@@ -171,28 +226,15 @@ function pickPreference(prefNames, prefixes, hint = '') {
   }
 
   const pool = filtered.length ? filtered : candidates;
-
   const wantsEfi = /efi|uefi|win(dows)?[\s.-]*(11|2k2[25]|202[25])/i.test(hint);
 
-  const matched = pool.filter((n) => {
-    const parts = n.split('.');
-    const ver = parts.slice(1).join('.');
-    const primaryVer = parts[1];
+  const scored = pool.map((n) => ({
+    name:  n,
+    score: scoreCandidate(n, prefixes, h),
+  }));
 
-    if (!primaryVer) {
-      return false;
-    }
-
-    return [
-      primaryVer,
-      primaryVer.replace(/^2k/, '20'),
-      primaryVer.replace(/^stream/, ''),
-      ver,
-      ver.replace(/^2k/, '20'),
-    ].some((v) => h.includes(v));
-  });
-
-  const targetPool = matched.length ? matched : pool;
+  const maxScore = Math.max(...scored.map((s) => s.score));
+  const targetPool = maxScore > 0 ? scored.filter((s) => s.score === maxScore).map((s) => s.name) : pool;
 
   return [...targetPool].sort((a, b) => {
     if (wantsEfi) {
@@ -339,23 +381,70 @@ function randomSuffix(len = 5) {
   return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 }
 
-function cloudInit({ password, sshKeys = [] }) {
-  const lines = ['#cloud-config'];
-
-  if (password) {
-    lines.push(`password: ${ JSON.stringify(password) }`, 'chpasswd: { expire: false }', 'ssh_pwauth: true');
-  }
+export function cloudInit({ sshKeys = [] } = {}) {
   const keys = sshKeys
     .map((k) => (k.spec?.publicKey || '').trim())
     .flatMap((k) => k.split(/[\r\n]+/))
     .map((k) => k.trim())
     .filter(Boolean);
 
-  if (keys.length) {
-    lines.push('ssh_authorized_keys:', ...keys.map((k) => `  - ${ k }`));
+  if (!keys.length) {
+    return '';
   }
 
+  const lines = [
+    '#cloud-config',
+    'ssh_authorized_keys:',
+    ...keys.map((k) => `  - ${ JSON.stringify(k) }`),
+  ];
+
   return `${ lines.join('\n') }\n`;
+}
+
+export function resolveStorageSettings(storageClassName, { storageProfiles = [], storageClasses = [] } = {}) {
+  const DEFAULT_SETTINGS = { volumeMode: 'Block', accessModes: ['ReadWriteMany'] };
+
+  if (!storageClassName) {
+    return DEFAULT_SETTINGS;
+  }
+
+  // 1. Check CDI StorageProfile (spec.claimPropertySets or status.claimPropertySets)
+  const profile = storageProfiles.find((p) => p.metadata?.name === storageClassName);
+  const claimSets = profile?.spec?.claimPropertySets || profile?.status?.claimPropertySets;
+
+  if (Array.isArray(claimSets) && claimSets.length > 0) {
+    const preferred = claimSets.find((s) => s.volumeMode === 'Block') || claimSets[0];
+    const mode = preferred.volumeMode || 'Block';
+    const modes = preferred.accessModes || [];
+    const accessMode = modes.includes('ReadWriteMany') ? 'ReadWriteMany' : (modes[0] || 'ReadWriteMany');
+
+    return { volumeMode: mode, accessModes: [accessMode] };
+  }
+
+  // 2. Check StorageClass annotations
+  const sc = storageClasses.find((c) => (c.metadata?.name || c.name) === storageClassName);
+  const rawCdi = sc?.metadata?.annotations?.[HCI_VOLUME_MODE_ACCESS_MODES];
+
+  if (rawCdi) {
+    try {
+      const parsed = JSON.parse(rawCdi);
+      const mode = parsed.Block ? 'Block' : Object.keys(parsed)[0];
+
+      if (mode && parsed[mode]?.length) {
+        const modes = parsed[mode];
+        const accessMode = modes.includes('ReadWriteMany') ? 'ReadWriteMany' : modes[0];
+
+        return { volumeMode: mode, accessModes: [accessMode] };
+      }
+    } catch (e) {}
+  }
+
+  // 3. Fallback for LVM or Longhorn V2 (RWO)
+  if (sc?.provisioner === 'lvm.driver.harvesterhci.io' || sc?.parameters?.dataEngine === 'v2') {
+    return { volumeMode: 'Block', accessModes: ['ReadWriteOnce'] };
+  }
+
+  return DEFAULT_SETTINGS;
 }
 
 /**
@@ -364,7 +453,8 @@ function cloudInit({ password, sshKeys = [] }) {
  * those come from the instancetype and preference during expansion.
  */
 export function buildCatalogVm({
-  name, namespace, image, instancetype, preference, diskGi, network, sshKeys = [], password = '', start = true
+  name, namespace, image, instancetype, preference, diskGi, network, sshKeys = [], start = true,
+  volumeMode = 'Block', accessModes = ['ReadWriteMany'],
 }) {
   const imageId = `${ image.metadata.namespace }/${ image.metadata.name }`;
   const claimName = `${ name }-disk-0-${ randomSuffix() }`;
@@ -373,9 +463,9 @@ export function buildCatalogVm({
   const volumeClaimTemplates = [{
     metadata: { name: claimName, annotations: { 'harvesterhci.io/imageId': imageId } },
     spec:     {
-      accessModes:      ['ReadWriteMany'],
+      accessModes,
       resources:        { requests: { storage: `${ diskGi }Gi` } },
-      volumeMode:       'Block',
+      volumeMode,
       storageClassName: image.status.storageClassName,
     },
   }];
@@ -395,6 +485,21 @@ export function buildCatalogVm({
       }
     }
   } : undefined;
+
+  const userData = cloudInit({ sshKeys });
+  const disks = [
+    {
+      name: 'disk-0', bootOrder: 1, disk: {}
+    },
+  ];
+  const volumes = [
+    { name: 'disk-0', persistentVolumeClaim: { claimName } },
+  ];
+
+  if (userData) {
+    disks.push({ name: 'cloudinitdisk', disk: {} });
+    volumes.push({ name: 'cloudinitdisk', cloudInitNoCloud: { userData } });
+  }
 
   const vm = {
     apiVersion: 'kubevirt.io/v1',
@@ -427,12 +532,7 @@ export function buildCatalogVm({
           ...(affinity ? { affinity } : {}),
           domain: {
             devices: {
-              disks: [
-                {
-                  name: 'disk-0', bootOrder: 1, disk: {}
-                },
-                { name: 'cloudinitdisk', disk: {} },
-              ],
+              disks,
               interfaces: [iface],
               inputs:     [{
                 bus: 'usb', name: 'tablet', type: 'tablet'
@@ -443,10 +543,7 @@ export function buildCatalogVm({
           hostname:                      name,
           networks,
           terminationGracePeriodSeconds: 120,
-          volumes:                       [
-            { name: 'disk-0', persistentVolumeClaim: { claimName } },
-            { name: 'cloudinitdisk', cloudInitNoCloud: { userData: cloudInit({ password, sshKeys }) } },
-          ],
+          volumes,
         },
       },
     },

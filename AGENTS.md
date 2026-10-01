@@ -253,7 +253,7 @@ Rules that follow from this:
 | `pkg/harvester/config/harvester-map.js` | Added `VM_CATALOG: 'vm-catalog'` to `ADD_ONS`. |
 | `pkg/harvester/config/harvester-cluster.js` | `virtualType` `vm-catalog`, group `root`, weight `498.5`. Gated by `ADD_ONS.VM_CATALOG` via `registerAddonSideNav()`. |
 | `pkg/harvester/l10n/en-us.yaml` | `harvester.catalog.label` and `harvester.addons.descriptions` for `vm-catalog`. |
-| `chart/vm-catalog` | Minimal Helm chart for the VM Catalog addon, creating RBAC for `expand-vm-spec`. |
+| `deploy/charts/vm-catalog` (in `harvester/harvester#11765`) | Helm chart for the VM Catalog addon packaging in the backend repository. |
 
 ### How images map to OS tiles (`resolvePreferenceName`)
 

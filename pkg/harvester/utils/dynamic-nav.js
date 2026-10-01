@@ -20,7 +20,11 @@ export function registerAddonSideNav(store, productName, {
     return;
   }
 
-  const CACHE_KEY = `harvester.addon.${ addonName }.enabled`;
+  const getCacheKey = () => {
+    const clusterId = store.getters['clusterId'] || 'local';
+
+    return `harvester.${ clusterId }.addon.${ addonName }.enabled`;
+  };
 
   // Forces the SideNav component to re-render by toggling a dummy user preference.
   // Necessary because the menu component does not automatically detect
@@ -68,7 +72,7 @@ export function registerAddonSideNav(store, productName, {
   // Adds or removes the resource IDs from the product visibility whitelist.
   const setMenuVisibility = (visible) => {
     try {
-      window.localStorage.setItem(CACHE_KEY, String(visible));
+      window.localStorage.setItem(getCacheKey(), String(visible));
     } catch (e) {}
 
     const accessibleTypes = visible ? (requireSchema ? types.filter(hasAccessibleSchema) : types) : [];
@@ -86,7 +90,7 @@ export function registerAddonSideNav(store, productName, {
 
   // Fast-path: check session cache for last known enabled state to eliminate cold-reload lag
   try {
-    if (window.localStorage.getItem(CACHE_KEY) === 'true') {
+    if (window.localStorage.getItem(getCacheKey()) === 'true') {
       const accessibleTypes = requireSchema ? types.filter(hasAccessibleSchema) : types;
 
       if (accessibleTypes.length > 0) {

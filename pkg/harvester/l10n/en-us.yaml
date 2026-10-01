@@ -108,15 +108,12 @@ harvester:
       network: Network
       rootDisk: Root disk
       sshKeys: SSH keys
-      password: Console password
       start: Start after creation
     network:
       management: Management network
     sizes:
       showCommon: Show common sizes
       showAll: 'Show all sizes ({count} more)'
-    subLabels:
-      password: 'Optional. Set through cloud-init.'
     errors:
       nameFormat: 'Lowercase letters, digits and dashes; must start and end with a letter or digit.'
       diskMin: "At least {min} GiB (the image's virtual size)."

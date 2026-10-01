@@ -5,9 +5,10 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { Checkbox } from '@components/Form/Checkbox';
 import { Banner } from '@components/Banner';
-import { NAMESPACE, NETWORK_ATTACHMENT } from '@shell/config/types';
+import { NAMESPACE, NETWORK_ATTACHMENT, STORAGE_CLASS } from '@shell/config/types';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI } from '../../../../types';
+import { HCI as HCI_ANNOTATIONS } from '../../../../config/labels-annotations';
 import { PRODUCT_NAME } from '../../../../config/harvester';
 import { ADD_ONS } from '../../../../config/harvester-map';
 import { currentRouter, currentRoute } from '../../../../utils/router';
@@ -25,6 +26,7 @@ import {
   preferenceDisplayName,
   sizeOf,
   formatGi,
+  resolveStorageSettings,
   buildCatalogVm,
   expandPath,
   cleanExpanded,
@@ -33,7 +35,6 @@ import {
 } from '../../../../utils/catalog';
 
 const NO_PREFERENCE = '__none__';
-const SYSTEM_NS = /^(kube-|cattle-|fleet-|harvester-system|longhorn-system|local$|p-)/;
 const DNS_1123 = /^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$/;
 
 export default {
@@ -45,16 +46,18 @@ export default {
 
   data() {
     return {
-      loading:       true,
-      addonEnabled:  true,
-      loadErrors:    [],
-      errors:        [],
-      images:        [],
-      preferences:   [],
-      instancetypes: [],
-      networks:      [],
-      sshKeys:       [],
-      namespaces:    [],
+      loading:         true,
+      addonEnabled:    true,
+      loadErrors:      [],
+      errors:          [],
+      images:          [],
+      preferences:     [],
+      instancetypes:   [],
+      networks:        [],
+      sshKeys:         [],
+      namespaces:      [],
+      storageProfiles: [],
+      storageClasses:  [],
 
       distroKey:     null,
       imageId:       null,
@@ -67,7 +70,6 @@ export default {
       namespace:     'default',
       network:       MANAGEMENT_NETWORK,
       sshKeyIds:     [],
-      password:      '',
       diskGi:        null,
       preview:       null,
     };
@@ -81,9 +83,10 @@ export default {
       return [];
     });
 
-    const [images, prefs, types, nads, keys, ns, addons] = await Promise.all([
+    const [images, prefs, types, nads, keys, ns, addons, profiles, storageClasses] = await Promise.all([
       load(HCI.IMAGE), load(CLUSTER_PREFERENCE), load(CLUSTER_INSTANCETYPE),
       load(NETWORK_ATTACHMENT), load(HCI.SSH), load(NAMESPACE), load(HCI.ADD_ONS),
+      load(HCI.STORAGE_PROFILE), load(STORAGE_CLASS),
     ]);
 
     const catalogAddon = (addons || []).find((a) => a.metadata?.name === ADD_ONS.VM_CATALOG);
@@ -92,9 +95,11 @@ export default {
     this.images = images.filter(isCatalogImage);
     this.preferences = prefs;
     this.instancetypes = types;
-    this.networks = nads.filter((n) => n.metadata?.labels?.['network.harvesterhci.io/type']);
+    this.networks = nads.filter((n) => n.metadata?.labels?.['network.harvesterhci.io/type'] && !n.metadata?.annotations?.[HCI_ANNOTATIONS.STORAGE_NETWORK]);
     this.sshKeys = keys;
     this.namespaces = ns.filter((n) => !n.isSystem).map((n) => n.metadata.name);
+    this.storageProfiles = profiles;
+    this.storageClasses = storageClasses;
     if (!this.namespaces.includes(this.namespace)) {
       this.namespace = this.namespaces[0] || null;
     }
@@ -222,7 +227,6 @@ export default {
       const canCreateVm = vmSchema?.collectionMethods?.some((method) => method.toLowerCase() === 'post');
 
       return !!(canCreateVm && this.image && this.instancetype && this.name && !this.nameError && this.namespace && this.diskGi && !this.diskError);
-    }
     },
 
     summary() {
@@ -307,6 +311,10 @@ export default {
 
     buildVm() {
       const byId = (list, id) => list.find((x) => x.id === id);
+      const storageSettings = resolveStorageSettings(
+        this.image?.status?.storageClassName,
+        { storageProfiles: this.storageProfiles, storageClasses: this.storageClasses }
+      );
 
       return buildCatalogVm({
         name:         this.name,
@@ -317,8 +325,9 @@ export default {
         diskGi:       Number(this.diskGi),
         network:      this.network === MANAGEMENT_NETWORK ? MANAGEMENT_NETWORK : byId(this.networks, this.network),
         sshKeys:      this.sshKeyIds.map((id) => byId(this.sshKeys, id)).filter(Boolean),
-        password:     this.password,
         start:        this.start,
+        volumeMode:   storageSettings.volumeMode,
+        accessModes:  storageSettings.accessModes,
       });
     },
 
@@ -586,12 +595,6 @@ export default {
           :label="t('harvester.catalog.labels.sshKeys')"
           :options="sshKeyOptions"
           :multiple="true"
-        />
-        <LabeledInput
-          v-model:value="password"
-          :label="t('harvester.catalog.labels.password')"
-          type="password"
-          :sub-label="t('harvester.catalog.subLabels.password')"
         />
         <Checkbox
           v-model:value="start"
