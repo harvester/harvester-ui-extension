@@ -239,6 +239,7 @@ export default {
       <div class="clone-progress">
         <span>{{ t(`harvester.${ value.cloneProgress.type || 'clone' }.progress.banner`) }}</span>
         <HarvesterBackupProgressBar
+          v-if="value.cloneProgress.percentage !== undefined"
           class="clone-progress-bar"
           :value="value.cloneProgress"
         />
