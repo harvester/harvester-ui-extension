@@ -1042,11 +1042,12 @@ export default class VirtVm extends HarvesterResource {
   }
 
   get isCloningVolumes() {
-    return this.cloneVolumesProgress.some((p) => p.inProgress);
+    // A VM failure takes precedence over clone progress everywhere it's shown
+    return !this.isVMError && this.cloneVolumesProgress.some((p) => p.inProgress);
   }
 
   get cloneProgress() {
-    if (!this.isCloningVolumes || this.isVMError) {
+    if (!this.isCloningVolumes) {
       return {};
     }
 
