@@ -6,6 +6,7 @@ import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations
 import { findBy } from '@shell/utils/array';
 import { get, clone } from '@shell/utils/object';
 import { colorForState } from '@shell/plugins/dashboard-store/resource-class';
+import { parseSi } from '@shell/utils/units';
 import { HCI, VOLUME_SNAPSHOT } from '../../types';
 import HarvesterResource from '../harvester';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../config/harvester';
@@ -13,6 +14,15 @@ import { CDI_POPULATOR_KIND } from '../../config/types';
 import { LVM_DRIVER } from './storage.k8s.io.storageclass';
 
 const DEGRADED_ERRORS = ['replica scheduling failed', 'precheck new replica failed'];
+
+// PVC data sources that Longhorn populates by cloning (VM clone, volume clone, snapshot restore)
+const CLONE_SOURCE_KINDS = ['PersistentVolumeClaim', 'VolumeSnapshot'];
+
+// Longhorn volume.status.cloneStatus.state values while data is still being copied
+export const CLONE_PHASE = {
+  COPY:    'copy',
+  REBUILD: 'rebuild',
+};
 
 export const DATA_ENGINE_V1 = 'v1';
 export const DATA_ENGINE_V2 = 'v2';
@@ -275,6 +285,83 @@ export default class HciPv extends HarvesterResource {
     const inStore = this.$rootGetters['currentProduct'].inStore;
 
     return this.$rootGetters[`${ inStore }/all`](LONGHORN.ENGINES).find((v) => v.spec?.volumeName === this.spec?.volumeName);
+  }
+
+  get isCloneTarget() {
+    return CLONE_SOURCE_KINDS.includes(this.spec?.dataSource?.kind);
+  }
+
+  get isLonghornCloneTarget() {
+    return this.isLonghorn && this.isCloneTarget;
+  }
+
+  /**
+   * Progress of the clone populating this PVC, or null if it isn't a clone target / is done.
+   * Only Longhorn reports a percentage, in two phases: copying the data into one replica
+   * (engine.status.cloneStatus), then rebuilding the remaining replicas (engine.status.rebuildStatus).
+   * Its engine monitor refreshes both every ~5s and Steve pushes the change over the websocket,
+   * so it moves without UI polling.
+   * Other CSI drivers have no progress API, so `progress` is undefined until the PVC binds.
+   * `needsConsumer` marks stages that only advance once the VM is scheduled and attaches the volume.
+   */
+  get cloneProgress() {
+    if (!this.isCloneTarget) {
+      return null;
+    }
+
+    const size = parseSi(this.spec?.resources?.requests?.storage || '0');
+    const isBound = !!this.spec?.volumeName;
+
+    if (!this.isLonghorn) {
+      return isBound ? null : {
+        volumeName: this.metadata.name, phase: CLONE_PHASE.COPY, progress: undefined, inProgress: true, needsConsumer: true, size
+      };
+    }
+
+    // PVC not bound yet: Longhorn hasn't created the volume, so the copy hasn't started
+    // (with a WaitForFirstConsumer storage class it won't until the VM is scheduled)
+    if (!isBound) {
+      return {
+        volumeName: this.metadata.name, phase: CLONE_PHASE.COPY, progress: 0, inProgress: true, needsConsumer: true, size
+      };
+    }
+
+    const longhornVolume = this.longhornVolume;
+    const state = longhornVolume?.status?.cloneStatus?.state || '';
+
+    if (!longhornVolume?.spec?.dataSource || state === 'failed') {
+      return null;
+    }
+
+    if (state === 'completed') {
+      return null;
+    }
+
+    if (state === 'copy-completed-awaiting-healthy') {
+      // The copy landed in one replica; the others are rebuilt over the network once a consumer
+      // attaches the volume (the VM may already be running, but the volume stays degraded until then)
+      const rebuildProgress = Object.values(this.longhornEngine?.status?.rebuildStatus || {}).map((s) => s?.progress || 0);
+
+      return {
+        volumeName:    this.metadata.name,
+        phase:         CLONE_PHASE.REBUILD,
+        progress:      rebuildProgress.length ? Math.min(...rebuildProgress) : 0,
+        inProgress:    true,
+        needsConsumer: true,
+        size,
+      };
+    }
+
+    // A deep-copy clone streams into one replica, linked clones into all of them
+    const replicaProgress = Object.values(this.longhornEngine?.status?.cloneStatus || {}).map((s) => s?.progress || 0);
+
+    return {
+      volumeName: this.metadata.name,
+      phase:      CLONE_PHASE.COPY,
+      progress:   replicaProgress.length ? Math.min(...replicaProgress) : 0,
+      inProgress: true,
+      size,
+    };
   }
 
   // https://github.com/longhorn/longhorn-manager/blob/master/api/model.go#L1151
