@@ -2,6 +2,7 @@
 import InputOrDisplay from '@shell/components/InputOrDisplay';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
+import { Checkbox } from '@components/Form/Checkbox';
 
 import { clone } from '@shell/utils/object';
 import { _CREATE, _VIEW } from '@shell/config/query-params';
@@ -33,7 +34,7 @@ export default {
   emits: ['update'],
 
   components: {
-    LabeledInput, LabeledSelect, InputOrDisplay
+    LabeledInput, LabeledSelect, InputOrDisplay, Checkbox
   },
 
   props: {
@@ -169,6 +170,7 @@ export default {
         this.value.isPod = true;
         this.value.macAddress = '';
         this.value.staticIp = '';
+        this.value.networkBoot = false;
       } else {
         this.value.isPod = false;
       }
@@ -282,6 +284,22 @@ export default {
             @update:value="update"
           />
         </InputOrDisplay>
+      </div>
+    </div>
+
+    <div
+      v-if="!isMasquerade"
+      data-testid="input-hen-networkBoot"
+      class="row mb-20"
+    >
+      <div class="col span-12">
+        <Checkbox
+          v-model:value="value.networkBoot"
+          :label="t('harvester.virtualMachine.network.networkBoot.label')"
+          :tooltip="t('harvester.virtualMachine.network.networkBoot.tip')"
+          :mode="mode"
+          @update:value="update"
+        />
       </div>
     </div>
 
