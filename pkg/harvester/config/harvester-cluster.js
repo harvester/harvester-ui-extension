@@ -1066,6 +1066,12 @@ export function init($plugin, store) {
 
   // settings
   configureType(HCI.SETTING, { isCreatable: false });
+  // Rancher settings shown on the settings page (e.g. session timeouts) reuse the Harvester settings form
+  configureType(MANAGEMENT.SETTING, {
+    resourceDetail: HCI.SETTING,
+    resourceEdit:   HCI.SETTING,
+    canYaml:        false,
+  });
   virtualType({
     ifHaveType: HCI.SETTING,
     ifHaveVerb: 'POST',
