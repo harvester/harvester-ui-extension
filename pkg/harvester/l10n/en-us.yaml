@@ -478,6 +478,7 @@ harvester:
       maxLength: '"{key}" cannot be more than {max} characters'
       tabError:  '{prefix}: {message}'
       maximumSize: "Exceed maximum size {max}!"
+      nonPositiveSize: 'Invalid value: "{value}": must be greater than zero'
       regex: 'Invalid {lowerType} "{name}": {upperType} must match the regex "{regex}"'
     vm:
       name: 'name is required!'
