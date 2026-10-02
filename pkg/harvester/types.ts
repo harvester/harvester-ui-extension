@@ -81,6 +81,7 @@ export const HCI = {
   FORKLIFT_STORAGE_MAP: 'forklift.konveyor.io.storagemap',
   FORKLIFT_PLAN:        'forklift.konveyor.io.plan',
   FORKLIFT_MIGRATION:   'forklift.konveyor.io.migration',
+  STORAGE_PROFILE:      'cdi.kubevirt.io.storageprofile',
 };
 
 export const VOLUME_SNAPSHOT = 'snapshot.storage.k8s.io.volumesnapshot';

@@ -83,6 +83,52 @@ dialog:
     protip: "Tip: Hold the {alternateLabel} key while clicking Delete to bypass the confirmation step."
 
 harvester:
+  catalog:
+    label: Catalog
+    title: Catalog
+    description: "Pick an operating system and a size, then fill in the details. Sizes and OS defaults come from the cluster's KubeVirt instance types and preferences."
+    disabledBanner:
+      prefix: 'The VM Catalog add-on is disabled. Enable it under '
+      link: 'Advanced > Addons'
+      suffix: '.'
+    steps:
+      os: Operating system
+      size: Size
+      details: Details
+    emptyImages: 'No bootable disk images yet. Upload a qcow2 or raw image under Images and it will show up here.'
+    distroMeta:
+      single: '{count} image'
+      plural: '{count} images'
+      withPreference: ', preference {preference}'
+    labels:
+      image: Image
+      other: Other
+      name: Name
+      namespace: Namespace
+      network: Network
+      rootDisk: Root disk
+      sshKeys: SSH keys
+      start: Start after creation
+    network:
+      management: Management network
+    sizes:
+      showCommon: Show common sizes
+      showAll: 'Show all sizes ({count} more)'
+    errors:
+      nameFormat: 'Lowercase letters, digits and dashes; must start and end with a letter or digit.'
+      diskMin: "At least {min} GiB (the image's virtual size)."
+      loadFailed: 'Could not load {resource}'
+    preview:
+      requested: You ask for
+      expanded: KubeVirt expands to
+      button: Preview spec
+    summary:
+      empty: Nothing selected yet
+      starts: starts on create
+      stopped: stays stopped
+    notifications:
+      created: Virtual machine created
+      createdMessage: '{namespace}/{name} from {size}'
   branding:
     primeLabel: '{vendor}'
     primeEmptyLabel: ''
@@ -1892,6 +1938,8 @@ harvester:
       'harvester-system/harvester-seeder': harvester-seeder is an add-on that uses IPMI and Redfish to discover hardware information and perform out-of-band operations.
       'harvester-csi-driver-lvm': harvester-csi-driver-lvm is an add-on allowing users to create PVC through the LVM with local devices.
       'descheduler': 'The virtual machine auto balance optimizes workload scheduling by evicting pods that are not optimally placed according to administrator-defined policies.'
+      'vm-catalog': vm-catalog creates virtual machines by selecting an operating system and a size, powered by KubeVirt instance types and preferences.
+      'harvester-system/vm-catalog': vm-catalog creates virtual machines by selecting an operating system and a size, powered by KubeVirt instance types and preferences.
 
     vmMigration:
       generic:
