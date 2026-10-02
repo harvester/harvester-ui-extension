@@ -114,4 +114,44 @@ describe('component: HarvesterEditVMImage', () => {
 
     expect(wrapper.emitted('update')).toHaveLength(1);
   });
+
+  it('keeps a deleted source image for an existing third-party disk', () => {
+    const value = {
+      image:            'default/deleted',
+      realName:         'vm-disk-0',
+      storageClassName: 'lvm',
+      size:             '10Gi',
+      accessMode:       'ReadWriteOnce',
+      volumeMode:       'Block'
+    };
+    const dispatch = jest.fn();
+    const context = {
+      value,
+      isVirtualType:              true,
+      isCreate:                   false,
+      isExistingThirdPartyVolume: false,
+      pvcsResource:               { status: { phase: 'Bound' } },
+      imagesOption:               [{ value: 'default/available' }],
+      $store:                     {
+        getters: {
+          'harvester/all': () => [{ name: 'lvm', isLonghorn: false }],
+          'i18n/t':        jest.fn()
+        },
+        dispatch
+      }
+    };
+
+    context.isExistingThirdPartyVolume = HarvesterEditVMImage.computed.isExistingThirdPartyVolume.call(context);
+    HarvesterEditVMImage.methods.checkImageExists.call(context, value.image);
+
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(value.image).toBe('default/deleted');
+
+    context.isCreate = true;
+    context.isExistingThirdPartyVolume = HarvesterEditVMImage.computed.isExistingThirdPartyVolume.call(context);
+    HarvesterEditVMImage.methods.checkImageExists.call(context, value.image);
+
+    expect(dispatch).toHaveBeenCalledWith('growl/error', expect.any(Object), { root: true });
+    expect(value.image).toBe('');
+  });
 });
