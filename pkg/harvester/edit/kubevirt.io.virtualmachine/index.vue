@@ -22,8 +22,9 @@ import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
 import CreateEditView from '@shell/mixins/create-edit-view';
-import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
+import { parseVolumeClaimTemplates, isNADOnlyChange } from '@pkg/utils/vm';
 import VM_MIXIN from '../../mixins/harvester-vm';
+import { NETWORK_ATTACHMENT } from '@shell/config/types';
 import { HCI } from '../../types';
 import RestartVMDialog from '../../dialog/RestartVMDialog';
 import PciDevices from './VirtualMachinePciDevices/index';
@@ -534,7 +535,25 @@ export default {
       const newDisks = parseVolumeClaimTemplates(newVM);
       const diskChanged = !this._compareDisksIgnoreStorage(oldDisks, newDisks);
 
-      return specChanged || diskChanged;
+      if (diskChanged) return true;
+
+      // A running VM that can be live-migrated picks up NAD-only changes via KubeVirt LiveUpdateNADRef
+      if (specChanged && this._isLiveNetworkChange(oldVM, newVM)) return false;
+
+      return specChanged;
+    },
+
+    _isLiveNetworkChange(oldVM, newVM) {
+      if (!this.value.liveUpdateNADRefFeatureEnabled || !this.value.actions?.migrate) return false;
+
+      const nads = this.$store.getters['harvester/all'](NETWORK_ATTACHMENT);
+      const isBridgeNAD = (networkName) => {
+        const id = networkName.includes('/') ? networkName : `default/${ networkName }`;
+
+        return nads.find((nad) => nad.id === id)?.parseConfig?.type === 'bridge';
+      };
+
+      return isNADOnlyChange(oldVM, newVM, isBridgeNAD);
     },
 
     restartVM() {

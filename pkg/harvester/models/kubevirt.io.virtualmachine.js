@@ -1359,6 +1359,10 @@ export default class VirtVm extends HarvesterResource {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('hotplugNic');
   }
 
+  get liveUpdateNADRefFeatureEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('liveUpdateNADRef');
+  }
+
   get hotplugCdRomEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('hotplugCdRom');
   }

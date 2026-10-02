@@ -2,9 +2,10 @@
 import InputOrDisplay from '@shell/components/InputOrDisplay';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
+import { Banner } from '@components/Banner';
 
 import { clone } from '@shell/utils/object';
-import { _CREATE, _VIEW } from '@shell/config/query-params';
+import { _CREATE, _EDIT, _VIEW } from '@shell/config/query-params';
 import { MANAGEMENT_NETWORK } from '../../../mixins/harvester-vm';
 
 const MODEL = [{
@@ -33,7 +34,7 @@ export default {
   emits: ['update'],
 
   components: {
-    LabeledInput, LabeledSelect, InputOrDisplay
+    Banner, LabeledInput, LabeledSelect, InputOrDisplay
   },
 
   props: {
@@ -78,6 +79,7 @@ export default {
 
     return {
       isMasquerade,
+      initialNetworkName:   this.value.newCreateId ? '' : this.value.networkName,
       hasManagementNetwork: false,
       showAdvanced:         false,
     };
@@ -133,6 +135,14 @@ export default {
       }];
 
       return this.isMasquerade ? masquerade : other;
+    },
+
+    showLiveNetworkChangeBanner() {
+      return this.mode === _EDIT &&
+        !this.isMasquerade &&
+        !!this.initialNetworkName &&
+        this.value.networkName !== this.initialNetworkName &&
+        this.$store.getters['harvester-common/getFeatureEnabled']('liveUpdateNADRef');
     },
 
     staticIPForVMEnabled() {
@@ -284,6 +294,12 @@ export default {
         </InputOrDisplay>
       </div>
     </div>
+
+    <Banner
+      v-if="showLiveNetworkChangeBanner"
+      color="info"
+      :label="t('harvester.virtualMachine.network.liveUpdateNADRef')"
+    />
 
     <div v-if="!isMasquerade && isSingle">
       <div class="row mb-20">
