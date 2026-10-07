@@ -15,6 +15,7 @@ import OverviewKeypairs from '../kubevirt.io.virtualmachine/VirtualMachineTabs/V
 import Volume from '../../edit/kubevirt.io.virtualmachine/VirtualMachineVolume';
 import Network from '../../edit/kubevirt.io.virtualmachine/VirtualMachineNetwork';
 import CloudConfig from '../../edit/kubevirt.io.virtualmachine/VirtualMachineCloudConfig';
+import { getBootDevices } from '../../utils/vm';
 const UNDEFINED = 'n/a';
 
 export default {
@@ -74,18 +75,8 @@ export default {
       return image?.spec?.displayName || '-';
     },
 
-    disks() {
-      const disks = this?.spec?.template?.spec?.domain?.devices?.disks || [];
-
-      return disks.filter((disk) => {
-        return !!disk.bootOrder;
-      }).sort((a, b) => {
-        if (a.bootOrder < b.bootOrder) {
-          return -1;
-        }
-
-        return 1;
-      });
+    bootDevices() {
+      return getBootDevices(this?.spec?.template?.spec?.domain?.devices);
     },
 
     cdroms() {
@@ -101,8 +92,10 @@ export default {
     getDeviceType(o) {
       if (o.disk) {
         return 'Disk';
-      } else {
+      } else if (o.cdrom) {
         return 'CD-ROM';
+      } else {
+        return 'Network';
       }
     },
     isEmpty(o) {
@@ -184,10 +177,10 @@ export default {
                 <div>
                   <ul>
                     <li
-                      v-for="(disk, i) in disks"
+                      v-for="(device, i) in bootDevices"
                       :key="i"
                     >
-                      {{ disk.bootOrder }}. {{ disk.name }} ({{ getDeviceType(disk) }})
+                      {{ device.bootOrder }}. {{ device.name }} ({{ getDeviceType(device) }})
                     </li>
                   </ul>
                 </div>
@@ -234,6 +227,7 @@ export default {
       >
         <Network
           v-model:value="networkRows"
+          :network-boot-first="networkBootFirst"
           :mode="mode"
         />
       </Tab>
