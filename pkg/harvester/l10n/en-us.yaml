@@ -854,6 +854,9 @@ harvester:
         reservation:
           label: SCSI-3 Persistent Reservation
           tip: Forward SCSI-3 persistent reservations from the guest to the storage. Needed by guest clusters that fence with reservations, such as Windows Server Failover Clustering. Requires the KubeVirt PersistentReservation feature gate.
+        errorPolicy:
+          label: I/O Error Policy
+          tip: What happens when an I/O on this disk fails. Use "report" for shared cluster disks, so a write rejected by a reservation conflict (normal fencing) is returned to the guest. With "stop", the whole virtual machine is paused instead.
         info: A LUN disk passes the volume through as a SCSI device. The volume must be a real SCSI LUN from a SAN storage class (iSCSI or Fibre Channel); Longhorn, Ceph RBD and NFS volumes can't be used. For Windows failover clusters, keep the boot disk off the SCSI bus (use VirtIO). Virtual machines with persistent reservation disks can't be live migrated.
       shareable:
         label: Shareable

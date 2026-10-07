@@ -41,6 +41,9 @@ export const VOLUME_TYPE = [{
 
 // SCSI LUN passthrough (QEMU scsi-block). Only offered for existing RWX Block
 // volumes that can be shared, since a lun disk needs a real SCSI device behind it.
+// KubeVirt disk errorPolicy values (libvirt error_policy)
+export const DISK_ERROR_POLICY = ['report', 'stop', 'ignore', 'enospace'];
+
 export const LUN_VOLUME_TYPE = {
   label: 'lun',
   value: 'lun'

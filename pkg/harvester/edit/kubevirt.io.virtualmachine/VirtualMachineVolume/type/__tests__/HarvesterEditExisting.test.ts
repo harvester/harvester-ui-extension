@@ -125,5 +125,10 @@ describe('component: HarvesterEditExisting', () => {
       expect(mountWith({ type: 'disk' }).find('[data-testid="input-hee-reservation"]').exists()).toBe(false);
       expect(mountWith({ type: 'lun' }).find('[data-testid="input-hee-reservation"]').exists()).toBe(true);
     });
+
+    it('should offer the I/O error policy only for lun disks', () => {
+      expect(mountWith({ type: 'disk' }).find('[data-testid="input-hee-errorPolicy"]').exists()).toBe(false);
+      expect(mountWith({ type: 'lun' }).find('[data-testid="input-hee-errorPolicy"]').exists()).toBe(true);
+    });
   });
 });
