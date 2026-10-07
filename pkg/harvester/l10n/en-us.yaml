@@ -850,6 +850,11 @@ harvester:
         ioThreadCount:
           label: I/O Thread Count
           tip: Number of I/O threads for the supplemental pool. 4-8 is a common range depending on workload.
+      lun:
+        reservation:
+          label: SCSI-3 Persistent Reservation
+          tip: Forward SCSI-3 persistent reservations from the guest to the storage. Needed by guest clusters that fence with reservations, such as Windows Server Failover Clustering. Requires the KubeVirt PersistentReservation feature gate.
+        info: A LUN disk passes the volume through as a SCSI device. The volume must be a real SCSI LUN from a SAN storage class (iSCSI or Fibre Channel); Longhorn, Ceph RBD and NFS volumes can't be used. For Windows failover clusters, keep the boot disk off the SCSI bus (use VirtIO). Virtual machines with persistent reservation disks can't be live migrated.
       shareable:
         label: Shareable
         tip: Allow multiple virtual machines to attach and write to this volume simultaneously.

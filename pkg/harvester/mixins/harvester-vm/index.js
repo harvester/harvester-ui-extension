@@ -72,6 +72,7 @@ export const OS = [{
 
 export const CD_ROM = 'cd-rom';
 export const HARD_DISK = 'disk';
+export const LUN = 'lun';
 
 export default {
   mixins: [impl],
@@ -551,7 +552,7 @@ export default {
           let hotpluggable = false;
           let dataSource = null;
 
-          const type = DISK?.cdrom ? CD_ROM : DISK?.disk ? HARD_DISK : '';
+          const type = DISK?.cdrom ? CD_ROM : DISK?.disk ? HARD_DISK : DISK?.lun ? LUN : '';
 
           if (type === CD_ROM && volume === undefined) {
             // Empty CD_ROM
@@ -600,7 +601,7 @@ export default {
             hotpluggable = volume.persistentVolumeClaim.hotpluggable || false;
           }
 
-          const bus = DISK?.disk?.bus || DISK?.cdrom?.bus;
+          const bus = DISK?.disk?.bus || DISK?.cdrom?.bus || DISK?.lun?.bus;
 
           const bootOrder = DISK?.bootOrder ? DISK?.bootOrder : index;
 
@@ -640,6 +641,7 @@ export default {
             io:                DISK?.io || '',
             dedicatedIOThread: DISK?.dedicatedIOThread || false,
             shareable:         DISK.shareable || false,
+            reservation:       DISK?.lun?.reservation || false,
             volumeStatus,
             dataSource,
             namespace,
@@ -1360,6 +1362,14 @@ export default {
         }
       } else if (R.type === CD_ROM) {
         out.cdrom = { bus: R.bus };
+      } else if (R.type === LUN) {
+        // SCSI LUN passthrough; `reservation` forwards SCSI-3 persistent
+        // reservations to the host through qemu-pr-helper (KubeVirt
+        // PersistentReservation feature gate).
+        out.lun = { bus: 'scsi' };
+        if (R.reservation) {
+          out.lun.reservation = true;
+        }
       }
 
       if (R.shareable) {
@@ -1980,12 +1990,17 @@ export default {
         if (specDevice) {
           const merged = { ...specDevice, ...device };
 
-          // A disk entry must be either `disk` or `cdrom`, never both.
-          const type = device?.cdrom ? CD_ROM : device?.disk ? HARD_DISK : '';
+          // A disk entry must be exactly one of `disk`, `cdrom` or `lun`.
+          const type = device?.cdrom ? CD_ROM : device?.disk ? HARD_DISK : device?.lun ? LUN : '';
 
           if (type === CD_ROM) {
             delete merged.disk;
+            delete merged.lun;
           } else if (type === HARD_DISK) {
+            delete merged.cdrom;
+            delete merged.lun;
+          } else if (type === LUN) {
+            delete merged.disk;
             delete merged.cdrom;
           }
 

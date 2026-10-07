@@ -100,4 +100,30 @@ describe('component: HarvesterEditExisting', () => {
 
     expect(wrapper.emitted('update')).toHaveLength(1);
   });
+  describe('lun (SCSI passthrough)', () => {
+    const mountWith = (value) => mount(HarvesterEditExisting, {
+      propsData: {
+        mode: _EDIT, value, rows: []
+      },
+      mocks: {
+        $store: {
+          getters: {
+            'harvester/all': () => [],
+            'i18n/t':        jest.fn()
+          }
+        }
+      }
+    });
+
+    it('should not offer lun for a volume that cannot be shared', () => {
+      const wrapper = mountWith({});
+
+      expect(wrapper.vm.typeOptions.map((o) => o.value)).toStrictEqual(['disk', 'cd-rom']);
+    });
+
+    it('should show the persistent reservation option only for lun disks', () => {
+      expect(mountWith({ type: 'disk' }).find('[data-testid="input-hee-reservation"]').exists()).toBe(false);
+      expect(mountWith({ type: 'lun' }).find('[data-testid="input-hee-reservation"]').exists()).toBe(true);
+    });
+  });
 });
