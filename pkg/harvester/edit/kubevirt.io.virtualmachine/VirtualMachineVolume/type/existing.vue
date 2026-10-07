@@ -12,7 +12,7 @@ import { _CREATE } from '@shell/config/query-params';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { VOLUME_MODE } from '@pkg/harvester/config/types';
 import { HCI } from '../../../../types';
-import { VOLUME_TYPE, InterfaceOption } from '../../../../config/harvester-map';
+import { VOLUME_TYPE, LUN_VOLUME_TYPE, DISK_ERROR_POLICY, InterfaceOption } from '../../../../config/harvester-map';
 import { GIBIBYTE } from '../../../../utils/unit';
 import DiskPerformanceOptions from '../DiskPerformanceOptions';
 
@@ -66,6 +66,7 @@ export default {
       GIBIBYTE,
       VOLUME_TYPE,
       InterfaceOption,
+      DISK_ERROR_POLICY,
       loading: false,
     };
   },
@@ -99,6 +100,16 @@ export default {
 
     storageClasses() {
       return this.$store.getters['harvester/all'](STORAGE_CLASS) || [];
+    },
+
+    // `lun` (SCSI passthrough) is only offered for volumes that can be shared:
+    // RWX Block from a non-Longhorn provisioner, i.e. a SAN LUN.
+    typeOptions() {
+      return this.isShareableCapable ? [...VOLUME_TYPE, LUN_VOLUME_TYPE] : VOLUME_TYPE;
+    },
+
+    isLun() {
+      return this.value.type === LUN_VOLUME_TYPE.value;
     },
 
     isShareableCapable() {
@@ -184,14 +195,29 @@ export default {
       this.update();
     },
 
-    'value.type'(neu) {
+    'value.type'(neu, old) {
       if (neu === 'cd-rom') {
         this.value['bus'] = 'sata';
+        this.update();
+      } else if (neu === LUN_VOLUME_TYPE.value) {
+        // a lun disk is always on the SCSI bus and attached to several VMs
+        this.value['bus'] = 'scsi';
+        this.value.shareable = true;
+        if (!this.value.errorPolicy) {
+          this.value.errorPolicy = 'report';
+        }
+        this.update();
+      } else if (old === LUN_VOLUME_TYPE.value && this.value.reservation) {
+        this.value.reservation = false;
         this.update();
       }
     },
 
     isShareableCapable(neu) {
+      if (!neu && this.isLun) {
+        this.value.type = VOLUME_TYPE[0].value;
+        this.value.reservation = false;
+      }
       if (!neu && this.value.shareable) {
         this.value.shareable = false;
         this.update();
@@ -252,7 +278,7 @@ export default {
             v-model:value="value.type"
             :label="t('harvester.fields.type')"
             :mode="mode"
-            :options="VOLUME_TYPE"
+            :options="typeOptions"
             required
             @update:value="update"
           />
@@ -347,7 +373,40 @@ export default {
         </InputOrDisplay>
       </div>
       <div
-        v-if="isShareableCapable"
+        v-if="isLun"
+        data-testid="input-hee-reservation"
+        class="col span-6"
+      >
+        <Checkbox
+          v-model:value="value.reservation"
+          class="check"
+          type="checkbox"
+          label-key="harvester.virtualMachine.volume.lun.reservation.label"
+          tooltip-key="harvester.virtualMachine.volume.lun.reservation.tip"
+          :mode="mode"
+          @update:value="update"
+        />
+        <Banner
+          color="info"
+          :label="t('harvester.virtualMachine.volume.lun.info')"
+        />
+      </div>
+      <div
+        v-if="isLun"
+        data-testid="input-hee-errorPolicy"
+        class="col span-6"
+      >
+        <LabeledSelect
+          v-model:value="value.errorPolicy"
+          :label="t('harvester.virtualMachine.volume.lun.errorPolicy.label')"
+          :tooltip="t('harvester.virtualMachine.volume.lun.errorPolicy.tip')"
+          :mode="mode"
+          :options="DISK_ERROR_POLICY"
+          @update:value="update"
+        />
+      </div>
+      <div
+        v-if="isShareableCapable && !isLun"
         data-testid="input-hee-shareable"
         class="col span-6"
       >
