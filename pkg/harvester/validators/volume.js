@@ -5,9 +5,13 @@ export function volumeSize(size, getters, errors, validatorArgs, displayKey, val
     const key = getters['i18n/t']('harvester.volume.size');
 
     errors.push(getters['i18n/t']('validation.required', { key }));
+
+    return errors;
   }
 
-  if (size && !/^([0-9][0-9]{0,8})[a-zA-Z]+$/.test(size)) {
+  if (Number.parseFloat(size) <= 0) {
+    errors.push(getters['i18n/t']('harvester.validation.generic.nonPositiveSize', { value: size }));
+  } else if (!/^([0-9][0-9]{0,8})[a-zA-Z]+$/.test(size)) {
     const message = getters['i18n/t']('harvester.validation.generic.maximumSize', { max: `999999999 ${ GIBIBYTE }` });
 
     errors.push(message);
