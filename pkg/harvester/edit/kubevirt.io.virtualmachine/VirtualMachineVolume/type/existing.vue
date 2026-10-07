@@ -12,7 +12,7 @@ import { _CREATE } from '@shell/config/query-params';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { VOLUME_MODE } from '@pkg/harvester/config/types';
 import { HCI } from '../../../../types';
-import { VOLUME_TYPE, LUN_VOLUME_TYPE, InterfaceOption } from '../../../../config/harvester-map';
+import { VOLUME_TYPE, LUN_VOLUME_TYPE, DISK_ERROR_POLICY, InterfaceOption } from '../../../../config/harvester-map';
 import { GIBIBYTE } from '../../../../utils/unit';
 import DiskPerformanceOptions from '../DiskPerformanceOptions';
 
@@ -66,6 +66,7 @@ export default {
       GIBIBYTE,
       VOLUME_TYPE,
       InterfaceOption,
+      DISK_ERROR_POLICY,
       loading: false,
     };
   },
@@ -202,6 +203,9 @@ export default {
         // a lun disk is always on the SCSI bus and attached to several VMs
         this.value['bus'] = 'scsi';
         this.value.shareable = true;
+        if (!this.value.errorPolicy) {
+          this.value.errorPolicy = 'report';
+        }
         this.update();
       } else if (old === LUN_VOLUME_TYPE.value && this.value.reservation) {
         this.value.reservation = false;
@@ -385,6 +389,20 @@ export default {
         <Banner
           color="info"
           :label="t('harvester.virtualMachine.volume.lun.info')"
+        />
+      </div>
+      <div
+        v-if="isLun"
+        data-testid="input-hee-errorPolicy"
+        class="col span-6"
+      >
+        <LabeledSelect
+          v-model:value="value.errorPolicy"
+          :label="t('harvester.virtualMachine.volume.lun.errorPolicy.label')"
+          :tooltip="t('harvester.virtualMachine.volume.lun.errorPolicy.tip')"
+          :mode="mode"
+          :options="DISK_ERROR_POLICY"
+          @update:value="update"
         />
       </div>
       <div
