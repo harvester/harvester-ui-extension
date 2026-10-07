@@ -39,6 +39,13 @@ export const VOLUME_TYPE = [{
   value: 'cd-rom'
 }];
 
+// SCSI LUN passthrough (QEMU scsi-block). Only offered for existing RWX Block
+// volumes that can be shared, since a lun disk needs a real SCSI device behind it.
+export const LUN_VOLUME_TYPE = {
+  label: 'lun',
+  value: 'lun'
+};
+
 // KubeVirt high-performance disk features
 // https://kubevirt.io/user-guide/storage/disks_and_volumes/#high-performance-features
 export const DISK_CACHE_MODE = ['', 'none', 'writeback', 'writethrough'];
