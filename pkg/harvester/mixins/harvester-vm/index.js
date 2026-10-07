@@ -642,6 +642,7 @@ export default {
             dedicatedIOThread: DISK?.dedicatedIOThread || false,
             shareable:         DISK.shareable || false,
             reservation:       DISK?.lun?.reservation || false,
+            errorPolicy:       DISK?.errorPolicy || '',
             volumeStatus,
             dataSource,
             namespace,
@@ -1370,6 +1371,10 @@ export default {
         if (R.reservation) {
           out.lun.reservation = true;
         }
+        // On a shared LUN the expected outcome of fencing is a write that fails
+        // with RESERVATION CONFLICT. KubeVirt's default policy (stop) pauses the
+        // whole VM on that error; `report` hands it to the guest instead.
+        out.errorPolicy = R.errorPolicy || 'report';
       }
 
       if (R.shareable) {
