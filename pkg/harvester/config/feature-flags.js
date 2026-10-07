@@ -79,6 +79,7 @@ const FEATURE_FLAGS = {
   ],
   'v1.9.1': [
     'lvmDmThinOnly',
+    'highPerformanceStorage',
   ],
   'v1.10.0': [],
 };
