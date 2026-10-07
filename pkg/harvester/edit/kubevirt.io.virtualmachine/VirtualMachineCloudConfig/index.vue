@@ -219,6 +219,8 @@ export default {
       />
     </div>
 
+    <slot name="after-user-data" />
+
     <div class="mb-20">
       <DataTemplate
         ref="networkTemplate"
