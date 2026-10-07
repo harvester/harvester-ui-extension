@@ -13,6 +13,7 @@ import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
 import { BACKUP_TYPE } from '../config/types';
 import { HCI } from '../types';
 import HarvesterResource from './harvester';
+import { CLONE_PHASE } from './harvester/persistentvolumeclaim';
 import { getVmCPUMemoryValues } from '../utils/cpuMemory';
 import { isBackupTargetSettingUnavailable } from '../utils/setting';
 
@@ -25,6 +26,7 @@ const STOPPING = 'Stopping';
 const UNSCHEDULABLE = 'Unschedulable';
 const WAITING = 'Waiting';
 const NOT_READY = 'Not Ready';
+const CLONING = 'Cloning';
 const AGENT_CONNECTED = 'AgentConnected';
 
 const PAUSED = 'Paused';
@@ -876,6 +878,14 @@ export default class VirtVm extends HarvesterResource {
     return null;
   }
 
+  get isCloning() {
+    if (!this.isRunning && this.isCloningVolumes) {
+      return { status: CLONING };
+    }
+
+    return null;
+  }
+
   get isStopping() {
     if (this &&
       !this.isVMExpectedRunning &&
@@ -1004,6 +1014,63 @@ export default class VirtVm extends HarvesterResource {
     return {};
   }
 
+  get cloneProgressFeatureEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('vmCloneProgress');
+  }
+
+  /**
+   * True when the VM has Longhorn volumes populated by a clone; used to lazily load the Longhorn
+   * volumes needed for progress so the VM list doesn't watch them when no VM was cloned.
+   */
+  get hasPendingLonghornClone() {
+    return this.cloneProgressFeatureEnabled && this.volumes.some((v) => v.isLonghornCloneTarget);
+  }
+
+  get cloneVolumesProgress() {
+    if (!this.cloneProgressFeatureEnabled || this.isTerminating) {
+      return [];
+    }
+
+    return this.volumes
+      .map((v) => v.cloneProgress)
+      // A stopped VM never schedules or attaches its volumes, so these stages wait until it starts
+      .filter((p) => !!p && (!p.needsConsumer || this.isVMExpectedRunning));
+  }
+
+  get cloneVolumesPhase() {
+    return this.cloneVolumesProgress.some((p) => p.inProgress && p.phase === CLONE_PHASE.COPY) ? CLONE_PHASE.COPY : CLONE_PHASE.REBUILD;
+  }
+
+  get isCloningVolumes() {
+    // A VM failure takes precedence over clone progress everywhere it's shown
+    return !this.isVMError && this.cloneVolumesProgress.some((p) => p.inProgress);
+  }
+
+  get cloneProgress() {
+    if (!this.isCloningVolumes) {
+      return {};
+    }
+
+    // Report the copy until every volume has its data, then the replica rebuild
+    const phase = this.cloneVolumesPhase;
+    const volumes = this.cloneVolumesProgress.filter((v) => v.phase === phase);
+    const measurable = volumes.filter((v) => v.progress !== undefined);
+
+    if (!measurable.length) {
+      return {};
+    }
+
+    // Weight by size so one large disk isn't masked by small ones that finish first
+    const totalSize = measurable.reduce((sum, v) => sum + v.size, 0);
+    const weighted = totalSize ? measurable.reduce((sum, v) => sum + (v.progress * v.size), 0) / totalSize : measurable.reduce((sum, v) => sum + v.progress, 0) / measurable.length;
+
+    return {
+      type:       phase === CLONE_PHASE.COPY ? 'clone' : 'cloneRebuild',
+      percentage: Math.min(Math.floor(weighted), 99),
+      details:    { volumes: volumes.map(({ volumeName, progress }) => ({ volumeName, progress })) }
+    };
+  }
+
   get restoreState() {
     if (!this.restoreResource) {
       return true;
@@ -1033,6 +1100,7 @@ export default class VirtVm extends HarvesterResource {
       this.isPaused?.status ||
       this.isVMError?.status ||
       this.isCloneFailed?.status ||
+      this.isCloning?.status ||
       this.isPending?.status ||
       this.isStopping?.status ||
       this.isOff?.status ||
@@ -1106,6 +1174,10 @@ export default class VirtVm extends HarvesterResource {
 
   get stateColor() {
     const state = this.actualState;
+
+    if (state === CLONING) {
+      return 'text-info';
+    }
 
     return colorForState(state);
   }
