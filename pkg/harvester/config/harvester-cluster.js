@@ -260,6 +260,25 @@ export function init($plugin, store) {
     exact: false
   });
 
+  // VM Catalog (instancetype/preference-driven VM creation)
+  virtualType({
+    labelKey:   'harvester.catalog.label',
+    group:      'root',
+    name:       'vm-catalog',
+    namespaced: false,
+    weight:     498.5,
+    route:      { name: `${ PRODUCT_NAME }-c-cluster-catalog` },
+    exact:      true,
+  });
+
+  registerAddonSideNav(store, PRODUCT_NAME, {
+    addonName:     ADD_ONS.VM_CATALOG,
+    resourceType:  HCI.ADD_ONS,
+    navGroup:      'root',
+    requireSchema: false,
+    types:         ['vm-catalog']
+  });
+
   // ===========================================================================
   // VM Import Controller UI Flow
   // ===========================================================================
