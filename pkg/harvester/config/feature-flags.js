@@ -81,7 +81,10 @@ const FEATURE_FLAGS = {
     'lvmDmThinOnly',
     'highPerformanceStorage',
   ],
-  'v1.10.0': [],
+  'v1.10.0': [
+    'maintenanceModeConditions',
+    'maintenanceModeDrainTimeoutSetting',
+  ],
 };
 
 const generateFeatureFlags = () => {
