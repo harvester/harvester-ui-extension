@@ -22,7 +22,12 @@ const props = defineProps({
   inheritedProviderName: { type: String, default: '' },
 });
 
-const emit = defineEmits(['edit-defaults']);
+const emit = defineEmits(['edit-defaults', 'target-change']);
+
+const selectTarget = (entry, value) => {
+  entry.target = value;
+  emit('target-change', entry);
+};
 
 // Only offer "Remove Map" for entries that already have a target selected;
 // entries without a selection just show the regular options.
@@ -47,7 +52,7 @@ const optionsFor = (entry) => {
 };
 
 const formatModes = (entry) => {
-  const volumeMode = entry.volumeMode || VOLUME_MODE.FILE_SYSTEM;
+  const volumeMode = entry.volumeMode || VOLUME_MODE.BLOCK;
   const accessModes = (entry.accessModes || []).join(', ');
 
   return t('harvester.addons.vmMigration.storageDefaults.summary', { volumeMode, accessModes });
@@ -94,10 +99,11 @@ const formatModes = (entry) => {
             </div>
             <div class="mapping-target">
               <LabeledSelect
-                v-model:value="entry.target"
+                :value="entry.target"
                 :options="optionsFor(entry)"
                 :placeholder="placeholder+'...'"
                 :searchable="true"
+                @update:value="selectTarget(entry, $event)"
               />
             </div>
           </div>
