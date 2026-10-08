@@ -7,13 +7,14 @@ import UnitInput from '@shell/components/form/UnitInput';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import ModalWithCard from '@shell/components/ModalWithCard';
+import VMPerformanceOptions from './VMPerformanceOptions';
+import { VOLUME_HOTPLUG_ACTION, SOURCE_TYPE } from '../../../config/harvester-map';
 import { PVC, STORAGE_CLASS } from '@shell/config/types';
 import { clone } from '@shell/utils/object';
 import { ucFirst, randomStr } from '@shell/utils/string';
 import { removeObject } from '@shell/utils/array';
 import { _VIEW, _EDIT, _CREATE } from '@shell/config/query-params';
 import { PLUGIN_DEVELOPER, DEV } from '@shell/store/prefs';
-import { VOLUME_HOTPLUG_ACTION, SOURCE_TYPE } from '../../../config/harvester-map';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../../config/harvester';
 import { HCI } from '../../../types';
 import { VOLUME_MODE } from '@pkg/harvester/config/types';
@@ -21,10 +22,10 @@ import { OFF } from '../../../models/kubevirt.io.virtualmachine';
 import { EMPTY_IMAGE } from '../../../utils/vm';
 
 export default {
-  emits: ['update:value'],
+  emits: ['update:value', 'update:blockMultiQueue', 'update:ioThreadsPolicy', 'update:ioThreadCount'],
 
   components: {
-    Banner, BadgeStateFormatter, VueDraggableNext, InfoBox, LabeledInput, UnitInput, LabeledSelect, ModalWithCard
+    Banner, BadgeStateFormatter, VueDraggableNext, InfoBox, LabeledInput, UnitInput, LabeledSelect, ModalWithCard, VMPerformanceOptions
   },
 
   props: {
@@ -75,6 +76,22 @@ export default {
     resourceType: {
       type:    String,
       default: ''
+    },
+
+    // KubeVirt high-performance VM-level features
+    blockMultiQueue: {
+      type:    Boolean,
+      default: false
+    },
+
+    ioThreadsPolicy: {
+      type:    String,
+      default: ''
+    },
+
+    ioThreadCount: {
+      type:    Number,
+      default: 2
     }
   },
 
@@ -144,6 +161,14 @@ export default {
 
     isLHV2VolExpansionFeatureEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('lhV2VolExpansion');
+    },
+
+    hasVirtioDisk() {
+      return this.rows.some((R) => R.type === 'disk' && R.bus === 'virtio');
+    },
+
+    hasDedicatedIOThread() {
+      return this.rows.some((R) => R.dedicatedIOThread);
     },
   },
 
@@ -505,6 +530,18 @@ export default {
         {{ t('harvester.virtualMachine.volume.addContainer') }}
       </button>
     </div>
+
+    <VMPerformanceOptions
+      :block-multi-queue="blockMultiQueue"
+      :io-threads-policy="ioThreadsPolicy"
+      :io-thread-count="ioThreadCount"
+      :has-virtio-disk="hasVirtioDisk"
+      :has-dedicated-iothread="hasDedicatedIOThread"
+      :mode="mode"
+      @update:block-multi-queue="$emit('update:blockMultiQueue', $event)"
+      @update:io-threads-policy="$emit('update:ioThreadsPolicy', $event)"
+      @update:io-thread-count="$emit('update:ioThreadCount', $event)"
+    />
 
     <ModalWithCard
       v-if="isOpen"
