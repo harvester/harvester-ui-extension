@@ -6,15 +6,17 @@ import { Banner } from '@components/Banner';
 import { STORAGE_CLASS, NETWORK_ATTACHMENT } from '@shell/config/types';
 import { useI18n } from '@shell/composables/useI18n';
 import { randomStr } from '@shell/utils/string';
-import { HCI } from '../../types';
+import { HCI, STORAGE_PROFILE } from '../../types';
 import { VOLUME_MODE, ACCESS_MODE } from '../../config/types';
 import { FORKLIFT_NAMESPACE } from '../../config/harvester-map';
-import { buildNetworkMapEntries, buildStorageMapEntries } from '../../utils/forklift';
+import { buildNetworkMapEntries, buildStorageMapEntries, storageProfileDefaults } from '../../utils/forklift';
 import { isInternalStorageClass } from '../../utils/storage-class';
 import MappingColumn from './MappingColumn.vue';
 import StorageDefaultsModal from './StorageDefaultsModal.vue';
 
-const DEFAULT_VOLUME_MODE = VOLUME_MODE.FILE_SYSTEM;
+// Fallback when the target StorageClass has no CDI StorageProfile to read from;
+// matches how Harvester provisions VM disks.
+const DEFAULT_VOLUME_MODE = VOLUME_MODE.BLOCK;
 const DEFAULT_ACCESS_MODE = ACCESS_MODE?.READ_WRITE_MANY ?? 'ReadWriteMany';
 
 const props = defineProps({
@@ -35,6 +37,7 @@ const { t } = useI18n(store);
 const vms = ref([]);
 const harvesterNetworks = ref([]);
 const storageClasses = ref([]);
+const storageProfiles = ref([]);
 const allNetworkMaps = ref([]);
 const allStorageMaps = ref([]);
 const errors = ref([]);
@@ -90,6 +93,33 @@ const storageClassOptions = computed(() => {
   return options;
 });
 
+const defaultModesFor = (storageClassName) => {
+  const profile = storageProfiles.value.find((p) => p.metadata?.name === storageClassName);
+
+  return storageProfileDefaults(profile) || { volumeMode: DEFAULT_VOLUME_MODE, accessModes: [DEFAULT_ACCESS_MODE] };
+};
+
+const applyStorageClassDefaults = (entry) => {
+  const { volumeMode, accessModes } = defaultModesFor(entry.target);
+
+  entry.volumeMode = volumeMode;
+  entry.accessModes = accessModes;
+  entry.inheritedVolumeMode = volumeMode;
+  entry.inheritedAccessModes = accessModes;
+};
+
+// A newly picked StorageClass gets its own defaults; modes chosen for the
+// previous class (or inherited from the provider map) may not be valid for it.
+const onStorageTargetChange = (entry) => {
+  if (!entry.target) {
+    return;
+  }
+
+  applyStorageClassDefaults(entry);
+  entry.inheritedFromProvider = false;
+  entry.overridden = false;
+};
+
 const applyNetworkMapTargets = (mapSpec) => {
   if (!mapSpec) {
     return;
@@ -126,6 +156,7 @@ const applyStorageMapTargets = (mapSpec, { markOverridden = false, captureInheri
 
     if (match?.destination?.storageClass) {
       entry.target = match.destination.storageClass;
+      applyStorageClassDefaults(entry);
 
       if (captureInherited) {
         entry.inheritedFromProvider = true;
@@ -435,6 +466,12 @@ const init = async() => {
   }
 
   try {
+    storageProfiles.value = await store.dispatch(`${ inStore }/findAll`, { type: STORAGE_PROFILE });
+  } catch (e) {
+    storageProfiles.value = [];
+  }
+
+  try {
     allNetworkMaps.value = await store.dispatch(`${ inStore }/findAll`, { type: HCI.FORKLIFT_NETWORK_MAP });
   } catch (e) {
     allNetworkMaps.value = [];
@@ -586,6 +623,7 @@ init();
         :show-volume-settings="true"
         :inherited-provider-name="inheritedProviderName"
         @edit-defaults="openStorageDefaults"
+        @target-change="onStorageTargetChange"
       >
         <template #source-detail="{ entry }">
           <span
