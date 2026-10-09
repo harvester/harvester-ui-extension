@@ -82,8 +82,6 @@ const VMIPhase = {
   Unknown:    'Unknown'
 };
 
-let productInStore;
-
 // Every row of the VM list needs its launcher pod. Scanning all pods per row is O(rows * pods), so build one lookup map
 // (namespace/ownerName -> pod) that all rows share.
 //
@@ -144,9 +142,11 @@ function derivedValue(source, key, fn) {
   return perSource.get(key).value;
 }
 
-// The namespace is part of the key, VMs with the same name can exist in different namespaces
-function getPodByOwnerName(rootGetters, inStore, namespace, ownerName) {
-  const podList = rootGetters[`${ inStore }/all`](POD);
+// `getters` are the getters of the store the VM lives in (`this.$getters`): the `harvester` store in the Harvester product,
+// the `cluster` store in the Rancher explorer. The namespace is part of the key, VMs with the same name can exist in
+// different namespaces.
+function getPodByOwnerName(getters, namespace, ownerName) {
+  const podList = getters['all'](POD);
 
   if (!Array.isArray(podList)) {
     return undefined;
@@ -156,12 +156,12 @@ function getPodByOwnerName(rootGetters, inStore, namespace, ownerName) {
 }
 
 // A VM can only use PVCs of its own namespace, so look them up by id (O(1) in the store) instead of scanning all PVCs
-// for every row
-function getPvcsByNames(rootGetters, inStore, namespace, names) {
+// for every row. `getters` are the getters of the store the VM lives in, see getPodByOwnerName.
+function getPvcsByNames(getters, namespace, names) {
   const out = [];
 
   for (const name of new Set(names)) {
-    const pvc = rootGetters[`${ inStore }/byId`](PVC, `${ namespace }/${ name }`);
+    const pvc = getters['byId'](PVC, `${ namespace }/${ name }`);
 
     if (pvc) {
       out.push(pvc);
@@ -339,14 +339,6 @@ export default class VirtVm extends HarvesterResource {
       },
       ...out
     ];
-  }
-
-  get productInStore() {
-    if (!productInStore) {
-      productInStore = this.$rootGetters['currentProduct'].inStore;
-    }
-
-    return productInStore;
   }
 
   applyDefaults(resources = this, realMode) {
@@ -782,14 +774,13 @@ export default class VirtVm extends HarvesterResource {
   }
 
   get podResource() {
-    const inStore = this.productInStore;
-    const vmiResource = this.$rootGetters[`${ inStore }/byId`](HCI.VMI, this.id);
+    const vmiResource = this.$getters['byId'](HCI.VMI, this.id);
 
     if (!vmiResource?.metadata?.name) {
       return undefined;
     }
 
-    return getPodByOwnerName(this.$rootGetters, inStore, vmiResource.metadata.namespace, vmiResource.metadata.name);
+    return getPodByOwnerName(this.$getters, vmiResource.metadata.namespace, vmiResource.metadata.name);
   }
 
   get isPaused() {
@@ -817,8 +808,7 @@ export default class VirtVm extends HarvesterResource {
   }
 
   get nsResourceQuota() {
-    const inStore = this.productInStore;
-    const allResQuotas = this.$rootGetters[`${ inStore }/all`](HCI.RESOURCE_QUOTA);
+    const allResQuotas = this.$getters['all'](HCI.RESOURCE_QUOTA);
 
     return allResQuotas.find( (RQ) => RQ.namespace === this.metadata.namespace);
   }
@@ -827,16 +817,15 @@ export default class VirtVm extends HarvesterResource {
     return this.nsResourceQuota?.spec?.snapshotLimit?.vmTotalSnapshotSizeQuota?.[this.metadata.name];
   }
 
+  // Read from the store the VM lives in, not from a fixed one: in the Rancher explorer the data is in the `cluster` store.
   get vmi() {
-    const inStore = this.productInStore;
-
-    return this.$rootGetters[`${ inStore }/byId`](HCI.VMI, this.id);
+    return this.$getters['byId'](HCI.VMI, this.id);
   }
 
   get volumes() {
     const volumeClaimNames = this.spec.template.spec.volumes?.map((v) => v.persistentVolumeClaim?.claimName).filter((v) => !!v) || [];
 
-    return getPvcsByNames(this.$rootGetters, this.productInStore, this.metadata.namespace, volumeClaimNames);
+    return getPvcsByNames(this.$getters, this.metadata.namespace, volumeClaimNames);
   }
 
   get lvmVolumes() {
@@ -1025,13 +1014,11 @@ export default class VirtVm extends HarvesterResource {
       `metadata.annotations."${ HCI_ANNOTATIONS.RESTORE_NAME }"`
     ) }`;
 
-    const inStore = this.productInStore;
-
-    const res = this.$rootGetters[`${ inStore }/byId`](HCI.RESTORE, id);
+    const res = this.$getters['byId'](HCI.RESTORE, id);
 
     if (res) {
       const backupId = `${ res.spec?.virtualMachineBackupNamespace }/${ res.spec?.virtualMachineBackupName }`;
-      const backup = this.$rootGetters[`${ inStore }/byId`](HCI.BACKUP, backupId);
+      const backup = this.$getters['byId'](HCI.BACKUP, backupId);
 
       // Snapshots and backups are the same resource type, told apart by spec.type
       res.fromSnapshot = !!backup && backup.spec?.type !== BACKUP_TYPE.BACKUP;
@@ -1224,7 +1211,6 @@ export default class VirtVm extends HarvesterResource {
 
   get rootImageId() {
     let imageId = '';
-    const inStore = this.productInStore;
 
     const volumes = this.spec.template.spec.volumes || [];
 
@@ -1234,7 +1220,7 @@ export default class VirtVm extends HarvesterResource {
     });
 
     if (!isNoExistingVolume) {
-      const existingVolume = this.$rootGetters[`${ inStore }/byId`](PVC, `${ this.metadata.namespace }/${ firstVolumeName }`);
+      const existingVolume = this.$getters['byId'](PVC, `${ this.metadata.namespace }/${ firstVolumeName }`);
 
       if (existingVolume) {
         return existingVolume?.metadata?.annotations?.[

@@ -24,7 +24,7 @@ function createVmi(migrations) {
       name:        'vm1',
       annotations: { [HCI_ANNOTATIONS.MIGRATION_STATE]: 'Migrating' },
     },
-    $rootGetters: { 'harvester/all': (type) => type === HCI.VMIM ? list : [] },
+    $getters: { all: (type) => type === HCI.VMIM ? list : [] },
   });
 
   return { vmi, list };
