@@ -1,6 +1,7 @@
 import { colorForState } from '@shell/plugins/dashboard-store/resource-class';
 import { NODE } from '@shell/config/types';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
+import { getLatestMigration } from '@pkg/utils/vm';
 import { HCI } from '../types';
 import HarvesterResource from './harvester';
 
@@ -45,32 +46,25 @@ export default class VirtVmInstance extends HarvesterResource {
     return colorForState(state);
   }
 
+  // The newest migration of this VMI. Returns an empty array if there is none, as before the index was introduced
   get vmimResource() {
     const all = this.$rootGetters['harvester/all'](HCI.VMIM) || [];
-    const vmimList = all.filter((vmim) => vmim.spec?.vmiName === this.metadata?.name);
 
-    if (vmimList.length === 0) {
-      return [];
-    }
-
-    vmimList.sort((a, b) => {
-      return a?.metadata?.creationTimestamp > b?.metadata?.creationTimestamp ? -1 : 1;
-    });
-
-    return vmimList[0];
+    return getLatestMigration(all, this.metadata?.namespace, this.metadata?.name) || [];
   }
 
   get migrationState() {
     const state = this.metadata?.annotations?.[HCI_ANNOTATIONS.MIGRATION_STATE];
+    const migration = this.vmimResource;
 
-    if (this.vmimResource?.status?.phase === VMIPhase.Failed) {
+    if (migration?.status?.phase === VMIPhase.Failed) {
       return {
         type:   'migration',
         status: VMIPhase.Failed
       };
     }
 
-    if (this.vmimResource?.status?.phase && state) {
+    if (migration?.status?.phase && state) {
       return {
         type:   'migration',
         status: state

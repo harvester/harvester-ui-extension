@@ -325,8 +325,9 @@ export default class HciPv extends HarvesterResource {
     return this.t('harvester.volume.promptRemove.tips');
   }
 
+  // PVs are cluster scoped, their id is their name
   get relatedPV() {
-    return this.$rootGetters['harvester/all'](PV).find((pv) => pv.metadata?.name === this.spec?.volumeName);
+    return this.$rootGetters['harvester/byId'](PV, this.spec?.volumeName);
   }
 
   get volumeProvider() {
