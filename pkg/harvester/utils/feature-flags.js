@@ -34,7 +34,7 @@ function getLatestCompatibleVersion(version) {
   return compatible[0] || getLatestVersion();
 }
 
-export const featureEnabled = (featureKey, serverVersion) => {
+function resolveFeatureEnabled(featureKey, serverVersion) {
   const minSupportedVersion = '1.3.0';
 
   const version = getVersion(serverVersion);
@@ -59,4 +59,18 @@ export const featureEnabled = (featureKey, serverVersion) => {
   }
 
   return releasedFeatures.includes(featureKey);
+}
+
+// Models ask for the same few flags for every row of a list, on every render. RELEASE_FEATURES is static, so the result
+// only depends on the arguments.
+const _featureEnabledCache = new Map();
+
+export const featureEnabled = (featureKey, serverVersion) => {
+  const cacheKey = `${ featureKey }|${ serverVersion }`;
+
+  if (!_featureEnabledCache.has(cacheKey)) {
+    _featureEnabledCache.set(cacheKey, resolveFeatureEnabled(featureKey, serverVersion));
+  }
+
+  return _featureEnabledCache.get(cacheKey);
 };
