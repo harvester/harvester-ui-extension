@@ -12,14 +12,8 @@ jest.mock('@shell/plugins/dashboard-store/resource-class', () => ({
 
 const VM_ID = 'ns1/vm1';
 
-/**
- * Create a VM model instance without the full Steve model plumbing. Only the store getters that the
- * VM model reads are mocked, backed by plain lists (like the real store, `all` returns the same array
- * that is mutated in place on updates).
- *
- * The model reads its store either through `$rootGetters` (`harvester/...`) or through `$getters`, the getters of the
- * store it lives in. Both are backed by the same data, so the tests do not depend on which of them the model uses.
- */
+// Creates a VM model with mocked store getters. Like the real store, `all` returns the same array that is mutated in place.
+// Reads from the global `$rootGetters` are recorded in `globalReads`.
 function createVm({
   vm = {}, vmi, pods = [], pvcs = [], restores = [], backups = [], claims = ['disk-pvc'], printableStatus
 } = {}) {
@@ -36,12 +30,14 @@ function createVm({
     byId:      (type, id) => (byId[type] || lists[type] || []).find((x) => x.id === id),
     schemaFor: () => undefined,
   };
-  const rootGetters = {
-    'harvester-common/getFeatureEnabled': () => false,
-    currentProduct:                       { inStore: 'harvester' },
-    'harvester/all':                      getters.all,
-    'harvester/byId':                     getters.byId,
-  };
+  const globalReads = [];
+  const rootGetters = new Proxy({ 'harvester-common/getFeatureEnabled': () => false }, {
+    get(target, key) {
+      globalReads.push(key);
+
+      return target[key];
+    }
+  });
 
   const obj = Object.create(VirtVm.prototype);
 
@@ -69,7 +65,9 @@ function createVm({
   Object.defineProperty(obj, '$getters', { value: getters });
   Object.defineProperty(obj, 't', { value: (k) => k });
 
-  return { vm: obj, lists };
+  return {
+    vm: obj, lists, globalReads
+  };
 }
 
 const readyVmi = (extra = {}) => ({
@@ -362,6 +360,31 @@ describe('class VirtVm', () => {
       lists[POD].splice(0, 1);
 
       expect(vm.podResource).toBeUndefined();
+    });
+  });
+
+  describe('store', () => {
+    it('should read the data of the VM from the store the VM lives in, not from a fixed one', () => {
+      // The VM model is used with the `harvester` store (Harvester product) and the `cluster` store (Rancher explorer)
+      const pod = { metadata: { namespace: 'ns1', ownerReferences: [{ name: 'vm1' }] } };
+      const { vm, globalReads } = createVm({
+        vmi:      readyVmi(),
+        pods:     [pod],
+        pvcs:     [pvc('disk-pvc', false)],
+        restores: [{ id: 'ns1/r1', isComplete: true }],
+        vm:       {
+          metadata: {
+            name: 'vm1', namespace: 'ns1', annotations: { 'restore.harvesterhci.io/name': 'r1' }
+          }
+        },
+      });
+
+      expect(vm.vmi.id).toBe(VM_ID);
+      expect(vm.podResource).toStrictEqual(pod);
+      expect(vm.volumes).toHaveLength(1);
+      expect(vm.restoreResource.id).toBe('ns1/r1');
+      expect(vm.actualState).toBe('Running');
+      expect(globalReads.filter((key) => /^(harvester|cluster)\//.test(key))).toStrictEqual([]);
     });
   });
 

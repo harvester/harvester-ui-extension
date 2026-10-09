@@ -82,8 +82,6 @@ const VMIPhase = {
   Unknown:    'Unknown'
 };
 
-let productInStore;
-
 // Index of the pods (namespace/ownerName -> pod), shared by all rows. `podList` must be the store list, not a copy.
 // If several pods have the same owner (e.g. while a VM migrates), the last one wins.
 function getPodOwnerIndex(podList) {
@@ -102,8 +100,9 @@ function getPodOwnerIndex(podList) {
   });
 }
 
-function getPodByOwnerName(rootGetters, inStore, namespace, ownerName) {
-  const podList = rootGetters[`${ inStore }/all`](POD);
+// `getters` are the getters of the store of the VM (`this.$getters`)
+function getPodByOwnerName(getters, namespace, ownerName) {
+  const podList = getters['all'](POD);
 
   if (!Array.isArray(podList)) {
     return undefined;
@@ -113,11 +112,11 @@ function getPodByOwnerName(rootGetters, inStore, namespace, ownerName) {
 }
 
 // A VM only uses PVCs of its own namespace, so look them up by id instead of scanning all PVCs
-function getPvcsByNames(rootGetters, inStore, namespace, names) {
+function getPvcsByNames(getters, namespace, names) {
   const out = [];
 
   for (const name of new Set(names)) {
-    const pvc = rootGetters[`${ inStore }/byId`](PVC, `${ namespace }/${ name }`);
+    const pvc = getters['byId'](PVC, `${ namespace }/${ name }`);
 
     if (pvc) {
       out.push(pvc);
@@ -295,14 +294,6 @@ export default class VirtVm extends HarvesterResource {
       },
       ...out
     ];
-  }
-
-  get productInStore() {
-    if (!productInStore) {
-      productInStore = this.$rootGetters['currentProduct'].inStore;
-    }
-
-    return productInStore;
   }
 
   applyDefaults(resources = this, realMode) {
@@ -738,14 +729,13 @@ export default class VirtVm extends HarvesterResource {
   }
 
   get podResource() {
-    const inStore = this.productInStore;
-    const vmiResource = this.$rootGetters[`${ inStore }/byId`](HCI.VMI, this.id);
+    const vmiResource = this.$getters['byId'](HCI.VMI, this.id);
 
     if (!vmiResource?.metadata?.name) {
       return undefined;
     }
 
-    return getPodByOwnerName(this.$rootGetters, inStore, vmiResource.metadata.namespace, vmiResource.metadata.name);
+    return getPodByOwnerName(this.$getters, vmiResource.metadata.namespace, vmiResource.metadata.name);
   }
 
   get isPaused() {
@@ -773,8 +763,7 @@ export default class VirtVm extends HarvesterResource {
   }
 
   get nsResourceQuota() {
-    const inStore = this.productInStore;
-    const allResQuotas = this.$rootGetters[`${ inStore }/all`](HCI.RESOURCE_QUOTA);
+    const allResQuotas = this.$getters['all'](HCI.RESOURCE_QUOTA);
 
     return allResQuotas.find( (RQ) => RQ.namespace === this.metadata.namespace);
   }
@@ -784,15 +773,13 @@ export default class VirtVm extends HarvesterResource {
   }
 
   get vmi() {
-    const inStore = this.productInStore;
-
-    return this.$rootGetters[`${ inStore }/byId`](HCI.VMI, this.id);
+    return this.$getters['byId'](HCI.VMI, this.id);
   }
 
   get volumes() {
     const volumeClaimNames = this.spec.template.spec.volumes?.map((v) => v.persistentVolumeClaim?.claimName).filter((v) => !!v) || [];
 
-    return getPvcsByNames(this.$rootGetters, this.productInStore, this.metadata.namespace, volumeClaimNames);
+    return getPvcsByNames(this.$getters, this.metadata.namespace, volumeClaimNames);
   }
 
   get lvmVolumes() {
@@ -981,13 +968,11 @@ export default class VirtVm extends HarvesterResource {
       `metadata.annotations."${ HCI_ANNOTATIONS.RESTORE_NAME }"`
     ) }`;
 
-    const inStore = this.productInStore;
-
-    const res = this.$rootGetters[`${ inStore }/byId`](HCI.RESTORE, id);
+    const res = this.$getters['byId'](HCI.RESTORE, id);
 
     if (res) {
       const backupId = `${ res.spec?.virtualMachineBackupNamespace }/${ res.spec?.virtualMachineBackupName }`;
-      const backup = this.$rootGetters[`${ inStore }/byId`](HCI.BACKUP, backupId);
+      const backup = this.$getters['byId'](HCI.BACKUP, backupId);
 
       // Snapshots and backups are told apart by spec.type
       res.fromSnapshot = !!backup && backup.spec?.type !== BACKUP_TYPE.BACKUP;
@@ -1179,7 +1164,6 @@ export default class VirtVm extends HarvesterResource {
 
   get rootImageId() {
     let imageId = '';
-    const inStore = this.productInStore;
 
     const volumes = this.spec.template.spec.volumes || [];
 
@@ -1189,7 +1173,7 @@ export default class VirtVm extends HarvesterResource {
     });
 
     if (!isNoExistingVolume) {
-      const existingVolume = this.$rootGetters[`${ inStore }/byId`](PVC, `${ this.metadata.namespace }/${ firstVolumeName }`);
+      const existingVolume = this.$getters['byId'](PVC, `${ this.metadata.namespace }/${ firstVolumeName }`);
 
       if (existingVolume) {
         return existingVolume?.metadata?.annotations?.[

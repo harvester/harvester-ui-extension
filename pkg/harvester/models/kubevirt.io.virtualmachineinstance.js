@@ -48,7 +48,7 @@ export default class VirtVmInstance extends HarvesterResource {
 
   // The newest migration of this VMI, an empty array if there is none
   get vmimResource() {
-    const all = this.$rootGetters['harvester/all'](HCI.VMIM) || [];
+    const all = this.$getters['all'](HCI.VMIM) || [];
 
     return getLatestMigration(all, this.metadata?.namespace, this.metadata?.name) || [];
   }
