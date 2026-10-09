@@ -100,8 +100,7 @@ export default {
     },
 
     vmiIp() {
-      const vmiResources = this.$store.getters[`${ this.inStore }/all`](HCI.VMI);
-      const resource = vmiResources.find((VMI) => VMI.id === this.value) || null;
+      const resource = this.$store.getters[`${ this.inStore }/byId`](HCI.VMI, this.value);
       const networksName = this.row.networksName || [];
       const vmiNetworks = resource?.spec?.networks || [];
 

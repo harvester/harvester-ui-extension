@@ -5,7 +5,10 @@ import { HCI } from '../../types';
 
 // The Steve base model and the shell resource class pull in most of the dashboard, none of that is needed here
 jest.mock('../harvester', () => ({ __esModule: true, default: class {} }));
-jest.mock('@shell/plugins/dashboard-store/resource-class', () => ({ colorForState: (state) => (state === 'Running' ? 'text-success' : 'text-info') }));
+jest.mock('@shell/plugins/dashboard-store/resource-class', () => ({
+  colorForState: (state) => (state === 'Running' ? 'text-success' : 'text-info'),
+  stateSort:     (color, display) => `${ color.replace(/^text-/, '') } ${ display }`,
+}));
 
 const VM_ID = 'ns1/vm1';
 
@@ -287,6 +290,24 @@ describe('class VirtVm', () => {
     });
   });
 
+  describe('stateSort', () => {
+    it('should be built from the same state as stateDisplay and stateColor', () => {
+      const { vm } = createVm({ vmi: readyVmi() });
+
+      expect(vm.stateSort).toBe(`${ vm.stateColor.replace(/^text-/, '') } ${ vm.stateDisplay }`);
+    });
+
+    it('should evaluate the state only once', () => {
+      const { vm } = createVm({ vmi: readyVmi() });
+      const spy = jest.spyOn(vm, 'actualState', 'get');
+
+      expect(vm.stateSort).toBe('success Running');
+      expect(spy).toHaveBeenCalledTimes(1);
+
+      spy.mockRestore();
+    });
+  });
+
   describe('podResource', () => {
     it('should find the launcher pod by owner name', () => {
       const pod = { metadata: { namespace: 'ns1', ownerReferences: [{ name: 'vm1' }] } };
@@ -310,6 +331,37 @@ describe('class VirtVm', () => {
       const { vm } = createVm({ vmi: readyVmi(), pods: [source, target] });
 
       expect(vm.podResource.metadata.name).toBe('launcher-target');
+    });
+
+    it('should find pods that are added to the store later', () => {
+      const { vm, lists } = createVm({ vmi: readyVmi(), pods: [] });
+
+      expect(vm.podResource).toBeUndefined();
+
+      const pod = { metadata: { namespace: 'ns1', ownerReferences: [{ name: 'vm1' }] } };
+
+      lists[POD].push(pod);
+
+      expect(vm.podResource).toStrictEqual(pod);
+    });
+
+    it('should not return a pod of a VM with the same name in another namespace', () => {
+      const other = { metadata: { namespace: 'ns2', ownerReferences: [{ name: 'vm1' }] } };
+      const mine = { metadata: { namespace: 'ns1', ownerReferences: [{ name: 'vm1' }] } };
+      const { vm } = createVm({ vmi: readyVmi(), pods: [mine, other] });
+
+      expect(vm.podResource).toStrictEqual(mine);
+    });
+
+    it('should not return pods that were removed from the store', () => {
+      const pod = { metadata: { namespace: 'ns1', ownerReferences: [{ name: 'vm1' }] } };
+      const { vm, lists } = createVm({ vmi: readyVmi(), pods: [pod] });
+
+      expect(vm.podResource).toStrictEqual(pod);
+
+      lists[POD].splice(0, 1);
+
+      expect(vm.podResource).toBeUndefined();
     });
   });
 
