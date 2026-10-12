@@ -2,6 +2,7 @@
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import InputOrDisplay from '@shell/components/InputOrDisplay';
+import LabelValue from '@shell/components/LabelValue';
 import { VOLUME_TYPE, InterfaceOption } from '../../../../config/harvester-map';
 import { Banner } from '@components/Banner';
 import DiskPerformanceOptions from '../DiskPerformanceOptions';
@@ -12,7 +13,7 @@ export default {
   emits: ['update'],
 
   components: {
-    LabeledInput, LabeledSelect, InputOrDisplay, Banner, DiskPerformanceOptions
+    LabeledInput, LabeledSelect, InputOrDisplay, LabelValue, Banner, DiskPerformanceOptions
   },
 
   props: {
