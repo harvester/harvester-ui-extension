@@ -2,18 +2,24 @@ import { mount } from '@vue/test-utils';
 import { _EDIT } from '@shell/config/query-params';
 import HarvesterEditVolume from '../volume.vue';
 
+// The form emits an update when it is created, so count only the updates that an interaction adds
+const updates = (wrapper) => wrapper.emitted('update')?.length ?? 0;
+
 describe('component: HarvesterEditVolume', () => {
   it('should display all the inputs', () => {
     const wrapper = mount(HarvesterEditVolume, {
-      propsData: { validateRequired: true },
-      mocks:     {
-        $store: {
-          getters: {
-            'harvester/all': jest.fn(),
-            'i18n/t':        jest.fn(),
-            'i18n/exists':   jest.fn(),
-          }
-        },
+      props:  { validateRequired: true },
+      global: {
+        mocks: {
+          $store: {
+            getters: {
+              'harvester-common/getFeatureEnabled': () => true,
+              'harvester/all':                      jest.fn(),
+              'i18n/t':                             jest.fn(),
+              'i18n/exists':                        jest.fn(),
+            }
+          },
+        }
       }
     });
 
@@ -22,29 +28,56 @@ describe('component: HarvesterEditVolume', () => {
     expect(inputWraps).toHaveLength(4);
   });
 
-  it.each([
-    'name',
-    'size',
-  ])('should emit an update on %p input blur', (field) => {
+  it('should emit an update on name input', async() => {
     const wrapper = mount(HarvesterEditVolume, {
-      propsData: { mode: _EDIT, validateRequired: true },
-      mocks:     {
-        $store: {
-          getters: {
-            'harvester/all': jest.fn(),
-            'i18n/t':        jest.fn(),
-            'i18n/exists':   jest.fn(),
-          }
-        },
+      props:  { mode: _EDIT, validateRequired: true },
+      global: {
+        mocks: {
+          $store: {
+            getters: {
+              'harvester-common/getFeatureEnabled': () => true,
+              'harvester/all':                      jest.fn(),
+              'i18n/t':                             jest.fn(),
+              'i18n/exists':                        jest.fn(),
+            }
+          },
+        }
       }
     });
-    const input = wrapper.find(`[data-testid="input-hev-${ field }"]`).find('input');
-    const newValue = 123;
+    const before = updates(wrapper);
+    const input = wrapper.find('[data-testid="input-hev-name"]').find('input');
 
-    input.setValue(newValue);
-    input.trigger('blur');
+    await input.setValue(123);
 
-    expect(wrapper.emitted('update')).toHaveLength(1);
+    expect(updates(wrapper)).toBeGreaterThan(before);
+  });
+
+  it('should emit an update on size input blur', async() => {
+    const wrapper = mount(HarvesterEditVolume, {
+      props:  { mode: _EDIT, validateRequired: true },
+      global: {
+        mocks: {
+          $store: {
+            getters: {
+              'harvester-common/getFeatureEnabled': () => true,
+              'harvester/all':                      jest.fn(),
+              'i18n/t':                             jest.fn(),
+              'i18n/exists':                        jest.fn(),
+            }
+          },
+        }
+      }
+    });
+    const input = wrapper.find('[data-testid="input-hev-size"]').find('input');
+
+    // setting the value already emits an update, so the blur has to add one on top of that
+    await input.setValue(123);
+
+    const afterSetValue = updates(wrapper);
+
+    await input.trigger('blur');
+
+    expect(updates(wrapper)).toBeGreaterThan(afterSetValue);
   });
 
   it.each([
@@ -52,23 +85,27 @@ describe('component: HarvesterEditVolume', () => {
     'bus'
   ])('should emit an update on %p selection change', async(field) => {
     const wrapper = mount(HarvesterEditVolume, {
-      propsData: { mode: _EDIT, validateRequired: true },
-      mocks:     {
-        $store: {
-          getters: {
-            'harvester/all': jest.fn(),
-            'i18n/t':        jest.fn(),
-            'i18n/exists':   jest.fn(),
-          }
-        },
+      props:  { mode: _EDIT, validateRequired: true },
+      global: {
+        mocks: {
+          $store: {
+            getters: {
+              'harvester-common/getFeatureEnabled': () => true,
+              'harvester/all':                      jest.fn(),
+              'i18n/t':                             jest.fn(),
+              'i18n/exists':                        jest.fn(),
+            }
+          },
+        }
       }
     });
+    const before = updates(wrapper);
     const select = wrapper.find(`[data-testid="input-hev-${ field }"]`);
 
     select.find('button').trigger('click');
     await wrapper.trigger('keydown.down');
     await wrapper.trigger('keydown.enter');
 
-    expect(wrapper.emitted('update')).toHaveLength(1);
+    expect(updates(wrapper)).toBeGreaterThan(before);
   });
 });
