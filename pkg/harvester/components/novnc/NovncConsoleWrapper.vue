@@ -542,13 +542,51 @@ export default {
                   >
                   {{ t('harvester.virtualMachine.detail.console.settings.viewOnly') }}
                 </label>
+
+                <label
+                  for="vnc-quality"
+                  class="console-panel__zoom-label"
+                >
+                  <span>{{ t('harvester.virtualMachine.detail.console.settings.quality') }}</span>
+                  <span>{{ settings.qualityLevel }}</span>
+                </label>
+                <input
+                  id="vnc-quality"
+                  v-model.number="settings.qualityLevel"
+                  class="console-panel__zoom"
+                  type="range"
+                  min="0"
+                  max="9"
+                  step="1"
+                >
+
+                <label
+                  for="vnc-compression"
+                  class="console-panel__zoom-label"
+                >
+                  <span>{{ t('harvester.virtualMachine.detail.console.settings.compression') }}</span>
+                  <span>{{ settings.compressionLevel }}</span>
+                </label>
+                <input
+                  id="vnc-compression"
+                  v-model.number="settings.compressionLevel"
+                  class="console-panel__zoom"
+                  type="range"
+                  min="0"
+                  max="9"
+                  step="1"
+                >
               </div>
             </template>
           </v-dropdown>
         </div>
 
         <div class="toolbar-group">
-          <span class="console-status">{{ statusLabel }}</span>
+          <span
+            class="console-status"
+            role="status"
+            aria-live="polite"
+          >{{ statusLabel }}</span>
 
           <button
             v-if="hasSoftRebootAction"
