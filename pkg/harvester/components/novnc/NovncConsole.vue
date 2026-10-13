@@ -180,6 +180,7 @@ export default {
 
     onDisconnect() {
       const wasConnected = this.status === CONSOLE_STATUS.CONNECTED;
+      const wasRetrying = this.status === CONSOLE_STATUS.RECONNECTING;
 
       this.teardown(false);
 
@@ -192,6 +193,12 @@ export default {
       }
 
       if (wasConnected) {
+        this.scheduleReconnect();
+      } else if (wasRetrying) {
+        // Retries use preserveSession, so they fail while another session owns the
+        // console. Keep retrying so the console is picked up once it is released,
+        // instead of kicking the other session back out.
+        this.statusDetail = this.t('harvester.virtualMachine.detail.console.status.inUse');
         this.scheduleReconnect();
       } else {
         this.clearReconnectTimer();
@@ -208,10 +215,13 @@ export default {
       this.status = CONSOLE_STATUS.FAILED;
     },
 
+    // noVNC pauses the handshake until credentials are sent, so close the socket
+    // to avoid holding the console while the failure is shown.
     onCredentialsRequired() {
       this.statusDetail = this.t('harvester.virtualMachine.detail.console.status.credentialsRequired');
       this.isClosed = true;
       this.clearReconnectTimer();
+      this.teardown();
       this.status = CONSOLE_STATUS.FAILED;
     },
 
@@ -231,6 +241,7 @@ export default {
       }
 
       if (this.retryTimes >= this.maximumRetryTimes) {
+        this.statusDetail = this.statusDetail || this.t('harvester.virtualMachine.detail.console.status.unavailable');
         this.status = CONSOLE_STATUS.FAILED;
 
         return;
@@ -360,12 +371,20 @@ export default {
         </button>
       </div>
 
-      <h2
+      <div
         v-else
-        class="text-secondary"
+        class="text-center"
       >
-        {{ t('vncConsole.reconnecting.message') }}：{{ retryTimes }} of {{ maximumRetryTimes }}
-      </h2>
+        <h2 class="text-secondary">
+          {{ t('vncConsole.reconnecting.message') }}：{{ retryTimes }} of {{ maximumRetryTimes }}
+        </h2>
+        <p
+          v-if="statusDetail"
+          class="text-muted mt-10"
+        >
+          {{ statusDetail }}
+        </p>
+      </div>
     </div>
   </div>
 </template>

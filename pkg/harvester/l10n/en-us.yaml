@@ -1012,6 +1012,15 @@ harvester:
       console:
         down: This virtual machine is down. Please start it to access its console.
         shortcutKeys: Shortcut Keys
+        customShortcutKeys: Custom Shortcut Keys
+        management: Management Shortcut Keys
+        record:
+          start: Record
+          recording: Recording
+          stop: Stop Recording
+          tips: Press the record button to capture your keyboard inputs.
+          send: Send
+          preferredKeys: Preferred Custom Shortcut Keys
         settings:
           label: Settings
           viewMode:
@@ -1039,6 +1048,7 @@ harvester:
           reconnecting: 'Reconnecting {retryTimes} of {maximumRetryTimes}'
           credentialsRequired: This console requires credentials that the dashboard cannot provide.
           unavailable: Unable to connect. Another VNC session may be active, or the console may be unavailable.
+          inUse: Another VNC session may be using this console. Retrying until it is released.
     terminationGracePeriodSeconds:
       label: Termination Grace Period
     affinity:

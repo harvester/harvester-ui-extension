@@ -1,13 +1,17 @@
 <script>
+import { STEVE } from '@shell/config/types';
 import { escapeHtml } from '@shell/utils/string';
 import { allHash } from '@shell/utils/promise';
 import KeyTable from '@novnc/novnc/core/input/keysym';
+import * as KeyboardUtil from '@novnc/novnc/core/input/util';
 import { HCI } from '../../types';
 import NovncConsole from './NovncConsole';
 import NovncConsoleItem from './NovncConsoleItem';
+import NovncConsoleCustomKeys from './NovncConsoleCustomKeys';
 import { normalizeZoom } from './ZoomableRFB';
 
 const CONSOLE_SETTINGS_KEY = 'harvester-vnc-console-settings';
+const PREFERED_SHORTCUT_KEYS = 'prefered-shortcut-keys';
 
 const VIEW_MODE = {
   SCALE:  'scale',
@@ -116,7 +120,9 @@ const F_KEYS = {
 
 export default {
   name:       'NovncConsoleWrapper',
-  components: { NovncConsole, NovncConsoleItem },
+  components: {
+    NovncConsole, NovncConsoleItem, NovncConsoleCustomKeys
+  },
 
   async fetch() {
     const _hash = { vmResource: this.$store.dispatch('harvester/find', { type: HCI.VM, id: this.value.id }) };
@@ -140,6 +146,7 @@ export default {
     return {
       keysRecord:        [],
       vmResource:        {},
+      renderKeysModal:   false,
       settings:          { ...DEFAULT_SETTINGS },
       capabilities:      {},
       isFullscreen:      false,
@@ -153,6 +160,38 @@ export default {
   },
 
   computed: {
+    preference() {
+      return this.$store.getters['management/all'](STEVE.PREFERENCE)?.[0];
+    },
+
+    // Custom keys are stored in the user preference, which is not available everywhere.
+    hideCustomKeysBar() {
+      return !this.preference?.data;
+    },
+
+    savedShortcutKeys() {
+      const preferedShortcutKeys = this.preference?.data?.[PREFERED_SHORTCUT_KEYS];
+
+      if (!preferedShortcutKeys) {
+        return [];
+      }
+
+      try {
+        return JSON.parse(preferedShortcutKeys);
+      } catch (err) {
+        return [];
+      }
+    },
+
+    preferredShortcutKeys() {
+      return (this.savedShortcutKeys || []).map((item) => {
+        return {
+          label: item.map((K) => K.key.charAt(0).toUpperCase() + K.key.slice(1)).join('+'),
+          value: item
+        };
+      });
+    },
+
     canSendKeys() {
       return this.consoleStatus.status === 'connected' && !this.settings.viewOnly;
     },
@@ -282,6 +321,30 @@ export default {
       this.keysRecord = [];
     },
 
+    sendCustomKeys(keys) {
+      if (!this.canSendKeys || !this.$refs.novncConsole) {
+        return;
+      }
+
+      const keyList = [].concat(keys);
+
+      keyList.forEach((K) => {
+        this.$refs.novncConsole.sendKey(KeyboardUtil.getKeysym(K), KeyboardUtil.getKeycode(K), true);
+      });
+
+      [...keyList].reverse().forEach((K) => {
+        this.$refs.novncConsole.sendKey(KeyboardUtil.getKeysym(K), KeyboardUtil.getKeycode(K), false);
+      });
+    },
+
+    showKeysModal() {
+      this.renderKeysModal = true;
+    },
+
+    hideKeysModal() {
+      this.renderKeysModal = false;
+    },
+
     reconnect() {
       this.$refs.novncConsole.reconnect();
     },
@@ -391,6 +454,43 @@ export default {
           </button>
 
           <v-dropdown
+            v-if="!hideCustomKeysBar"
+            placement="top"
+            trigger="click"
+            :container="false"
+          >
+            <button class="btn btn-sm bg-primary">
+              {{ t("harvester.virtualMachine.detail.console.customShortcutKeys") }}
+            </button>
+
+            <template #popper>
+              <div>
+                <button
+                  class="btn btn-sm bg-primary"
+                  @click="showKeysModal"
+                >
+                  {{ t("harvester.virtualMachine.detail.console.management") }}
+                </button>
+              </div>
+
+              <hr>
+
+              <div
+                v-for="(keys, index) in preferredShortcutKeys"
+                :key="index"
+              >
+                <button
+                  class="btn btn-sm bg-primary"
+                  :disabled="!canSendKeys"
+                  @click="sendCustomKeys(keys.value)"
+                >
+                  {{ keys.label }}
+                </button>
+              </div>
+            </template>
+          </v-dropdown>
+
+          <v-dropdown
             placement="top"
             trigger="click"
             :container="false"
@@ -485,6 +585,11 @@ export default {
       <p v-if="isDown">
         {{ t("harvester.virtualMachine.detail.console.down") }}
       </p>
+
+      <NovncConsoleCustomKeys
+        v-if="renderKeysModal"
+        @close="hideKeysModal"
+      />
     </div>
   </div>
 </template>
