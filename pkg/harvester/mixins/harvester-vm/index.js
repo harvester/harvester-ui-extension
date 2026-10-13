@@ -513,17 +513,10 @@ export default {
         }
 
         out.push({
-<<<<<<< HEAD
-          id:               randomStr(5),
-          source:           SOURCE_TYPE.IMAGE,
-          name:             'disk-0',
-          accessMode:       'ReadWriteMany', // root disk only support LHv1 volume, should be RWX
-=======
           id:                randomStr(5),
           source:            SOURCE_TYPE.IMAGE,
           name:              'disk-0',
-          accessMode:        READ_WRITE_MANY, // root disk only support LHv1 volume, should be RWX
->>>>>>> 528255d (feat: expose KubeVirt high-performance storage features in VM and Volume UI (#1133))
+          accessMode:        'ReadWriteMany', // root disk only support LHv1 volume, should be RWX
           bus,
           volumeName:        '',
           size,
