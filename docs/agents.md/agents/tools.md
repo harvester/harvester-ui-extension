@@ -15,6 +15,8 @@
 | `yarn serve-pkgs` | Serve the locally built extension for testing |
 | `yarn lint` | Run ESLint (zero warnings allowed) |
 | `yarn lint:fix` | Run ESLint with auto-fix |
+| `yarn test` | Run the unit tests (Jest) in watch mode |
+| `yarn test:ci` | Run the unit tests once, as CI does (silent) |
 | `yarn clean` | Clean build artifacts |
 | `yarn agents:generate` | Regenerate `AGENTS.md` from `docs/agents.md/` sources |
 
@@ -50,6 +52,16 @@
   ```
 - ESLint covers `.js`, `.ts`, and `.vue` files.
 - Always run `yarn lint:fix` before committing.
+
+### Unit Tests
+
+- **Run**:
+  ```bash
+  yarn test
+  ```
+  - `yarn test` starts Jest in watch mode (like in the Rancher dashboard) and only runs the tests related to changed files. It does not exit, so use `yarn test:ci` for a single run of all tests, e.g. in scripts.
+- CI runs `yarn test:ci` on every pull request.
+- See the Unit Tests section of the Contributors Guide for how the tests are set up.
 
 ### Commit Conventions
 
