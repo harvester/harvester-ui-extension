@@ -12,6 +12,7 @@ import { clone } from '@shell/utils/object';
 import { HCI } from '../types';
 import HarvesterVmState from '../formatters/HarvesterVmState';
 import ConsoleBar from '../components/VMConsoleBar';
+import CLONE_PROGRESS_MIXIN from '../mixins/vm-clone-progress';
 
 const ENCRYPTED_VOLUME_TOOLTIP_KEYS = {
   all:     'harvester.virtualMachine.volume.lockTooltip.all',
@@ -72,6 +73,8 @@ export default {
     ResourceTable
   },
 
+  mixins: [CLONE_PROGRESS_MIXIN],
+
   props: {
     schema: {
       type:     Object,
@@ -128,6 +131,14 @@ export default {
         formatter: 'HarvesterBackupProgressBar',
         width:     200,
       };
+      const cloneCol = {
+        name:      'cloneProgress',
+        labelKey:  'harvester.tableHeaders.clone',
+        value:     'cloneProgress',
+        align:     'left',
+        formatter: 'HarvesterBackupProgressBar',
+        width:     200,
+      };
       const nodeCol = {
         name:      'node',
         label:     'Node',
@@ -147,6 +158,10 @@ export default {
         cols.splice(-1, 0, restoreCol);
       }
 
+      if (this.hasCloneInProgress) {
+        cols.splice(-1, 0, cloneCol);
+      }
+
       return cols;
     },
 
@@ -161,6 +176,14 @@ export default {
      */
     hasBackUpRestoreInProgress() {
       return !!this.rows.find((r) => r.restoreResource && !r.restoreResource.fromSnapshot && !r.restoreResource.isComplete);
+    },
+
+    cloneProgressVMs() {
+      return this.allVMs;
+    },
+
+    hasCloneInProgress() {
+      return this.allVMs.some((vm) => vm.cloneProgress?.percentage !== undefined);
     },
 
     vmRestartRequiredNames() {
