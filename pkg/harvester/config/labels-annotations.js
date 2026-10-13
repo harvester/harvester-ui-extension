@@ -33,6 +33,11 @@ export const HCI = {
   CLONE_BACKEND_STORAGE_STATUS:     'harvesterhci.io/clone-backend-storage-status',
   MIGRATION_STATE:                  'harvesterhci.io/migrationState',
   VOLUME_CLAIM_TEMPLATE:            'harvesterhci.io/volumeClaimTemplates',
+  // Default KubeVirt high-performance disk settings, applied when the volume is
+  // attached to a VM as a disk. See disks_and_volumes.md#high-performance-features.
+  DISK_CACHE_MODE:                  'harvesterhci.io/disk-cache-mode',
+  DISK_IO_MODE:                     'harvesterhci.io/disk-io-mode',
+  DISK_DEDICATED_IOTHREAD:          'harvesterhci.io/disk-dedicated-iothread',
   IMAGE_NAME:                       'harvesterhci.io/image-name',
   INIT_IP:                          'etcd.rke2.cattle.io/node-address',
   NODE_SCHEDULABLE:                 'kubevirt.io/schedulable',
