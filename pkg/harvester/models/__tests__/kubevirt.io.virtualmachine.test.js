@@ -5,18 +5,15 @@ import { HCI } from '../../types';
 
 // The Steve base model and the shell resource class pull in most of the dashboard, none of that is needed here
 jest.mock('../harvester', () => ({ __esModule: true, default: class {} }));
-jest.mock('@shell/plugins/dashboard-store/resource-class', () => ({ colorForState: (state) => (state === 'Running' ? 'text-success' : 'text-info') }));
+jest.mock('@shell/plugins/dashboard-store/resource-class', () => ({
+  colorForState: (state) => (state === 'Running' ? 'text-success' : 'text-info'),
+  stateSort:     (color, display) => `${ color.replace(/^text-/, '') } ${ display }`,
+}));
 
 const VM_ID = 'ns1/vm1';
 
-/**
- * Create a VM model instance without the full Steve model plumbing. Only the store getters that the
- * VM model reads are mocked, backed by plain lists (like the real store, `all` returns the same array
- * that is mutated in place on updates).
- *
- * The model reads its store either through `$rootGetters` (`harvester/...`) or through `$getters`, the getters of the
- * store it lives in. Both are backed by the same data, so the tests do not depend on which of them the model uses.
- */
+// Creates a VM model with mocked store getters. Like the real store, `all` returns the same array that is mutated in place.
+// Reads from the global `$rootGetters` are recorded in `globalReads`.
 function createVm({
   vm = {}, vmi, pods = [], pvcs = [], restores = [], backups = [], claims = ['disk-pvc'], printableStatus
 } = {}) {
@@ -33,12 +30,14 @@ function createVm({
     byId:      (type, id) => (byId[type] || lists[type] || []).find((x) => x.id === id),
     schemaFor: () => undefined,
   };
-  const rootGetters = {
-    'harvester-common/getFeatureEnabled': () => false,
-    currentProduct:                       { inStore: 'harvester' },
-    'harvester/all':                      getters.all,
-    'harvester/byId':                     getters.byId,
-  };
+  const globalReads = [];
+  const rootGetters = new Proxy({ 'harvester-common/getFeatureEnabled': () => false }, {
+    get(target, key) {
+      globalReads.push(key);
+
+      return target[key];
+    }
+  });
 
   const obj = Object.create(VirtVm.prototype);
 
@@ -66,7 +65,9 @@ function createVm({
   Object.defineProperty(obj, '$getters', { value: getters });
   Object.defineProperty(obj, 't', { value: (k) => k });
 
-  return { vm: obj, lists };
+  return {
+    vm: obj, lists, globalReads
+  };
 }
 
 const readyVmi = (extra = {}) => ({
@@ -287,6 +288,24 @@ describe('class VirtVm', () => {
     });
   });
 
+  describe('stateSort', () => {
+    it('should be built from the same state as stateDisplay and stateColor', () => {
+      const { vm } = createVm({ vmi: readyVmi() });
+
+      expect(vm.stateSort).toBe(`${ vm.stateColor.replace(/^text-/, '') } ${ vm.stateDisplay }`);
+    });
+
+    it('should evaluate the state only once', () => {
+      const { vm } = createVm({ vmi: readyVmi() });
+      const spy = jest.spyOn(vm, 'actualState', 'get');
+
+      expect(vm.stateSort).toBe('success Running');
+      expect(spy).toHaveBeenCalledTimes(1);
+
+      spy.mockRestore();
+    });
+  });
+
   describe('podResource', () => {
     it('should find the launcher pod by owner name', () => {
       const pod = { metadata: { namespace: 'ns1', ownerReferences: [{ name: 'vm1' }] } };
@@ -310,6 +329,62 @@ describe('class VirtVm', () => {
       const { vm } = createVm({ vmi: readyVmi(), pods: [source, target] });
 
       expect(vm.podResource.metadata.name).toBe('launcher-target');
+    });
+
+    it('should find pods that are added to the store later', () => {
+      const { vm, lists } = createVm({ vmi: readyVmi(), pods: [] });
+
+      expect(vm.podResource).toBeUndefined();
+
+      const pod = { metadata: { namespace: 'ns1', ownerReferences: [{ name: 'vm1' }] } };
+
+      lists[POD].push(pod);
+
+      expect(vm.podResource).toStrictEqual(pod);
+    });
+
+    it('should not return a pod of a VM with the same name in another namespace', () => {
+      const other = { metadata: { namespace: 'ns2', ownerReferences: [{ name: 'vm1' }] } };
+      const mine = { metadata: { namespace: 'ns1', ownerReferences: [{ name: 'vm1' }] } };
+      const { vm } = createVm({ vmi: readyVmi(), pods: [mine, other] });
+
+      expect(vm.podResource).toStrictEqual(mine);
+    });
+
+    it('should not return pods that were removed from the store', () => {
+      const pod = { metadata: { namespace: 'ns1', ownerReferences: [{ name: 'vm1' }] } };
+      const { vm, lists } = createVm({ vmi: readyVmi(), pods: [pod] });
+
+      expect(vm.podResource).toStrictEqual(pod);
+
+      lists[POD].splice(0, 1);
+
+      expect(vm.podResource).toBeUndefined();
+    });
+  });
+
+  describe('store', () => {
+    it('should read the data of the VM from the store the VM lives in, not from a fixed one', () => {
+      // The VM model is used with the `harvester` store (Harvester product) and the `cluster` store (Rancher explorer)
+      const pod = { metadata: { namespace: 'ns1', ownerReferences: [{ name: 'vm1' }] } };
+      const { vm, globalReads } = createVm({
+        vmi:      readyVmi(),
+        pods:     [pod],
+        pvcs:     [pvc('disk-pvc', false)],
+        restores: [{ id: 'ns1/r1', isComplete: true }],
+        vm:       {
+          metadata: {
+            name: 'vm1', namespace: 'ns1', annotations: { 'restore.harvesterhci.io/name': 'r1' }
+          }
+        },
+      });
+
+      expect(vm.vmi.id).toBe(VM_ID);
+      expect(vm.podResource).toStrictEqual(pod);
+      expect(vm.volumes).toHaveLength(1);
+      expect(vm.restoreResource.id).toBe('ns1/r1');
+      expect(vm.actualState).toBe('Running');
+      expect(globalReads.filter((key) => /^(harvester|cluster)\//.test(key))).toStrictEqual([]);
     });
   });
 

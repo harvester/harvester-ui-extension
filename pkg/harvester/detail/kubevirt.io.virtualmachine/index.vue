@@ -14,6 +14,7 @@ import Labels from '@shell/components/form/Labels';
 import LabelValue from '@shell/components/LabelValue';
 import { HCI } from '../../types';
 import VM_MIXIN from '../../mixins/harvester-vm';
+import { getLatestMigration } from '../../utils/vm';
 
 import CloudConfig from '../../edit/kubevirt.io.virtualmachine/VirtualMachineCloudConfig';
 import Volume from '../../edit/kubevirt.io.virtualmachine/VirtualMachineVolume';
@@ -139,18 +140,7 @@ export default {
       const inStore = this.$store.getters['currentProduct'].inStore;
       const vmimList = this.$store.getters[`${ inStore }/all`](HCI.VMIM) || [];
 
-      const vmiName = this.vmi?.name || '';
-
-      // filter the corresponding vmims by vmim.spec.vmiName and find the latest one by creationTimestamp
-      const vmim = vmimList.filter((VMIM) => VMIM?.spec?.vmiName === vmiName).sort((a, b) => {
-        if (a?.metadata?.creationTimestamp > b?.metadata?.creationTimestamp) {
-          return -1;
-        }
-
-        return 1;
-      });
-
-      return vmim.length > 0 && vmim[0] ? vmim[0] : null;
+      return getLatestMigration(vmimList, this.vmi?.metadata?.namespace, this.vmi?.name) || null;
     },
 
     migrationEvents() {
