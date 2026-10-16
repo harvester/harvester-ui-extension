@@ -16,6 +16,11 @@ describe('featureEnabled', () => {
     expect(featureEnabled('hotplugCdRom', 'v1.8.0-dev-20260101')).toBe(true);
   });
 
+  it('should enable vncPreserveSession only from Harvester v1.7.0, whose KubeVirt honours it', () => {
+    expect(featureEnabled('vncPreserveSession', 'v1.6.1')).toBe(false);
+    expect(featureEnabled('vncPreserveSession', 'v1.7.0')).toBe(true);
+  });
+
   it('should return false for unknown features', () => {
     expect(featureEnabled('doesNotExist', 'v1.8.0')).toBe(false);
   });

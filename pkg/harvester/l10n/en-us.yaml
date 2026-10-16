@@ -1021,6 +1021,51 @@ harvester:
           tips: Press the record button to capture your keyboard inputs.
           send: Send
           preferredKeys: Preferred Custom Shortcut Keys
+        settings:
+          label: Settings
+          viewMode:
+            label: Display
+            scale: Scale the display to fit the window
+            none: Manual zoom
+          zoom: Zoom
+          viewOnly: View only
+          quality: JPEG quality
+          compression: Compression level
+        fullscreen:
+          enter: Full Screen
+          exit: Exit Full Screen
+        ctrlAltDel: Ctrl+Alt+Del
+        confirm:
+          ctrlAltDel:
+            title: Send Ctrl+Alt+Del?
+            message: Windows opens its sign-in or security screen. Most Linux systems restart the virtual machine.
+            button: Send
+          softReboot:
+            title: Soft reboot this virtual machine?
+            message: The guest operating system is asked to restart. Unsaved work inside the virtual machine is lost.
+            button: Soft Reboot
+        takeOver:
+          label: Take Over
+          title: Take over this console?
+          confirm: The other VNC session connected to this virtual machine will be disconnected.
+        failure:
+          inUse: This console is in use
+          unavailable: Unable to connect
+          dropped: Disconnected
+          error: Connection failed
+        failureDetail:
+          inUse: Another VNC session is connected to this virtual machine. Retry once it is released, or take over the console to disconnect the other session.
+          unavailable: The console is not available. Check that the virtual machine is running, then retry.
+          dropped: The console connection was closed. Another VNC session may have opened this console.
+        status:
+          connecting: Connecting
+          connected: Connected
+          connectedViewOnly: Connected (view only)
+          disconnected: Disconnected
+          failed: Connection failed
+          reconnecting: 'Reconnecting {retryTimes} of {maximumRetryTimes}'
+          credentialsRequired: This console requires credentials that the dashboard cannot provide.
+          inUse: Another VNC session may be using this console. Retrying until it is released.
     terminationGracePeriodSeconds:
       label: Termination Grace Period
     affinity:
