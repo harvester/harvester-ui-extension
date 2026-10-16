@@ -39,6 +39,21 @@ export const VOLUME_TYPE = [{
   value: 'cd-rom'
 }];
 
+// KubeVirt high-performance disk features
+// https://kubevirt.io/user-guide/storage/disks_and_volumes/#high-performance-features
+export const DISK_CACHE_MODE = ['', 'none', 'writeback', 'writethrough'];
+
+export const DISK_IO_MODE = ['', 'native', 'threads'];
+
+export const IO_THREADS_POLICY = ['', 'shared', 'auto', 'supplementalPool'];
+
+// "Easy-to-consume" presets layered on top of the raw KubeVirt fields.
+export const DISK_PERFORMANCE_PROFILE = {
+  DEFAULT: 'default',
+  HIGH:    'highPerformance',
+  CUSTOM:  'custom',
+};
+
 export const VOLUME_HOTPLUG_ACTION = {
   INSERT_CDROM_IMAGE: 'INSERT_CDROM_IMAGE',
   EJECT_CDROM_IMAGE:  'EJECT_CDROM_IMAGE',

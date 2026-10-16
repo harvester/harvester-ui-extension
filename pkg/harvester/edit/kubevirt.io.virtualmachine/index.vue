@@ -772,6 +772,9 @@ export default {
       >
         <Volume
           v-model:value="diskRows"
+          v-model:block-multi-queue="blockMultiQueue"
+          v-model:io-threads-policy="ioThreadsPolicy"
+          v-model:io-thread-count="ioThreadCount"
           :mode="mode"
           :custom-volume-mode="customVolumeMode"
           :namespace="value.metadata.namespace"
@@ -788,6 +791,7 @@ export default {
       >
         <Network
           v-model:value="networkRows"
+          v-model:network-boot-first="networkBootFirst"
           :mode="mode"
           :is-single="isSingle"
         />

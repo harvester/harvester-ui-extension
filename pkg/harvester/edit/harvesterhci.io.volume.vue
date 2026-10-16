@@ -8,6 +8,7 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
 import Conditions from '@shell/components/form/Conditions';
+import DiskPerformanceOptions from './kubevirt.io.virtualmachine/VirtualMachineVolume/DiskPerformanceOptions';
 import { Banner } from '@components/Banner';
 import { Checkbox } from '@components/Form/Checkbox';
 import jsyaml from 'js-yaml';
@@ -47,7 +48,8 @@ export default {
     LabeledSelect,
     LabeledInput,
     NameNsDescription,
-    Conditions
+    Conditions,
+    DiskPerformanceOptions
   },
 
   mixins: [CreateEditView],
@@ -100,7 +102,15 @@ export default {
       createWithDataVolume: false,
       snapshots:            [],
       images:               [],
-      GIBIBYTE
+      GIBIBYTE,
+      // Default KubeVirt high-performance disk profile, stored as annotations and
+      // applied when this volume is later attached to a VM as a disk.
+      perf:                 {
+        cache:             get(this.value, `metadata.annotations."${ HCI_ANNOTATIONS.DISK_CACHE_MODE }"`) || '',
+        io:                get(this.value, `metadata.annotations."${ HCI_ANNOTATIONS.DISK_IO_MODE }"`) || '',
+        dedicatedIOThread: get(this.value, `metadata.annotations."${ HCI_ANNOTATIONS.DISK_DEDICATED_IOTHREAD }"`) === 'true',
+        volumeMode:        this.value?.spec?.volumeMode,
+      },
     };
   },
 
@@ -332,6 +342,7 @@ export default {
       }
     },
     'value.spec.volumeMode'(neu) {
+      this.perf.volumeMode = neu;
       if (neu === VOLUME_MODE.FILE_SYSTEM) {
         this.setVolumeForVmAnnotation();
       } else if (neu === VOLUME_MODE.BLOCK ) {
@@ -444,6 +455,23 @@ export default {
         storageClassName = images?.find((image) => this.imageId === image.id)?.storageClassName;
       } else {
         imageAnnotations = { ...this.value.metadata.annotations };
+      }
+
+      // Persist the default high-performance disk profile as annotations.
+      if (this.perf.cache) {
+        imageAnnotations[HCI_ANNOTATIONS.DISK_CACHE_MODE] = this.perf.cache;
+      } else {
+        delete imageAnnotations[HCI_ANNOTATIONS.DISK_CACHE_MODE];
+      }
+      if (this.perf.io) {
+        imageAnnotations[HCI_ANNOTATIONS.DISK_IO_MODE] = this.perf.io;
+      } else {
+        delete imageAnnotations[HCI_ANNOTATIONS.DISK_IO_MODE];
+      }
+      if (this.perf.dedicatedIOThread) {
+        imageAnnotations[HCI_ANNOTATIONS.DISK_DEDICATED_IOTHREAD] = 'true';
+      } else {
+        delete imageAnnotations[HCI_ANNOTATIONS.DISK_DEDICATED_IOTHREAD];
       }
 
       const spec = {
@@ -609,6 +637,16 @@ export default {
           :mode="mode"
           class="mb-20"
           @update:value="update"
+        />
+
+        <Banner
+          color="info"
+          :label="t('harvester.volume.performance.pvcTip')"
+        />
+        <DiskPerformanceOptions
+          :value="perf"
+          :mode="mode"
+          @update="update"
         />
       </Tab>
       <Tab

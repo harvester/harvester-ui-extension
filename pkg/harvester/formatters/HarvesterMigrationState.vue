@@ -20,7 +20,9 @@ export default {
 
   computed: {
     vmiResource() {
-      return this.$store.getters['harvester/byId'](HCI.VMI, this.vmResource?.id) || null;
+      const inStore = this.$store.getters['currentProduct'].inStore;
+
+      return this.$store.getters[`${ inStore }/byId`](HCI.VMI, this.vmResource?.id) || null;
     },
     migrationState() {
       return this.vmiResource?.migrationState?.status || '';

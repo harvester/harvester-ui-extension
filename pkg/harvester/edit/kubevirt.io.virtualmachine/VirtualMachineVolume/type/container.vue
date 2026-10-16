@@ -2,8 +2,10 @@
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import InputOrDisplay from '@shell/components/InputOrDisplay';
+import LabelValue from '@shell/components/LabelValue';
 import { VOLUME_TYPE, InterfaceOption } from '../../../../config/harvester-map';
 import { Banner } from '@components/Banner';
+import DiskPerformanceOptions from '../DiskPerformanceOptions';
 
 export default {
   name: 'HarvesterEditContainer',
@@ -11,7 +13,7 @@ export default {
   emits: ['update'],
 
   components: {
-    LabeledInput, LabeledSelect, InputOrDisplay, Banner
+    LabeledInput, LabeledSelect, InputOrDisplay, LabelValue, Banner, DiskPerformanceOptions
   },
 
   props: {
@@ -152,6 +154,12 @@ export default {
       color="error"
       class="mb-20"
       :label="value.volumeBackups.error.message"
+    />
+
+    <DiskPerformanceOptions
+      :value="value"
+      :mode="mode"
+      @update="update"
     />
   </div>
 </template>
