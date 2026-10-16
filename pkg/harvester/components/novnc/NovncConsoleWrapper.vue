@@ -192,6 +192,14 @@ export default {
       });
     },
 
+    keyboardHint() {
+      if (!this.canSendKeys) {
+        return '';
+      }
+
+      return this.consoleStatus.focused ? this.t('harvester.virtualMachine.detail.console.keyboard.focused') : this.t('harvester.virtualMachine.detail.console.keyboard.unfocused');
+    },
+
     canSendKeys() {
       return this.consoleStatus.status === 'connected' && !this.settings.viewOnly;
     },
@@ -331,6 +339,7 @@ export default {
 
       this.$refs.popover.hide();
       this.keysRecord = [];
+      this.$refs.novncConsole.focus();
     },
 
     sendCustomKeys(keys) {
@@ -347,6 +356,8 @@ export default {
       [...keyList].reverse().forEach((K) => {
         this.$refs.novncConsole.sendKey(KeyboardUtil.getKeysym(K), KeyboardUtil.getKeycode(K), false);
       });
+
+      this.$refs.novncConsole.focus();
     },
 
     showKeysModal() {
@@ -388,6 +399,7 @@ export default {
     ctrlAltDelete() {
       if (this.canSendKeys) {
         this.$refs.novncConsole?.ctrlAltDelete();
+        this.$refs.novncConsole?.focus();
       }
     },
 
@@ -595,6 +607,12 @@ export default {
 
         <div class="toolbar-group">
           <span
+            v-if="keyboardHint"
+            class="console-keyboard"
+            :class="{ 'console-keyboard--focused': consoleStatus.focused }"
+            data-testid="vnc-keyboard-hint"
+          >{{ keyboardHint }}</span>
+          <span
             class="console-status"
             role="status"
             aria-live="polite"
@@ -665,6 +683,16 @@ export default {
     display: flex;
     align-items: center;
     gap: 4px;
+  }
+
+  .console-keyboard {
+    color: var(--warning);
+    font-size: 12px;
+    margin-right: 12px;
+
+    &--focused {
+      color: var(--success);
+    }
   }
 
   .console-status {

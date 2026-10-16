@@ -1035,6 +1035,9 @@ harvester:
           enter: Full Screen
           exit: Exit Full Screen
         ctrlAltDel: Ctrl+Alt+Del
+        keyboard:
+          focused: Typing goes to the virtual machine
+          unfocused: Click the console to type
         takeOver:
           label: Take Over
           title: Take over this console?

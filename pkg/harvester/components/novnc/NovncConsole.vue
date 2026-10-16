@@ -74,6 +74,7 @@ export default {
       isClosed:          false,
       failure:           '',
       showTakeOverModal: false,
+      focused:           false,
     };
   },
 
@@ -85,6 +86,7 @@ export default {
         desktopName:       this.desktopName,
         retryTimes:        this.retryTimes,
         maximumRetryTimes: this.maximumRetryTimes,
+        focused:           this.focused,
       };
     },
 
@@ -124,12 +126,18 @@ export default {
   },
 
   mounted() {
+    // noVNC hides the canvas focus outline, so track focus to show where typing goes.
+    this.$refs.view.addEventListener('focusin', this.onFocusIn);
+    this.$refs.view.addEventListener('focusout', this.onFocusOut);
+
     this.$nextTick(() => {
       this.connect();
     });
   },
 
   beforeUnmount() {
+    this.$refs.view?.removeEventListener('focusin', this.onFocusIn);
+    this.$refs.view?.removeEventListener('focusout', this.onFocusOut);
     this.isClosed = true;
     this.clearReconnectTimer();
     this.teardown();
@@ -213,6 +221,19 @@ export default {
       this.statusDetail = '';
       this.status = CONSOLE_STATUS.CONNECTED;
       this.applySettings();
+      this.focus();
+    },
+
+    focus() {
+      this.rfb?.focus();
+    },
+
+    onFocusIn() {
+      this.focused = true;
+    },
+
+    onFocusOut() {
+      this.focused = false;
     },
 
     onDisconnect() {
@@ -377,6 +398,7 @@ export default {
     <div
       ref="view"
       class="novnc-screen"
+      :class="{ 'is-focused': focused }"
     />
 
     <div
@@ -508,5 +530,12 @@ export default {
     display: flex;
     justify-content: flex-end;
     width: 100%;
+  }
+</style>
+
+<style lang="scss">
+  // noVNC sets an inline `outline: none` on its canvas, so mark keyboard focus with a ring instead.
+  .novnc-screen.is-focused canvas {
+    box-shadow: 0 0 0 2px var(--primary);
   }
 </style>

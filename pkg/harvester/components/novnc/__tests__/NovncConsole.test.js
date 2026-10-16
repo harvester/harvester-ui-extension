@@ -13,6 +13,7 @@ jest.mock('../ZoomableRFB', () => {
       }),
       removeEventListener: jest.fn(),
       disconnect:          jest.fn(),
+      focus:               jest.fn(),
       emit:                (name, detail) => listeners[name]?.({ detail }),
     };
 
@@ -125,6 +126,32 @@ describe('component: NovncConsole', () => {
 
     expect(wrapper.vm.showTakeOverModal).toBe(false);
     expect(mockInstances).toHaveLength(connections);
+  });
+
+  it('should focus the console once it connects, so typing reaches the VM', async() => {
+    mountConsole();
+
+    await jest.runOnlyPendingTimersAsync();
+    lastRFB().emit('connect');
+
+    expect(lastRFB().focus).toHaveBeenCalledWith();
+  });
+
+  it('should report whether the console has keyboard focus', async() => {
+    const wrapper = mountConsole();
+    const view = wrapper.find('.novnc-screen');
+
+    await jest.runOnlyPendingTimersAsync();
+
+    view.element.dispatchEvent(new FocusEvent('focusin'));
+    await wrapper.vm.$nextTick();
+    expect(wrapper.vm.statusInfo.focused).toBe(true);
+    expect(view.classes()).toContain('is-focused');
+
+    view.element.dispatchEvent(new FocusEvent('focusout'));
+    await wrapper.vm.$nextTick();
+    expect(wrapper.vm.statusInfo.focused).toBe(false);
+    expect(view.classes()).not.toContain('is-focused');
   });
 
   describe('when the cluster does not support preserveSession', () => {
