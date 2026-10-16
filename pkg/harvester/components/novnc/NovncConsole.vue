@@ -86,7 +86,6 @@ export default {
         desktopName:       this.desktopName,
         retryTimes:        this.retryTimes,
         maximumRetryTimes: this.maximumRetryTimes,
-        focused:           this.focused,
       };
     },
 

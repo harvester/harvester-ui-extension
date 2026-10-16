@@ -42,7 +42,7 @@ const mountWrapper = () => {
     },
   });
 
-  wrapper.vm.onStatusChanged({ status: 'connected', focused: true });
+  wrapper.vm.onStatusChanged({ status: 'connected' });
 
   return wrapper;
 };

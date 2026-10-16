@@ -199,14 +199,6 @@ export default {
       });
     },
 
-    keyboardHint() {
-      if (!this.canSendKeys) {
-        return '';
-      }
-
-      return this.consoleStatus.focused ? this.t('harvester.virtualMachine.detail.console.keyboard.focused') : this.t('harvester.virtualMachine.detail.console.keyboard.unfocused');
-    },
-
     canSendKeys() {
       return this.consoleStatus.status === 'connected' && !this.settings.viewOnly;
     },
@@ -631,12 +623,6 @@ export default {
 
         <div class="toolbar-group">
           <span
-            v-if="keyboardHint"
-            class="console-keyboard"
-            :class="{ 'console-keyboard--focused': consoleStatus.focused }"
-            data-testid="vnc-keyboard-hint"
-          >{{ keyboardHint }}</span>
-          <span
             class="console-status"
             role="status"
             aria-live="polite"
@@ -747,16 +733,6 @@ export default {
     display: flex;
     justify-content: flex-end;
     width: 100%;
-  }
-
-  .console-keyboard {
-    color: var(--warning);
-    font-size: 12px;
-    margin-right: 12px;
-
-    &--focused {
-      color: var(--success);
-    }
   }
 
   .console-status {

@@ -1044,9 +1044,6 @@ harvester:
             title: Soft reboot this virtual machine?
             message: The guest operating system is asked to restart. Unsaved work inside the virtual machine is lost.
             button: Soft Reboot
-        keyboard:
-          focused: Typing goes to the virtual machine
-          unfocused: Click the console to type
         takeOver:
           label: Take Over
           title: Take over this console?

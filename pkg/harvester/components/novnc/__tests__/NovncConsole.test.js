@@ -137,7 +137,7 @@ describe('component: NovncConsole', () => {
     expect(lastRFB().focus).toHaveBeenCalledWith();
   });
 
-  it('should report whether the console has keyboard focus', async() => {
+  it('should mark the console while it has keyboard focus', async() => {
     const wrapper = mountConsole();
     const view = wrapper.find('.novnc-screen');
 
@@ -145,12 +145,10 @@ describe('component: NovncConsole', () => {
 
     view.element.dispatchEvent(new FocusEvent('focusin'));
     await wrapper.vm.$nextTick();
-    expect(wrapper.vm.statusInfo.focused).toBe(true);
     expect(view.classes()).toContain('is-focused');
 
     view.element.dispatchEvent(new FocusEvent('focusout'));
     await wrapper.vm.$nextTick();
-    expect(wrapper.vm.statusInfo.focused).toBe(false);
     expect(view.classes()).not.toContain('is-focused');
   });
 
