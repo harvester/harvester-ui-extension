@@ -1,5 +1,5 @@
 import { shallowMount } from '@vue/test-utils';
-import NovncConsole, { CONSOLE_STATUS } from '../NovncConsole.vue';
+import NovncConsole, { CONSOLE_STATUS, CONSOLE_FAILURE } from '../NovncConsole.vue';
 
 const mockInstances = [];
 
@@ -24,14 +24,11 @@ jest.mock('../ZoomableRFB', () => {
 
 const URL = 'wss://example.com/apis/subresources.kubevirt.io/v1/namespaces/default/virtualmachineinstances/vm/vnc';
 
-const mountConsole = () => {
+const mountConsole = (props = {}) => {
   mockInstances.length = 0;
   jest.useFakeTimers();
 
-  return shallowMount(NovncConsole, {
-    props:  { url: URL },
-    global: { stubs: { BrandImage: true } },
-  });
+  return shallowMount(NovncConsole, { props: { url: URL, ...props } });
 };
 
 const lastRFB = () => mockInstances[mockInstances.length - 1];
@@ -77,18 +74,87 @@ describe('component: NovncConsole', () => {
     }
 
     expect(wrapper.vm.status).toBe(CONSOLE_STATUS.FAILED);
+    expect(wrapper.vm.failure).toBe(CONSOLE_FAILURE.IN_USE);
     expect(wrapper.vm.isClosed).toBe(false);
   });
 
-  it('should take over without preserveSession after confirmation', async() => {
+  it('should show the console as in use when a running VM refuses the first connection', async() => {
     const wrapper = mountConsole();
 
     await jest.runOnlyPendingTimersAsync();
-    jest.spyOn(window, 'confirm').mockReturnValue(true);
+    lastRFB().emit('disconnect');
+
+    expect(wrapper.vm.status).toBe(CONSOLE_STATUS.FAILED);
+    expect(wrapper.vm.failure).toBe(CONSOLE_FAILURE.IN_USE);
+    expect(wrapper.vm.canTakeOver).toBe(true);
+  });
+
+  it('should not claim the console is in use when the VM is not running', async() => {
+    const wrapper = mountConsole({ vmRunning: false });
+
+    await jest.runOnlyPendingTimersAsync();
+    lastRFB().emit('disconnect');
+
+    expect(wrapper.vm.failure).toBe(CONSOLE_FAILURE.UNAVAILABLE);
+  });
+
+  it('should only take over after the modal is confirmed', async() => {
+    const wrapper = mountConsole();
+
+    await jest.runOnlyPendingTimersAsync();
+    const connections = mockInstances.length;
 
     wrapper.vm.takeOver();
+    expect(wrapper.vm.showTakeOverModal).toBe(true);
+    expect(mockInstances).toHaveLength(connections);
 
+    wrapper.vm.confirmTakeOver();
+
+    expect(wrapper.vm.showTakeOverModal).toBe(false);
     expect(new window.URL(lastRFB().url).searchParams.get('preserveSession')).toBe('false');
+  });
+
+  it('should not take over when the modal is cancelled', async() => {
+    const wrapper = mountConsole();
+
+    await jest.runOnlyPendingTimersAsync();
+    const connections = mockInstances.length;
+
+    wrapper.vm.takeOver();
+    wrapper.vm.cancelTakeOver();
+
+    expect(wrapper.vm.showTakeOverModal).toBe(false);
+    expect(mockInstances).toHaveLength(connections);
+  });
+
+  describe('when the cluster does not support preserveSession', () => {
+    it('should connect without the parameter and offer no take over', async() => {
+      const wrapper = mountConsole({ preserveSession: false });
+
+      await jest.runOnlyPendingTimersAsync();
+      expect(new window.URL(lastRFB().url).searchParams.has('preserveSession')).toBe(false);
+
+      lastRFB().emit('disconnect');
+
+      expect(wrapper.vm.failure).toBe(CONSOLE_FAILURE.UNAVAILABLE);
+      expect(wrapper.vm.canTakeOver).toBe(false);
+    });
+
+    it('should not reconnect on its own after the session drops', async() => {
+      const wrapper = mountConsole({ preserveSession: false });
+
+      await jest.runOnlyPendingTimersAsync();
+      lastRFB().emit('connect');
+      const connections = mockInstances.length;
+
+      lastRFB().emit('disconnect');
+      jest.runOnlyPendingTimers();
+
+      expect(wrapper.vm.status).toBe(CONSOLE_STATUS.DISCONNECTED);
+      expect(wrapper.vm.failure).toBe(CONSOLE_FAILURE.DROPPED);
+      expect(wrapper.vm.showError).toBe(true);
+      expect(mockInstances).toHaveLength(connections);
+    });
   });
 
   it('should close the socket when credentials are required', async() => {

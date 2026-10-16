@@ -1,5 +1,5 @@
 <script>
-import BrandImage from '@shell/components/BrandImage';
+import ModalWithCard from '@shell/components/ModalWithCard';
 import ZoomableRFB from './ZoomableRFB';
 
 export const CONSOLE_STATUS = {
@@ -8,6 +8,13 @@ export const CONSOLE_STATUS = {
   RECONNECTING: 'reconnecting',
   DISCONNECTED: 'disconnected',
   FAILED:       'failed',
+};
+
+export const CONSOLE_FAILURE = {
+  IN_USE:      'inUse',
+  UNAVAILABLE: 'unavailable',
+  DROPPED:     'dropped',
+  ERROR:       'error',
 };
 
 const MAXIMUM_RETRY_TIMES = 10;
@@ -27,7 +34,7 @@ const clampLevel = (value, fallback) => {
 export default {
   name: 'NovncConsole',
 
-  components: { BrandImage },
+  components: { ModalWithCard },
 
   props: {
     url: {
@@ -38,6 +45,18 @@ export default {
     settings: {
       type:    Object,
       default: () => ({})
+    },
+
+    // KubeVirt honours preserveSession from v1.6.3. Older versions ignore it, so every
+    // connection takes the console over and automatic retries would kick the other user.
+    preserveSession: {
+      type:    Boolean,
+      default: true
+    },
+
+    vmRunning: {
+      type:    Boolean,
+      default: true
     },
   },
 
@@ -53,6 +72,8 @@ export default {
       maximumRetryTimes: MAXIMUM_RETRY_TIMES,
       reconnectTimer:    null,
       isClosed:          false,
+      failure:           '',
+      showTakeOverModal: false,
     };
   },
 
@@ -68,7 +89,15 @@ export default {
     },
 
     showError() {
-      return this.status === CONSOLE_STATUS.FAILED;
+      return this.status === CONSOLE_STATUS.FAILED || (this.status === CONSOLE_STATUS.DISCONNECTED && this.failure === CONSOLE_FAILURE.DROPPED);
+    },
+
+    canTakeOver() {
+      return this.preserveSession && !this.isClosed;
+    },
+
+    failureTitle() {
+      return this.t(`harvester.virtualMachine.detail.console.failure.${ this.failure || CONSOLE_FAILURE.ERROR }`);
     },
 
     showReconnecting() {
@@ -114,6 +143,7 @@ export default {
 
       this.teardown();
 
+      this.failure = '';
       this.status = this.retryTimes > 0 ? CONSOLE_STATUS.RECONNECTING : CONSOLE_STATUS.CONNECTING;
 
       let rfb;
@@ -121,7 +151,9 @@ export default {
       try {
         const url = new URL(this.url);
 
-        url.searchParams.set('preserveSession', takeOver === true ? 'false' : 'true');
+        if (this.preserveSession) {
+          url.searchParams.set('preserveSession', takeOver === true ? 'false' : 'true');
+        }
         rfb = new ZoomableRFB(this.$refs.view, url.href, { shared: true });
       } catch (err) {
         this.statusDetail = err?.message || `${ err }`;
@@ -151,10 +183,15 @@ export default {
     },
 
     takeOver() {
-      if (!window.confirm(this.t('harvester.virtualMachine.detail.console.takeOver.confirm'))) {
-        return;
-      }
+      this.showTakeOverModal = true;
+    },
 
+    cancelTakeOver() {
+      this.showTakeOverModal = false;
+    },
+
+    confirmTakeOver() {
+      this.showTakeOverModal = false;
       this.clearReconnectTimer();
       this.isClosed = false;
       this.retryTimes = 0;
@@ -192,7 +229,14 @@ export default {
         return;
       }
 
-      if (wasConnected) {
+      if (wasConnected && !this.preserveSession) {
+        // Without preserveSession a retry would take the console back from whoever
+        // opened it, and the two sessions would keep kicking each other out.
+        this.clearReconnectTimer();
+        this.failure = CONSOLE_FAILURE.DROPPED;
+        this.statusDetail = this.t('harvester.virtualMachine.detail.console.failureDetail.dropped');
+        this.status = CONSOLE_STATUS.DISCONNECTED;
+      } else if (wasConnected) {
         this.scheduleReconnect();
       } else if (wasRetrying) {
         // Retries use preserveSession, so they fail while another session owns the
@@ -202,27 +246,32 @@ export default {
         this.scheduleReconnect();
       } else {
         this.clearReconnectTimer();
-        this.statusDetail = this.t('harvester.virtualMachine.detail.console.status.unavailable');
-        this.status = CONSOLE_STATUS.FAILED;
+        this.fail(this.preserveSession && this.vmRunning ? CONSOLE_FAILURE.IN_USE : CONSOLE_FAILURE.UNAVAILABLE);
       }
+    },
+
+    // The browser cannot see why a WebSocket handshake failed. With preserveSession and a
+    // running VM, a refused connection almost always means another session holds the console.
+    fail(failure, detail) {
+      this.failure = failure;
+      this.statusDetail = detail ?? this.t(`harvester.virtualMachine.detail.console.failureDetail.${ failure }`);
+      this.status = CONSOLE_STATUS.FAILED;
     },
 
     // Authentication problems will not fix themselves, so stop retrying.
     onSecurityFailure(e) {
-      this.statusDetail = e?.detail?.reason || '';
       this.isClosed = true;
       this.clearReconnectTimer();
-      this.status = CONSOLE_STATUS.FAILED;
+      this.fail(CONSOLE_FAILURE.ERROR, e?.detail?.reason || '');
     },
 
     // noVNC pauses the handshake until credentials are sent, so close the socket
     // to avoid holding the console while the failure is shown.
     onCredentialsRequired() {
-      this.statusDetail = this.t('harvester.virtualMachine.detail.console.status.credentialsRequired');
       this.isClosed = true;
       this.clearReconnectTimer();
       this.teardown();
-      this.status = CONSOLE_STATUS.FAILED;
+      this.fail(CONSOLE_FAILURE.ERROR, this.t('harvester.virtualMachine.detail.console.status.credentialsRequired'));
     },
 
     onDesktopName(e) {
@@ -241,8 +290,7 @@ export default {
       }
 
       if (this.retryTimes >= this.maximumRetryTimes) {
-        this.statusDetail = this.statusDetail || this.t('harvester.virtualMachine.detail.console.status.unavailable');
-        this.status = CONSOLE_STATUS.FAILED;
+        this.fail(this.vmRunning ? CONSOLE_FAILURE.IN_USE : CONSOLE_FAILURE.UNAVAILABLE);
 
         return;
       }
@@ -337,22 +385,14 @@ export default {
     >
       <div
         v-if="showError"
-        class="text-center"
+        class="novnc-overlay__card text-center"
       >
-        <BrandImage
-          file-name="error-desert-landscape.svg"
-          width="900"
-          height="300"
-        />
-        <h1>
-          {{ t('generic.notification.title.warning') }}
-        </h1>
-        <h2 class="text-secondary mt-20">
-          {{ t('vncConsole.error.message') }}
-        </h2>
+        <h3>
+          {{ failureTitle }}
+        </h3>
         <p
           v-if="statusDetail"
-          class="text-muted mt-10"
+          class="mt-10"
         >
           {{ statusDetail }}
         </p>
@@ -363,7 +403,7 @@ export default {
           {{ t('harvester.action.reconnect') }}
         </button>
         <button
-          v-if="!isClosed"
+          v-if="canTakeOver"
           class="btn role-secondary mt-20 ml-10"
           @click="takeOver"
         >
@@ -375,17 +415,49 @@ export default {
         v-else
         class="text-center"
       >
-        <h2 class="text-secondary">
+        <h2>
           {{ t('vncConsole.reconnecting.message') }}：{{ retryTimes }} of {{ maximumRetryTimes }}
         </h2>
         <p
           v-if="statusDetail"
-          class="text-muted mt-10"
+          class="mt-10"
         >
           {{ statusDetail }}
         </p>
       </div>
     </div>
+
+    <ModalWithCard
+      v-if="showTakeOverModal"
+      name="takeOverConsole"
+      :width="480"
+      @finish="cancelTakeOver"
+    >
+      <template #title>
+        {{ t('harvester.virtualMachine.detail.console.takeOver.title') }}
+      </template>
+
+      <template #content>
+        <p>{{ t('harvester.virtualMachine.detail.console.takeOver.confirm') }}</p>
+      </template>
+
+      <template #footer>
+        <div class="take-over-actions">
+          <button
+            class="btn role-secondary mr-10"
+            @click="cancelTakeOver"
+          >
+            {{ t('generic.cancel') }}
+          </button>
+          <button
+            class="btn role-primary"
+            @click="confirmTakeOver"
+          >
+            {{ t('harvester.virtualMachine.detail.console.takeOver.label') }}
+          </button>
+        </div>
+      </template>
+    </ModalWithCard>
   </div>
 </template>
 
@@ -414,13 +486,27 @@ export default {
     justify-content: center;
     overflow: auto;
     background: rgba(0, 0, 0, 0.75);
+    // The overlay is always dark, so its text cannot follow the theme's text colours.
+    color: #fff;
 
-    h1 {
-      font-size: 5rem;
+    h2,
+    h3 {
+      color: #fff;
     }
 
-    img {
-      max-width: 100%;
+    p {
+      color: rgba(255, 255, 255, 0.8);
     }
+
+    &__card {
+      max-width: 480px;
+      padding: 0 20px;
+    }
+  }
+
+  .take-over-actions {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
   }
 </style>

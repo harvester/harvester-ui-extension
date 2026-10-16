@@ -200,6 +200,14 @@ export default {
       return this.isEmpty(this.value);
     },
 
+    preserveSession() {
+      return !!this.$store.getters['harvester-common/getFeatureEnabled']('vncPreserveSession');
+    },
+
+    vmRunning() {
+      return this.value?.status?.phase === 'Running';
+    },
+
     url() {
       const ip = `${ window.location.hostname }:${ window.location.port }`;
 
@@ -266,6 +274,10 @@ export default {
 
       if (status === 'reconnecting') {
         return this.t('harvester.virtualMachine.detail.console.status.reconnecting', { retryTimes, maximumRetryTimes });
+      }
+
+      if (status === 'connected' && this.settings.viewOnly) {
+        return this.t('harvester.virtualMachine.detail.console.status.connectedViewOnly');
       }
 
       return this.t(`harvester.virtualMachine.detail.console.status.${ status }`);
@@ -450,7 +462,7 @@ export default {
             :disabled="!canSendKeys"
             @click="ctrlAltDelete"
           >
-            Ctrl+Alt+Del
+            {{ t("harvester.virtualMachine.detail.console.ctrlAltDel") }}
           </button>
 
           <v-dropdown
@@ -617,6 +629,8 @@ export default {
         ref="novncConsole"
         :url="url"
         :settings="rfbSettings"
+        :preserve-session="preserveSession"
+        :vm-running="vmRunning"
         @status-changed="onStatusChanged"
         @capabilities="onCapabilities"
       />
