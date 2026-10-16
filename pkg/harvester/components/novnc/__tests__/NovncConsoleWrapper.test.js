@@ -59,7 +59,6 @@ describe('component: NovncConsoleWrapper', () => {
 
     expect(consoleRef.ctrlAltDelete).toHaveBeenCalledTimes(1);
     expect(wrapper.vm.confirmAction).toBeNull();
-    expect(consoleRef.focus).toHaveBeenCalledWith();
   });
 
   it('should not send Ctrl+Alt+Del when the confirmation is cancelled', () => {

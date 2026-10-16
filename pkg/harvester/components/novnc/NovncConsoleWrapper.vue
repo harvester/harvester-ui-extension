@@ -414,9 +414,9 @@ export default {
       this.confirmAction = CONFIRM_ACTION.SOFT_REBOOT;
     },
 
+    // The modal returns focus to the console canvas (return-focus-selector) once it closes.
     cancelConfirm() {
       this.confirmAction = null;
-      this.$refs.novncConsole?.focus();
     },
 
     runConfirmedAction() {
@@ -429,8 +429,6 @@ export default {
       } else if (action === CONFIRM_ACTION.SOFT_REBOOT) {
         this.vmResource.doSoftReboot();
       }
-
-      this.$refs.novncConsole?.focus();
     },
 
     async toggleFullscreen() {
@@ -686,6 +684,7 @@ export default {
         v-if="confirmAction"
         name="confirmConsoleAction"
         :width="480"
+        return-focus-selector=".novnc-screen canvas"
         @finish="cancelConfirm"
       >
         <template #title>
