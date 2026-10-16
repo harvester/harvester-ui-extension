@@ -1,5 +1,6 @@
 <script>
 import { STEVE } from '@shell/config/types';
+import ModalWithCard from '@shell/components/ModalWithCard';
 import { escapeHtml } from '@shell/utils/string';
 import { allHash } from '@shell/utils/promise';
 import KeyTable from '@novnc/novnc/core/input/keysym';
@@ -12,6 +13,11 @@ import { normalizeZoom } from './ZoomableRFB';
 
 const CONSOLE_SETTINGS_KEY = 'harvester-vnc-console-settings';
 const PREFERED_SHORTCUT_KEYS = 'prefered-shortcut-keys';
+
+export const CONFIRM_ACTION = {
+  CTRL_ALT_DEL: 'ctrlAltDel',
+  SOFT_REBOOT:  'softReboot',
+};
 
 const VIEW_MODE = {
   SCALE:  'scale',
@@ -121,7 +127,7 @@ const F_KEYS = {
 export default {
   name:       'NovncConsoleWrapper',
   components: {
-    NovncConsole, NovncConsoleItem, NovncConsoleCustomKeys
+    ModalWithCard, NovncConsole, NovncConsoleItem, NovncConsoleCustomKeys
   },
 
   async fetch() {
@@ -150,6 +156,7 @@ export default {
       settings:          { ...DEFAULT_SETTINGS },
       capabilities:      {},
       isFullscreen:      false,
+      confirmAction:     null,
       consoleStatus:     {
         status:            'connecting',
         retryTimes:        0,
@@ -396,11 +403,34 @@ export default {
       this.capabilities = capabilities;
     },
 
+    // Both can restart the VM with one click (Ctrl+Alt+Del reboots most Linux guests), so ask first.
     ctrlAltDelete() {
       if (this.canSendKeys) {
-        this.$refs.novncConsole?.ctrlAltDelete();
-        this.$refs.novncConsole?.focus();
+        this.confirmAction = CONFIRM_ACTION.CTRL_ALT_DEL;
       }
+    },
+
+    softReboot() {
+      this.confirmAction = CONFIRM_ACTION.SOFT_REBOOT;
+    },
+
+    cancelConfirm() {
+      this.confirmAction = null;
+      this.$refs.novncConsole?.focus();
+    },
+
+    runConfirmedAction() {
+      const action = this.confirmAction;
+
+      this.confirmAction = null;
+
+      if (action === CONFIRM_ACTION.CTRL_ALT_DEL && this.canSendKeys) {
+        this.$refs.novncConsole?.ctrlAltDelete();
+      } else if (action === CONFIRM_ACTION.SOFT_REBOOT) {
+        this.vmResource.doSoftReboot();
+      }
+
+      this.$refs.novncConsole?.focus();
     },
 
     async toggleFullscreen() {
@@ -426,10 +456,6 @@ export default {
       if (!this.isFullscreen) {
         navigator.keyboard?.unlock?.();
       }
-    },
-
-    softReboot() {
-      this.vmResource.doSoftReboot();
     },
 
   }
@@ -656,6 +682,39 @@ export default {
         {{ t("harvester.virtualMachine.detail.console.down") }}
       </p>
 
+      <ModalWithCard
+        v-if="confirmAction"
+        name="confirmConsoleAction"
+        :width="480"
+        @finish="cancelConfirm"
+      >
+        <template #title>
+          {{ t(`harvester.virtualMachine.detail.console.confirm.${ confirmAction }.title`) }}
+        </template>
+
+        <template #content>
+          <p>{{ t(`harvester.virtualMachine.detail.console.confirm.${ confirmAction }.message`) }}</p>
+        </template>
+
+        <template #footer>
+          <div class="confirm-actions">
+            <button
+              class="btn role-secondary mr-10"
+              @click="cancelConfirm"
+            >
+              {{ t('generic.cancel') }}
+            </button>
+            <button
+              class="btn role-primary"
+              data-testid="vnc-confirm-action"
+              @click="runConfirmedAction"
+            >
+              {{ t(`harvester.virtualMachine.detail.console.confirm.${ confirmAction }.button`) }}
+            </button>
+          </div>
+        </template>
+      </ModalWithCard>
+
       <NovncConsoleCustomKeys
         v-if="renderKeysModal"
         @close="hideKeysModal"
@@ -683,6 +742,12 @@ export default {
     display: flex;
     align-items: center;
     gap: 4px;
+  }
+
+  .confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
   }
 
   .console-keyboard {

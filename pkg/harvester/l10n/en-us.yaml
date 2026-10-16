@@ -1035,6 +1035,15 @@ harvester:
           enter: Full Screen
           exit: Exit Full Screen
         ctrlAltDel: Ctrl+Alt+Del
+        confirm:
+          ctrlAltDel:
+            title: Send Ctrl+Alt+Del?
+            message: Windows opens its sign-in or security screen. Most Linux systems restart the virtual machine.
+            button: Send
+          softReboot:
+            title: Soft reboot this virtual machine?
+            message: The guest operating system is asked to restart. Unsaved work inside the virtual machine is lost.
+            button: Soft Reboot
         keyboard:
           focused: Typing goes to the virtual machine
           unfocused: Click the console to type
