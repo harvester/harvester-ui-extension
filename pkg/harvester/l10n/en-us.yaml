@@ -757,6 +757,10 @@ harvester:
       tooltip: Enable CPU Pinning brings better performance and reduce latency for the virtual machine
       restartVMMessage: Changing the CPU Pinning setting requires a virtual machine reboot for the change to take effect
       migrationMessage: This virtual machine can only be migrated to a target node that has CPU Manager enabled, as CPU Pinning is configured.
+      cpuManager:
+        prefix: You must enable CPU Manager for at least one node in
+        middle: 'host page'
+        suffix: to enable CPU Pinning for VM
     restartNow: |-
       {restart, select,
         true {Restart}
@@ -766,13 +770,9 @@ harvester:
     genericLoginError: Authentication failed. Please re-log in and try again.
     installAgent: Install guest agent
     enableUsb: Enable USB Tablet
-    advancedOptions:
+    systemOptions:
       tpm: Enable TPM
       tpmPersistentState: TPM Persistent State
-      cpuManager:
-        prefix: You must enable CPU Manager for at least one node in
-        middle: 'host page'
-        suffix: to enable CPU Pinning for VM
       efiEnabled: Booting in EFI mode
       efiPersistentState: EFI Persistent State
       secureBoot: Secure Boot

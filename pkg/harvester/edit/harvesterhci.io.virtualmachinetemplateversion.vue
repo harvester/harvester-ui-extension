@@ -551,7 +551,7 @@ export default {
           v-model:value="tpmEnabled"
           class="check"
           type="checkbox"
-          label-key="harvester.virtualMachine.advancedOptions.tpm"
+          label-key="harvester.virtualMachine.systemOptions.tpm"
           :mode="mode"
         />
 
@@ -560,7 +560,7 @@ export default {
           v-model:value="tpmPersistentStateEnabled"
           class="check"
           type="checkbox"
-          :label="t('harvester.virtualMachine.advancedOptions.tpmPersistentState')"
+          :label="t('harvester.virtualMachine.systemOptions.tpmPersistentState')"
           :mode="mode"
         />
 
@@ -568,7 +568,7 @@ export default {
           v-model:value="efiEnabled"
           class="check"
           type="checkbox"
-          :label="t('harvester.virtualMachine.advancedOptions.efiEnabled')"
+          :label="t('harvester.virtualMachine.systemOptions.efiEnabled')"
           :mode="mode"
         />
 
@@ -577,7 +577,7 @@ export default {
           v-model:value="efiPersistentStateEnabled"
           class="check"
           type="checkbox"
-          :label="t('harvester.virtualMachine.advancedOptions.efiPersistentState')"
+          :label="t('harvester.virtualMachine.systemOptions.efiPersistentState')"
           :mode="mode"
         />
 
@@ -586,7 +586,7 @@ export default {
           v-model:value="secureBoot"
           class="check"
           type="checkbox"
-          :label="t('harvester.virtualMachine.advancedOptions.secureBoot')"
+          :label="t('harvester.virtualMachine.systemOptions.secureBoot')"
           :mode="mode"
         />
       </Tab>
