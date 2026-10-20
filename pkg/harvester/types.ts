@@ -39,6 +39,7 @@ export const HCI = {
   DASHBOARD:            'harvesterhci.io.dashboard',
   COMPONENT_HEALTH:     'health.harvesterhci.io.componenthealth',
   HEALTH_SUMMARY:       'health.harvesterhci.io.healthsummary',
+  HEALTH_IGNORE_RULE:   'health.harvesterhci.io.healthignorerule',
   BLOCK_DEVICE:         'harvesterhci.io.blockdevice',
   CLOUD_TEMPLATE:       'harvesterhci.io.cloudtemplate',
   HOST:                 'harvesterhci.io.host',
