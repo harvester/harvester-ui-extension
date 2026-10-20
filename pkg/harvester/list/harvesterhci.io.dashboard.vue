@@ -9,6 +9,10 @@ import MessageLink from '@shell/components/MessageLink';
 import SortableTable from '@shell/components/SortableTable';
 import { BadgeState } from '@components/BadgeState';
 import { Checkbox } from '@components/Form/Checkbox';
+import { LabeledInput } from '@components/Form/LabeledInput';
+import { RadioGroup } from '@components/Form/Radio';
+import LabeledSelect from '@shell/components/form/LabeledSelect';
+import AsyncButton from '@shell/components/AsyncButton';
 import { allHash, setPromiseResult } from '@shell/utils/promise';
 import { parseSi, formatSi, exponentNeeded, UNITS } from '@shell/utils/units';
 import { REASON } from '@shell/config/table-headers';
@@ -24,6 +28,7 @@ import DashboardMetrics from '@shell/components/DashboardMetrics';
 import metricPoller from '@shell/mixins/metric-poller';
 import { allDashboardsExist } from '@shell/utils/grafana';
 import { isEmpty } from '@shell/utils/object';
+import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI } from '../types';
 import HarvesterUpgrade from '../components/HarvesterUpgrade';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
@@ -116,6 +121,13 @@ const MONITORING_ID = 'cattle-monitoring-system/rancher-monitoring';
 
 const COMPONENT_LABEL = 'health.harvesterhci.io/component';
 const NODE_LABEL = 'health.harvesterhci.io/node';
+const IGNORE_RULE_SOURCE_LABEL = 'health.harvesterhci.io/source';
+const IGNORED_BY_MIN_SEVERITY = 'min-severity';
+const IGNORE_DURATION_DAYS = {
+  days7:   7,
+  days30:  30,
+  forever: 0,
+};
 const AFFECTED_RESOURCES_TRUNCATE_COUNT = 5;
 const MESSAGE_TRUNCATE_LENGTH = 100;
 
@@ -144,6 +156,10 @@ export default {
     MessageLink,
     BadgeState,
     Checkbox,
+    LabeledInput,
+    RadioGroup,
+    LabeledSelect,
+    AsyncButton,
   },
 
   async fetch() {
@@ -162,6 +178,7 @@ export default {
       longhornSettings: this.fetchClusterResources(LONGHORN.SETTINGS),
       componentHealths: this.fetchClusterResources(HCI.COMPONENT_HEALTH),
       healthSummaries:  this.fetchClusterResources(HCI.HEALTH_SUMMARY),
+      ignoreRules:      this.fetchClusterResources(HCI.HEALTH_IGNORE_RULE),
       _pods:            this.$store.dispatch('harvester/findAll', { type: POD }),
     };
 
@@ -321,6 +338,12 @@ export default {
         formatterOpts: { addSuffix: true },
         width:         140,
       },
+      {
+        align:    'right',
+        name:     'actions',
+        labelKey: 'harvester.dashboard.sections.componentHealth.actions',
+        width:    120,
+      },
     ];
 
     return {
@@ -336,6 +359,10 @@ export default {
       pvcs:                   [],
       componentHealths:       [],
       healthSummaries:        [],
+      ignoreRules:            [],
+      showIgnored:            false,
+      ignoreForms:            {},
+      ignoreErrors:           [],
       monitoring:             {},
       VM_DASHBOARD_METRICS_URL,
       CLUSTER_METRICS_SUMMARY_URL,
@@ -582,14 +609,17 @@ export default {
 
         Object.entries(checks).forEach(([checkName, check]) => {
           rows.push({
-            id:                 `${ componentHealth.id }/${ checkName }`,
+            id:                  `${ componentHealth.id }/${ checkName }`,
             component,
+            componentHealthName: componentHealth.metadata?.name,
             node,
             checkName,
-            severity:           check.severity,
-            message:            check.message,
-            affectedCount:      check.affectedCount,
-            affectedResources:  check.affectedResources,
+            ignored:             !!check.ignored,
+            ignoredBy:           check.ignoredBy,
+            severity:            check.severity,
+            message:             check.message,
+            affectedCount:       check.affectedCount,
+            affectedResources:   check.affectedResources,
             lastUpdatedAt,
           });
         });
@@ -804,8 +834,25 @@ export default {
       return apiVersion ? `${ apiVersion }, ${ kind }` : kind;
     },
 
-    affectedResourceNames(row) {
+    allAffectedResourceNames(row) {
       return Object.keys(row?.affectedResources?.names || {});
+    },
+
+    // the resources that no HealthIgnoreRule ignores
+    activeAffectedResourceNames(row) {
+      const names = row?.affectedResources?.names || {};
+
+      return Object.keys(names).filter((name) => !names[name]?.ignored);
+    },
+
+    affectedResourceNames(row) {
+      return this.showIgnored ? this.allAffectedResourceNames(row) : this.activeAffectedResourceNames(row);
+    },
+
+    resourceIgnoredBy(row, name) {
+      const detail = row?.affectedResources?.names?.[name];
+
+      return detail?.ignored ? detail.ignoredBy : '';
     },
 
     truncatedAffectedResourceNames(row) {
@@ -857,12 +904,145 @@ export default {
     componentHealthSeverityFiltersFor(rows) {
       return COMPONENT_HEALTH_SEVERITIES.map((severity) => ({
         severity,
-        count: rows.filter((row) => row.severity === severity).length,
+        count: rows.filter((row) => row.severity === severity && this.isRowVisible(row)).length,
       }));
     },
 
+    isRowVisible(row) {
+      return this.showIgnored || !row.ignored;
+    },
+
     componentHealthRowsFor(component, rows) {
-      return rows.filter((row) => this.componentHealthFiltersFor(component).includes(row.severity));
+      return rows.filter((row) => this.isRowVisible(row) && this.componentHealthFiltersFor(component).includes(row.severity));
+    },
+
+    hasIgnoredRows(rows) {
+      return (rows || []).some((row) => row.ignored || this.allAffectedResourceNames(row).length !== this.activeAffectedResourceNames(row).length);
+    },
+
+    ignoreFormFor(row) {
+      return this.ignoreForms[row.id] || {
+        scope:    this.activeAffectedResourceNames(row).length ? 'resources' : 'check',
+        // null selects every resource, the ones that are not selected are kept visible
+        selected: null,
+        duration: 'days7',
+        reason:   '',
+      };
+    },
+
+    selectedIgnoreResources(row) {
+      const { selected } = this.ignoreFormFor(row);
+      const active = this.activeAffectedResourceNames(row);
+
+      return selected === null ? active : active.filter((name) => selected.includes(name));
+    },
+
+    // a rule that lists no resource would ignore the entire check
+    canIgnore(row) {
+      return this.ignoreFormFor(row).scope === 'check' || this.selectedIgnoreResources(row).length > 0;
+    },
+
+    updateIgnoreForm(row, key, value) {
+      this.ignoreForms = {
+        ...this.ignoreForms,
+        [row.id]: { ...this.ignoreFormFor(row), [key]: value },
+      };
+    },
+
+    ignoreScopeOptions() {
+      return [
+        { label: this.t('harvester.dashboard.sections.componentHealth.ignore.scopeResources'), value: 'resources' },
+        { label: this.t('harvester.dashboard.sections.componentHealth.ignore.scopeCheck'), value: 'check' },
+      ];
+    },
+
+    ignoreDurationOptions() {
+      return Object.keys(IGNORE_DURATION_DAYS).map((key) => ({
+        label: this.t(`harvester.dashboard.sections.componentHealth.ignore.${ key }`),
+        value: key,
+      }));
+    },
+
+    ignoreRuleByName(name) {
+      return (this.ignoreRules || []).find((rule) => rule.metadata?.name === name);
+    },
+
+    // the rules shipped by the addon values are managed by Helm, they are not removed from the dashboard
+    canRestore(ignoredBy) {
+      const rule = this.ignoreRuleByName(ignoredBy);
+
+      return !!rule && rule.metadata?.labels?.[IGNORE_RULE_SOURCE_LABEL] !== 'default';
+    },
+
+    isMinSeverityIgnore(ignoredBy) {
+      return ignoredBy === IGNORED_BY_MIN_SEVERITY;
+    },
+
+    async ignoreCheck(row, hide, buttonCb) {
+      const form = this.ignoreFormFor(row);
+      const spec = {
+        componentHealth: row.componentHealthName,
+        checkKey:        row.checkName,
+      };
+
+      // the rule only lists the selected resources, so it does not swallow the ones coming later
+      if (form.scope === 'resources') {
+        spec.resources = this.selectedIgnoreResources(row);
+      }
+
+      const days = IGNORE_DURATION_DAYS[form.duration];
+
+      if (days) {
+        spec.expiresAt = dayjs().add(days, 'day').toISOString();
+      }
+
+      if (form.reason) {
+        spec.reason = form.reason;
+      }
+
+      try {
+        const rule = await this.$store.dispatch('harvester/create', {
+          type:     HCI.HEALTH_IGNORE_RULE,
+          metadata: {
+            generateName: 'ignore-',
+            labels:       { [IGNORE_RULE_SOURCE_LABEL]: 'user' },
+          },
+          spec,
+        });
+
+        await rule.save();
+
+        this.$store.dispatch('growl/success', {
+          title:   this.t('generic.notification.title.succeed'),
+          message: this.t('harvester.dashboard.sections.componentHealth.ignore.success', { name: row.checkName }),
+        }, { root: true });
+
+        this.ignoreErrors = [];
+        buttonCb(true);
+        hide();
+      } catch (err) {
+        this.ignoreErrors = exceptionToErrorsArray(err?.data || err);
+        buttonCb(false);
+      }
+    },
+
+    async restoreIgnored(ignoredBy) {
+      const rule = this.ignoreRuleByName(ignoredBy);
+
+      if (!rule) {
+        return;
+      }
+
+      try {
+        await rule.remove();
+
+        this.$store.dispatch('growl/success', {
+          title:   this.t('generic.notification.title.succeed'),
+          message: this.t('harvester.dashboard.sections.componentHealth.ignore.restored'),
+        }, { root: true });
+      } catch (err) {
+        this.$store.dispatch('growl/fromError', { title: this.t('generic.notification.title.error'), err }, { root: true });
+      }
     },
 
     toggleComponentHealthSeverity(component, severity, enabled) {
@@ -1177,6 +1357,13 @@ export default {
                 </div>
               </template>
             </v-dropdown>
+            <Checkbox
+              v-if="hasIgnoredRows(group.rows)"
+              v-model:value="showIgnored"
+              class="ml-20"
+              type="checkbox"
+              :label="t('harvester.dashboard.sections.componentHealth.showIgnored')"
+            />
           </div>
           <div
             v-if="!componentHealthRowsFor(group.component, group.rows).length"
@@ -1202,6 +1389,92 @@ export default {
                 :label="row.severity"
               />
             </template>
+            <template #cell:actions="{row}">
+              <div v-if="row.ignored">
+                <a
+                  v-if="canRestore(row.ignoredBy)"
+                  class="text-info"
+                  @click="restoreIgnored(row.ignoredBy)"
+                >
+                  {{ t('harvester.dashboard.sections.componentHealth.ignore.restore') }}
+                </a>
+                <span
+                  v-else-if="isMinSeverityIgnore(row.ignoredBy)"
+                  v-clean-tooltip="t('harvester.dashboard.sections.componentHealth.ignore.minSeverity')"
+                  class="text-muted"
+                >
+                  {{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }}
+                </span>
+                <span
+                  v-else
+                  v-clean-tooltip="t('harvester.dashboard.sections.componentHealth.ignore.managedByAddon')"
+                  class="text-muted"
+                >
+                  {{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }}
+                </span>
+              </div>
+              <v-dropdown
+                v-else
+                :triggers="['click']"
+                placement="bottom-end"
+                :distance="10"
+              >
+                <button class="btn btn-sm role-secondary">
+                  {{ t('harvester.dashboard.sections.componentHealth.ignore.action') }}
+                </button>
+
+                <template #popper="{ hide }">
+                  <div class="ignore-popup">
+                    <RadioGroup
+                      v-if="activeAffectedResourceNames(row).length"
+                      :name="`ignore-scope-${ row.id }`"
+                      :value="ignoreFormFor(row).scope"
+                      :label="t('harvester.dashboard.sections.componentHealth.ignore.scope')"
+                      :options="ignoreScopeOptions()"
+                      @update:value="updateIgnoreForm(row, 'scope', $event)"
+                    />
+                    <LabeledSelect
+                      v-if="ignoreFormFor(row).scope === 'resources' && activeAffectedResourceNames(row).length"
+                      :value="selectedIgnoreResources(row)"
+                      :label="t('harvester.dashboard.sections.componentHealth.ignore.resources')"
+                      :options="activeAffectedResourceNames(row)"
+                      :multiple="true"
+                      :close-on-select="false"
+                      :clearable="false"
+                      :append-to-body="false"
+                      @update:value="updateIgnoreForm(row, 'selected', $event)"
+                    />
+                    <RadioGroup
+                      :name="`ignore-duration-${ row.id }`"
+                      :value="ignoreFormFor(row).duration"
+                      :label="t('harvester.dashboard.sections.componentHealth.ignore.duration')"
+                      :options="ignoreDurationOptions()"
+                      @update:value="updateIgnoreForm(row, 'duration', $event)"
+                    />
+                    <LabeledInput
+                      :value="ignoreFormFor(row).reason"
+                      :label="t('harvester.dashboard.sections.componentHealth.ignore.reason')"
+                      :placeholder="t('harvester.dashboard.sections.componentHealth.ignore.reasonPlaceholder')"
+                      @update:value="updateIgnoreForm(row, 'reason', $event)"
+                    />
+                    <Banner
+                      v-for="(err, i) in ignoreErrors"
+                      :key="i"
+                      color="error"
+                      :label="err"
+                    />
+                    <div class="text-right">
+                      <AsyncButton
+                        mode="apply"
+                        :action-label="t('harvester.dashboard.sections.componentHealth.ignore.action')"
+                        :disabled="!canIgnore(row)"
+                        @click="ignoreCheck(row, hide, $event)"
+                      />
+                    </div>
+                  </div>
+                </template>
+              </v-dropdown>
+            </template>
             <template #cell:node="{value}">
               {{ value || '-' }}
             </template>
@@ -1225,8 +1498,16 @@ export default {
                 <div
                   v-for="name in truncatedAffectedResourceNames(row)"
                   :key="name"
+                  :class="{ 'text-muted': resourceIgnoredBy(row, name) }"
                 >
                   {{ name }}
+                  <span v-if="resourceIgnoredBy(row, name)">
+                    ({{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }}<template v-if="canRestore(resourceIgnoredBy(row, name))">,
+                      <a
+                        class="text-info"
+                        @click="restoreIgnored(resourceIgnoredBy(row, name))"
+                      >{{ t('harvester.dashboard.sections.componentHealth.ignore.restore') }}</a></template>)
+                  </span>
                 </div>
                 <div
                   v-if="remainingAffectedResourcesCount(row)"
@@ -1265,6 +1546,18 @@ export default {
 
   .events {
     margin-top: 30px;
+  }
+
+  .component-health-filter {
+    display: flex;
+    align-items: center;
+  }
+
+  .ignore-popup {
+    display: grid;
+    gap: 10px;
+    padding: 10px;
+    min-width: 320px;
   }
 
   .component-health-filter-dropdown .filter-popup {
