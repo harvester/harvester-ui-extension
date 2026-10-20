@@ -3,6 +3,7 @@ import KeyValue from '@shell/components/form/KeyValue';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import RadioGroup from '@components/Form/Radio/RadioGroup';
+import { Banner } from '@components/Banner';
 import { SECRET, LONGHORN } from '@shell/config/types';
 import { _CREATE, _VIEW } from '@shell/config/query-params';
 import { CSI_SECRETS } from '@pkg/harvester/config/harvester-map';
@@ -19,7 +20,11 @@ const DEFAULT_PARAMETERS = [
   'migratable',
   'encrypted',
   'dataEngine',
+  'dataEngineTransport',
 ];
+
+const DATA_ENGINE_TRANSPORT_TCP = 'tcp';
+const DATA_ENGINE_TRANSPORT_RDMA = 'rdma';
 
 const {
   CSI_PROVISIONER_SECRET_NAME,
@@ -34,6 +39,7 @@ export default {
   name: 'DriverLonghornIOV2',
 
   components: {
+    Banner,
     KeyValue,
     LabeledSelect,
     LabeledInput,
@@ -125,6 +131,39 @@ export default {
 
     secretOptions() {
       return this.secrets.map((secret) => secret.id);
+    },
+
+    dataEngineTransportOptions() {
+      return [{
+        label: this.t('harvester.storage.parameters.dataEngineTransport.tcp'),
+        value: DATA_ENGINE_TRANSPORT_TCP
+      }, {
+        label: this.t('harvester.storage.parameters.dataEngineTransport.rdma'),
+        value: DATA_ENGINE_TRANSPORT_RDMA
+      }];
+    },
+
+    // Longhorn sets the RDMACapable node condition when the node has an RDMA device
+    rdmaCapableNodes() {
+      return (this.longhornNodes || []).filter((node) => (node.status?.conditions || []).some((c) => c.type === 'RDMACapable' && c.status === 'True'));
+    },
+
+    dataEngineTransport: {
+      get() {
+        return this.value?.parameters?.dataEngineTransport || DATA_ENGINE_TRANSPORT_TCP;
+      },
+
+      set(neu) {
+        const parameters = { ...this.value.parameters };
+
+        // TCP is Longhorn's default, so leave the parameter out instead of writing it
+        if (neu === DATA_ENGINE_TRANSPORT_RDMA) {
+          parameters.dataEngineTransport = DATA_ENGINE_TRANSPORT_RDMA;
+        } else {
+          delete parameters.dataEngineTransport;
+        }
+        this.value['parameters'] = parameters;
+      }
     },
 
     volumeEncryptionOptions() {
@@ -320,6 +359,27 @@ export default {
         :options="migratableOptions"
         :disabled="!value.thirdPartyStorageFeatureEnabled"
       />
+    </div>
+    <div
+      v-if="value.longhornV2RdmaTransportFeatureEnabled"
+      class="row mt-20"
+    >
+      <div class="col span-12">
+        <RadioGroup
+          v-model:value="dataEngineTransport"
+          name="dataEngineTransport"
+          :label="t('harvester.storage.parameters.dataEngineTransport.label')"
+          :tooltip="t('harvester.storage.parameters.dataEngineTransport.tooltip')"
+          :mode="mode"
+          :options="dataEngineTransportOptions"
+          :disabled="!rdmaCapableNodes.length && dataEngineTransport !== 'rdma'"
+        />
+        <Banner
+          v-if="!isView && !rdmaCapableNodes.length"
+          color="info"
+          :label="t('harvester.storage.parameters.dataEngineTransport.noRdmaNodes')"
+        />
+      </div>
     </div>
     <div class="row mt-20">
       <RadioGroup
