@@ -181,6 +181,12 @@ export default {
         const parameters = clone(this.value?.parameters) || {};
 
         DEFAULT_PARAMETERS.forEach((key) => {
+          // keep dataEngineTransport visible in the free-form list when the managed
+          // control is hidden, so existing values aren't hidden from the form
+          if (key === 'dataEngineTransport' && !this.value.longhornV2RdmaTransportFeatureEnabled) {
+            return;
+          }
+
           delete parameters[key];
         });
 
