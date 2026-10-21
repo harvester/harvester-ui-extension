@@ -1,10 +1,18 @@
 <script>
+import { defineAsyncComponent } from 'vue';
 import Loading from '@shell/components/Loading';
+import TabTitle from '@shell/components/TabTitle';
 import { HCI } from '../../../../../types';
-import NovncConsoleWrapper from '../../../../../components/novnc/NovncConsoleWrapper.vue';
 
 export default {
-  components: { NovncConsoleWrapper, Loading },
+  components: {
+    NovncConsoleWrapper: defineAsyncComponent({
+      loader:           () => import('../../../../../components/novnc/NovncConsoleWrapper.vue'),
+      loadingComponent: Loading,
+    }),
+    Loading,
+    TabTitle
+  },
 
   async fetch() {
     this.rows = await this.$store.dispatch('harvester/findAll', { type: HCI.VMI });
@@ -28,17 +36,21 @@ export default {
 
   mounted() {
     window.addEventListener('beforeunload', () => {
-      this.$refs.console.close();
+      this.$refs.console?.close();
     });
   },
 
-  head() {
-    return { title: this.vmi?.metadata?.name };
-  },
 };
 </script>
 
 <template>
+  <TabTitle
+    v-if="vmi?.metadata?.name"
+    :breadcrumb="false"
+    :show-child="false"
+  >
+    {{ vmi.metadata.name }}
+  </TabTitle>
   <Loading v-if="$fetchState.pending" />
   <NovncConsoleWrapper
     v-else
