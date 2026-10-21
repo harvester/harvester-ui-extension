@@ -749,6 +749,7 @@ export default {
               label-key="harvester.virtualMachine.osType"
               :options="OS"
               :disabled="!isCreate"
+              :tooltip="isCreate ? t('harvester.virtualMachine.osTypeTooltip') : null"
             />
           </div>
           <div class="col span-6">
@@ -838,7 +839,7 @@ export default {
 
         <Banner
           v-if="showCpuPinningBanner"
-          color="warning"
+          :color="mode === 'create' ? 'info' : 'warning'"
         >
           <MessageLink
             v-if="mode === 'create'"

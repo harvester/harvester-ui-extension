@@ -686,6 +686,7 @@ harvester:
   virtualMachine:
     label: Virtual Machines
     osType: OS Type
+    osTypeTooltip: Selecting an image with an OS label on the Volumes tab may change the OS Type selection.
     cpuModel:
       label: CPU Model
       fetchError: 'Failed to load CPU model configuration: {error}'
