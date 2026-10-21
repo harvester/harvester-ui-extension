@@ -57,6 +57,7 @@ import {
 } from './table-headers';
 import { ADD_ONS } from './harvester-map';
 import { registerAddonSideNav } from '../utils/dynamic-nav';
+import { setStandalonePrime } from '../utils/l10n-globals';
 import { setVendor } from '@shell/config/private-label';
 import { createCssVars } from '@shell/utils/color';
 import { CONFIGURABLE_TABLES } from '@shell/store/features';
@@ -123,6 +124,7 @@ export function init($plugin, store) {
         const [isHarvesterPrime, isDark, privateLabel] = JSON.parse(value);
         const primeLogo = isDark ? require('../assets/images/dark/suse-virtualization.svg') : require('../assets/images/suse-virtualization.svg');
 
+        setStandalonePrime(isHarvesterPrime);
         setVendor(privateLabel || '');
 
         let primaryColorStyle = document.getElementById('harvester-prime-primary-color');

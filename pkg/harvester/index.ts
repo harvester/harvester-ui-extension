@@ -6,7 +6,9 @@ import harvesterCommonStore from './store/harvester-common';
 import harvesterStore from './store/harvester-store';
 import customValidators from './validators';
 import { PRODUCT_NAME } from './config/harvester';
-import { hostResolvesL10nGlobals, resolveL10nGlobals } from './utils/l10n-globals';
+import {
+  hostResolvesL10nGlobals, resolveL10nGlobals, standaloneProductName, PRODUCT_NAME_GLOBAL
+} from './utils/l10n-globals';
 import { defineAsyncComponent } from 'vue';
 import './styles/vue-flow.scss';
 
@@ -18,9 +20,12 @@ export default function (plugin: IPlugin) {
   // Auto-import model, detail, edit from the folders
   importTypes(plugin);
 
-  // Hosts older than Rancher 2.16 would show `[[Harvester]]` literally, so resolve the tokens here.
-  // Mutating the module in place also updates the copy that importTypes registered.
-  if (!hostResolvesL10nGlobals(plugin.environment?.version)) {
+  if (isSingleVirtualCluster) {
+    // Standalone: the server-flavor setting picks the product name, see config/harvester-cluster
+    plugin.register('l10n-global', PRODUCT_NAME_GLOBAL, standaloneProductName);
+  } else if (!hostResolvesL10nGlobals(plugin.environment?.version)) {
+    // Hosts older than Rancher 2.16 would show `[[Harvester]]` literally, so resolve the tokens here.
+    // Mutating the module in place also updates the copy that importTypes registered.
     resolveL10nGlobals(require('./l10n/en-us.yaml'));
   }
 

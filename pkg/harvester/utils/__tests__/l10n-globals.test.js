@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { load } from 'js-yaml';
-import { hostResolvesL10nGlobals, resolveL10nGlobals } from '../l10n-globals';
+import { hostResolvesL10nGlobals, resolveL10nGlobals, setStandalonePrime, standaloneProductName } from '../l10n-globals';
 
 describe('hostResolvesL10nGlobals', () => {
   it('should be true from Rancher 2.16', () => {
@@ -19,10 +19,32 @@ describe('hostResolvesL10nGlobals', () => {
     expect(hostResolvesL10nGlobals('v2.14.6')).toBe(false);
   });
 
-  it('should be false when there is no Rancher version (standalone)', () => {
+  it('should be false when the Rancher version is missing or unknown', () => {
     expect(hostResolvesL10nGlobals('')).toBe(false);
     expect(hostResolvesL10nGlobals(undefined)).toBe(false);
     expect(hostResolvesL10nGlobals('dev')).toBe(false);
+  });
+});
+
+describe('standaloneProductName', () => {
+  it('should be Harvester when the server flavor is not prime', () => {
+    setStandalonePrime(false);
+
+    expect(standaloneProductName()).toBe('Harvester');
+  });
+
+  it('should be SUSE Virtualization when the server flavor is prime', () => {
+    setStandalonePrime(true);
+
+    expect(standaloneProductName()).toBe('SUSE Virtualization');
+    setStandalonePrime(false);
+  });
+
+  it('should go back to Harvester when the server flavor changes from prime', () => {
+    setStandalonePrime(true);
+    setStandalonePrime(false);
+
+    expect(standaloneProductName()).toBe('Harvester');
   });
 });
 

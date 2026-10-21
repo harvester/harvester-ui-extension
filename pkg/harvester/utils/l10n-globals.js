@@ -3,11 +3,26 @@ import semver from 'semver';
 // Rancher 2.16 resolves `[[name]]` tokens in translations from values registered as 'l10n-global'
 export const L10N_GLOBALS_MIN_RANCHER_VERSION = '2.16.0';
 
+// Name of the product name token, `[[Harvester]]`, and its value on Prime
+export const PRODUCT_NAME_GLOBAL = 'Harvester';
+export const PRIME_PRODUCT_NAME = 'SUSE Virtualization';
+
 const TOKEN = /(\\?)\[\[([\w-]+)\]\]/g;
 
+// Standalone has no Rancher Prime, the server-flavor setting decides instead
+let standalonePrime = false;
+
+export function setStandalonePrime(isPrime) {
+  standalonePrime = !!isPrime;
+}
+
+export function standaloneProductName() {
+  return standalonePrime ? PRIME_PRODUCT_NAME : PRODUCT_NAME_GLOBAL;
+}
+
 /**
- * Whether the host UI resolves `[[name]]` tokens itself.
- * Standalone reports no Rancher version, so it is treated as an older host.
+ * Whether the host Rancher resolves `[[name]]` tokens itself.
+ * A missing or unknown version counts as an older host.
  */
 export function hostResolvesL10nGlobals(version) {
   const v = semver.coerce(version);
