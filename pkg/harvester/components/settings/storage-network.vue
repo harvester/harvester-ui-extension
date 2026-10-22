@@ -132,9 +132,10 @@ export default {
 
       return clusterNetworksOptions.map((n) => {
         const disabled = !n.isReadyForStorageNetwork;
+        const name = n.isIsolatedUplink ? `${ n.id } (${ this.t('harvester.vlanConfig.uplink.mode.isolatedHint') })` : n.id;
 
         return {
-          label: disabled ? `${ n.id } (${ this.t('generic.notReady') })` : n.id,
+          label: disabled ? `${ name } (${ this.t('generic.notReady') })` : name,
           value: n.id,
           disabled,
         };

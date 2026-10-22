@@ -188,7 +188,11 @@ export default {
         return `${ this.t('harvester.network.clusterNetwork.label') }: ${ row.nameDisplay }`;
       }
 
-      return `${ this.t('harvester.network.clusterNetwork.label') }: ${ group.key }`;
+      const inStore = this.$store.getters['currentProduct'].inStore;
+      const clusterNetwork = this.$store.getters[`${ inStore }/byId`](HCI.CLUSTER_NETWORK, group.key);
+      const hint = clusterNetwork?.isIsolatedUplink ? ` (${ this.t('harvester.vlanConfig.uplink.mode.isolatedHint') })` : '';
+
+      return `${ this.t('harvester.network.clusterNetwork.label') }: ${ group.key }${ hint }`;
     },
   },
 };
