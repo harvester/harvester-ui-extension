@@ -61,6 +61,21 @@ export function getLatestMigration(migrations, namespace, vmiName) {
 }
 
 /**
+ * Whether a multus networkName refers to a bridge NAD. A name without a namespace is resolved in
+ * the VM's namespace, as KubeVirt and the Harvester webhook do.
+ * @param {Array} nads - NetworkAttachmentDefinitions of the store
+ * @param {String} networkName - `<namespace>/<name>` or `<name>`
+ * @param {String} vmNamespace
+ */
+export function isBridgeNAD(nads, networkName, vmNamespace) {
+  if (!networkName) return false;
+
+  const id = networkName.includes('/') ? networkName : `${ vmNamespace || 'default' }/${ networkName }`;
+
+  return (nads || []).find((nad) => nad.id === id)?.parseConfig?.type === 'bridge';
+}
+
+/**
  * Whether the only spec change between two VMs is the multus networkName (NAD) of existing
  * bridge networks. KubeVirt (LiveUpdateNADRef) applies such a change to a running VM via live
  * migration, so no restart is needed.

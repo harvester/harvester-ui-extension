@@ -22,7 +22,7 @@ import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
 import CreateEditView from '@shell/mixins/create-edit-view';
-import { parseVolumeClaimTemplates, isNADOnlyChange } from '@pkg/utils/vm';
+import { parseVolumeClaimTemplates, isNADOnlyChange, isBridgeNAD } from '@pkg/utils/vm';
 import VM_MIXIN from '../../mixins/harvester-vm';
 import { NETWORK_ATTACHMENT } from '@shell/config/types';
 import { HCI } from '../../types';
@@ -547,13 +547,9 @@ export default {
       if (!this.value.liveUpdateNADRefFeatureEnabled || !this.value.actions?.migrate) return false;
 
       const nads = this.$store.getters['harvester/all'](NETWORK_ATTACHMENT);
-      const isBridgeNAD = (networkName) => {
-        const id = networkName.includes('/') ? networkName : `default/${ networkName }`;
+      const namespace = this.value.metadata?.namespace;
 
-        return nads.find((nad) => nad.id === id)?.parseConfig?.type === 'bridge';
-      };
-
-      return isNADOnlyChange(oldVM, newVM, isBridgeNAD);
+      return isNADOnlyChange(oldVM, newVM, (networkName) => isBridgeNAD(nads, networkName, namespace));
     },
 
     restartVM() {
@@ -813,6 +809,7 @@ export default {
           v-model:network-boot-first="networkBootFirst"
           :mode="mode"
           :is-single="isSingle"
+          :namespace="value.metadata.namespace"
         />
       </Tab>
 
