@@ -1,5 +1,5 @@
 import { reactive } from 'vue';
-import { getLatestMigration } from '../vm';
+import { getLatestMigration, isBridgeNAD, isNADOnlyChange } from '../vm';
 
 const migration = (namespace, timestamp, vmiName = 'vm1') => ({
   metadata: { namespace, creationTimestamp: timestamp },
@@ -48,5 +48,72 @@ describe('getLatestMigration', () => {
 
     list.splice(0, 2);
     expect(getLatestMigration(list, 'ns1', 'vm1')).toBeUndefined();
+  });
+});
+
+describe('isBridgeNAD', () => {
+  const nads = [
+    { id: 'default/vlan-100', parseConfig: { type: 'bridge' } },
+    { id: 'vm-ns/vlan-200', parseConfig: { type: 'bridge' } },
+    { id: 'vm-ns/overlay', parseConfig: { type: 'kube-ovn' } },
+  ];
+
+  it('should look up a namespaced network name as is', () => {
+    expect(isBridgeNAD(nads, 'vm-ns/vlan-200', 'other')).toBe(true);
+    expect(isBridgeNAD(nads, 'vm-ns/overlay', 'vm-ns')).toBe(false);
+  });
+
+  it('should resolve a network name without a namespace in the namespace of the VM', () => {
+    expect(isBridgeNAD(nads, 'vlan-200', 'vm-ns')).toBe(true);
+    expect(isBridgeNAD(nads, 'vlan-100', 'vm-ns')).toBe(false);
+  });
+
+  it('should fall back to the default namespace only when the VM namespace is unknown', () => {
+    expect(isBridgeNAD(nads, 'vlan-100')).toBe(true);
+  });
+
+  it('should return false for an empty or unknown network name', () => {
+    expect(isBridgeNAD(nads, '', 'vm-ns')).toBe(false);
+    expect(isBridgeNAD(nads, 'vm-ns/missing', 'vm-ns')).toBe(false);
+  });
+});
+
+describe('isNADOnlyChange', () => {
+  const vm = (networkName, extra = {}) => ({
+    spec: {
+      template: {
+        spec: {
+          networks: [{ name: 'default', pod: {} }, { name: 'nic-1', multus: { networkName } }],
+          ...extra,
+        }
+      }
+    }
+  });
+  const isBridge = (name) => name.startsWith('vlan');
+
+  it('should be true when only the NAD of a bridge network changes to another bridge network', () => {
+    expect(isNADOnlyChange(vm('vlan-100'), vm('vlan-200'), isBridge)).toBe(true);
+  });
+
+  it('should be false when there is no change', () => {
+    expect(isNADOnlyChange(vm('vlan-100'), vm('vlan-100'), isBridge)).toBe(false);
+  });
+
+  it('should be false when the new NAD is not a bridge network', () => {
+    expect(isNADOnlyChange(vm('vlan-100'), vm('overlay'), isBridge)).toBe(false);
+  });
+
+  it('should be false when something else changes as well', () => {
+    expect(isNADOnlyChange(vm('vlan-100'), vm('vlan-200', { hostname: 'x' }), isBridge)).toBe(false);
+  });
+
+  it('should not modify the VMs', () => {
+    const oldVM = vm('vlan-100');
+    const newVM = vm('vlan-200');
+
+    isNADOnlyChange(oldVM, newVM, isBridge);
+
+    expect(oldVM.spec.template.spec.networks[1].multus.networkName).toBe('vlan-100');
+    expect(newVM.spec.template.spec.networks[1].multus.networkName).toBe('vlan-200');
   });
 });
