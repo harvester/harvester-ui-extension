@@ -103,13 +103,13 @@ export default {
   watch: {
     // Keep the profile selector in sync if the row is repopulated (e.g. editing an existing VM).
     'value.cache'() {
-      this.profile = this.detectProfile();
+      this.syncProfile();
     },
     'value.io'() {
-      this.profile = this.detectProfile();
+      this.syncProfile();
     },
     'value.dedicatedIOThread'() {
-      this.profile = this.detectProfile();
+      this.syncProfile();
     },
   },
 
@@ -126,6 +126,15 @@ export default {
       }
 
       return CUSTOM;
+    },
+
+    syncProfile() {
+      // An explicit "Custom" choice sticks, even if the options happen to
+      // match the Default or High Performance preset.
+      if (this.profile === CUSTOM) {
+        return;
+      }
+      this.profile = this.detectProfile();
     },
 
     cacheLabel(value) {
@@ -231,7 +240,7 @@ export default {
       <Banner
         v-if="profile === DISK_PERFORMANCE_PROFILE.HIGH"
         color="info"
-        :label="t('harvester.virtualMachine.volume.performance.highProfileTip')"
+        label-key="harvester.virtualMachine.volume.performance.highProfileTip"
       />
 
       <div
@@ -287,17 +296,17 @@ export default {
       <Banner
         v-if="isNativeIo"
         color="info"
-        :label="t('harvester.virtualMachine.volume.performance.ioMode.nativeRequiresNoCacheTip')"
+        label-key="harvester.virtualMachine.volume.performance.ioMode.nativeRequiresNoCacheTip"
       />
       <Banner
         v-if="showFilesystemCacheWarning"
         color="warning"
-        :label="t('harvester.virtualMachine.volume.performance.cacheMode.filesystemWarning')"
+        label-key="harvester.virtualMachine.volume.performance.cacheMode.filesystemWarning"
       />
       <Banner
         v-if="showBusTip"
         color="warning"
-        :label="t('harvester.virtualMachine.volume.performance.busTip')"
+        label-key="harvester.virtualMachine.volume.performance.busTip"
       />
     </div>
   </div>
