@@ -50,8 +50,12 @@ export default class HciVlanConfig extends HarvesterResource {
     };
   }
 
+  get isIsolatedUplink() {
+    return this.spec?.uplink?.mode === 'isolated';
+  }
+
   get typeDisplay() {
-    return 'VLAN';
+    return this.isIsolatedUplink ? this.t('harvester.vlanConfig.uplink.mode.isolatedType') : 'VLAN';
   }
 
   get _availableActions() {

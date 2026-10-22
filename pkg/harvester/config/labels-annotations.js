@@ -18,6 +18,7 @@ export const HCI = {
   GOLDEN_IMAGE:                     'harvesterhci.io/goldenImage',
   CLUSTER_NETWORK:                  'network.harvesterhci.io/clusternetwork',
   NETWORK_TYPE:                     'network.harvesterhci.io/type',
+  UPLINK_MODE:                      'network.harvesterhci.io/uplink-mode',
   VM_NAME:                          'harvesterhci.io/vmName',
   VM_NAME_PREFIX:                   'harvesterhci.io/vmNamePrefix',
   VM_DISPLAY_NAME:                  'harvesterhci.io/vmDisplayName',

@@ -5,6 +5,7 @@ import CruResource from '@shell/components/CruResource';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
+import RadioGroup from '@components/Form/Radio/RadioGroup';
 import Tabbed from '@shell/components/Tabbed';
 import Tab from '@shell/components/Tabbed/Tab';
 import ArrayListSelect from '@shell/components/form/ArrayListSelect';
@@ -24,6 +25,9 @@ import { HCI } from '../../types';
 
 import NodeSelector from './NodeSelector';
 
+const UPLINK_MODE_BOND = 'bond';
+const UPLINK_MODE_ISOLATED = 'isolated';
+
 export default {
   emits: ['update:value'],
 
@@ -32,6 +36,7 @@ export default {
     NameNsDescription,
     LabeledInput,
     LabeledSelect,
+    RadioGroup,
     Tabbed,
     Tab,
     NodeSelector,
@@ -132,6 +137,38 @@ export default {
       set(value) {
         set(this.value, 'spec.uplink.bondOptions.miimon', value);
       },
+    },
+
+    isolatedUplinkModeEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('isolatedUplinkMode');
+    },
+
+    uplinkMode: {
+      get() {
+        return this.value?.spec?.uplink?.mode === UPLINK_MODE_ISOLATED ? UPLINK_MODE_ISOLATED : UPLINK_MODE_BOND;
+      },
+
+      set(value) {
+        if (value === UPLINK_MODE_ISOLATED) {
+          set(this.value, 'spec.uplink.mode', UPLINK_MODE_ISOLATED);
+        } else {
+          delete this.value?.spec?.uplink?.mode;
+          if (!this.value?.spec?.uplink?.bondOptions?.mode) {
+            set(this.value, 'spec.uplink.bondOptions', { mode: 'active-backup', miimon: -1 });
+          }
+        }
+      },
+    },
+
+    isIsolatedUplink() {
+      return this.uplinkMode === UPLINK_MODE_ISOLATED;
+    },
+
+    uplinkModeOptions() {
+      return [
+        { label: this.t('harvester.vlanConfig.uplink.mode.bond'), value: UPLINK_MODE_BOND },
+        { label: this.t('harvester.vlanConfig.uplink.mode.isolated'), value: UPLINK_MODE_ISOLATED },
+      ];
     },
 
     bondOptions() {
@@ -259,6 +296,11 @@ export default {
 
         if (!miimon && miimon !== 0) {
           delete this.value?.spec?.uplink?.bondOptions?.miimon;
+        }
+
+        // isolated uplinks attach each NIC to the bridge directly, there is no bond to configure
+        if (this.isIsolatedUplink) {
+          delete this.value?.spec?.uplink?.bondOptions;
         }
 
         const mtu = this.value?.spec?.uplink?.linkAttributes?.mtu;
@@ -458,10 +500,37 @@ export default {
           </div>
         </div>
 
-        <h3 class="mt-20">
+        <template v-if="isolatedUplinkModeEnabled">
+          <h3 class="mt-20">
+            {{ t('harvester.vlanConfig.uplink.mode.label') }}
+          </h3>
+          <div class="row">
+            <div class="col span-12">
+              <RadioGroup
+                v-model:value="uplinkMode"
+                name="uplinkMode"
+                :mode="mode"
+                :options="uplinkModeOptions"
+              />
+            </div>
+          </div>
+          <Banner
+            v-if="isIsolatedUplink"
+            color="info"
+            :label="t('harvester.vlanConfig.uplink.mode.isolatedBanner')"
+          />
+        </template>
+
+        <h3
+          v-if="!isIsolatedUplink"
+          class="mt-20"
+        >
           {{ t('harvester.vlanConfig.titles.bondOptions') }}
         </h3>
-        <div class="row">
+        <div
+          v-if="!isIsolatedUplink"
+          class="row"
+        >
           <div class="col span-6">
             <LabeledSelect
               v-model:value="bondOptionMode"
