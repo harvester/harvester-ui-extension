@@ -1,5 +1,7 @@
 import { mount } from '@vue/test-utils';
+import { nextTick } from 'vue';
 import { _EDIT } from '@shell/config/query-params';
+import { Banner } from '@components/Banner';
 import DiskPerformanceOptions from '../DiskPerformanceOptions.vue';
 
 const mountOptions = (value, { featureEnabled = true } = {}) => ({
@@ -121,5 +123,46 @@ describe('component: DiskPerformanceOptions', () => {
     expect(disabledByValue['']).toBe(true);
     expect(disabledByValue['writeback']).toBe(true);
     expect(disabledByValue['writethrough']).toBe(true);
+  });
+
+  it.each([
+    ['Default', {
+      cache: '', io: '', dedicatedIOThread: false
+    }],
+    ['High Performance', {
+      cache: 'none', io: 'native', dedicatedIOThread: true
+    }],
+  ])('stays on Custom when the options match the %s preset', async(_label, opts) => {
+    const value = hardDisk({ cache: 'writeback' });
+    const wrapper = mount(DiskPerformanceOptions, mountOptions(value));
+
+    wrapper.vm.onProfileChange('custom');
+    await wrapper.setProps({ value: { ...value, ...opts } });
+    await nextTick();
+
+    expect(wrapper.vm.profile).toBe('custom');
+  });
+
+  it('detects the profile from an existing disk', async() => {
+    const wrapper = mount(DiskPerformanceOptions, mountOptions(hardDisk()));
+
+    expect(wrapper.vm.profile).toBe('default');
+
+    await wrapper.setProps({
+      value: hardDisk({
+        cache: 'none', io: 'native', dedicatedIOThread: true
+      })
+    });
+
+    expect(wrapper.vm.profile).toBe('highPerformance');
+  });
+
+  it('passes the Native I/O hint as a label key so its quotes are not double-escaped', () => {
+    const wrapper = mount(DiskPerformanceOptions, mountOptions(hardDisk({ io: 'native' })));
+    const banner = wrapper.findAllComponents(Banner)
+      .find((b) => b.props('labelKey') === 'harvester.virtualMachine.volume.performance.ioMode.nativeRequiresNoCacheTip');
+
+    expect(banner).toBeDefined();
+    expect(banner?.props('label')).toBeFalsy();
   });
 });
