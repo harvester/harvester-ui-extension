@@ -157,6 +157,20 @@ describe('component: DiskPerformanceOptions', () => {
     expect(wrapper.vm.profile).toBe('highPerformance');
   });
 
+  it('updates an automatically detected Custom profile when preset values are loaded', async() => {
+    const wrapper = mount(DiskPerformanceOptions, mountOptions(hardDisk({ cache: 'writeback' })));
+
+    expect(wrapper.vm.profile).toBe('custom');
+
+    await wrapper.setProps({
+      value: hardDisk({
+        cache: 'none', io: 'native', dedicatedIOThread: true
+      })
+    });
+
+    expect(wrapper.vm.profile).toBe('highPerformance');
+  });
+
   it('passes the Native I/O hint as a label key so its quotes are not double-escaped', () => {
     const wrapper = mount(DiskPerformanceOptions, mountOptions(hardDisk({ io: 'native' })));
     const banner = wrapper.findAllComponents(Banner)

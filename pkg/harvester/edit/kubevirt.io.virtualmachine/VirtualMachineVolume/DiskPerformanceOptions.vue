@@ -40,6 +40,8 @@ export default {
       // Bus the disk used before the "High Performance" preset switched it to
       // virtio, so returning to "Default" can put it back.
       busBeforeHighProfile: null,
+      // True only while the user has explicitly picked "Custom" in the selector.
+      userSelectedCustom:   false,
     };
   },
 
@@ -130,8 +132,9 @@ export default {
 
     syncProfile() {
       // An explicit "Custom" choice sticks, even if the options happen to
-      // match the Default or High Performance preset.
-      if (this.profile === CUSTOM) {
+      // match the Default or High Performance preset. An inferred "Custom"
+      // still follows the disk values.
+      if (this.userSelectedCustom) {
         return;
       }
       this.profile = this.detectProfile();
@@ -149,6 +152,7 @@ export default {
       const previous = this.profile;
 
       this.profile = profile;
+      this.userSelectedCustom = profile === CUSTOM;
 
       if (profile === DEFAULT) {
         this.value.cache = '';
