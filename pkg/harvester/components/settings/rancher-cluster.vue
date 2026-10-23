@@ -213,9 +213,7 @@ $yaml-height: 540px;
 :deep() .yaml-editor{
   flex: 1;
   min-height: $yaml-height;
-  & .code-mirror .CodeMirror {
-    position: initial;
-    height: auto;
+  & .code-mirror .cm-editor {
     min-height: $yaml-height;
   }
 }
