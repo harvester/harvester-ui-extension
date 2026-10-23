@@ -191,7 +191,8 @@ export default {
     >
       <div class="col span-12">
         <FileSelector
-          class="btn btn-sm bg-primary mb-10"
+          variant="primary"
+          class="mb-10"
           :label="t('generic.readFromFile')"
           @selected="onKeySelected"
         />
@@ -213,9 +214,7 @@ $yaml-height: 540px;
 :deep() .yaml-editor{
   flex: 1;
   min-height: $yaml-height;
-  & .code-mirror .CodeMirror {
-    position: initial;
-    height: auto;
+  & .code-mirror .cm-editor {
     min-height: $yaml-height;
   }
 }

@@ -128,6 +128,7 @@ export default {
 
       try {
         await proxyResource.save();
+        proxyResource.notifyGeneratedName?.();
 
         this.cancel();
       } catch (err) {

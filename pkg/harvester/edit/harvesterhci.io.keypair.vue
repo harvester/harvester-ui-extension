@@ -88,7 +88,8 @@ export default {
     <div class="header mb-20">
       <FileSelector
         v-if="isCreate"
-        class="btn btn-sm bg-primary mt-10"
+        variant="primary"
+        class="mt-10"
         :label="t('generic.readFromFile')"
         accept=".pub"
         @selected="onKeySelected"

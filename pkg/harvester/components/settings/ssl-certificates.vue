@@ -62,7 +62,8 @@ export default {
         <div class="chooseFile">
           <FileSelector
             :include-file-name="true"
-            class="btn btn-sm bg-primary mr-20"
+            variant="primary"
+            class="mr-20"
             label="Choose File"
             @selected="onKeySelectedCa('publicCertificate', $event)"
           />
@@ -80,7 +81,8 @@ export default {
         <div class="chooseFile">
           <FileSelector
             :include-file-name="true"
-            class="btn btn-sm bg-primary mr-20"
+            variant="primary"
+            class="mr-20"
             label="Choose File"
             @selected="onKeySelectedCa('privateKey', $event)"
           />
@@ -98,7 +100,8 @@ export default {
         <div class="chooseFile">
           <FileSelector
             :include-file-name="true"
-            class="btn btn-sm bg-primary mr-20"
+            variant="primary"
+            class="mr-20"
             label="Choose File"
             @selected="onKeySelectedCa('ca', $event)"
           />
