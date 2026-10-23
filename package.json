@@ -62,7 +62,8 @@
     "prepare": "husky",
     "agents:generate": "./scripts/generate-agent-and-persona-mds.sh",
     "prelint": "npm --prefix node_modules/@rancher/shell/eslint-legacy install eslint-plugin-jest@^24 --no-save --no-audit --no-fund --legacy-peer-deps --loglevel=error",
-    "prelint:fix": "npm --prefix node_modules/@rancher/shell/eslint-legacy install eslint-plugin-jest@^24 --no-save --no-audit --no-fund --legacy-peer-deps --loglevel=error"
+    "prelint:fix": "npm --prefix node_modules/@rancher/shell/eslint-legacy install eslint-plugin-jest@^24 --no-save --no-audit --no-fund --legacy-peer-deps --loglevel=error",
+    "postinstall": "patch-package"
   },
   "devDependencies": {
     "@commitlint/load": "^19.8.1",
@@ -78,6 +79,7 @@
     "babel-plugin-transform-require-context": "0.1.1",
     "jest": "29.7.0",
     "jest-environment-jsdom": "29.7.0",
+    "patch-package": "8.0.1",
     "ts-jest": "29.4.12"
   }
 }

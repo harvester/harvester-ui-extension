@@ -1,0 +1,13 @@
+diff --git a/node_modules/@rancher/shell/components/form/ResourceLabeledSelect.vue b/node_modules/@rancher/shell/components/form/ResourceLabeledSelect.vue
+index 57b4e62..04308fa 100644
+--- a/node_modules/@rancher/shell/components/form/ResourceLabeledSelect.vue
++++ b/node_modules/@rancher/shell/components/form/ResourceLabeledSelect.vue
+@@ -174,7 +174,7 @@ export default defineComponent({
+     v-bind="labelSelectAttributes"
+     :loading="$fetchState.pending"
+     :options="allOfType"
+-    :paginate="paginateType"
++    :paginate="paginate ? paginateType : undefined"
+     :multiple="$attrs.multiple || false"
+     @update:value="$emit('update:value', $event)"
+   >
