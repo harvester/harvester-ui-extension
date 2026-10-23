@@ -29,7 +29,7 @@
   },
   "resolutions": {
     "@novnc/novnc": "1.7.0",
-    "@types/node": "25.9.6",
+    "@types/node": "25.9.9",
     "cronstrue": "2.59.0",
     "d3-color": "3.1.0",
     "ejs": "3.1.10",
@@ -37,11 +37,11 @@
     "glob": "7.2.3",
     "glob-parent": "6.0.2",
     "json5": "2.2.3",
-    "@types/lodash": "4.17.25",
+    "@types/lodash": "4.17.26",
     "merge": "2.1.1",
     "node-forge": "1.4.0",
     "nth-check": "2.1.1",
-    "qs": "6.16.0",
+    "qs": "6.16.1",
     "roarr": "7.21.7",
     "semver": "7.8.5",
     "@vue/cli-service/html-webpack-plugin": "^5.0.0"
@@ -71,13 +71,13 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^7.1.0",
     "husky": "^9.1.7",
-    "@types/jest": "29.5.12",
+    "@types/jest": "29.5.14",
     "@vue/test-utils": "2.4.6",
     "@vue/vue3-jest": "29.2.6",
     "babel-jest": "29.7.0",
     "babel-plugin-transform-require-context": "0.1.1",
     "jest": "29.7.0",
     "jest-environment-jsdom": "29.7.0",
-    "ts-jest": "29.4.12"
+    "ts-jest": "29.4.15"
   }
 }
