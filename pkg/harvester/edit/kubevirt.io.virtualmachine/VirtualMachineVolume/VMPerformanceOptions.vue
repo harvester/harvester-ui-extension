@@ -135,7 +135,7 @@ export default {
       <Banner
         v-if="!hasVirtioDisk && !isView"
         color="info"
-        :label="t('harvester.virtualMachine.volume.diskPerformance.blockMultiQueue.noVirtioTip')"
+        label-key="harvester.virtualMachine.volume.diskPerformance.blockMultiQueue.noVirtioTip"
       />
 
       <div class="row mb-10">
@@ -171,7 +171,7 @@ export default {
       <Banner
         v-if="hasDedicatedIothread && !ioThreadsPolicy"
         color="info"
-        :label="t('harvester.virtualMachine.volume.diskPerformance.ioThreadsPolicy.autoEnabledTip')"
+        label-key="harvester.virtualMachine.volume.diskPerformance.ioThreadsPolicy.autoEnabledTip"
       />
     </template>
   </InfoBox>
