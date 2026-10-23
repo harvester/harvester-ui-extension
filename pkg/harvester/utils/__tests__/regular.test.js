@@ -6,6 +6,7 @@ describe('isValidCIDR', () => {
     '192.168.1.0/24',
     '0.0.0.0/0',
     '255.255.255.255/32',
+    '172.16.100.9/12',
   ])('should accept the IPv4 CIDR %s', (cidr) => {
     expect(isValidCIDR(cidr)).toBe(true);
   });
@@ -20,6 +21,9 @@ describe('isValidCIDR', () => {
     ['an IPv4-mapped IPv6 range', '::ffff:10.0.0.0/120'],
     ['a prefix over 32', '10.0.0.0/33'],
     ['an octet over 255', '10.0.0.256/24'],
+    ['zero-padded octets', '010.001.000.000/16'],
+    ['a zero-padded octet', '192.168.001.0/24'],
+    ['a zero-padded prefix', '10.0.0.0/08'],
     ['no prefix', '10.0.0.0'],
     ['an empty value', ''],
   ])('should reject %s (%s)', (_, cidr) => {
