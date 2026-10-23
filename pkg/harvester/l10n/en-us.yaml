@@ -1487,7 +1487,7 @@ harvester:
       placeholder: Select a provider network
   networkPolicy:
     label: Policies
-    banner: The network policies must be used for VMs attached to overlay networks. Please read the <a href="{url}" target="_blank">[[Harvester]] document</a> how the network policy works.
+    banner: The network policies must be used for VMs attached to overlay networks. Please read the <a href="{url}" target="_blank">[[Harvester]] documentation</a> on how network policies work.
   network:
     label: Virtual Machine Networks
     tabs:
