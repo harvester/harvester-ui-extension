@@ -156,11 +156,13 @@ export function init($plugin, store) {
 
     const updateBrand = primeBrandUpdater();
 
+    // The value is read too: a change event from the server is loaded into the same setting object
     store.watch(
-      (_state, getters) => [
-        !!getters['harvester-common/isHarvesterPrime'],
-        getters['management/byId'](MANAGEMENT.SETTING, SETTING.BRAND)
-      ],
+      (_state, getters) => {
+        const brandSetting = getters['management/byId'](MANAGEMENT.SETTING, SETTING.BRAND);
+
+        return [!!getters['harvester-common/isHarvesterPrime'], brandSetting, brandSetting?.value];
+      },
       ([isHarvesterPrime, brandSetting]) => updateBrand(brandSetting, isHarvesterPrime),
       { immediate: true }
     );

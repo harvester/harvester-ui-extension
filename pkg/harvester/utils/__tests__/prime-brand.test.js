@@ -27,6 +27,17 @@ describe('primeBrandUpdater', () => {
     expect(setting.value).toBe('harvester');
   });
 
+  it('should switch the brand to suse again when the server sends its brand back on Prime', () => {
+    const setting = { value: 'harvester' };
+    const update = primeBrandUpdater();
+
+    update(setting, true);
+    setting.value = 'harvester';
+    update(setting, true);
+
+    expect(setting.value).toBe('suse');
+  });
+
   it('should keep an empty brand of the server when not on Prime', () => {
     const setting = { value: '' };
     const update = primeBrandUpdater();
