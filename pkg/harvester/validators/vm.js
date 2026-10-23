@@ -2,7 +2,7 @@ import { PVC } from '@shell/config/types';
 import { isValidMac, isValidDNSLabelName } from '@pkg/utils/regular';
 import { SOURCE_TYPE } from '@pkg/config/harvester-map';
 import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
-import { GIBIBYTE } from '../utils/unit';
+import { volumeSize } from './volume';
 
 const maxNameLength = 63;
 
@@ -75,18 +75,11 @@ export function vmDisks(spec, getters, errors, validatorArgs, displayKey, value)
     const prefix = V.name || idx + 1;
 
     if (type === SOURCE_TYPE.NEW || type === SOURCE_TYPE.IMAGE) {
-      if (!/([1-9]|[1-9][0-9]+)[a-zA-Z]+/.test(typeValue?.spec?.resources?.requests?.storage)) {
-        const key = getters['i18n/t']('harvester.fields.size');
-        const message = getters['i18n/t']('validation.required', { key });
+      const size = typeValue?.spec?.resources?.requests?.storage;
 
+      volumeSize(size, getters, []).forEach((message) => {
         errors.push(getters['i18n/t']('harvester.validation.generic.tabError', { prefix, message }));
-      }
-
-      if (typeValue?.spec?.resources?.requests?.storage && !/^([0-9][0-9]{0,8})[a-zA-Z]+$/.test(typeValue?.spec?.resources?.requests?.storage)) {
-        const message = getters['i18n/t']('harvester.validation.generic.maximumSize', { max: `999999999 ${ GIBIBYTE }` });
-
-        errors.push(getters['i18n/t']('harvester.validation.generic.tabError', { prefix, message }));
-      }
+      });
 
       if (type === SOURCE_TYPE.IMAGE && !typeValue?.spec?.storageClassName && !isVMTemplate) { // type === SOURCE_TYPE.IMAGE
         const key = getters['i18n/t']('harvester.fields.image');
