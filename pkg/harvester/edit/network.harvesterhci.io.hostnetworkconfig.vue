@@ -88,7 +88,8 @@ export default {
       const inStore = this.$store.getters['currentProduct'].inStore;
       const clusterNetworks = this.$store.getters[`${ inStore }/all`](HCI.CLUSTER_NETWORK) || [];
 
-      return clusterNetworks.map((n) => {
+      // a cluster network with isolated uplinks (switchless mesh) only carries the storage and RWX networks
+      return clusterNetworks.filter((n) => !n.isIsolatedUplink).map((n) => {
         const disabled = !n.isReady;
 
         return {
