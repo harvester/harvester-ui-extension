@@ -25,8 +25,8 @@ generic:
 
 unsupported:
   serverVersion: 'Current version: <code>{serverVersion}</code>'
-  description: Harvester ui only supports Harvester cluster version greater or equal to 1.3.0.
-  learnMore: Learn more about Harvester from the <a target="_blank" href="https://harvesterhci.io/" rel="noopener noreferrer nofollow">Harvester Web Site</a> or read the <a target="_blank" href="https://docs.harvesterhci.io/" rel="noopener noreferrer nofollow">Harvester Docs</a>
+  description: '[[Harvester]] ui only supports [[Harvester]] cluster version greater or equal to 1.3.0.'
+  learnMore: Learn more about [[Harvester]] from the <a target="_blank" href="https://harvesterhci.io/" rel="noopener noreferrer nofollow">[[Harvester]] Web Site</a> or read the <a target="_blank" href="https://docs.harvesterhci.io/" rel="noopener noreferrer nofollow">[[Harvester]] Docs</a>
 
 nav:
   group:
@@ -87,10 +87,10 @@ harvester:
     primeLabel: '{vendor}'
     primeEmptyLabel: ''
     logos:
-      tip: 'Upload a logo to replace the Harvester logo in the top-level navigation header. Image height should be 21 pixels with a max width of 200 pixels. Max file size is 20KB. Accepted formats: JPEG, PNG, SVG.'
+      tip: 'Upload a logo to replace the [[Harvester]] logo in the top-level navigation header. Image height should be 21 pixels with a max width of 200 pixels. Max file size is 20KB. Accepted formats: JPEG, PNG, SVG.'
     favicon:
-      tip: 'Upload an icon to replace the Harvester favicon in the browser tab. Max file size is 20KB'
-  productLabel: 'Harvester'
+      tip: 'Upload an icon to replace the [[Harvester]] favicon in the browser tab. Max file size is 20KB'
+  productLabel: '[[Harvester]]'
   modal:
     backup:
       success: 'Backup { backUpName } has been initiated.'
@@ -182,7 +182,7 @@ harvester:
       delete: Delete
     bundle:
       title: Generate a Support Bundle
-      titleDescription: Collect system-related logs in Harvester to assist with troubleshooting and support.
+      titleDescription: Collect system-related logs in [[Harvester]] to assist with troubleshooting and support.
       tip: Each field below specifies an aspect of the support bundle. For detailed explanations, please refer to the <a href="{doc}" target="_blank">documentation</a>.
       url: Issue URL
       description: Description
@@ -336,7 +336,7 @@ harvester:
     attachedVM: Attached Virtual Machine
     cpuManager: CPU<br>Manager
     diskState: Disk
-    routeConnectivityTooltip: Connectivity between the VM network and the management network, which the Harvester nodes are connected to.
+    routeConnectivityTooltip: Connectivity between the VM network and the management network, which the [[Harvester]] nodes are connected to.
     fingerprint: Fingerprint
     value: Value
     actions: Actions
@@ -501,7 +501,7 @@ harvester:
       aclEmptyError: The fields in subnet access control list rule can not be empty.
   dashboard:
     label: Dashboard
-    header: "Harvester Cluster: {cluster}"
+    header: "[[Harvester]] Cluster: {cluster}"
     hardwareResourceGauge:
       cpu: CPU
       memory: Memory
@@ -839,7 +839,7 @@ harvester:
         collapse: Hide VM-wide high-performance options
         blockMultiQueue:
           label: Virtio Block Multi-Queue
-          tip: Map disk I/O to multiple queues so it is processed across multiple CPUs. Applies to virtio disks and requires a fixed CPU allocation (Harvester always sets one).
+          tip: Map disk I/O to multiple queues so it is processed across multiple CPUs. Applies to virtio disks and requires a fixed CPU allocation ([[Harvester]] always sets one).
           noVirtioTip: Add at least one disk on the virtio bus to enable Block Multi-Queue.
         ioThreadsPolicy:
           label: I/O Threads Policy
@@ -939,7 +939,7 @@ harvester:
       displayNamePlaceholder: Virtual machine alias name
       displayName: Display Name
     filesystem:
-      description: Harvester supports filesystem volumes for VM via virtiofs.
+      description: '[[Harvester]] supports filesystem volumes for VM via virtiofs.'
       type: Filesystem Type
       volume: Volume
       resource: Resource
@@ -1193,8 +1193,8 @@ harvester:
     selectExisting: Select Existing Image
     createRepository: Creating Upgrade Repository
     succeeded: Succeeded
-    releaseTip: Please read the upgrade documentation carefully. You can view details on the <a href="{url}" target="_blank">Harvester Release Notes</a>.
-    checkReady: I have read and understood the upgrade instructions related to this Harvester version.
+    releaseTip: Please read the upgrade documentation carefully. You can view details on the <a href="{url}" target="_blank">[[Harvester]] Release Notes</a>.
+    checkReady: I have read and understood the upgrade instructions related to this [[Harvester]] version.
     pending: Pending
     upload:
       duplicatedFile: The file you are trying to upload already exists.
@@ -1203,7 +1203,7 @@ harvester:
       os: OS
       kubernetes: Kubernetes
       monitoringChart: Monitoring Chart
-      harvesterChart: Harvester Chart
+      harvesterChart: '[[Harvester]] Chart'
       success: Success
       fail:  Fail
       ongoing: On-going
@@ -1243,7 +1243,7 @@ harvester:
     maxFailure:
       label: Max Failure
       count: Count
-      tooltip: Max number of consecutive failed backups that could be tolerated. If reach this threshold, Harvester controller will suspend the schedule job. This value should less than retain count
+      tooltip: Max number of consecutive failed backups that could be tolerated. If reach this threshold, [[Harvester]] controller will suspend the schedule job. This value should less than retain count
     virtualMachine:
       title: Virtual Machine Name
       placeholder: Select a virtual machine
@@ -1257,7 +1257,7 @@ harvester:
     title: Restore Virtual Machine
     refreshInterval:
       label: Refresh Interval
-      tip: The interval for the backup target to sync data to harvester cluster. Set to 0 to disable refresh mechanism.
+      tip: The interval for the backup target to sync data to [[Harvester]] cluster. Set to 0 to disable refresh mechanism.
     backupTargetTip: The endpoint used to access the backupstore. NFS and S3 are supported.
     message:
       noSetting:
@@ -1276,7 +1276,7 @@ harvester:
         actionLabel: Test connection
         waitingLabel: Testing connection...
         successLabel: Connection tested
-        successMessage: 'Harvester can successfully connect to the endpoint {endpoint}'
+        successMessage: '[[Harvester]] can successfully connect to the endpoint {endpoint}'
     restore:
       backup: Backup
       deletePreviousVolumes: Delete Previous Volumes
@@ -1487,7 +1487,7 @@ harvester:
       placeholder: Select a provider network
   networkPolicy:
     label: Policies
-    banner: The network policies must be used for VMs attached to overlay networks. Please read the <a href="{url}" target="_blank">harvester document</a> how the network policy works.
+    banner: The network policies must be used for VMs attached to overlay networks. Please read the <a href="{url}" target="_blank">[[Harvester]] documentation</a> on how network policies work.
   network:
     label: Virtual Machine Networks
     tabs:
@@ -1596,7 +1596,7 @@ harvester:
     autoRotateRKE2Certs:
       expiringInHours: Expiring in
     httpProxy:
-      warning: 'WARNING: <br/> If you configure "http-proxy" and "https-proxy", you must also put Harvester node&apos;s CIDR into "no-proxy", otherwise the Harvester cluster will be broken.'
+      warning: 'WARNING: <br/> If you configure "http-proxy" and "https-proxy", you must also put [[Harvester]] node&apos;s CIDR into "no-proxy", otherwise the [[Harvester]] cluster will be broken.'
     supportBundleImage:
       imagePullPolicy: Pull Policy
       repo: Repository
@@ -1648,7 +1648,7 @@ harvester:
       strategyType: Strategy Type
       concurrency: Concurrency
     harvesterMonitoring:
-      label: Harvester Monitoring
+      label: '[[Harvester]] Monitoring'
       section:
         prometheus: Prometheus
         prometheusNodeExporter: Prometheus Node Exporter
@@ -1663,10 +1663,10 @@ harvester:
       url: URL
       insecureSkipTLSVerify: Insecure Skip TLS Verify
       tip:
-        prefix: Harvester secures cluster registration via TLS by default. If opt out "Insecure Skip TLS Verify", you must provide custom CA certificates using the
+        prefix: '[[Harvester]] secures cluster registration via TLS by default. If opt out "Insecure Skip TLS Verify", you must provide custom CA certificates using the'
         middle: 'additional-ca'
         suffix: setting.
-      message: To completely unset the imported Harvester cluster, please also remove it on the Rancher Dashboard UI via the <code> Virtualization Management </code> page.
+      message: To completely unset the imported [[Harvester]] cluster, please also remove it on the Rancher Dashboard UI via the <code> Virtualization Management </code> page.
     ntpServers:
       isNotIPV4: The address you entered is not IPv4 or host. Please enter a valid IPv4 address or a host address.
       isDuplicate: There are duplicate NTP server configurations.
@@ -1696,19 +1696,19 @@ harvester:
     networkData: Network Data
 
   support:
-    title: Harvester Support
+    title: '[[Harvester]] Support'
     kubeconfig:
       title: Download KubeConfig
       titleDescription: Download kubeconfig for debugging.
     internal:
       rancher:
         title: Access Embedded Rancher UI
-        titleDescription: You can only use the embedded Rancher UI for debugging and validation purposes. For more information about how Harvester integrates with Rancher, see the <a target="_blank" href="{url}" rel="noopener noreferrer nofollow">documentation</a>.
+        titleDescription: You can only use the embedded Rancher UI for debugging and validation purposes. For more information about how [[Harvester]] integrates with Rancher, see the <a target="_blank" href="{url}" rel="noopener noreferrer nofollow">documentation</a>.
       longhorn:
         title: Access Embedded Longhorn UI
         titleDescription: We only support to use the embedded Longhorn UI for debugging and validation purpose.
     community:
-      learnMore: Find out more about SUSE Harvester support
+      learnMore: Find out more about [[Harvester]] support
       pricing: Contact us for pricing
 
   namespace:
@@ -1928,16 +1928,16 @@ harvester:
 
   addons:
     descriptions:
-      'harvester-system/vm-import-controller': vm-import-controller is an add-on to help migrate virtual machine workloads from other source clusters to an existing Harvester cluster.
-      'harvester-system/pcidevices-controller': pcidevices-controller is an add-on to help discover PCI devices for nodes in your cluster and allow users to prepare devices for PCI Passthrough, for use with Harvester virtual machine and guest clusters.
-      'cattle-logging-system/rancher-logging': rancher-logging is an add-on to collect versatile logs, events, and audits from the Harvester cluster and route them to many kinds of servers based on flows.
+      'harvester-system/vm-import-controller': vm-import-controller is an add-on to help migrate virtual machine workloads from other source clusters to an existing [[Harvester]] cluster.
+      'harvester-system/pcidevices-controller': pcidevices-controller is an add-on to help discover PCI devices for nodes in your cluster and allow users to prepare devices for PCI Passthrough, for use with [[Harvester]] virtual machine and guest clusters.
+      'cattle-logging-system/rancher-logging': rancher-logging is an add-on to collect versatile logs, events, and audits from the [[Harvester]] cluster and route them to many kinds of servers based on flows.
       'harvester-system/rancher-vcluster': rancher-vcluster deploys a virtual cluster (vcluster) with Rancher installed.
-      'cattle-monitoring-system/rancher-monitoring': rancher-monitoring is an add-on that collects Harvester cluster and virtual machine metrics and allows you to view the metrics on an embedded dashboard and send alert(s) to remote servers.
-      'vm-import-controller': vm-import-controller is an add-on to help migrate virtual machine workloads from other source clusters to an existing Harvester cluster.
-      'pcidevices-controller': pcidevices-controller is an add-on to help discover PCI devices for nodes in your cluster and allow users to prepare devices for PCI Passthrough, for use with Harvester virtual machines and guest clusters.
-      'nvidia-driver-toolkit': 'nvidia-driver-toolkit is an add-on to enable vGPU devices and assign them to Harvester virtual machines.'
-      'rancher-logging': rancher-logging is an add-on to collect versatile logs, events, and audits from the Harvester cluster and route them to many kinds of servers based on flows.
-      'rancher-monitoring': rancher-monitoring is an add-on to collect Harvester cluster and virtual machine metrics, view them on the embedded dashboard, and send alert(s) to remote servers.
+      'cattle-monitoring-system/rancher-monitoring': rancher-monitoring is an add-on that collects [[Harvester]] cluster and virtual machine metrics and allows you to view the metrics on an embedded dashboard and send alert(s) to remote servers.
+      'vm-import-controller': vm-import-controller is an add-on to help migrate virtual machine workloads from other source clusters to an existing [[Harvester]] cluster.
+      'pcidevices-controller': pcidevices-controller is an add-on to help discover PCI devices for nodes in your cluster and allow users to prepare devices for PCI Passthrough, for use with [[Harvester]] virtual machines and guest clusters.
+      'nvidia-driver-toolkit': 'nvidia-driver-toolkit is an add-on to enable vGPU devices and assign them to [[Harvester]] virtual machines.'
+      'rancher-logging': rancher-logging is an add-on to collect versatile logs, events, and audits from the [[Harvester]] cluster and route them to many kinds of servers based on flows.
+      'rancher-monitoring': rancher-monitoring is an add-on to collect [[Harvester]] cluster and virtual machine metrics, view them on the embedded dashboard, and send alert(s) to remote servers.
       'rancher-vcluster': rancher-vcluster deploys a virtual cluster (vcluster) with Rancher installed.
       'k3k': k3k is an add-on to deploy the k3k controller.
       'rancher-k3k': rancher-k3k deploys a k3k virtual cluster with Rancher installed.
@@ -2006,7 +2006,7 @@ harvester:
         providerSelect: Provider
         createNew: Create new provider
         requirementsTitle: Requirements
-        requirementsText: "To migrate virtual machines from VMware, you will need a vCenter Server running version 6.5 or higher with a user account that has at least read permissions, and the source environment must be network-accessible from Harvester Node."
+        requirementsText: "To migrate virtual machines from VMware, you will need a vCenter Server running version 6.5 or higher with a user account that has at least read permissions, and the source environment must be network-accessible from [[Harvester]] Node."
         name: Name
         urlLabel: vCenter/ESXi URL
         urlPlaceholder: "https://vcenter.example.com/sdk"
@@ -2059,7 +2059,7 @@ harvester:
           datastore: Datastore
       dashboard:
         title: Virtual Machine Migration Overview
-        description: "Migrate virtual machines from VMware vSphere to Harvester using cold migration for data consistency. Create a migration plan to select VMs, map networks and storage, and prepare a migration to Harvester."
+        description: "Migrate virtual machines from VMware vSphere to [[Harvester]] using cold migration for data consistency. Create a migration plan to select VMs, map networks and storage, and prepare a migration to [[Harvester]]."
         createPlan: Create Migration
         tableTitle: Migrations
         columns:
@@ -2079,22 +2079,22 @@ harvester:
           checkMigratedVm: Click to check migrated VM details
       configureMappings:
         title: Set Mappings
-        description: Map VMware networks and datastores to Harvester and Longhorn target resources
+        description: Map VMware networks and datastores to [[Harvester]] and Longhorn target resources
         save: Save Mappings and Continue
         noTemplate: Start from scratch
         removeMap: Remove mapping
         networkMapping:
           title: Network Mapping
-          description: Map VMware port groups to Harvester networks
-          placeholder: Choose a Harvester network
+          description: Map VMware port groups to [[Harvester]] networks
+          placeholder: Choose a [[Harvester]] network
           template: Use existing network mapping as template
           options:
             podNetworking: Management Network
             ignored: Ignored (No NIC will be created)
         storageMapping:
           title: Storage Mapping
-          description: Map VMware datastores to Harvester storage classes
-          placeholder: Choose a Harvester Storage Class
+          description: Map VMware datastores to [[Harvester]] storage classes
+          placeholder: Choose a [[Harvester]] Storage Class
           template: Use existing storage mapping as template
       storageDefaults:
         title: 'Storage defaults — {name}'
@@ -2413,7 +2413,7 @@ harvester:
     vGpuDevices: vGPU Devices
     showMore: Show More
     parentSriov: Filter By Parent SR-IOV GPU
-    noPermission: Please contact your system administrator to add Harvester add-ons first.
+    noPermission: Please contact your system administrator to add [[Harvester]] add-ons first.
     goSetting:
       prefix: The nvidia-driver-toolkit add-on is not enabled, click
       middle: here
@@ -2449,7 +2449,7 @@ harvester:
 
   vgpu:
     label: vGPU Devices
-    noPermission: Please contact system administrator to add Harvester add-ons first.
+    noPermission: Please contact system administrator to add [[Harvester]] add-ons first.
     detachWarning:
       title: Cannot Disable vGPU
       message: Please detach the device from the VM and save it first before disabling this vGPU device.
@@ -2470,7 +2470,7 @@ harvester:
 
   usb:
     label: USB Devices
-    noPermission: Please contact system admin to add Harvester add-ons first
+    noPermission: Please contact system admin to add [[Harvester]] add-ons first
     goSetting:
       prefix: The pcidevices-controller add-on is not enabled, click
       middle: here
@@ -2531,7 +2531,7 @@ typeDescription:
   #       Should fit on one line.
   #       If you link to anything external, it MUST have
   #       target="_blank" rel="noopener noreferrer nofollow"
-  harvester: "Branding allows administrators to globally re-brand the UI by customizing the Harvester product name, logos and color scheme."
+  harvester: "Branding allows administrators to globally re-brand the UI by customizing the [[Harvester]] product name, logos and color scheme."
 
 advancedSettings:
   tags:
@@ -2546,19 +2546,19 @@ advancedSettings:
   descriptions:
     'harv-vlan': Default Network Interface name of the VLAN network.
     'harv-backup-target': Custom backup target to store virtual machine backups.
-    'branding': Branding allows administrators to globally re-brand the UI by customizing the Harvester product name, logos, and color scheme.
+    'branding': Branding allows administrators to globally re-brand the UI by customizing the [[Harvester]] product name, logos, and color scheme.
     'harv-csi-driver-config': Configure additional information for CSI drivers.
     'harv-csi-online-expand-validation': Allow online volume expansion for specific CSI drivers.
     'harv-containerd-registry': Containerd Registry Configuration to connect private registries.
-    'harv-log-level': Configure Harvester server log level. Defaults to Info.
-    'harv-server-version': Harvester server version.
-    'harv-server-flavor': "Indicates the Harvester edition: Prime or Community."
-    'harv-upgrade-checker-enabled': Specifies whether to enable Harvester upgrade check or not. Default is True.
-    'harv-upgrade-checker-url': Default Harvester upgrade check url. Only used when the <code>upgrade-checker-enabled</code> is equal to True.
-    'harv-ui-source': Configure how to load the UI source. The `External` option is used to load the UI from a ui-index URL, while the `Bundled` option loads the UI from the local Harvester server.
+    'harv-log-level': Configure [[Harvester]] server log level. Defaults to Info.
+    'harv-server-version': '[[Harvester]] server version.'
+    'harv-server-flavor': "Indicates the [[Harvester]] edition: Prime or Community."
+    'harv-upgrade-checker-enabled': Specifies whether to enable [[Harvester]] upgrade check or not. Default is True.
+    'harv-upgrade-checker-url': Default [[Harvester]] upgrade check url. Only used when the <code>upgrade-checker-enabled</code> is equal to True.
+    'harv-ui-source': Configure how to load the UI source. The `External` option is used to load the UI from a ui-index URL, while the `Bundled` option loads the UI from the local [[Harvester]] server.
     'harv-ui-index': 'HTML index location for the UI.'
     'harv-cluster-registration-url': Registration URL for multi-cluster management.
-    'harv-http-proxy': 'HTTP proxy for Harvester to access external services.'
+    'harv-http-proxy': 'HTTP proxy for [[Harvester]] to access external services.'
     'harv-additional-ca': 'Custom CA root certificates for TLS validation.'
     'harv-overcommit-config': 'Resource overcommit configuration.'
     'harv-support-bundle-timeout': 'Support bundle timeout configuration in minutes, use 0 to disable the timeout.'
@@ -2570,13 +2570,13 @@ advancedSettings:
     'harv-storage-network': 'Longhorn storage-network setting.'
     'harv-rwx-network': 'Configure RWX network behavior for shared or dedicated storage network usage.'
     'harv-support-bundle-namespaces': Select additional namespaces to include in the support bundle.
-    'harv-auto-disk-provision-paths': Specify the disks(using glob pattern) that Harvester will automatically add as virtual machine storage.
+    'harv-auto-disk-provision-paths': Specify the disks(using glob pattern) that [[Harvester]] will automatically add as virtual machine storage.
     'harv-support-bundle-image': Support bundle image configuration. Find different versions in <a href="https://hub.docker.com/r/rancher/support-bundle-kit/tags" target="_blank">rancher/support-bundle-kit</a>.
-    'harv-release-download-url': This setting allows you to configure the <code>upgrade release download</code> URL address. Harvester will get the ISO URL and checksum value from the (<code>$URL</code>/<code>$VERSION</code>/version.yaml) file hosted by the configured URL.
+    'harv-release-download-url': This setting allows you to configure the <code>upgrade release download</code> URL address. [[Harvester]] will get the ISO URL and checksum value from the (<code>$URL</code>/<code>$VERSION</code>/version.yaml) file hosted by the configured URL.
     'harv-default-vm-termination-grace-period-seconds': Configure the virtual machine termination grace period for virtual machine stop.
     'harv-ntp-servers': Configure NTP server. You can configure multiple IPv4 addresses or host addresses.
-    'harv-auto-rotate-rke2-certs': The certificate rotation mechanism relies on Rancher. Harvester will automatically update certificates generation to trigger rotation.
-    'harv-kubeconfig-default-token-ttl-minutes': 'TTL (in minutes) applied on Harvester administration kubeconfig files. Default is 0, which means to never expire.'
+    'harv-auto-rotate-rke2-certs': The certificate rotation mechanism relies on Rancher. [[Harvester]] will automatically update certificates generation to trigger rotation.
+    'harv-kubeconfig-default-token-ttl-minutes': 'TTL (in minutes) applied on [[Harvester]] administration kubeconfig files. Default is 0, which means to never expire.'
     'harv-longhorn-v2-data-engine-enabled': 'Enable the Longhorn V2 data engine. Default is false. <ul><li>Changing this setting will restart RKE2 on all nodes. This will not affect running VM workloads.</li><li>If you see "not enough hugepages-2Mi capacity" errors when enabling this setting, wait a minute for the error to clear. If the error remains, reboot the affected node.</li></ul>'
     'harv-longhorn-v2-data-engine-hugepage-enabled': 'Enable hugepages when using the Longhorn V2 data engine. Default is true. Disabling hugepages reduces memory pressure on low-spec nodes and increases deployment flexibility. However, performance may be lower compared to running with hugepages.'
     'harv-longhorn-v2-data-engine-memory-size': 'Configure the amount of memory allocated to the SPDK target daemon when using the Longhorn V2 data engine. Default is 2048 MiB.'
