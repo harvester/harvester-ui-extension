@@ -86,6 +86,9 @@ const FEATURE_FLAGS = {
     'maintenanceModeConditions',
     'maintenanceModeDrainTimeoutSetting',
   ],
+  'v1.11.0': [
+    'longhornV2RdmaTransport',
+  ],
 };
 
 const generateFeatureFlags = () => {
