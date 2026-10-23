@@ -191,7 +191,8 @@ export default {
     >
       <div class="col span-12">
         <FileSelector
-          class="btn btn-sm bg-primary mb-10"
+          variant="primary"
+          class="mb-10"
           :label="t('generic.readFromFile')"
           @selected="onKeySelected"
         />
