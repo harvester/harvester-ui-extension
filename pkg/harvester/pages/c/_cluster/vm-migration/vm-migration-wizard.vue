@@ -10,6 +10,7 @@ import ReviewMigrationStep from '@pkg/harvester/components/vm-migration/ReviewMi
 import { PRODUCT_NAME } from '@pkg/harvester/config/harvester';
 import { currentRouter } from '@pkg/harvester/utils/router';
 import { exceptionToErrorsArray, stringify } from '@shell/utils/error';
+import { preventImplicitSubmit } from '@pkg/harvester/utils/wizard';
 
 const store = useStore();
 const { t } = useI18n(store);
@@ -269,6 +270,7 @@ const onCancel = () => {
     finish-mode="finish"
     finish-button-mode="createAndStart"
     class="wizard"
+    @keydown.enter.capture="preventImplicitSubmit"
     @cancel="onCancel"
     @finish="onFinish"
   >
