@@ -59,6 +59,8 @@ import { ADD_ONS } from './harvester-map';
 import { registerAddonSideNav } from '../utils/dynamic-nav';
 import { setVendor } from '@shell/config/private-label';
 import { createCssVars } from '@shell/utils/color';
+import { CONFIGURABLE_TABLES } from '@shell/store/features';
+import { tableViewsOffFeature } from '../utils/table-views';
 
 const TEMPLATE = HCI.VM_VERSION;
 const MONITORING_GROUP = 'Monitoring & Logging::Monitoring';
@@ -153,6 +155,17 @@ export function init($plugin, store) {
           logoRoute:         home,
           supportCustomLogo: !isHarvesterPrime
         });
+      },
+      { immediate: true }
+    );
+
+    // Keep the shell's table views off: they drop the filters the lists put in the table header
+    store.watch(
+      (_state, getters) => getters['management/byId'](MANAGEMENT.FEATURE, CONFIGURABLE_TABLES),
+      (feature) => {
+        if (!feature) {
+          store.dispatch('management/load', { data: tableViewsOffFeature() });
+        }
       },
       { immediate: true }
     );

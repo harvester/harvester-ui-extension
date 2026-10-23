@@ -299,6 +299,7 @@ export default {
 
           const res = await this.value.save();
 
+          res.notifyGeneratedName?.();
           res.uploadImage(file);
 
           buttonCb(true);
