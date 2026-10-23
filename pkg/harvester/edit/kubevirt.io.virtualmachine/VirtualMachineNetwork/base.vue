@@ -2,11 +2,14 @@
 import InputOrDisplay from '@shell/components/InputOrDisplay';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
+import { Banner } from '@components/Banner';
 import { Checkbox } from '@components/Form/Checkbox';
 
 import { clone } from '@shell/utils/object';
-import { _CREATE, _VIEW } from '@shell/config/query-params';
+import { _CREATE, _EDIT, _VIEW } from '@shell/config/query-params';
+import { NETWORK_ATTACHMENT } from '@shell/config/types';
 import { MANAGEMENT_NETWORK } from '../../../mixins/harvester-vm';
+import { isBridgeNAD } from '@pkg/utils/vm';
 
 const MODEL = [{
   label: 'virtio',
@@ -34,7 +37,7 @@ export default {
   emits: ['update'],
 
   components: {
-    LabeledInput, LabeledSelect, InputOrDisplay, Checkbox
+    Banner, LabeledInput, LabeledSelect, InputOrDisplay, Checkbox
   },
 
   props: {
@@ -67,6 +70,12 @@ export default {
     isSingle: {
       type:    Boolean,
       default: true
+    },
+
+    // namespace of the VM, used to resolve a network name without a namespace
+    namespace: {
+      type:    String,
+      default: ''
     }
   },
 
@@ -79,6 +88,7 @@ export default {
 
     return {
       isMasquerade,
+      initialNetworkName:   this.value.newCreateId ? '' : this.value.networkName,
       hasManagementNetwork: false,
       showAdvanced:         false,
     };
@@ -134,6 +144,23 @@ export default {
       }];
 
       return this.isMasquerade ? masquerade : other;
+    },
+
+    // Same bridge-to-bridge condition as _isLiveNetworkChange of the VM edit page
+    showLiveNetworkChangeBanner() {
+      if (
+        this.mode !== _EDIT ||
+        this.isMasquerade ||
+        !this.initialNetworkName ||
+        this.value.networkName === this.initialNetworkName ||
+        !this.$store.getters['harvester-common/getFeatureEnabled']('liveUpdateNADRef')
+      ) {
+        return false;
+      }
+
+      const nads = this.$store.getters['harvester/all'](NETWORK_ATTACHMENT);
+
+      return isBridgeNAD(nads, this.initialNetworkName, this.namespace) && isBridgeNAD(nads, this.value.networkName, this.namespace);
     },
 
     staticIPForVMEnabled() {
@@ -286,6 +313,13 @@ export default {
         </InputOrDisplay>
       </div>
     </div>
+
+    <Banner
+      v-if="showLiveNetworkChangeBanner"
+      data-testid="banner-live-network-change"
+      color="info"
+      :label="t('harvester.virtualMachine.network.liveUpdateNADRef')"
+    />
 
     <div
       v-if="!isMasquerade"

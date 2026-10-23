@@ -873,6 +873,7 @@ harvester:
       title: Network
       addNetwork: Add Network
       addPort:  Add Port
+      liveUpdateNADRef: If the virtual machine is running and can be live-migrated, it is migrated to apply the network change without a restart. Otherwise, the change takes effect after a restart. The MAC address is kept; the guest may need to renew its DHCP lease if the new network uses a different subnet.
       networkBoot:
         label: Enable network boot (PXE)
         tip: Adds this interface to the VM boot order so the guest firmware can boot from the network. Requires a DHCP/TFTP (PXE) server reachable on the selected network; the management network does not provide one.
