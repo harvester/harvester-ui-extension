@@ -13,7 +13,7 @@ import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
 import { BACKUP_TYPE } from '../config/types';
 import { HCI } from '../types';
 import HarvesterResource from './harvester';
-import { CLONE_PHASE } from './harvester/persistentvolumeclaim';
+import { CLONE_PHASE } from '../utils/vm';
 import { getVmCPUMemoryValues } from '../utils/cpuMemory';
 import { sharedComputed } from '../utils/shared-computed';
 import { isBackupTargetSettingUnavailable } from '../utils/setting';

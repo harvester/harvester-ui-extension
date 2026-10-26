@@ -13,6 +13,12 @@ export function parseVolumeClaimTemplates(data) {
 
 export const EMPTY_IMAGE = 'EMPTY_IMAGE';
 
+// Longhorn volume.status.cloneStatus.state values while data is still being copied
+export const CLONE_PHASE = {
+  COPY:    'copy',
+  REBUILD: 'rebuild',
+};
+
 /**
  * Disks and interfaces that take part in the boot sequence, sorted by boot order.
  */
