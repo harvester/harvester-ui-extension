@@ -8,6 +8,7 @@ import { get, clone } from '@shell/utils/object';
 import { colorForState } from '@shell/plugins/dashboard-store/resource-class';
 import { parseSi } from '@shell/utils/units';
 import { HCI, VOLUME_SNAPSHOT } from '../../types';
+import { CLONE_PHASE } from '../../utils/vm';
 import HarvesterResource from '../harvester';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../config/harvester';
 import { CDI_POPULATOR_KIND } from '../../config/types';
@@ -17,12 +18,6 @@ const DEGRADED_ERRORS = ['replica scheduling failed', 'precheck new replica fail
 
 // PVC data sources that Longhorn populates by cloning (VM clone, volume clone, snapshot restore)
 const CLONE_SOURCE_KINDS = ['PersistentVolumeClaim', 'VolumeSnapshot'];
-
-// Longhorn volume.status.cloneStatus.state values while data is still being copied
-export const CLONE_PHASE = {
-  COPY:    'copy',
-  REBUILD: 'rebuild',
-};
 
 export const DATA_ENGINE_V1 = 'v1';
 export const DATA_ENGINE_V2 = 'v2';
