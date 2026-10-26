@@ -62,7 +62,7 @@ describe('component: HarvesterEditNetwork, live network change banner', () => {
   });
   const mountNetwork = (networkName, props = {}) => mount(HarvesterEditNetwork, {
     props:  {
-      mode: _EDIT, value: nic(networkName), ...props
+      mode: _EDIT, value: nic(networkName), canLiveUpdateNADRef: true, ...props
     },
     global: { mocks: { $store: store } },
   });
@@ -75,6 +75,14 @@ describe('component: HarvesterEditNetwork, live network change banner', () => {
     await wrapper.setProps({ value: nic('default/vlan-200') });
 
     expect(wrapper.find(BANNER).exists()).toBe(true);
+  });
+
+  it('should not show the banner when the VM is not running or cannot be live-migrated', async() => {
+    const wrapper = mountNetwork('default/vlan-100', { canLiveUpdateNADRef: false });
+
+    await wrapper.setProps({ value: nic('default/vlan-200') });
+
+    expect(wrapper.find(BANNER).exists()).toBe(false);
   });
 
   it('should not show the banner when a bridge network is changed to an overlay network', async() => {

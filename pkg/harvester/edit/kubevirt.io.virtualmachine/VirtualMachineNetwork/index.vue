@@ -50,6 +50,11 @@ export default {
     namespace: {
       type:    String,
       default: ''
+    },
+
+    canLiveUpdateNADRef: {
+      type:    Boolean,
+      default: false
     }
   },
 
@@ -245,6 +250,7 @@ export default {
         :is-single="isSingle"
         :network-option="networkOption"
         :namespace="namespace"
+        :can-live-update-n-a-d-ref="canLiveUpdateNADRef"
         @update="update"
       />
     </InfoBox>

@@ -76,6 +76,12 @@ export default {
     namespace: {
       type:    String,
       default: ''
+    },
+
+    // whether the VM is running and can be live-migrated, see canLiveUpdateNADRef of the VM model
+    canLiveUpdateNADRef: {
+      type:    Boolean,
+      default: false
     }
   },
 
@@ -150,10 +156,10 @@ export default {
     showLiveNetworkChangeBanner() {
       if (
         this.mode !== _EDIT ||
+        !this.canLiveUpdateNADRef ||
         this.isMasquerade ||
         !this.initialNetworkName ||
-        this.value.networkName === this.initialNetworkName ||
-        !this.$store.getters['harvester-common/getFeatureEnabled']('liveUpdateNADRef')
+        this.value.networkName === this.initialNetworkName
       ) {
         return false;
       }

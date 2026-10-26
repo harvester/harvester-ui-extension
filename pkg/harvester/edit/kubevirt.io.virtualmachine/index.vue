@@ -546,7 +546,7 @@ export default {
     },
 
     _isLiveNetworkChange(oldVM, newVM) {
-      if (!this.value.liveUpdateNADRefFeatureEnabled || !this.value.actions?.migrate) return false;
+      if (!this.value.canLiveUpdateNADRef) return false;
 
       const nads = this.$store.getters['harvester/all'](NETWORK_ATTACHMENT);
       const namespace = this.value.metadata?.namespace;
@@ -909,6 +909,7 @@ export default {
           :mode="mode"
           :is-single="isSingle"
           :namespace="value.metadata.namespace"
+          :can-live-update-n-a-d-ref="value.canLiveUpdateNADRef"
         />
       </Tab>
 
@@ -1006,6 +1007,7 @@ export default {
           v-model:value="filesystemRows"
           :mode="isCreate ? mode : 'view'"
           :namespace="value.metadata.namespace"
+          :can-live-update-n-a-d-ref="value.canLiveUpdateNADRef"
         />
       </Tab>
 
@@ -1201,6 +1203,7 @@ export default {
           v-model:value="sysprep"
           :mode="mode"
           :namespace="value.metadata.namespace"
+          :can-live-update-n-a-d-ref="value.canLiveUpdateNADRef"
         />
       </Tab>
     </Tabbed>
