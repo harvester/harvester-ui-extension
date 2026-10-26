@@ -85,8 +85,8 @@ dialog:
 harvester:
   connectionStatus:
     label: Disconnected
-    reconnecting: The UI lost its connection to the Harvester cluster and is trying to reconnect. Resource states shown on this page may be outdated until the connection is restored. This does not indicate a problem with the cluster.
-    gaveUp: The UI lost its connection to the Harvester cluster and stopped trying to reconnect. Resource states shown on this page may be outdated. Check your network connection and reload the page.
+    reconnecting: The UI lost its connection to the [[Harvester]] cluster and is trying to reconnect. Resource states shown on this page may be outdated until the connection is restored. This does not indicate a problem with the cluster.
+    gaveUp: The UI lost its connection to the [[Harvester]] cluster and stopped trying to reconnect. Resource states shown on this page may be outdated. Check your network connection and reload the page.
     reload: Reload
   branding:
     primeLabel: '{vendor}'
