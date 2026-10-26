@@ -21,8 +21,9 @@ describe('component: VirtualMachineNetwork', () => {
   it('should not show the live network change banner on the next NIC after a NIC is removed', async() => {
     const wrapper = mount(VirtualMachineNetwork, {
       props: {
-        mode:  _EDIT,
-        value: [nic('nic-a', 'default/vlan-100'), nic('nic-b', 'default/vlan-200')],
+        mode:                _EDIT,
+        canLiveUpdateNADRef: true,
+        value:               [nic('nic-a', 'default/vlan-100'), nic('nic-b', 'default/vlan-200')],
       },
       global: { mocks: { $store: store } },
     });

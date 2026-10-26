@@ -1366,6 +1366,11 @@ export default class VirtVm extends HarvesterResource {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('liveUpdateNADRef');
   }
 
+  // A running VM that can be live-migrated picks up a NAD change via KubeVirt LiveUpdateNADRef
+  get canLiveUpdateNADRef() {
+    return this.liveUpdateNADRefFeatureEnabled && !!this.actions?.migrate;
+  }
+
   get hotplugCdRomEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('hotplugCdRom');
   }

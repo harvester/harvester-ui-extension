@@ -15,7 +15,7 @@ const VM_ID = 'ns1/vm1';
 // Creates a VM model with mocked store getters. Like the real store, `all` returns the same array that is mutated in place.
 // Reads from the global `$rootGetters` are recorded in `globalReads`.
 function createVm({
-  vm = {}, vmi, pods = [], pvcs = [], restores = [], backups = [], claims = ['disk-pvc'], printableStatus
+  vm = {}, vmi, pods = [], pvcs = [], restores = [], backups = [], claims = ['disk-pvc'], printableStatus, features = []
 } = {}) {
   const lists = reactive({
     [POD]:         pods,
@@ -31,7 +31,7 @@ function createVm({
     schemaFor: () => undefined,
   };
   const globalReads = [];
-  const rootGetters = new Proxy({ 'harvester-common/getFeatureEnabled': () => false }, {
+  const rootGetters = new Proxy({ 'harvester-common/getFeatureEnabled': (feature) => features.includes(feature) }, {
     get(target, key) {
       globalReads.push(key);
 
@@ -393,6 +393,18 @@ describe('class VirtVm', () => {
       const { vm } = createVm({ vm: { status: { conditions: [{ type: 'RestartRequired', status: 'True' }] } } });
 
       expect(vm.isRestartRequired).toBe(true);
+    });
+  });
+
+  describe('canLiveUpdateNADRef', () => {
+    it.each([
+      [true, ['liveUpdateNADRef'], { migrate: {} }],
+      [false, ['liveUpdateNADRef'], {}],
+      [false, [], { migrate: {} }],
+    ])('should be %p with features %p and actions %p', (expected, features, actions) => {
+      const { vm } = createVm({ vm: { actions }, features });
+
+      expect(vm.canLiveUpdateNADRef).toBe(expected);
     });
   });
 });
