@@ -176,9 +176,9 @@ export default {
       metric:           this.fetchClusterResources(METRIC.NODE),
       longhornNodes:    this.fetchClusterResources(LONGHORN.NODES),
       longhornSettings: this.fetchClusterResources(LONGHORN.SETTINGS),
-      componentHealths: this.fetchClusterResources(HCI.COMPONENT_HEALTH),
-      healthSummaries:  this.fetchClusterResources(HCI.HEALTH_SUMMARY),
-      ignoreRules:      this.fetchClusterResources(HCI.HEALTH_IGNORE_RULE),
+      componentHealths: this.componentHealthEnabled ? this.fetchClusterResources(HCI.COMPONENT_HEALTH) : [],
+      healthSummaries:  this.componentHealthEnabled ? this.fetchClusterResources(HCI.HEALTH_SUMMARY) : [],
+      ignoreRules:      this.componentHealthEnabled ? this.fetchClusterResources(HCI.HEALTH_IGNORE_RULE) : [],
       _pods:            this.$store.dispatch('harvester/findAll', { type: POD }),
     };
 
@@ -378,6 +378,10 @@ export default {
 
   computed: {
     ...mapGetters(['currentCluster']),
+
+    componentHealthEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('componentHealth');
+    },
 
     accessibleResources() {
       const inStore = this.$store.getters['currentProduct'].inStore;
@@ -1289,7 +1293,7 @@ export default {
     </div>
 
     <div
-      v-if="healthSummaryRows.length"
+      v-if="componentHealthEnabled && healthSummaryRows.length"
       class="mb-40 mt-40"
     >
       <h3>
@@ -1316,7 +1320,7 @@ export default {
     </div>
 
     <div
-      v-if="componentHealthGroups.length"
+      v-if="componentHealthEnabled && componentHealthGroups.length"
       class="mb-40 mt-40"
     >
       <h3>
