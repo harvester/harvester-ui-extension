@@ -13,6 +13,7 @@ import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations
 import { VOLUME_MODE } from '@pkg/harvester/config/types';
 import { HCI } from '../../../../types';
 import { VOLUME_TYPE, LUN_VOLUME_TYPE, DISK_ERROR_POLICY, InterfaceOption } from '../../../../config/harvester-map';
+import { HCI_SETTING } from '../../../../config/settings';
 import { GIBIBYTE } from '../../../../utils/unit';
 import DiskPerformanceOptions from '../DiskPerformanceOptions';
 
@@ -110,6 +111,25 @@ export default {
 
     isLun() {
       return this.value.type === LUN_VOLUME_TYPE.value;
+    },
+
+    // From v1.10, persistent reservation is enabled by the persistent-reservation-enabled setting.
+    // Older clusters enable it in the KubeVirt configuration, so the option isn't restricted there.
+    persistentReservationAllowed() {
+      if (!this.$store.getters['harvester-common/getFeatureEnabled']('persistentReservation')) {
+        return true;
+      }
+
+      const setting = this.$store.getters['harvester/byId'](HCI.SETTING, HCI_SETTING.PERSISTENT_RESERVATION_ENABLED);
+
+      return (setting?.value || setting?.default) === 'true';
+    },
+
+    settingsRoute() {
+      return {
+        name:   'harvester-c-cluster-resource',
+        params: { cluster: this.$route.params.cluster, resource: HCI.SETTING }
+      };
     },
 
     isShareableCapable() {
@@ -384,8 +404,19 @@ export default {
           label-key="harvester.virtualMachine.volume.lun.reservation.label"
           tooltip-key="harvester.virtualMachine.volume.lun.reservation.tip"
           :mode="mode"
+          :disabled="!persistentReservationAllowed && !value.reservation"
           @update:value="update"
         />
+        <Banner
+          v-if="!persistentReservationAllowed"
+          color="warning"
+          data-testid="banner-hee-reservation-disabled"
+        >
+          {{ t('harvester.virtualMachine.volume.lun.reservation.disabled') }}
+          <router-link :to="settingsRoute">
+            {{ t('harvester.virtualMachine.volume.lun.reservation.settingsLink') }}
+          </router-link>
+        </Banner>
         <Banner
           color="info"
           :label="t('harvester.virtualMachine.volume.lun.info')"
