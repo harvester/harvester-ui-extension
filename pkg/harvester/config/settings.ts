@@ -46,7 +46,8 @@ export const HCI_SETTING = {
   KUBEVIRT_MIGRATION:                       'kubevirt-migration',
   INSTANCE_MANAGER_RESOURCES:               'instance-manager-resources',
   CLUSTER_POD_SECURITY_STANDARD:            'cluster-pod-security-standard',
-  MAINTENANCE_MODE_DRAIN_TIMEOUT:           'maintenance-mode-drain-timeout'
+  MAINTENANCE_MODE_DRAIN_TIMEOUT:           'maintenance-mode-drain-timeout',
+  PERSISTENT_RESERVATION_ENABLED:           'persistent-reservation-enabled',
 };
 
 export const HCI_ALLOWED_SETTINGS = {
@@ -152,7 +153,8 @@ export const HCI_ALLOWED_SETTINGS = {
   },
   [HCI_SETTING.MAINTENANCE_MODE_DRAIN_TIMEOUT]: {
     kind: 'number', canReset: true, featureFlag: 'maintenanceModeDrainTimeoutSetting'
-  }
+  },
+  [HCI_SETTING.PERSISTENT_RESERVATION_ENABLED]: { kind: 'boolean', featureFlag: 'persistentReservation' }
 };
 
 export const HCI_SINGLE_CLUSTER_ALLOWED_SETTING = {
