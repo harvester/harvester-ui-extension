@@ -150,11 +150,14 @@ const groups = computed(() => {
 
   return Object.keys(rowsByComponent).sort().map((component) => {
     const groupRows = rowsByComponent[component];
-    const visibleRows = groupRows.filter((row) => isRowVisible(row) && filtersFor(component).includes(row.severity));
+    const shownRows = groupRows.filter((row) => isRowVisible(row));
+    const visibleRows = shownRows.filter((row) => filtersFor(component).includes(row.severity));
 
     return {
       component,
       hasIgnored: hasIgnoredRows(groupRows),
+      // tells an empty severity filter result from a health report without any check
+      hasChecks:  shownRows.length > 0,
       filters:    COMPONENT_HEALTH_SEVERITIES.map((severity) => ({
         severity,
         count: groupRows.filter((row) => row.severity === severity && isRowVisible(row)).length,
@@ -174,8 +177,15 @@ function toggleSeverity(component, severity, enabled) {
   };
 }
 
+// called from the template, where the refs are unwrapped, so the array is changed in place
 function toggleId(list, id) {
-  list.value = list.value.includes(id) ? list.value.filter((existing) => existing !== id) : [...list.value, id];
+  const index = list.indexOf(id);
+
+  if (index === -1) {
+    list.push(id);
+  } else {
+    list.splice(index, 1);
+  }
 }
 
 function isMessageTruncated(message) {
@@ -282,7 +292,7 @@ async function restoreIgnored(ignoredBy) {
           v-if="!group.rows.length"
           class="text-muted"
         >
-          {{ t('harvester.dashboard.sections.componentHealth.noIssues') }}
+          {{ group.hasChecks ? t('harvester.dashboard.sections.componentHealth.noMatchingChecks') : t('harvester.dashboard.sections.componentHealth.noIssues') }}
         </div>
         <SortableTable
           v-else
