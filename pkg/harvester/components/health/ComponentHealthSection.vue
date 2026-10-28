@@ -32,8 +32,8 @@ const headers = [
   {
     name:     'severity',
     labelKey: 'harvester.dashboard.sections.componentHealth.severity',
-    value:    'severity',
-    sort:     'severity',
+    value:    'severityRank',
+    sort:     'severityRank',
     width:    110,
   },
   {
@@ -104,6 +104,8 @@ const rows = computed(() => {
         ignored:             !!check.ignored,
         ignoredBy:           check.ignoredBy,
         severity:            check.severity,
+        // the table sorts on a row property, the severities are not in alphabetical order
+        severityRank:        COMPONENT_HEALTH_SEVERITIES.indexOf(check.severity),
         message:             check.message,
         affectedCount:       check.affectedCount,
         affectedResources:   check.affectedResources,
