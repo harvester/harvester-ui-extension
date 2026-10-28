@@ -139,6 +139,11 @@ const SEVERITY_COLORS = {
   Healthy:  'bg-success',
 };
 
+const HEALTH_SUMMARY_SEVERITY_RANK = {
+  Critical: 0,
+  Warning:  1,
+  Healthy:  2,
+};
 const COMPONENT_HEALTH_SEVERITIES = ['Error', 'Warning', 'Info'];
 
 export default {
@@ -256,8 +261,8 @@ export default {
       {
         name:     'severity',
         labelKey: 'harvester.dashboard.sections.healthSummary.severity',
-        value:    'severity',
-        sort:     'severity',
+        value:    'severityRank',
+        sort:     'severityRank',
         width:    110,
       },
       {
@@ -372,6 +377,7 @@ export default {
       enabledMonitoringAddon: false,
       hasLonghornSchema:      false,
       expandedMessageIds:     [],
+      expandedResourceIds:    [],
       componentHealthFilters: {},
     };
   },
@@ -588,13 +594,18 @@ export default {
         const lastUpdatedAt = healthSummary?.status?.lastUpdatedAt;
 
         Object.entries(components).forEach(([component, counts]) => {
-          rows.push({
+          const row = {
             id:           `${ healthSummary.id }/${ component }`,
             component,
             errorCount:   counts?.errorCount || 0,
             warningCount: counts?.warningCount || 0,
             lastUpdatedAt,
-          });
+          };
+
+          // the table sorts on a row property, so the severity has to be on the row
+          row.severityRank = HEALTH_SUMMARY_SEVERITY_RANK[this.healthSummarySeverity(row)];
+
+          rows.push(row);
         });
       });
 
@@ -859,16 +870,26 @@ export default {
       return detail?.ignored ? detail.ignoredBy : '';
     },
 
-    truncatedAffectedResourceNames(row) {
-      return this.affectedResourceNames(row).slice(0, AFFECTED_RESOURCES_TRUNCATE_COUNT);
+    isResourcesExpanded(rowId) {
+      return this.expandedResourceIds.includes(rowId);
+    },
+
+    toggleResources(rowId) {
+      if (this.isResourcesExpanded(rowId)) {
+        this.expandedResourceIds = this.expandedResourceIds.filter((id) => id !== rowId);
+      } else {
+        this.expandedResourceIds = [...this.expandedResourceIds, rowId];
+      }
+    },
+
+    visibleAffectedResourceNames(row) {
+      const names = this.affectedResourceNames(row);
+
+      return this.isResourcesExpanded(row.id) ? names : names.slice(0, AFFECTED_RESOURCES_TRUNCATE_COUNT);
     },
 
     remainingAffectedResourcesCount(row) {
       return Math.max(this.affectedResourceNames(row).length - AFFECTED_RESOURCES_TRUNCATE_COUNT, 0);
-    },
-
-    affectedResourcesTooltip(row) {
-      return this.affectedResourceNames(row).join(', ');
     },
 
     componentHealthHeadersFor(rows) {
@@ -1395,13 +1416,14 @@ export default {
             </template>
             <template #cell:actions="{row}">
               <div v-if="row.ignored">
-                <a
+                <button
                   v-if="canRestore(row.ignoredBy)"
-                  class="text-info"
+                  type="button"
+                  class="btn btn-sm role-link pl-0"
                   @click="restoreIgnored(row.ignoredBy)"
                 >
                   {{ t('harvester.dashboard.sections.componentHealth.ignore.restore') }}
-                </a>
+                </button>
                 <span
                   v-else-if="isMinSeverityIgnore(row.ignoredBy)"
                   v-clean-tooltip="t('harvester.dashboard.sections.componentHealth.ignore.minSeverity')"
@@ -1485,13 +1507,15 @@ export default {
             <template #cell:message="{row, value}">
               <span>
                 {{ isMessageExpanded(row.id) ? value : truncatedMessage(value) }}
-                <a
+                <button
                   v-if="isMessageTruncated(value)"
-                  class="text-info"
+                  type="button"
+                  class="btn btn-sm role-link pl-0"
+                  :aria-expanded="isMessageExpanded(row.id)"
                   @click="toggleMessage(row.id)"
                 >
                   {{ isMessageExpanded(row.id) ? t('harvester.generic.hideMore') : t('harvester.generic.showMore') }}
-                </a>
+                </button>
               </span>
             </template>
             <template #cell:affectedCount="{row, value}">
@@ -1500,26 +1524,29 @@ export default {
                   {{ affectedResourceKind(row) }} ({{ value }})
                 </div>
                 <div
-                  v-for="name in truncatedAffectedResourceNames(row)"
+                  v-for="name in visibleAffectedResourceNames(row)"
                   :key="name"
                   :class="{ 'text-muted': resourceIgnoredBy(row, name) }"
                 >
                   {{ name }}
                   <span v-if="resourceIgnoredBy(row, name)">
                     ({{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }}<template v-if="canRestore(resourceIgnoredBy(row, name))">,
-                      <a
-                        class="text-info"
+                      <button
+                        type="button"
+                        class="btn btn-sm role-link p-0"
                         @click="restoreIgnored(resourceIgnoredBy(row, name))"
-                      >{{ t('harvester.dashboard.sections.componentHealth.ignore.restore') }}</a></template>)
+                      >{{ t('harvester.dashboard.sections.componentHealth.ignore.restore') }}</button></template>)
                   </span>
                 </div>
-                <div
+                <button
                   v-if="remainingAffectedResourcesCount(row)"
-                  v-clean-tooltip="affectedResourcesTooltip(row)"
-                  class="text-info"
+                  type="button"
+                  class="btn btn-sm role-link pl-0"
+                  :aria-expanded="isResourcesExpanded(row.id)"
+                  @click="toggleResources(row.id)"
                 >
-                  {{ t('harvester.dashboard.sections.componentHealth.moreAffectedResources', { count: remainingAffectedResourcesCount(row) }) }}
-                </div>
+                  {{ isResourcesExpanded(row.id) ? t('harvester.generic.hideMore') : t('harvester.dashboard.sections.componentHealth.moreAffectedResources', { count: remainingAffectedResourcesCount(row) }) }}
+                </button>
               </div>
               <span v-else>
                 {{ t('harvester.dashboard.sections.componentHealth.noAffectedResources') }}
@@ -1561,7 +1588,9 @@ export default {
     display: grid;
     gap: 10px;
     padding: 10px;
-    min-width: 320px;
+    width: 440px;
+    max-height: 420px;
+    overflow-y: auto;
   }
 
   .component-health-filter-dropdown .filter-popup {
