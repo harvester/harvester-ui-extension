@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
+import { Checkbox } from '@components/Form/Checkbox';
 import HealthSummaryTable from '../HealthSummaryTable.vue';
 import ComponentHealthSection from '../ComponentHealthSection.vue';
 
@@ -56,5 +57,52 @@ describe('health components', () => {
     }));
 
     expect(w.find('.st').text()).toBe('h/a:2,h/b:0,h/c:1');
+  });
+  it('expands a long message', async() => {
+    const message = 'x'.repeat(150);
+    const checks = { a: { severity: 'Error', message } };
+    const table = { props: ['rows'], template: '<div><slot name="cell:message" :row="rows[0]" :value="rows[0].message" /></div>' };
+    const w = mount(ComponentHealthSection, {
+      ...opts({
+        componentHealths: [{
+          id: 'h', metadata: { name: 'c', labels: {} }, status: { checks }
+        }],
+        ignoreRules: []
+      }),
+      global: { ...opts({}).global, stubs: { ...opts({}).global.stubs, SortableTable: table } }
+    });
+
+    expect(w.text()).not.toContain(message);
+
+    await w.find('button.role-link').trigger('click');
+
+    expect(w.text()).toContain(message);
+  });
+  it('tells an empty filter result from a report without checks', async() => {
+    const checks = { a: { severity: 'Error' } };
+    const dropdown = { template: '<div><slot /><slot name="popper" /></div>' };
+    const base = opts({
+      componentHealths: [{
+        id: 'h', metadata: { name: 'c', labels: {} }, status: { checks }
+      }],
+      ignoreRules: []
+    });
+    const w = mount(ComponentHealthSection, { ...base, global: { ...base.global, stubs: { ...base.global.stubs, 'v-dropdown': dropdown } } });
+
+    expect(w.text()).not.toContain('noIssues');
+
+    // the first filter is Error
+    await w.findComponent(Checkbox).vm.$emit('update:value', false);
+
+    expect(w.text()).toContain('noMatchingChecks');
+
+    const empty = mount(ComponentHealthSection, opts({
+      componentHealths: [{
+        id: 'h', metadata: { name: 'c', labels: {} }, status: { checks: {} }
+      }],
+      ignoreRules: []
+    }));
+
+    expect(empty.text()).toContain('noIssues');
   });
 });

@@ -533,6 +533,7 @@ harvester:
         noAffectedResources: No affected resources
         moreAffectedResources: '+{count} more'
         noIssues: No issues detected
+        noMatchingChecks: No checks match the selected filters
         showIgnored: Show ignored
         actions: Actions
         ignore:
