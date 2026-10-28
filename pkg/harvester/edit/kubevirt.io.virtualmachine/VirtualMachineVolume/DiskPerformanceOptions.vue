@@ -2,7 +2,6 @@
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { Checkbox } from '@components/Form/Checkbox';
 import { Banner } from '@components/Banner';
-import { _VIEW } from '@shell/config/query-params';
 import { DISK_CACHE_MODE, DISK_IO_MODE, DISK_PERFORMANCE_PROFILE } from '../../../config/harvester-map';
 
 const { DEFAULT, HIGH, CUSTOM } = DISK_PERFORMANCE_PROFILE;
@@ -31,11 +30,8 @@ export default {
   },
 
   data() {
-    const hasPerf = !!(this.value.cache || this.value.io || this.value.dedicatedIOThread);
-
     return {
       DISK_PERFORMANCE_PROFILE,
-      expanded:             hasPerf,
       profile:              this.detectProfile(),
       // Bus the disk used before the "High Performance" preset switched it to
       // virtio, so returning to "Default" can put it back.
@@ -44,10 +40,6 @@ export default {
   },
 
   computed: {
-    isView() {
-      return this.mode === _VIEW;
-    },
-
     storagePerformanceEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('highPerformanceStorage');
     },
@@ -193,51 +185,41 @@ export default {
     v-if="!isCdRom && storagePerformanceEnabled"
     class="disk-performance"
   >
-    <button
-      v-if="!isView"
-      type="button"
-      class="btn btn-sm role-link expand-toggle"
-      :aria-expanded="expanded"
-      :aria-label="expanded ? t('harvester.virtualMachine.volume.performance.collapse') : t('harvester.virtualMachine.volume.performance.expand')"
-      @click.prevent="expanded = !expanded"
-    >
-      <i
-        class="icon"
-        :class="expanded ? 'icon-chevron-down' : 'icon-chevron-right'"
-      />
-      {{ t('harvester.virtualMachine.volume.performance.title') }}
-    </button>
-
-    <div
-      v-if="expanded || isView"
-      class="perf-body mt-10"
-    >
-      <div class="row mb-20">
-        <div
-          class="col span-6"
-          data-testid="input-disk-perf-profile"
-        >
-          <LabeledSelect
-            :value="profile"
-            :label="t('harvester.virtualMachine.volume.performance.profile.label')"
-            :tooltip="t('harvester.virtualMachine.volume.performance.profile.tip')"
-            :options="profileOptions"
-            :mode="mode"
-            @update:value="onProfileChange"
-          />
-        </div>
-      </div>
-
-      <Banner
-        v-if="profile === DISK_PERFORMANCE_PROFILE.HIGH"
-        color="info"
-        :label="t('harvester.virtualMachine.volume.performance.highProfileTip')"
-      />
-
+    <div class="row mb-20">
       <div
-        v-if="isCustom || isView"
-        class="row mb-20"
+        class="col span-6"
+        data-testid="input-disk-perf-profile"
       >
+        <LabeledSelect
+          :value="profile"
+          :label="t('harvester.virtualMachine.volume.performance.profile.label')"
+          :tooltip="t('harvester.virtualMachine.volume.performance.profile.tip')"
+          :options="profileOptions"
+          :mode="mode"
+          @update:value="onProfileChange"
+        />
+      </div>
+    </div>
+
+    <Banner
+      v-if="profile === DISK_PERFORMANCE_PROFILE.HIGH"
+      color="info"
+      :label="t('harvester.virtualMachine.volume.performance.highProfileTip', {}, true)"
+    />
+    <Banner
+      v-if="showBusTip"
+      color="warning"
+      data-testid="disk-perf-bus-tip"
+      :label="t('harvester.virtualMachine.volume.performance.busTip', { bus: value.bus }, true)"
+    />
+    <Banner
+      v-if="showFilesystemCacheWarning"
+      color="warning"
+      :label="t('harvester.virtualMachine.volume.performance.cacheMode.filesystemWarning', {}, true)"
+    />
+
+    <template v-if="isCustom">
+      <div class="row mb-20">
         <div
           class="col span-6"
           data-testid="input-disk-cache"
@@ -266,10 +248,7 @@ export default {
         </div>
       </div>
 
-      <div
-        v-if="isCustom || isView"
-        class="row mb-10"
-      >
+      <div class="row mb-20">
         <div
           class="col span-12"
           data-testid="input-disk-dedicated-iothread"
@@ -283,39 +262,19 @@ export default {
           />
         </div>
       </div>
+    </template>
 
+    <!-- Always rendered, also outside Custom, so screen readers announce the tip when picking Native I/O changes
+         the cache mode, even if the new values switch the profile to High Performance -->
+    <div
+      role="status"
+      data-testid="disk-perf-native-status"
+    >
       <Banner
         v-if="isNativeIo"
         color="info"
-        :label="t('harvester.virtualMachine.volume.performance.ioMode.nativeRequiresNoCacheTip')"
-      />
-      <Banner
-        v-if="showFilesystemCacheWarning"
-        color="warning"
-        :label="t('harvester.virtualMachine.volume.performance.cacheMode.filesystemWarning')"
-      />
-      <Banner
-        v-if="showBusTip"
-        color="warning"
-        :label="t('harvester.virtualMachine.volume.performance.busTip')"
+        :label="t('harvester.virtualMachine.volume.performance.ioMode.nativeRequiresNoCacheTip', {}, true)"
       />
     </div>
   </div>
 </template>
-
-<style lang="scss" scoped>
-.disk-performance {
-  border-top: 1px solid var(--border);
-  margin-top: 10px;
-  padding-top: 10px;
-
-  .expand-toggle {
-    padding: 0;
-    font-weight: 600;
-
-    .icon {
-      margin-right: 4px;
-    }
-  }
-}
-</style>

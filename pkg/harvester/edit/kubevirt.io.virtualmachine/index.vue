@@ -34,6 +34,7 @@ import CpuMemory from './VirtualMachineCpuMemory';
 import CpuModel from './VirtualMachineCpuModel';
 import Network from './VirtualMachineNetwork';
 import Volume from './VirtualMachineVolume';
+import VMPerformanceOptions from './VirtualMachineVolume/VMPerformanceOptions';
 import SSHKey from './VirtualMachineSSHKey';
 import Reserved from './VirtualMachineReserved';
 import Filesystem from './VirtualMachineFilesystem';
@@ -55,6 +56,7 @@ export default {
     LabeledSelect,
     NameNsDescription,
     Volume,
+    VMPerformanceOptions,
     SSHKey,
     Network,
     CpuMemory,
@@ -872,9 +874,6 @@ export default {
       >
         <Volume
           v-model:value="diskRows"
-          v-model:block-multi-queue="blockMultiQueue"
-          v-model:io-threads-policy="ioThreadsPolicy"
-          v-model:io-thread-count="ioThreadCount"
           :mode="mode"
           :custom-volume-mode="customVolumeMode"
           :namespace="value.metadata.namespace"
@@ -1145,6 +1144,16 @@ export default {
             </div>
           </div>
         </div>
+
+        <VMPerformanceOptions
+          v-model:block-multi-queue="blockMultiQueue"
+          v-model:io-threads-policy="ioThreadsPolicy"
+          v-model:io-thread-count="ioThreadCount"
+          :has-virtio-disk="hasVirtioDisk"
+          :has-dedicated-iothread="hasDedicatedIOThread"
+          :mode="mode"
+          class="mb-20"
+        />
 
         <CloudConfig
           ref="yamlEditor"
