@@ -7,7 +7,6 @@ import UnitInput from '@shell/components/form/UnitInput';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import ModalWithCard from '@shell/components/ModalWithCard';
-import VMPerformanceOptions from './VMPerformanceOptions';
 import { VOLUME_HOTPLUG_ACTION, SOURCE_TYPE } from '../../../config/harvester-map';
 import { PVC, STORAGE_CLASS } from '@shell/config/types';
 import { clone } from '@shell/utils/object';
@@ -24,10 +23,10 @@ import { EMPTY_IMAGE } from '../../../utils/vm';
 const { READ_WRITE_MANY } = ACCESS_MODE;
 
 export default {
-  emits: ['update:value', 'update:blockMultiQueue', 'update:ioThreadsPolicy', 'update:ioThreadCount'],
+  emits: ['update:value'],
 
   components: {
-    Banner, BadgeStateFormatter, VueDraggableNext, InfoBox, LabeledInput, UnitInput, LabeledSelect, ModalWithCard, VMPerformanceOptions
+    Banner, BadgeStateFormatter, VueDraggableNext, InfoBox, LabeledInput, UnitInput, LabeledSelect, ModalWithCard
   },
 
   props: {
@@ -78,22 +77,6 @@ export default {
     resourceType: {
       type:    String,
       default: ''
-    },
-
-    // KubeVirt high-performance VM-level features
-    blockMultiQueue: {
-      type:    Boolean,
-      default: false
-    },
-
-    ioThreadsPolicy: {
-      type:    String,
-      default: ''
-    },
-
-    ioThreadCount: {
-      type:    Number,
-      default: 2
     }
   },
 
@@ -163,14 +146,6 @@ export default {
 
     isLHV2VolExpansionFeatureEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('lhV2VolExpansion');
-    },
-
-    hasVirtioDisk() {
-      return this.rows.some((R) => R.type === 'disk' && R.bus === 'virtio');
-    },
-
-    hasDedicatedIOThread() {
-      return this.rows.some((R) => R.dedicatedIOThread);
     },
   },
 
@@ -532,18 +507,6 @@ export default {
         {{ t('harvester.virtualMachine.volume.addContainer') }}
       </button>
     </div>
-
-    <VMPerformanceOptions
-      :block-multi-queue="blockMultiQueue"
-      :io-threads-policy="ioThreadsPolicy"
-      :io-thread-count="ioThreadCount"
-      :has-virtio-disk="hasVirtioDisk"
-      :has-dedicated-iothread="hasDedicatedIOThread"
-      :mode="mode"
-      @update:block-multi-queue="$emit('update:blockMultiQueue', $event)"
-      @update:io-threads-policy="$emit('update:ioThreadsPolicy', $event)"
-      @update:io-thread-count="$emit('update:ioThreadCount', $event)"
-    />
 
     <ModalWithCard
       v-if="isOpen"
