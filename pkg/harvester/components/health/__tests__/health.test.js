@@ -42,6 +42,19 @@ describe('health components', () => {
       ignoreRules: []
     }));
 
-    expect(w.find('.st').text()).toBe('h/k:Error');
+    expect(w.find('.st').text()).toBe('h/k:0');
+  });
+  it('ranks the component health rows Error, Warning, Info', () => {
+    const checks = {
+      a: { severity: 'Info' }, b: { severity: 'Error' }, c: { severity: 'Warning' }
+    };
+    const w = mount(ComponentHealthSection, opts({
+      componentHealths: [{
+        id: 'h', metadata: { name: 'c', labels: {} }, status: { checks }
+      }],
+      ignoreRules: []
+    }));
+
+    expect(w.find('.st').text()).toBe('h/a:2,h/b:0,h/c:1');
   });
 });
