@@ -24,6 +24,8 @@ import { allDashboardsExist } from '@shell/utils/grafana';
 import { isEmpty } from '@shell/utils/object';
 import { HCI } from '../types';
 import HarvesterUpgrade from '../components/HarvesterUpgrade';
+import HealthSummaryTable from '../components/health/HealthSummaryTable';
+import ComponentHealthSection from '../components/health/ComponentHealthSection';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
 import { UNIT_SUFFIX } from '../utils/unit';
 
@@ -125,6 +127,8 @@ export default {
     DashboardMetrics,
     Banner,
     MessageLink,
+    HealthSummaryTable,
+    ComponentHealthSection,
   },
 
   async fetch() {
@@ -141,6 +145,9 @@ export default {
       metric:           this.fetchClusterResources(METRIC.NODE),
       longhornNodes:    this.fetchClusterResources(LONGHORN.NODES),
       longhornSettings: this.fetchClusterResources(LONGHORN.SETTINGS),
+      componentHealths: this.componentHealthEnabled ? this.fetchClusterResources(HCI.COMPONENT_HEALTH) : [],
+      healthSummaries:  this.componentHealthEnabled ? this.fetchClusterResources(HCI.HEALTH_SUMMARY) : [],
+      ignoreRules:      this.componentHealthEnabled ? this.fetchClusterResources(HCI.HEALTH_IGNORE_RULE) : [],
       _pods:            this.$store.dispatch('harvester/findAll', { type: POD }),
     };
 
@@ -223,6 +230,9 @@ export default {
       metricNodes:            [],
       vms:                    [],
       pvcs:                   [],
+      componentHealths:       [],
+      healthSummaries:        [],
+      ignoreRules:            [],
       monitoring:             {},
       VM_DASHBOARD_METRICS_URL,
       CLUSTER_METRICS_SUMMARY_URL,
@@ -236,6 +246,10 @@ export default {
 
   computed: {
     ...mapGetters(['currentCluster']),
+
+    componentHealthEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('componentHealth');
+    },
 
     accessibleResources() {
       const inStore = this.$store.getters['currentProduct'].inStore;
@@ -823,6 +837,14 @@ export default {
         </Tab>
       </Tabbed>
     </div>
+
+    <template v-if="componentHealthEnabled">
+      <HealthSummaryTable :health-summaries="healthSummaries" />
+      <ComponentHealthSection
+        :component-healths="componentHealths"
+        :ignore-rules="ignoreRules"
+      />
+    </template>
   </section>
 </template>
 
