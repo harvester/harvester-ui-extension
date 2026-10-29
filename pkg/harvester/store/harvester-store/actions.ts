@@ -1,11 +1,13 @@
 //@ts-nocheck
 import { ClusterNotFoundError } from '@shell/utils/error';
 import { SETTING } from '@shell/config/settings';
-import { COUNT, NAMESPACE, MANAGEMENT } from '@shell/config/types';
+import {
+  COUNT, NAMESPACE, MANAGEMENT, STORAGE_CLASS, PVC, NETWORK_ATTACHMENT
+} from '@shell/config/types';
 import { allHash } from '@shell/utils/promise';
 import { DEV, NAMESPACE_FILTERS } from '@shell/store/prefs';
 import { createNamespaceFilterKeyWithId } from '@shell/utils/namespace-filter';
-import { HCI } from '../../types';
+import { HCI, VOLUME_SNAPSHOT } from '../../types';
 
 export default {
   async loadCluster({
@@ -103,6 +105,37 @@ export default {
     // See more details in https://github.com/harvester/harvester-ui-extension/pull/715
     if (getters['schemaFor'](HCI.UPGRADE_LOG)) {
       hash.upgradeLogs = dispatch('findAll', { type: HCI.UPGRADE_LOG });
+    }
+
+    // The side navigation counts Volumes, VM Networks, VM Backups, VM Snapshots, VM
+    // Schedules, Volume Snapshots and Storage Classes from these store lists (see
+    // `filteredCount` in getters.ts). Request them here, without awaiting them; otherwise these
+    // nav items show no count until a page that loads the list has been opened (e.g. the
+    // dashboard loads PVCs and network attachments). ConfigMaps (Cloud Configuration
+    // Templates) are not requested here, as that would load all ConfigMaps of the cluster, not
+    // only the templates.
+    if (getters['schemaFor'](HCI.BACKUP)) {
+      dispatch('findAll', { type: HCI.BACKUP }).catch(() => {});
+    }
+
+    if (getters['schemaFor'](HCI.SCHEDULE_VM_BACKUP)) {
+      dispatch('findAll', { type: HCI.SCHEDULE_VM_BACKUP }).catch(() => {});
+    }
+
+    if (getters['schemaFor'](VOLUME_SNAPSHOT)) {
+      dispatch('findAll', { type: VOLUME_SNAPSHOT }).catch(() => {});
+    }
+
+    if (getters['schemaFor'](STORAGE_CLASS)) {
+      dispatch('findAll', { type: STORAGE_CLASS }).catch(() => {});
+    }
+
+    if (getters['schemaFor'](PVC)) {
+      dispatch('findAll', { type: PVC }).catch(() => {});
+    }
+
+    if (getters['schemaFor'](NETWORK_ATTACHMENT)) {
+      dispatch('findAll', { type: NETWORK_ATTACHMENT }).catch(() => {});
     }
 
     const res: any = await allHash(hash);
