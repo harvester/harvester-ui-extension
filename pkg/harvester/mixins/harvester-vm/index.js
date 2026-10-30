@@ -1284,8 +1284,8 @@ export default {
      */
     getUserData(config) {
       try {
-        // https://github.com/eemeli/yaml/issues/136
-        let userDataDoc = this.userScript ? YAML.parseDocument(this.userScript) : YAML.parseDocument({});
+        // parseDocument only accepts a string, so an empty user data is parsed as an empty document
+        let userDataDoc = YAML.parseDocument(this.userScript || '');
 
         const allSSHAuthorizedKeys = this.mergeSSHAuthorizedKeys(this.userScript);
 
