@@ -1826,6 +1826,12 @@ harvester:
         no-options: No available tags, please add in the `Host > Storage` page
       migratable:
         label: Migratable
+      dataEngineTransport:
+        label: Data Engine Transport
+        tooltip: Transport between the volume engine and its replicas. RDMA (RoCEv2) needs RDMA-capable NICs and a storage network attached to them; the host-facing connection stays NVMe/TCP.
+        tcp: TCP
+        rdma: RDMA
+        noRdmaNodes: No RDMA-capable hosts found. RDMA needs hosts that Longhorn reports as RDMA-capable.
       lvmVolumeGroupType:
         label: Volume Group Type
       lvmVolumeGroup:
