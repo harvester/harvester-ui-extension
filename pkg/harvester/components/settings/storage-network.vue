@@ -3,7 +3,7 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect.vue';
 import { RadioGroup } from '@components/Form/Radio';
 import ArrayList from '@shell/components/form/ArrayList';
-import { isValidCIDR } from '@shell/utils/validators/cidr';
+import { isValidCIDR } from '@pkg/harvester/utils/regular';
 import { _EDIT } from '@shell/config/query-params';
 import { Banner } from '@components/Banner';
 import Tip from '@shell/components/Tip';

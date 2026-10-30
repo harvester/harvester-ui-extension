@@ -57,8 +57,12 @@ import {
 } from './table-headers';
 import { ADD_ONS } from './harvester-map';
 import { registerAddonSideNav } from '../utils/dynamic-nav';
+import { setStandalonePrime } from '../utils/l10n-globals';
 import { setVendor } from '@shell/config/private-label';
-import { createCssVars } from '@shell/utils/color';
+import { CONFIGURABLE_TABLES } from '@shell/store/features';
+import { tableViewsOffFeature } from '../utils/table-views';
+import { SETTING } from '@shell/config/settings';
+import { primeBrandUpdater } from '../utils/prime-brand';
 
 const TEMPLATE = HCI.VM_VERSION;
 const MONITORING_GROUP = 'Monitoring & Logging::Monitoring';
@@ -121,26 +125,8 @@ export function init($plugin, store) {
         const [isHarvesterPrime, isDark, privateLabel] = JSON.parse(value);
         const primeLogo = isDark ? require('../assets/images/dark/suse-virtualization.svg') : require('../assets/images/suse-virtualization.svg');
 
+        setStandalonePrime(isHarvesterPrime);
         setVendor(privateLabel || '');
-
-        let primaryColorStyle = document.getElementById('harvester-prime-primary-color');
-
-        // set harvester prime primary color style to #4dd192 (Cyan Green)
-        if (isHarvesterPrime) {
-          if (!primaryColorStyle) {
-            primaryColorStyle = document.createElement('style');
-            primaryColorStyle.id = 'harvester-prime-primary-color';
-            document.head.appendChild(primaryColorStyle);
-            primaryColorStyle.sheet.insertRule('body.theme-light, body.theme-dark {}', 0);
-          }
-
-          const colors = createCssVars('#4dd192', isDark ? 'dark' : 'light');
-          const rule = primaryColorStyle.sheet.cssRules[0];
-
-          Object.entries(colors).forEach(([property, color]) => rule.style.setProperty(property.trim(), color));
-        } else {
-          primaryColorStyle?.remove();
-        }
 
         const primeLabelKey = privateLabel ? 'harvester.branding.primeLabel' : 'harvester.branding.primeEmptyLabel';
 
@@ -154,6 +140,30 @@ export function init($plugin, store) {
           supportCustomLogo: !isHarvesterPrime
         });
       },
+      { immediate: true }
+    );
+
+    // Keep the shell's table views off: they drop the filters the lists put in the table header
+    store.watch(
+      (_state, getters) => getters['management/byId'](MANAGEMENT.FEATURE, CONFIGURABLE_TABLES),
+      (feature) => {
+        if (!feature) {
+          store.dispatch('management/load', { data: tableViewsOffFeature() });
+        }
+      },
+      { immediate: true }
+    );
+
+    const updateBrand = primeBrandUpdater();
+
+    // The value is read too: a change event from the server is loaded into the same setting object
+    store.watch(
+      (_state, getters) => {
+        const brandSetting = getters['management/byId'](MANAGEMENT.SETTING, SETTING.BRAND);
+
+        return [!!getters['harvester-common/isHarvesterPrime'], brandSetting, brandSetting?.value];
+      },
+      ([isHarvesterPrime, brandSetting]) => updateBrand(brandSetting, isHarvesterPrime),
       { immediate: true }
     );
   }
