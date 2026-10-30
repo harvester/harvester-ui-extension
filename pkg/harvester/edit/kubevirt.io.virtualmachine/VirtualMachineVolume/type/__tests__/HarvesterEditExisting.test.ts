@@ -112,4 +112,75 @@ describe('component: HarvesterEditExisting', () => {
 
     expect(wrapper.emitted('update')).toHaveLength(1);
   });
+  describe('lun (SCSI passthrough)', () => {
+    // `prSetting` is the persistent-reservation-enabled setting, `featureEnabled` whether the cluster has it (v1.10+)
+    const mountWith = (value, { prSetting = { value: 'true' }, featureEnabled = true } = {}) => mount(HarvesterEditExisting, {
+      props: {
+        mode: _EDIT, value, rows: []
+      },
+      global: {
+        mocks: {
+          $route: { params: { cluster: 'local' } },
+          $store: {
+            getters: {
+              'harvester-common/getFeatureEnabled': () => featureEnabled,
+              'harvester/all':                      () => [],
+              'harvester/byId':                     () => prSetting,
+              'i18n/t':                             jest.fn()
+            }
+          }
+        },
+        stubs: { 'router-link': true }
+      }
+    });
+
+    const reservationCheckbox = (wrapper) => wrapper.find('[data-testid="input-hee-reservation"]').findComponent({ name: 'Checkbox' });
+
+    it('should not offer lun for a volume that cannot be shared', () => {
+      const wrapper = mountWith({});
+
+      expect(wrapper.vm.typeOptions.map((o) => o.value)).toStrictEqual(['disk', 'cd-rom']);
+    });
+
+    it('should show the persistent reservation option only for lun disks', () => {
+      expect(mountWith({ type: 'disk' }).find('[data-testid="input-hee-reservation"]').exists()).toBe(false);
+      expect(mountWith({ type: 'lun' }).find('[data-testid="input-hee-reservation"]').exists()).toBe(true);
+    });
+
+    it('should offer the I/O error policy only for lun disks', () => {
+      expect(mountWith({ type: 'disk' }).find('[data-testid="input-hee-errorPolicy"]').exists()).toBe(false);
+      expect(mountWith({ type: 'lun' }).find('[data-testid="input-hee-errorPolicy"]').exists()).toBe(true);
+    });
+
+    it('should allow persistent reservation when the setting is enabled', () => {
+      const wrapper = mountWith({ type: 'lun' }, { prSetting: { value: 'true', default: 'false' } });
+
+      expect(wrapper.vm.persistentReservationAllowed).toBe(true);
+      expect(wrapper.find('[data-testid="banner-hee-reservation-disabled"]').exists()).toBe(false);
+    });
+
+    it.each([
+      ['disabled', { value: 'false', default: 'false' }],
+      ['left at the default', { value: '', default: 'false' }],
+      ['missing', null],
+    ])('should block persistent reservation when the setting is %s', (_, prSetting) => {
+      const wrapper = mountWith({ type: 'lun' }, { prSetting });
+
+      expect(wrapper.vm.persistentReservationAllowed).toBe(false);
+      expect(wrapper.find('[data-testid="banner-hee-reservation-disabled"]').exists()).toBe(true);
+      expect(reservationCheckbox(wrapper).props('disabled')).toBe(true);
+    });
+
+    it('should keep an existing reservation editable when the setting is disabled', () => {
+      const wrapper = mountWith({ type: 'lun', reservation: true }, { prSetting: { value: 'false' } });
+
+      expect(reservationCheckbox(wrapper).props('disabled')).toBe(false);
+    });
+
+    it('should not restrict persistent reservation on clusters without the setting', () => {
+      const wrapper = mountWith({ type: 'lun' }, { prSetting: null, featureEnabled: false });
+
+      expect(wrapper.vm.persistentReservationAllowed).toBe(true);
+    });
+  });
 });

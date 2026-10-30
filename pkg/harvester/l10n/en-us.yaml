@@ -853,6 +853,16 @@ harvester:
         ioThreadCount:
           label: I/O Thread Count
           tip: Number of I/O threads for the supplemental pool. 4-8 is a common range depending on workload.
+      lun:
+        reservation:
+          label: SCSI-3 Persistent Reservation
+          tip: Forward SCSI-3 persistent reservations from the guest to the storage. Needed by guest clusters that fence with reservations, such as Windows Server Failover Clustering.
+          disabled: Persistent reservation is disabled on this cluster. Enable the persistent-reservation-enabled setting to use it.
+          settingsLink: Go to Settings
+        errorPolicy:
+          label: I/O Error Policy
+          tip: What happens when an I/O on this disk fails. Use "report" for shared cluster disks, so a write rejected by a reservation conflict (normal fencing) is returned to the guest. With "stop", the whole virtual machine is paused instead.
+        info: A LUN disk passes the volume through as a SCSI device. The volume must be a real SCSI LUN from a SAN storage class (iSCSI or Fibre Channel); Longhorn, Ceph RBD and NFS volumes can't be used. For Windows failover clusters, keep the boot disk off the SCSI bus (use VirtIO). Virtual machines with persistent reservation disks can't be live migrated.
       shareable:
         label: Shareable
         tip: Allow multiple virtual machines to attach and write to this volume simultaneously.
@@ -2590,6 +2600,7 @@ advancedSettings:
     'harv-instance-manager-resources': 'Configure resource percentage reservations for Longhorn instance manager V1 and V2. Valid instance manager CPU range between 0 - 40.'
     'harv-cluster-pod-security-standard': 'Enforce Kubernetes Pod Security Standards (PSS) at the cluster level.'
     'harv-maintenance-mode-drain-timeout': 'Maintenance mode drain timeout in minutes. Use 0 to disable the timeout.'
+    'harv-persistent-reservation-enabled': 'Allow VMs to use SCSI-3 persistent reservation on LUN disks, for example for Windows Server Failover Clustering on shared SAN LUNs. Default is false. <ul><li>Enabling or disabling this setting adds or removes a pr-helper container in the virt-handler pod on every node, which restarts virt-handler. Running VMs are not affected.</li><li>The setting can only be disabled when no running VM uses a LUN disk with persistent reservation.</li></ul>'
 
 typeLabel:
   kubevirt.io.virtualmachine: |-
