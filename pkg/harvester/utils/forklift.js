@@ -91,3 +91,25 @@ export function buildStorageMapEntries(entries = []) {
       };
     });
 }
+
+/**
+ * Pick the default volume/access mode for a target StorageClass from its CDI
+ * StorageProfile (`status.claimPropertySets`), the same source CDI uses when a
+ * PVC leaves them unset. Prefer a ReadWriteMany set so the migrated VM stays
+ * live-migratable; otherwise take the first set the profile advertises.
+ *
+ * @param {Object} profile CDI StorageProfile
+ * @returns {{ volumeMode: string, accessModes: string[] } | null} null when the profile has no usable set
+ */
+export function storageProfileDefaults(profile) {
+  const sets = (profile?.status?.claimPropertySets || []).filter((set) => set?.volumeMode && set?.accessModes?.length);
+
+  if (!sets.length) {
+    return null;
+  }
+
+  const set = sets.find((s) => s.accessModes.includes('ReadWriteMany')) || sets[0];
+  const accessMode = set.accessModes.includes('ReadWriteMany') ? 'ReadWriteMany' : set.accessModes[0];
+
+  return { volumeMode: set.volumeMode, accessModes: [accessMode] };
+}
