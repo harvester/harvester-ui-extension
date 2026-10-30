@@ -804,19 +804,16 @@ harvester:
       saveVolume: Update Volume
       encryption: Encryption
       performance:
-        title: Storage Performance Options
-        expand: Show high-performance options
-        collapse: Hide high-performance options
         profile:
-          label: Performance Profile
-          tip: "\"High Performance\" applies a tuned preset (no host cache, native AIO, a dedicated I/O thread on the virtio bus). Choose \"Custom\" to set each option yourself."
-          default: Default (Balanced)
+          label: Storage Performance Profile
+          tip: '"High Performance" switches the disk to the virtio bus, disables the host cache, uses native AIO and gives the disk a dedicated I/O thread. Choose "Custom" to set each option yourself.'
+          default: Default
           highPerformance: High Performance
           custom: Custom
-        highProfileTip: This disk will use the virtio bus with host cache disabled, native AIO and a dedicated I/O thread.
+        highProfileTip: This disk will use the virtio bus, no host cache, native AIO and a dedicated I/O thread.
         cacheMode:
           label: Cache Mode
-          tip: "How the host caches disk I/O. \"None\" (host cache disabled) is best for high-throughput guests on block storage; \"WriteBack\" favours performance; \"WriteThrough\" favours durability."
+          tip: 'How the host caches disk I/O. "None" is best for high-throughput guests on block storage, "WriteBack" favors performance and "WriteThrough" favors durability.'
           default: Default (hypervisor)
           none: None (no host cache)
           writeback: WriteBack
@@ -824,35 +821,33 @@ harvester:
           filesystemWarning: "\"None\" (O_DIRECT) requires storage that supports direct I/O. It is recommended only for Block volume mode; on Filesystem volumes the VM may fail to start."
         ioMode:
           label: I/O Mode
-          tip: "How QEMU submits I/O. \"Native\" (Linux AIO) offers the lowest overhead but requires host cache set to \"None\"; \"Threads\" uses a host thread pool."
+          tip: 'How QEMU submits I/O. "Native" (Linux AIO) has the lowest overhead and needs cache mode "None". "Threads" uses a host thread pool.'
           default: Default (hypervisor)
           native: Native (AIO)
           threads: Threads
-          nativeRequiresNoCacheTip: Native I/O mode requires cache mode "None"; it has been set for you.
+          nativeRequiresNoCacheTip: Native I/O mode needs the host cache disabled, so cache mode is set to None.
         dedicatedIOThread:
           label: Dedicated I/O Thread
-          tip: Allocate an exclusive libvirt I/O thread to this disk instead of sharing one. Useful for disks with heavy I/O. Enabling this on any disk turns on the VM's I/O threads policy.
-        busTip: High-performance features work best on the virtio bus.
+          tip: Give this disk its own I/O thread instead of sharing one. Useful for disks with heavy I/O.
+        busTip: 'This disk uses the {bus} bus. The storage performance options work best on the virtio bus.'
       diskPerformance:
-        title: High Performance (I/O Threads and Multi-Queue)
-        description: These settings apply to all volumes in the Virtual Machine and complement the per-volume options above.
-        expand: Show VM-wide high-performance options
-        collapse: Hide VM-wide high-performance options
+        title: Storage Performance
+        description: These options apply to all volumes of the virtual machine.
         blockMultiQueue:
           label: Virtio Block Multi-Queue
-          tip: Map disk I/O to multiple queues so it is processed across multiple CPUs. Applies to virtio disks and requires a fixed CPU allocation ([[Harvester]] always sets one).
+          tip: Spread disk I/O over one queue per vCPU so that it is processed on multiple CPUs.
           noVirtioTip: Add at least one disk on the virtio bus to enable Block Multi-Queue.
         ioThreadsPolicy:
           label: I/O Threads Policy
-          tip: "How libvirt allocates I/O threads. \"Shared\" uses one thread for all disks; \"Auto\" pools threads round-robin (up to ~2x vCPUs); \"Supplemental Pool\" lets you pick a fixed thread count and adds matching CPUs to the pod."
+          tip: '"Shared" uses one I/O thread for all disks. "Auto" spreads disks over a pool of threads. "Supplemental Pool" uses a fixed number of threads.'
           default: "Disabled (default)"
           shared: Shared
           auto: Auto
           supplementalPool: Supplemental Pool
-          autoEnabledTip: A disk requests a dedicated I/O thread, so the policy is enabled (defaults to "Shared").
+          autoEnabledTip: A volume asks for a dedicated I/O thread, so the Shared policy will be used.
         ioThreadCount:
           label: I/O Thread Count
-          tip: Number of I/O threads for the supplemental pool. 4-8 is a common range depending on workload.
+          tip: Number of I/O threads in the supplemental pool.
       shareable:
         label: Shareable
         tip: Allow multiple virtual machines to attach and write to this volume simultaneously.

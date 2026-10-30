@@ -18,6 +18,7 @@ import { getLatestMigration } from '../../utils/vm';
 
 import CloudConfig from '../../edit/kubevirt.io.virtualmachine/VirtualMachineCloudConfig';
 import Volume from '../../edit/kubevirt.io.virtualmachine/VirtualMachineVolume';
+import VMPerformanceOptions from '../../edit/kubevirt.io.virtualmachine/VirtualMachineVolume/VMPerformanceOptions';
 import Network from '../../edit/kubevirt.io.virtualmachine/VirtualMachineNetwork';
 import AccessCredentials from '../../edit/kubevirt.io.virtualmachine/VirtualMachineAccessCredentials';
 import Events from './VirtualMachineTabs/VirtualMachineEvents';
@@ -40,6 +41,7 @@ export default {
     OverviewBasics,
     LabelValue,
     Volume,
+    VMPerformanceOptions,
     Network,
     OverviewKeypairs,
     CloudConfig,
@@ -253,9 +255,15 @@ export default {
           :namespace="value.metadata.namespace"
           :vm="value"
           :resource-type="value.type"
+        />
+        <VMPerformanceOptions
           :block-multi-queue="blockMultiQueue"
           :io-threads-policy="ioThreadsPolicy"
           :io-thread-count="ioThreadCount"
+          :has-virtio-disk="hasVirtioDisk"
+          :has-dedicated-iothread="hasDedicatedIOThread"
+          mode="view"
+          class="mt-20"
         />
       </Tab>
 

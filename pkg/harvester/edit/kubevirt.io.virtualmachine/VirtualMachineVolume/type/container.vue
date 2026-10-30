@@ -132,11 +132,11 @@ export default {
         </InputOrDisplay>
       </div>
     </div>
-    <div class="row mb-20">
-      <div
-        v-if="value.volumeBackups"
-        class="col span-6"
-      >
+    <div
+      v-if="value.volumeBackups"
+      class="row mb-20"
+    >
+      <div class="col span-6">
         <InputOrDisplay
           :name="t('harvester.virtualMachine.volume.readyToUse')"
           :value="value.volumeBackups.readyToUse"
