@@ -1890,6 +1890,13 @@ harvester:
       linkAttributes:
         mtu:
           label: MTU
+      mode:
+        label: Uplink Mode
+        bond: Bond (the NICs form one bonded uplink)
+        isolated: Isolated ports (switchless mesh)
+        isolatedType: VLAN, isolated ports
+        isolatedBanner: Each NIC is attached to the cluster network bridge directly as an isolated port, with no bond. Use it when every NIC is cabled straight to a different node (switchless full mesh). The bridge never forwards between the NICs, so the mesh has no loop. A cluster network with isolated ports only carries the storage, RWX and VM migration networks.
+        isolatedHint: switchless mesh
       bondOptions:
         mode:
           label: Mode

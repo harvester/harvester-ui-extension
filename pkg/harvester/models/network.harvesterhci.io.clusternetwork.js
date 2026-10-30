@@ -1,7 +1,10 @@
 import { clone } from '@shell/utils/object';
 import { NODE } from '@shell/config/types';
 import { HCI } from '../types';
+import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import HarvesterResource from './harvester';
+
+export const UPLINK_MODE_ISOLATED = 'isolated';
 
 export default class HciClusterNetwork extends HarvesterResource {
   get doneOverride() {
@@ -28,6 +31,12 @@ export default class HciClusterNetwork extends HarvesterResource {
 
   get canUpdate() {
     return this.hasLink('update') && this.$rootGetters['type-map/optionsFor'](this.type).isEditable && this.id !== 'mgmt';
+  }
+
+  // The network controller labels a cluster network whose uplinks are isolated bridge ports (switchless mesh).
+  // Such a cluster network only carries the storage and RWX networks.
+  get isIsolatedUplink() {
+    return this.metadata?.labels?.[HCI_ANNOTATIONS.UPLINK_MODE] === UPLINK_MODE_ISOLATED;
   }
 
   get isReady() {

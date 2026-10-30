@@ -84,11 +84,15 @@ export default {
       const inStore = this.$store.getters['currentProduct'].inStore;
       const networks = this.$store.getters[`${ inStore }/all`](HCI.CLUSTER_NETWORK) || [];
 
-      return networks.map((net) => ({
-        label:    net.isReadyForStorageNetwork ? net.id : `${ net.id } (${ this.t('generic.notReady') })`,
-        value:    net.id,
-        disabled: !net.isReadyForStorageNetwork,
-      }));
+      return networks.map((net) => {
+        const name = net.isIsolatedUplink ? `${ net.id } (${ this.t('harvester.vlanConfig.uplink.mode.isolatedHint') })` : net.id;
+
+        return {
+          label:    net.isReadyForStorageNetwork ? name : `${ name } (${ this.t('generic.notReady') })`,
+          value:    net.id,
+          disabled: !net.isReadyForStorageNetwork,
+        };
+      });
     },
 
     disableEdit() {
