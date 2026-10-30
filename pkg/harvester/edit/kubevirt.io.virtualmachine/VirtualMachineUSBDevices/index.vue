@@ -2,6 +2,7 @@
 import { _EDIT } from '@shell/config/query-params';
 import { allHash } from '@shell/utils/promise';
 import { HCI } from '../../../types';
+import { setHostDevices } from '../../../utils/vm';
 import { STATE, SIMPLE_NAME } from '@shell/config/table-headers';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import Banner from '@components/Banner/Banner.vue';
@@ -9,7 +10,6 @@ import CompatibilityMatrix from '../CompatibilityMatrix';
 import DeviceList from './DeviceList';
 
 import remove from 'lodash/remove';
-import { set } from '@shell/utils/object';
 
 export default {
   name:       'VirtualMachineUSBDevices',
@@ -62,8 +62,9 @@ export default {
 
   data() {
     return {
-      deviceSchema:  this.$store.getters['harvester/schemaFor'](HCI.USB_DEVICE),
-      deviceHeaders: [
+      hadHostDevices:  !!this.value?.domain?.devices?.hostDevices,
+      deviceSchema:   this.$store.getters['harvester/schemaFor'](HCI.USB_DEVICE),
+      deviceHeaders:  [
         { ...STATE },
         SIMPLE_NAME,
       ],
@@ -91,7 +92,7 @@ export default {
         ...formatted,
       ];
 
-      set(this.value.domain.devices, 'hostDevices', devices);
+      setHostDevices(this.value, devices, this.hadHostDevices);
     }
   },
 
