@@ -145,9 +145,6 @@ export default {
       metric:           this.fetchClusterResources(METRIC.NODE),
       longhornNodes:    this.fetchClusterResources(LONGHORN.NODES),
       longhornSettings: this.fetchClusterResources(LONGHORN.SETTINGS),
-      componentHealths: this.componentHealthEnabled ? this.fetchClusterResources(HCI.COMPONENT_HEALTH) : [],
-      healthSummaries:  this.componentHealthEnabled ? this.fetchClusterResources(HCI.HEALTH_SUMMARY) : [],
-      ignoreRules:      this.componentHealthEnabled ? this.fetchClusterResources(HCI.HEALTH_IGNORE_RULE) : [],
       _pods:            this.$store.dispatch('harvester/findAll', { type: POD }),
     };
 
@@ -230,9 +227,6 @@ export default {
       metricNodes:            [],
       vms:                    [],
       pvcs:                   [],
-      componentHealths:       [],
-      healthSummaries:        [],
-      ignoreRules:            [],
       monitoring:             {},
       VM_DASHBOARD_METRICS_URL,
       CLUSTER_METRICS_SUMMARY_URL,
@@ -839,11 +833,8 @@ export default {
     </div>
 
     <template v-if="componentHealthEnabled">
-      <HealthSummaryTable :health-summaries="healthSummaries" />
-      <ComponentHealthSection
-        :component-healths="componentHealths"
-        :ignore-rules="ignoreRules"
-      />
+      <HealthSummaryTable />
+      <ComponentHealthSection />
     </template>
   </section>
 </template>

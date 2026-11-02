@@ -1,5 +1,6 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { HCI } from '../../types';
 import { useStore } from 'vuex';
 import SortableTable from '@shell/components/SortableTable';
 import Tabbed from '@shell/components/Tabbed';
@@ -14,19 +15,21 @@ import {
   componentOf, resourceIgnoredBy, severityColor
 } from '../../utils/component-health';
 
-const props = defineProps({
-  componentHealths: {
-    type:    Array,
-    default: () => [],
-  },
-  ignoreRules: {
-    type:    Array,
-    default: () => [],
-  },
-});
-
 const store = useStore();
 const { t } = useI18n(store);
+const componentHealths = ref([]);
+const ignoreRules = ref([]);
+
+onMounted(async() => {
+  try {
+    [componentHealths.value, ignoreRules.value] = await Promise.all([
+      store.dispatch('harvester/findAll', { type: HCI.COMPONENT_HEALTH }),
+      store.dispatch('harvester/findAll', { type: HCI.HEALTH_IGNORE_RULE }),
+    ]);
+  } catch (err) {
+    console.error('Failed fetching component health with error:', err); // eslint-disable-line no-console
+  }
+});
 
 const headers = [
   {
@@ -88,7 +91,7 @@ const expandedResourceIds = ref([]);
 const rows = computed(() => {
   const result = [];
 
-  (props.componentHealths || []).forEach((componentHealth) => {
+  (componentHealths.value || []).forEach((componentHealth) => {
     const component = componentOf(componentHealth);
     const node = componentHealth?.metadata?.labels?.[NODE_LABEL] || '';
     const checks = componentHealth?.status?.checks || {};
@@ -142,7 +145,7 @@ const groups = computed(() => {
   });
 
   // a component without any check still gets a tab
-  (props.componentHealths || []).forEach((componentHealth) => {
+  (componentHealths.value || []).forEach((componentHealth) => {
     const component = componentOf(componentHealth);
 
     rowsByComponent[component] = rowsByComponent[component] || [];
@@ -207,7 +210,7 @@ function remainingAffectedResourcesCount(row) {
 }
 
 function ignoreRuleByName(name) {
-  return (props.ignoreRules || []).find((rule) => rule.metadata?.name === name);
+  return (ignoreRules.value || []).find((rule) => rule.metadata?.name === name);
 }
 
 // the rules shipped by the addon values are managed by Helm, they are not removed from the dashboard

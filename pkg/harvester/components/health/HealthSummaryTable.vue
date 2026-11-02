@@ -1,20 +1,23 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { HCI } from '../../types';
 import { useStore } from 'vuex';
 import { useI18n } from '@shell/composables/useI18n';
 import SortableTable from '@shell/components/SortableTable';
 import { BadgeState } from '@components/BadgeState';
 import { HEALTH_SUMMARY_SEVERITY_RANK, healthSummarySeverity, severityColor } from '../../utils/component-health';
 
-const props = defineProps({
-  healthSummaries: {
-    type:    Array,
-    default: () => [],
-  },
-});
-
 const store = useStore();
 const { t } = useI18n(store);
+const healthSummaries = ref([]);
+
+onMounted(async() => {
+  try {
+    healthSummaries.value = await store.dispatch('harvester/findAll', { type: HCI.HEALTH_SUMMARY });
+  } catch (err) {
+    console.error('Failed fetching health summaries with error:', err); // eslint-disable-line no-console
+  }
+});
 
 const headers = [
   {
@@ -61,7 +64,7 @@ const headers = [
 const rows = computed(() => {
   const result = [];
 
-  (props.healthSummaries || []).forEach((healthSummary) => {
+  (healthSummaries.value || []).forEach((healthSummary) => {
     const components = healthSummary?.status?.components || {};
     const lastUpdatedAt = healthSummary?.status?.lastUpdatedAt;
 
