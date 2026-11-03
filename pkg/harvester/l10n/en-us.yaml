@@ -296,6 +296,8 @@ harvester:
     addHotplugNic: Hotplug Network Interface
     exportImage: Export Image
     viewlogs: View Logs
+    enableDeleteProtection: Enable Delete Protection
+    disableDeleteProtection: Disable Delete Protection
     cancelExpand: Cancel Expand
     snapshot: Take Snapshot
     pvcClone: Clone Volume
@@ -773,6 +775,11 @@ harvester:
     genericLoginError: Authentication failed. Please re-log in and try again.
     installAgent: Install guest agent
     enableUsb: Enable USB Tablet
+    deleteProtection:
+      label: Enable Delete Protection
+      tooltip: While enabled, the virtual machine cannot be deleted. Disable delete protection first to delete it. This sets the kubevirt.io/vm-delete-protection label.
+      preventDelete: '{name} has delete protection enabled. Choose Disable Delete Protection in its action menu before deleting it.'
+      preventDeleteMany: 'Delete protection is enabled on: {names}. Choose Disable Delete Protection in their action menus, or deselect them, before deleting.'
     systemOptions:
       tpm: Enable TPM
       tpmPersistentState: TPM Persistent State
@@ -2590,6 +2597,7 @@ advancedSettings:
     'harv-instance-manager-resources': 'Configure resource percentage reservations for Longhorn instance manager V1 and V2. Valid instance manager CPU range between 0 - 40.'
     'harv-cluster-pod-security-standard': 'Enforce Kubernetes Pod Security Standards (PSS) at the cluster level.'
     'harv-maintenance-mode-drain-timeout': 'Maintenance mode drain timeout in minutes. Use 0 to disable the timeout.'
+    'harv-default-vm-delete-protection': 'Turn on delete protection by default for new virtual machines. Default is false. Changing this setting affects only virtual machines created afterwards; existing virtual machines and virtual machines created by Rancher (node driver or Cluster API) are not changed.'
 
 typeLabel:
   kubevirt.io.virtualmachine: |-

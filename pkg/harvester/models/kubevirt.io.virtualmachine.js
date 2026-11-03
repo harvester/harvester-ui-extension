@@ -6,7 +6,7 @@ import { POD, NODE, PVC } from '@shell/config/types';
 import { findBy } from '@shell/utils/array';
 import { parseSi } from '@shell/utils/units';
 import { get, set } from '@shell/utils/object';
-import { LABELS_TO_IGNORE_REGEX, HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
+import { LABELS_TO_IGNORE_REGEX, HCI as HCI_ANNOTATIONS, VM_DELETE_PROTECTION_LABEL, VM_DELETE_PROTECTION_REGEX } from '@pkg/harvester/config/labels-annotations';
 import { _CLONE } from '@shell/config/query-params';
 import { matchesSomeRegex } from '@shell/utils/string';
 import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
@@ -286,6 +286,20 @@ export default class VirtVm extends HarvesterResource {
         label:   this.t('harvester.action.createTemplate')
       },
       {
+        action:   'enableDeleteProtection',
+        enabled:  this.deleteProtectionFeatureEnabled && this.canUpdate && !this.isDeleteProtected,
+        icon:     'icon icon-lock',
+        label:    this.t('harvester.action.enableDeleteProtection'),
+        bulkable: true
+      },
+      {
+        action:   'disableDeleteProtection',
+        enabled:  this.deleteProtectionFeatureEnabled && this.canUpdate && this.isDeleteProtected,
+        icon:     'icon icon-unlock',
+        label:    this.t('harvester.action.disableDeleteProtection'),
+        bulkable: true
+      },
+      {
         action:  'openLogs',
         enabled: !!this.podResource,
         icon:    'icon icon-fw icon-chevron-right',
@@ -377,6 +391,60 @@ export default class VirtVm extends HarvesterResource {
     });
 
     this.metadata.annotations[HCI_ANNOTATIONS.VOLUME_CLAIM_TEMPLATE] = JSON.stringify(deleteDataSource);
+  }
+
+  get deleteProtectionFeatureEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('vmDeleteProtection');
+  }
+
+  get isDeleteProtected() {
+    return VM_DELETE_PROTECTION_REGEX.test(this.metadata?.labels?.[VM_DELETE_PROTECTION_LABEL] || '');
+  }
+
+  // Read by the shell's PromptRemove: any truthy value disables its Delete button.
+  // The Harvester VM delete dialog shows the protected VMs in a banner.
+  get preventDeletionMessage() {
+    if (this.deleteProtectionFeatureEnabled && this.isDeleteProtected) {
+      return this.t('harvester.virtualMachine.deleteProtection.preventDelete', { name: this.nameDisplay });
+    }
+
+    return null;
+  }
+
+  enableDeleteProtection() {
+    return this.setDeleteProtection(true);
+  }
+
+  disableDeleteProtection() {
+    return this.setDeleteProtection(false);
+  }
+
+  // A JSON merge patch keeps the change to this one label, so it can't race
+  // with other edits to the VM. Strategic merge patch isn't supported on CRDs.
+  setDeleteProtection(enabled) {
+    return this.patch(
+      { metadata: { labels: { [VM_DELETE_PROTECTION_LABEL]: enabled ? 'true' : 'false' } } },
+      { headers: { 'content-type': 'application/merge-patch+json' } },
+      false,
+      true
+    );
+  }
+
+  // The delete protection label is owned by the "Delete protection" checkbox,
+  // so keep it out of the generic Labels editor.
+  get labels() {
+    return omitBy(super.labels, (value, key) => key === VM_DELETE_PROTECTION_LABEL);
+  }
+
+  setLabels(val) {
+    const current = this.metadata?.labels?.[VM_DELETE_PROTECTION_LABEL];
+    const next = omitBy(val || {}, (value, key) => key === VM_DELETE_PROTECTION_LABEL);
+
+    super.setLabels(next);
+
+    if (current !== undefined) {
+      this.metadata.labels[VM_DELETE_PROTECTION_LABEL] = current;
+    }
   }
 
   restartVM(resources = this) {

@@ -5,9 +5,12 @@ import Parse from 'url-parse';
 import { resourceNames } from '@shell/utils/string';
 import { HCI } from '../types';
 import { alternateLabel as alternateLabelButton } from '@shell/utils/platform';
+import { Banner } from '@components/Banner';
 
 export default {
   name: 'HarvesterPromptRemove',
+
+  components: { Banner },
 
   props: {
     value: {
@@ -48,6 +51,14 @@ export default {
     ...mapState('action-menu', ['toRemove']),
     ...mapGetters({ t: 'i18n/t' }),
 
+    protectedVMs() {
+      return this.value.filter((resource) => resource.type === HCI.VM && resource.preventDeletionMessage);
+    },
+
+    protectedVMNames() {
+      return this.protectedVMs.map((vm) => vm.nameDisplay).join(', ');
+    },
+
     removeNameArr() {
       const out = {};
 
@@ -87,6 +98,14 @@ export default {
     resourceNames,
     remove() {
       let goTo;
+
+      // The shell disables the Delete button for protected VMs; the server
+      // refuses the delete too. Stop here so we don't send doomed requests.
+      if (this.protectedVMs.length) {
+        this.$emit('errors', this.t('harvester.virtualMachine.deleteProtection.preventDeleteMany', { names: this.protectedVMNames }));
+
+        return Promise.reject(new Error('delete protection'));
+      }
 
       if (this.doneLocation) {
         // doneLocation will recompute to undefined when delete request completes
@@ -134,6 +153,12 @@ export default {
 
 <template>
   <div>
+    <Banner
+      v-if="protectedVMs.length"
+      color="error"
+      data-testid="vm-delete-protection-banner"
+      :label="t('harvester.virtualMachine.deleteProtection.preventDeleteMany', { names: protectedVMNames })"
+    />
     <div class="mt-10">
       {{ t('promptRemove.attemptingToRemove', {type}) }}
       <span v-clean-html="resourceNames(names, null, t)"></span>
