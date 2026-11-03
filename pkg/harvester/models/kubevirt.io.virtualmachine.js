@@ -430,13 +430,22 @@ export default class VirtVm extends HarvesterResource {
     );
   }
 
-  // The delete protection label is owned by the "Delete protection" checkbox,
-  // so keep it out of the generic Labels editor.
+  // When the feature is on, the delete protection label is owned by the
+  // "Delete protection" checkbox, so keep it out of the generic Labels editor.
+  // When it is off, there is no checkbox and the label is an ordinary label.
   get labels() {
+    if (!this.deleteProtectionFeatureEnabled) {
+      return super.labels;
+    }
+
     return omitBy(super.labels, (value, key) => key === VM_DELETE_PROTECTION_LABEL);
   }
 
   setLabels(val) {
+    if (!this.deleteProtectionFeatureEnabled) {
+      return super.setLabels(val);
+    }
+
     const current = this.metadata?.labels?.[VM_DELETE_PROTECTION_LABEL];
     const next = omitBy(val || {}, (value, key) => key === VM_DELETE_PROTECTION_LABEL);
 

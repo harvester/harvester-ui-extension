@@ -111,4 +111,16 @@ describe('vM delete protection', () => {
     vm.setLabels({ app: 'db', [VM_DELETE_PROTECTION_LABEL]: 'false' });
     expect(vm.metadata.labels).toStrictEqual({ app: 'db', [VM_DELETE_PROTECTION_LABEL]: 'true' });
   });
+
+  it('leaves the label in the Labels editor when the feature is off', () => {
+    const vm = createVm({ labels: { app: 'web', [VM_DELETE_PROTECTION_LABEL]: 'true' }, featureEnabled: false });
+
+    expect(vm.labels).toStrictEqual({ app: 'web', [VM_DELETE_PROTECTION_LABEL]: 'true' });
+
+    vm.setLabels({ app: 'db', [VM_DELETE_PROTECTION_LABEL]: 'false' });
+    expect(vm.metadata.labels).toStrictEqual({ app: 'db', [VM_DELETE_PROTECTION_LABEL]: 'false' });
+
+    vm.setLabels({ app: 'db' });
+    expect(vm.metadata.labels).toStrictEqual({ app: 'db' });
+  });
 });
