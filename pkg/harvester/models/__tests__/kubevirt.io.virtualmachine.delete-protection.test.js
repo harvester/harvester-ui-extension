@@ -56,9 +56,13 @@ describe('vM delete protection', () => {
   it.each([
     ['true', true],
     ['True', true],
+    ['TRUE', true],
+    ['1', true],
+    ['t', true],
     ['false', false],
-    ['TRUE', false],
+    ['0', false],
     ['yes', false],
+    [' true ', false],
     [undefined, false],
   ])('label value %p => protected %p', (value, expected) => {
     const labels = value === undefined ? {} : { [VM_DELETE_PROTECTION_LABEL]: value };
