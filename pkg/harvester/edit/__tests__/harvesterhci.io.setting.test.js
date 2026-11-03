@@ -1,0 +1,107 @@
+import { MANAGEMENT } from '@shell/config/types';
+import { HCI_SETTING, HCI_SINGLE_CLUSTER_ALLOWED_SETTING } from '@pkg/harvester/config/settings';
+import HarvesterEditSetting from '../harvesterhci.io.setting.vue';
+
+const { AUTH_USER_SESSION_TTL_MINUTES: TTL, AUTH_USER_SESSION_IDLE_TTL_MINUTES: IDLE_TTL } = HCI_SETTING;
+
+// The form's `this` for the save methods: the edited setting, and the other session setting as the store returns it
+function form(id, value, other = { value: '', default: '960' }) {
+  const dispatch = jest.fn((action) => {
+    if (action === 'management/find') {
+      return other instanceof Error ? Promise.reject(other) : Promise.resolve(other);
+    }
+
+    return Promise.resolve();
+  });
+
+  const ctx = {
+    value:    {
+      id, metadata: { name: id }, value
+    },
+    setting:  HCI_SINGLE_CLUSTER_ALLOWED_SETTING[id] || { kind: 'string' },
+    oldValue: value,
+    errors:   [],
+    save:     jest.fn(),
+    $store:   {
+      dispatch,
+      getters: { 'i18n/t': (key, args) => (args ? `${ key }-${ JSON.stringify(args) }` : key) },
+    },
+  };
+
+  Object.entries(HarvesterEditSetting.methods).forEach(([name, fn]) => {
+    ctx[name] = fn.bind(ctx);
+  });
+
+  return ctx;
+}
+
+describe('edit: harvesterhci.io.setting session timeouts', () => {
+  it('should register both session settings as numbers behind the sessionTimeoutSettings flag', () => {
+    [TTL, IDLE_TTL].forEach((id) => {
+      expect(HCI_SINGLE_CLUSTER_ALLOWED_SETTING[id]).toStrictEqual({ kind: 'number', featureFlag: 'sessionTimeoutSettings' });
+    });
+  });
+
+  it.each(['0', '-1', 'abc', '1.5', ''])('should reject %p as a session timeout', async(value) => {
+    const ctx = form(IDLE_TTL, value);
+
+    await expect(ctx.validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.invalid');
+  });
+
+  it('should accept an idle timeout lower than or equal to the session timeout', async() => {
+    await expect(form(IDLE_TTL, '30').validateSessionTTL()).resolves.toBeNull();
+    await expect(form(IDLE_TTL, '960').validateSessionTTL()).resolves.toBeNull();
+  });
+
+  it('should compare against the other setting, using its default when it has no value', async() => {
+    const ctx = form(IDLE_TTL, '120', { value: '', default: '60' });
+
+    await expect(ctx.validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.idleExceedsTTL-{"idle":120,"ttl":60}');
+    expect(ctx.$store.dispatch).toHaveBeenCalledWith('management/find', { type: MANAGEMENT.SETTING, id: TTL });
+  });
+
+  it('should reject an idle timeout greater than the session timeout', async() => {
+    const ctx = form(IDLE_TTL, '120', { value: '60' });
+
+    await expect(ctx.validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.idleExceedsTTL-{"idle":120,"ttl":60}');
+  });
+
+  it('should reject a session timeout lower than the idle timeout', async() => {
+    const ctx = form(TTL, '30', { value: '60' });
+
+    await expect(ctx.validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.idleExceedsTTL-{"idle":60,"ttl":30}');
+  });
+
+  it('should only check the value itself when the other setting cannot be read', async() => {
+    await expect(form(IDLE_TTL, '120', new Error('forbidden')).validateSessionTTL()).resolves.toBeNull();
+    await expect(form(IDLE_TTL, '120', { value: '', default: '' }).validateSessionTTL()).resolves.toBeNull();
+  });
+
+  it('should not validate other settings', async() => {
+    const ctx = form(HCI_SETTING.UI_SOURCE, '0');
+
+    await expect(ctx.validateSessionTTL()).resolves.toBeNull();
+    expect(ctx.$store.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('should not save an invalid session timeout', async() => {
+    const ctx = form(IDLE_TTL, '120', { value: '60' });
+    const done = jest.fn();
+
+    await ctx.saveSettings(done);
+
+    expect(done).toHaveBeenCalledWith(false);
+    expect(ctx.save).not.toHaveBeenCalled();
+    expect(ctx.errors).toHaveLength(1);
+  });
+
+  it('should save a valid session timeout without leading zeros', async() => {
+    const ctx = form(IDLE_TTL, '030');
+    const done = jest.fn();
+
+    await ctx.saveSettings(done);
+
+    expect(ctx.value.value).toBe('30');
+    expect(ctx.save).toHaveBeenCalledWith(done);
+  });
+});
