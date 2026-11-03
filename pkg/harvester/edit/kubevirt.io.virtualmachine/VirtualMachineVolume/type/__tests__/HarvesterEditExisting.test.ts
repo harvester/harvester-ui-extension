@@ -182,5 +182,70 @@ describe('component: HarvesterEditExisting', () => {
 
       expect(wrapper.vm.persistentReservationAllowed).toBe(true);
     });
+
+    describe('on a volume that can be shared', () => {
+      // An attached RWX Block volume of a non-Longhorn (SAN) storage class
+      const sanStore = (getters = {}) => ({
+        getters: {
+          'harvester-common/getFeatureEnabled': () => true,
+          'harvester/all':                      (type) => ({
+            persistentvolumeclaim: [{
+              metadata: { name: 'san-lun', namespace: 'default' },
+              spec:     {
+                accessModes: ['ReadWriteMany'], volumeMode: 'Block', storageClassName: 'netapp-iscsi'
+              },
+            }],
+            'storage.k8s.io.storageclass': [{ name: 'netapp-iscsi', provisioner: 'csi.trident.netapp.io' }],
+          })[type] || [],
+          'harvester/byId': () => ({ value: 'true' }),
+          'i18n/t':         jest.fn(),
+          ...getters,
+        }
+      });
+      const mountSan = (value) => mount(HarvesterEditExisting, {
+        props: {
+          mode: _EDIT, value: { volumeName: 'san-lun', ...value }, rows: [], namespace: 'default'
+        },
+        global: {
+          mocks: { $route: { params: { cluster: 'local' } }, $store: sanStore() },
+          stubs: { 'router-link': true }
+        }
+      });
+
+      it('should offer lun', () => {
+        expect(mountSan({ type: 'disk' }).vm.typeOptions.map((o) => o.value)).toStrictEqual(['disk', 'cd-rom', 'lun']);
+      });
+
+      it('should put a disk switched to lun on the SCSI bus, make it shareable and default its error policy to report', async() => {
+        const wrapper = mountSan({ type: 'disk', bus: 'virtio' });
+
+        wrapper.vm.value.type = 'lun';
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.value).toMatchObject({
+          bus: 'scsi', shareable: true, errorPolicy: 'report'
+        });
+        expect(wrapper.emitted('update')).toBeTruthy();
+        expect(wrapper.find('[data-testid="input-hee-shareable"]').exists()).toBe(false);
+      });
+
+      it('should keep an error policy that is already set when the disk is switched to lun', async() => {
+        const wrapper = mountSan({ type: 'disk', errorPolicy: 'ignore' });
+
+        wrapper.vm.value.type = 'lun';
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.value.errorPolicy).toBe('ignore');
+      });
+
+      it('should drop the reservation when a lun disk is switched to another type', async() => {
+        const wrapper = mountSan({ type: 'lun', reservation: true });
+
+        wrapper.vm.value.type = 'disk';
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.vm.value.reservation).toBe(false);
+      });
+    });
   });
 });
