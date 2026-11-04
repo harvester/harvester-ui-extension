@@ -232,6 +232,7 @@ export default {
             this.imageValue.spec.targetStorageClassName = 'longhorn-static';
 
             res = await this.imageValue.save();
+            res.notifyGeneratedName?.();
 
             this.value.spec.image = res.id;
           }
@@ -253,6 +254,7 @@ export default {
           this.value.metadata.annotations = { [HCI_ANNOTATIONS.SKIP_SINGLE_REPLICA_DETACHED_VOL]: JSON.stringify(this.skipSingleReplicaDetachedVol) };
         }
         await this.value.save();
+        this.value.notifyGeneratedName?.();
         this.done();
         buttonCb(true);
       } catch (e) {
@@ -290,6 +292,7 @@ export default {
 
         const res = await this.imageValue.save();
 
+        res.notifyGeneratedName?.();
         this.uploadImageId = res.id;
         this.uploadController = new AbortController();
 

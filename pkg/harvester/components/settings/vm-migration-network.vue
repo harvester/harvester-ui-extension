@@ -5,7 +5,7 @@ import { RadioGroup } from '@components/Form/Radio';
 import { Banner } from '@components/Banner';
 import ArrayList from '@shell/components/form/ArrayList';
 import { allHash } from '@shell/utils/promise';
-import { isValidCIDR } from '@shell/utils/validators/cidr';
+import { isValidCIDR } from '@pkg/harvester/utils/regular';
 import { NODE } from '@shell/config/types';
 import { _EDIT } from '@shell/config/query-params';
 import { HCI } from '../../types';
