@@ -209,17 +209,13 @@ export default {
         canSend:       this.canSendKeys,
         blockedReason: this.sendBlockedReason,
         canManage:     !this.hideCustomKeysBar,
-        disabled:      !this.canSendKeys && this.hideCustomKeysBar,
+        disabled:      !!this.settings.viewOnly || (!this.canSendKeys && this.hideCustomKeysBar),
         shortcuts:     this.preferredShortcutKeys,
       };
     },
 
     sendBlockedReason() {
-      if (this.canSendKeys) {
-        return '';
-      }
-
-      return this.t(`harvester.virtualMachine.detail.console.shortcutMenu.${ this.settings.viewOnly && this.isConnected ? 'blockedViewOnly' : 'blockedDisconnected' }`);
+      return this.canSendKeys ? '' : this.t('harvester.virtualMachine.detail.console.shortcutMenu.blockedDisconnected');
     },
 
     vmName() {
@@ -462,7 +458,9 @@ export default {
     },
 
     softReboot() {
-      this.confirmAction = CONFIRM_ACTION.SOFT_REBOOT;
+      if (!this.settings.viewOnly) {
+        this.confirmAction = CONFIRM_ACTION.SOFT_REBOOT;
+      }
     },
 
     // RcModal hands focus back to the toolbar button that opened it; the screen should get it.
@@ -632,6 +630,7 @@ export default {
             variant="tertiary"
             left-icon="refresh-alt"
             data-testid="vnc-soft-reboot"
+            :disabled="!!settings.viewOnly"
             @click="softReboot"
           >
             {{ t("harvester.virtualMachine.detail.console.softReboot") }}
@@ -707,7 +706,7 @@ export default {
           v-if="!isFullscreen && !isDown"
           class="console-area__hint"
         >
-          {{ t(settings.viewOnly ? 'harvester.virtualMachine.detail.console.hintViewOnly' : 'harvester.virtualMachine.detail.console.hint') }}
+          {{ t(settings.viewOnly ? 'harvester.virtualMachine.detail.console.hintViewOnly' : 'harvester.virtualMachine.detail.console.hint', {}, true) }}
         </p>
       </div>
 

@@ -10,7 +10,9 @@ const consoleRef = {
   focus:         jest.fn(),
 };
 
-const mountWrapper = () => {
+const mountWrapper = ({ preferences = [] } = {}) => {
+  // The console settings are saved there, so one test's would load in the next.
+  window.localStorage.clear();
   consoleRef.ctrlAltDelete.mockClear();
   consoleRef.focus.mockClear();
 
@@ -24,7 +26,7 @@ const mountWrapper = () => {
       mocks: {
         $store: {
           getters: {
-            'management/all':                     () => [],
+            'management/all':                     () => preferences,
             'harvester-common/getFeatureEnabled': () => true,
           },
         },
@@ -93,11 +95,61 @@ describe('component: NovncConsoleWrapper', () => {
     expect(wrapper.vm.sendBlockedReason).toBe('%harvester.virtualMachine.detail.console.shortcutMenu.blockedDisconnected%');
     // Without a user preference there is nothing to manage either, so only then is it disabled.
     expect(wrapper.vm.shortcutMenuProps.disabled).toBe(true);
+  });
 
-    wrapper.vm.onStatusChanged({ status: 'connected' });
+  it('should keep the shortcut menu enabled while disconnected when there are shortcuts to manage', () => {
+    const wrapper = mountWrapper({ preferences: [{ data: {} }] });
+
+    wrapper.vm.onStatusChanged({ status: 'reconnecting' });
+
+    expect(wrapper.vm.shortcutMenuProps.canSend).toBe(false);
+    expect(wrapper.vm.shortcutMenuProps.disabled).toBe(false);
+  });
+
+  it('should disable the shortcut menu, managing shortcuts included, while view only is on', () => {
+    const wrapper = mountWrapper({ preferences: [{ data: {} }] });
+
+    expect(wrapper.vm.shortcutMenuProps.disabled).toBe(false);
+
     wrapper.vm.setViewOnly(true);
 
-    expect(wrapper.vm.sendBlockedReason).toBe('%harvester.virtualMachine.detail.console.shortcutMenu.blockedViewOnly%');
+    expect(wrapper.vm.shortcutMenuProps.disabled).toBe(true);
+  });
+
+  it('should disable Ctrl+Alt+Del and Soft reboot while view only is on', async() => {
+    const wrapper = mountWrapper();
+    const doSoftReboot = jest.fn();
+    const button = (id) => wrapper.find(`[data-testid="${ id }"]`);
+
+    wrapper.vm.vmResource = { doSoftReboot, actions: { softreboot: 'url' } };
+    await wrapper.vm.$nextTick();
+
+    expect(button('vnc-soft-reboot').attributes('disabled')).toBe('false');
+    expect(button('vnc-ctrl-alt-del').attributes('disabled')).toBe('false');
+
+    wrapper.vm.setViewOnly(true);
+    await wrapper.vm.$nextTick();
+
+    expect(button('vnc-soft-reboot').attributes('disabled')).toBe('true');
+    expect(button('vnc-ctrl-alt-del').attributes('disabled')).toBe('true');
+
+    wrapper.vm.softReboot();
+    wrapper.vm.ctrlAltDelete();
+
+    expect(wrapper.vm.confirmAction).toBeNull();
+    expect(doSoftReboot).not.toHaveBeenCalled();
+  });
+
+  it('should say so under the console while view only is on', async() => {
+    const wrapper = mountWrapper();
+    const hint = () => wrapper.find('.console-area__hint').text();
+
+    expect(hint()).toBe('%harvester.virtualMachine.detail.console.hint%');
+
+    wrapper.vm.setViewOnly(true);
+    await wrapper.vm.$nextTick();
+
+    expect(hint()).toBe('%harvester.virtualMachine.detail.console.hintViewOnly%');
   });
 
   it('should not send keys while view only is on', () => {
@@ -117,4 +169,5 @@ describe('component: NovncConsoleWrapper', () => {
 
     expect(wrapper.vm.confirmAction).toBeNull();
   });
+
 });

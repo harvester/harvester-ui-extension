@@ -1028,9 +1028,8 @@ harvester:
           functionKeys: Function keys
           manage: Manage custom shortcuts…
           blockedDisconnected: Keys can be sent once the console is connected.
-          blockedViewOnly: View only is on, so keys are not sent.
         hint: Clicking the console captures your keyboard. To send a shortcut, use the Shortcut keys menu.
-        hintViewOnly: View only is on, so your mouse and keyboard are not sent to the VM. Turn it off in the connection status menu.
+        hintViewOnly: '"View only" mode is on. In this mode, your mouse and keyboard are not sent to the VM.'
         connection:
           menuLabel: Connection
           description: Connected to {name}. If the screen stops updating, reconnecting usually fixes it.

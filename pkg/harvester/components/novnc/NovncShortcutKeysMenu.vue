@@ -40,7 +40,7 @@ export default {
       default: () => [],
     },
 
-    // Keys only go out over a connected, interactive console; the menu still opens to manage shortcuts.
+    // Keys only go out over a connected console; the menu still opens to manage shortcuts.
     canSend: {
       type:    Boolean,
       default: true,
