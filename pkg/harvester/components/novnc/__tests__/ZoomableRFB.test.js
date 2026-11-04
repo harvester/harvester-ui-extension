@@ -1,10 +1,14 @@
 import ZoomableRFB from '../ZoomableRFB';
 
+const GUEST_POINTER = 'url(guest-pointer) 0 0, default';
+
 jest.mock('@novnc/novnc/core/rfb', () => ({
   __esModule: true,
   default:    class {
     constructor() {
       this.scaleViewport = true;
+      this._canvas = { style: {} };
+      this._cursorImage = { rgbaPixels: new Uint8Array() };
       this._display = { autoscale: jest.fn() };
     }
 
@@ -13,10 +17,54 @@ jest.mock('@novnc/novnc/core/rfb', () => ({
     }
 
     _fixScrollbars() {}
+
+    // As noVNC does: nothing visible hides the mouse, an image is shown as the pointer.
+    _refreshCursor() {
+      this._canvas.style.cursor = this._cursorImage.rgbaPixels.length ? 'url(guest-pointer) 0 0, default' : 'none';
+    }
   },
 }), { virtual: true });
 
 describe('zoomableRFB', () => {
+  describe('the pointer over the screen', () => {
+    it('should be the system one while the guest sends no pointer image', () => {
+      const rfb = new ZoomableRFB();
+
+      rfb._refreshCursor();
+
+      expect(rfb._canvas.style.cursor).toBe('default');
+    });
+
+    it('should be the system one when the image the guest sends is fully transparent', () => {
+      const rfb = new ZoomableRFB();
+
+      rfb._cursorImage = { rgbaPixels: new Uint8Array([255, 255, 255, 0, 0, 0, 0, 0]) };
+      rfb._refreshCursor();
+
+      expect(rfb._canvas.style.cursor).toBe('default');
+    });
+
+    it('should be the one the guest sends when it has visible pixels', () => {
+      const rfb = new ZoomableRFB();
+
+      rfb._cursorImage = { rgbaPixels: new Uint8Array([0, 0, 0, 0, 0, 0, 0, 255]) };
+      rfb._refreshCursor();
+
+      expect(rfb._canvas.style.cursor).toBe(GUEST_POINTER);
+    });
+
+    it('should go back to the system one when the guest stops sending an image', () => {
+      const rfb = new ZoomableRFB();
+
+      rfb._cursorImage = { rgbaPixels: new Uint8Array([0, 0, 0, 255]) };
+      rfb._refreshCursor();
+      rfb._cursorImage = { rgbaPixels: [] };
+      rfb._refreshCursor();
+
+      expect(rfb._canvas.style.cursor).toBe('default');
+    });
+  });
+
   describe('the fitted screen', () => {
     it('should keep room for the focus ring', () => {
       const rfb = new ZoomableRFB();

@@ -50,4 +50,16 @@ export default class ZoomableRFB extends RFB {
       this._fixScrollbars();
     }
   }
+
+  // noVNC hides the mouse over the screen until the guest sends a pointer image, and a text console
+  // or a guest that draws its own pointer never does. Show the system pointer unless one arrives.
+  _refreshCursor() {
+    super._refreshCursor();
+
+    const hasGuestPointer = this._cursorImage.rgbaPixels.some((value, index) => index % 4 === 3 && value > 0);
+
+    if (!hasGuestPointer) {
+      this._canvas.style.cursor = 'default';
+    }
+  }
 }
