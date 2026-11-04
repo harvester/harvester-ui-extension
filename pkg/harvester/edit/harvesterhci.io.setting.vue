@@ -52,6 +52,7 @@ export default {
     const oldValue = this.value.value;
 
     const isHarvester = this.value?.type?.includes('harvesterhci');
+    const descriptionKey = setting.descriptionKey || (isHarvester ? `advancedSettings.descriptions.harv-${ this.value.id }` : `advancedSettings.descriptions.${ this.value.id }`);
 
     // Get all the custom volume types from the file names of this folder
     const customSettingComponents = require
@@ -61,13 +62,7 @@ export default {
 
     return {
       setting,
-      description: isHarvester ? t(
-        `advancedSettings.descriptions.harv-${ this.value.id }`,
-        this.getDocLinkParams()
-      ) : t(
-        `advancedSettings.descriptions.${ this.value.id }`,
-        this.getDocLinkParams()
-      ),
+      description:        t(descriptionKey, this.getDocLinkParams()),
       editHelp:           t(`advancedSettings.editHelp.${ this.value.id }`),
       enumOptions,
       canReset,
@@ -138,13 +133,6 @@ export default {
         await this.clusterRegistrationUrlTip();
       }
 
-      // remove any leading zeros (e.g. '0123' becomes 123)
-      if (this.setting.kind === 'number' && this.value.value) {
-        const num = Number(this.value.value);
-
-        this.value.value = isNaN(num) ? 0 : `${ num }`;
-      }
-
       const sessionTTLError = await this.validateSessionTTL();
 
       if (sessionTTLError) {
@@ -153,46 +141,51 @@ export default {
         return done(false);
       }
 
+      // remove any leading zeros (e.g. '0123' becomes 123)
+      if (this.setting.kind === 'number' && this.value.value) {
+        const num = Number(this.value.value);
+
+        this.value.value = isNaN(num) ? 0 : `${ num }`;
+      }
+
       this.save(done);
     },
 
-    // Rancher does not validate the session TTL settings in Harvester, so a bad value would only surface as a broken login session
+    // Rancher's webhook checks these two settings, but it doesn't cover them on standalone Harvester, so apply its rules here
     async validateSessionTTL() {
       const { AUTH_USER_SESSION_TTL_MINUTES: TTL, AUTH_USER_SESSION_IDLE_TTL_MINUTES: IDLE_TTL } = HCI_SETTING;
       const id = this.value.metadata.name;
 
-      if (![TTL, IDLE_TTL].includes(id)) {
+      // An empty value means the setting's default
+      if (![TTL, IDLE_TTL].includes(id) || this.value.value === '') {
         return null;
       }
 
       const t = this.$store.getters['i18n/t'];
-      const minutes = Number(this.value.value);
 
-      if (!Number.isInteger(minutes) || minutes < 1) {
-        return t('harvester.setting.sessionTTL.invalid');
+      if (!/^\d+$/.test(this.value.value)) {
+        return t(id === TTL ? 'harvester.setting.sessionTTL.invalidTTL' : 'harvester.setting.sessionTTL.invalidIdle');
       }
 
-      const otherId = id === TTL ? IDLE_TTL : TTL;
-      let other;
-
-      try {
-        other = await this.$store.dispatch('management/find', { type: MANAGEMENT.SETTING, id: otherId });
-      } catch {}
-
-      const otherMinutes = parseInt(other?.value || other?.default, 10);
-
-      if (isNaN(otherMinutes)) {
+      if (id === TTL) {
         return null;
       }
 
-      const idle = id === IDLE_TTL ? minutes : otherMinutes;
-      const ttl = id === TTL ? minutes : otherMinutes;
+      const minutes = Number(this.value.value);
 
-      if (idle > ttl) {
-        return t('harvester.setting.sessionTTL.idleExceedsTTL', { idle, ttl });
+      if (minutes < 1) {
+        return t('harvester.setting.sessionTTL.invalidIdle');
       }
 
-      return null;
+      let ttlSetting;
+
+      try {
+        ttlSetting = await this.$store.dispatch('management/find', { type: MANAGEMENT.SETTING, id: TTL });
+      } catch {}
+
+      const ttl = parseInt(ttlSetting?.value || ttlSetting?.default, 10);
+
+      return minutes > ttl ? t('harvester.setting.sessionTTL.idleExceedsTTL', { ttl }) : null;
     },
 
     clusterRegistrationUrlTip() {

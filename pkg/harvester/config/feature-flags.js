@@ -92,6 +92,7 @@ const FEATURE_FLAGS = {
     'kubeovnBgp',
     'thirdPartyVMBackup',
     'sessionTimeoutSettings',
+    'websocketNotificationsSetting',
   ],
 };
 

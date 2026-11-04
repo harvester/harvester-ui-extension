@@ -42,10 +42,31 @@ describe('edit: harvesterhci.io.setting session timeouts', () => {
     });
   });
 
-  it.each(['0', '-1', 'abc', '1.5', ''])('should reject %p as a session timeout', async(value) => {
-    const ctx = form(IDLE_TTL, value);
+  it('should register the websocket notifications option behind its own flag, with the shell description', () => {
+    expect(HCI_SINGLE_CLUSTER_ALLOWED_SETTING[HCI_SETTING.UI_PERFORMANCE]).toStrictEqual({
+      kind:           'custom',
+      from:           'import',
+      alias:          'disable-websocket-notifications',
+      canReset:       true,
+      descriptionKey: 'performance.websocketNotification.description',
+      featureFlag:    'websocketNotificationsSetting',
+    });
+  });
 
-    await expect(ctx.validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.invalid');
+  it.each(['0', '-1', 'abc', '1.5'])('should reject %p as an idle timeout, as the Rancher webhook does', async(value) => {
+    await expect(form(IDLE_TTL, value).validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.invalidIdle');
+  });
+
+  it.each(['-1', 'abc', '1.5'])('should reject %p as a session timeout, as the Rancher webhook does', async(value) => {
+    await expect(form(TTL, value).validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.invalidTTL');
+  });
+
+  it.each([TTL, IDLE_TTL])('should accept an empty %s, which means its default', async(id) => {
+    await expect(form(id, '').validateSessionTTL()).resolves.toBeNull();
+  });
+
+  it('should accept 0 as a session timeout, as the Rancher webhook does', async() => {
+    await expect(form(TTL, '0').validateSessionTTL()).resolves.toBeNull();
   });
 
   it('should accept an idle timeout lower than or equal to the session timeout', async() => {
@@ -53,26 +74,33 @@ describe('edit: harvesterhci.io.setting session timeouts', () => {
     await expect(form(IDLE_TTL, '960').validateSessionTTL()).resolves.toBeNull();
   });
 
-  it('should compare against the other setting, using its default when it has no value', async() => {
+  it('should compare the idle timeout with the session timeout default when it has no value', async() => {
     const ctx = form(IDLE_TTL, '120', { value: '', default: '60' });
 
-    await expect(ctx.validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.idleExceedsTTL-{"idle":120,"ttl":60}');
+    await expect(ctx.validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.idleExceedsTTL-{"ttl":60}');
     expect(ctx.$store.dispatch).toHaveBeenCalledWith('management/find', { type: MANAGEMENT.SETTING, id: TTL });
   });
 
   it('should reject an idle timeout greater than the session timeout', async() => {
     const ctx = form(IDLE_TTL, '120', { value: '60' });
 
-    await expect(ctx.validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.idleExceedsTTL-{"idle":120,"ttl":60}');
+    await expect(ctx.validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.idleExceedsTTL-{"ttl":60}');
   });
 
-  it('should reject a session timeout lower than the idle timeout', async() => {
+  it('should reject any idle timeout when the session timeout is 0, as the Rancher webhook does', async() => {
+    const ctx = form(IDLE_TTL, '1', { value: '0' });
+
+    await expect(ctx.validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.idleExceedsTTL-{"ttl":0}');
+  });
+
+  it('should accept a session timeout lower than the idle timeout, as the Rancher webhook does', async() => {
     const ctx = form(TTL, '30', { value: '60' });
 
-    await expect(ctx.validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.idleExceedsTTL-{"idle":60,"ttl":30}');
+    await expect(ctx.validateSessionTTL()).resolves.toBeNull();
+    expect(ctx.$store.dispatch).not.toHaveBeenCalled();
   });
 
-  it('should only check the value itself when the other setting cannot be read', async() => {
+  it('should only check the value itself when the session timeout cannot be read', async() => {
     await expect(form(IDLE_TTL, '120', new Error('forbidden')).validateSessionTTL()).resolves.toBeNull();
     await expect(form(IDLE_TTL, '120', { value: '', default: '' }).validateSessionTTL()).resolves.toBeNull();
   });
@@ -93,6 +121,17 @@ describe('edit: harvesterhci.io.setting session timeouts', () => {
     expect(done).toHaveBeenCalledWith(false);
     expect(ctx.save).not.toHaveBeenCalled();
     expect(ctx.errors).toHaveLength(1);
+  });
+
+  it('should validate what was typed, before removing leading zeros', async() => {
+    const ctx = form(TTL, 'abc');
+    const done = jest.fn();
+
+    await ctx.saveSettings(done);
+
+    expect(done).toHaveBeenCalledWith(false);
+    expect(ctx.value.value).toBe('abc');
+    expect(ctx.save).not.toHaveBeenCalled();
   });
 
   it('should save a valid session timeout without leading zeros', async() => {
