@@ -15,7 +15,7 @@ const CATEGORY = {
     'ui-index',
     HCI_SETTING.AUTH_USER_SESSION_TTL_MINUTES,
     HCI_SETTING.AUTH_USER_SESSION_IDLE_TTL_MINUTES,
-    'disable-websocket-notifications',
+    'ui-performance/disableWebsocketNotification',
   ]
 };
 
