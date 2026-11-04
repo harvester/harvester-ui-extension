@@ -87,6 +87,7 @@ const FEATURE_FLAGS = {
     'maintenanceModeDrainTimeoutSetting',
     'componentHealth',
     'sessionTimeoutSettings',
+    'websocketNotificationsSetting',
   ],
 };
 

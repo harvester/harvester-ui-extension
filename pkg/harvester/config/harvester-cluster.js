@@ -1088,6 +1088,8 @@ export function init($plugin, store) {
   configureType(MANAGEMENT.SETTING, {
     resourceDetail: HCI.SETTING,
     resourceEdit:   HCI.SETTING,
+    isCreatable:    false,
+    isRemovable:    false,
     canYaml:        false,
   });
   virtualType({

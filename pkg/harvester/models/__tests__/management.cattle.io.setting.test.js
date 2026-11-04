@@ -1,7 +1,8 @@
 import { MANAGEMENT } from '@shell/config/types';
 import { _EDIT, AS, _UNFLAG, MODE } from '@shell/config/query-params';
 import ManagementSetting from '@shell/models/management.cattle.io.setting';
-import HarvesterManagementSetting from '../management.cattle.io.setting';
+import { HCI_SETTING } from '@pkg/harvester/config/settings';
+import HarvesterManagementSetting from '../management/management.cattle.io.setting';
 
 jest.mock('@shell/models/management.cattle.io.setting', () => {
   return {
@@ -27,6 +28,22 @@ function setting(id, product = 'harvester') {
 }
 
 describe('class HarvesterManagementSetting', () => {
+  it.each([
+    ['', 'true'],
+    ['{"disableWebsocketNotification":false}', 'false'],
+    ['{"disableWebsocketNotification":true}', 'true'],
+  ])('should show the websocket notifications option from a ui-performance value of %p', (value, expected) => {
+    const { model } = setting(HCI_SETTING.UI_PERFORMANCE);
+
+    model.$rootGetters['management/byId'] = () => ({ value });
+
+    expect(model.customValue).toBe(expected);
+  });
+
+  it('should not have a custom value for other settings', () => {
+    expect(setting(HCI_SETTING.UI_PL).model.customValue).toBeUndefined();
+  });
+
   it('should open a session setting in the Harvester settings form', () => {
     const { model, push } = setting('auth-user-session-idle-ttl-minutes');
     const superGoToEdit = jest.spyOn(ManagementSetting.prototype, 'goToEdit');
