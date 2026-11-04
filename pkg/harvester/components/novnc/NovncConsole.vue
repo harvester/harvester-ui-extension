@@ -405,6 +405,7 @@ export default {
 
       // View only shows the screen but sends no mouse or keyboard input.
       rfb.viewOnly = !!settings.viewOnly;
+      rfb.edgeToEdge = !!settings.edgeToEdge;
       rfb.scaleViewport = !!settings.scaleViewport;
       rfb.resizeSession = !!settings.resizeSession;
       rfb.clipViewport = !!settings.clipViewport;
@@ -435,7 +436,7 @@ export default {
     <div
       ref="view"
       class="novnc-screen"
-      :class="{ 'is-focused': focused }"
+      :class="{ 'is-focused': focused, 'is-edge-to-edge': settings.edgeToEdge }"
     />
 
     <div
@@ -597,5 +598,9 @@ export default {
 
   .novnc-screen.is-focused canvas {
     box-shadow: 0 0 0 2px var(--body-bg), 0 0 0 4px var(--primary-keyboard-focus);
+  }
+
+  .novnc-screen.is-edge-to-edge canvas {
+    box-shadow: none;
   }
 </style>

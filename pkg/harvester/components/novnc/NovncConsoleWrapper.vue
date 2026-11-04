@@ -271,7 +271,9 @@ export default {
     rfbSettings() {
       return {
         viewOnly:         !!this.settings.viewOnly,
-        scaleViewport:    this.settings.viewMode === VIEW_MODE.SCALE,
+        // Full screen always fills the window; the saved mode is back on leaving it.
+        scaleViewport:    this.isFullscreen || this.settings.viewMode === VIEW_MODE.SCALE,
+        edgeToEdge:       this.isFullscreen,
         zoomPercent:      normalizeZoom(this.settings.zoomPercent),
         resizeSession:    false,
         clipViewport:     false,
@@ -547,17 +549,6 @@ export default {
           @manage="showKeysModal"
           @ctrl-alt-del="ctrlAltDelete"
         />
-        <RcButton
-          variant="tertiary"
-          data-testid="vnc-fullscreen-ctrl-alt-del"
-          :disabled="!canSendKeys"
-          @click="ctrlAltDelete"
-        >
-          <template #before>
-            <NovncIcon type="power" />
-          </template>
-          {{ t("harvester.virtualMachine.detail.console.ctrlAltDel") }}
-        </RcButton>
         <span
           class="console-toolbar__divider"
           aria-hidden="true"
@@ -752,13 +743,16 @@ export default {
     grid-template-rows: auto minmax(0, 1fr);
     background: var(--body-bg);
 
-    // The toolbar gives way to a floating bar; the screen keeps the room under it.
+    // The toolbar gives way to a bar floating over the screen, which takes the whole window. A picture
+    // of another shape keeps its proportions, with black around it like on a monitor.
     &--fullscreen {
       position: relative;
       grid-template-rows: minmax(0, 1fr);
+      background: #000;
 
       .console-area {
-        padding-top: 72px;
+        gap: 0;
+        padding: 0;
       }
     }
   }
@@ -778,7 +772,16 @@ export default {
     border-radius: 24px;
     background: var(--nav-bg);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    opacity: 0.7;
     transform: translateX(-50%);
+    transition: opacity 0.15s ease;
+
+    // Solid while in use: the pointer is on it, the keyboard is in it, or one of its menus is open.
+    &:hover,
+    &:has(:focus-visible),
+    &:has([aria-expanded='true']) {
+      opacity: 1;
+    }
 
     &__name {
       color: var(--body-text);

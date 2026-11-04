@@ -182,6 +182,20 @@ describe('component: NovncConsole', () => {
     expect(view.classes()).not.toContain('is-focused');
   });
 
+  it('should drop the focus ring and its room when the screen goes edge to edge', async() => {
+    const wrapper = mountConsole();
+    const view = wrapper.find('.novnc-screen');
+
+    await jest.runOnlyPendingTimersAsync();
+    expect(view.classes()).not.toContain('is-edge-to-edge');
+    expect(lastRFB().edgeToEdge).toBe(false);
+
+    await wrapper.setProps({ settings: { edgeToEdge: true } });
+
+    expect(view.classes()).toContain('is-edge-to-edge');
+    expect(lastRFB().edgeToEdge).toBe(true);
+  });
+
   describe('when the cluster does not support preserveSession', () => {
     it('should connect without the parameter and offer no take over', async() => {
       const wrapper = mountConsole({ preserveSession: false });

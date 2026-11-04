@@ -170,4 +170,29 @@ describe('component: NovncConsoleWrapper', () => {
     expect(wrapper.vm.confirmAction).toBeNull();
   });
 
+  describe('in full screen', () => {
+    it('should fill the window whatever the saved view mode, and go back to it afterwards', () => {
+      const wrapper = mountWrapper();
+
+      wrapper.vm.updateSettings({ ...wrapper.vm.settings, viewMode: 'none' });
+      expect(wrapper.vm.rfbSettings).toMatchObject({ scaleViewport: false, edgeToEdge: false });
+
+      wrapper.vm.isFullscreen = true;
+      expect(wrapper.vm.rfbSettings).toMatchObject({ scaleViewport: true, edgeToEdge: true });
+
+      wrapper.vm.isFullscreen = false;
+      expect(wrapper.vm.rfbSettings).toMatchObject({ scaleViewport: false, edgeToEdge: false });
+    });
+
+    it('should leave Ctrl+Alt+Del out of the bar', async() => {
+      const wrapper = mountWrapper();
+
+      wrapper.vm.isFullscreen = true;
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find('[data-testid="vnc-fullscreen-bar"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="vnc-ctrl-alt-del"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="vnc-fullscreen-ctrl-alt-del"]').exists()).toBe(false);
+    });
+  });
 });

@@ -27,12 +27,23 @@ export default class ZoomableRFB extends RFB {
     this._updateScale();
   }
 
+  // The screen takes all the room it has, without a focus ring around it.
+  get edgeToEdge() {
+    return !!this._edgeToEdge;
+  }
+
+  set edgeToEdge(value) {
+    this._edgeToEdge = value;
+    this._updateScale();
+  }
+
   _updateScale() {
     if (this.scaleViewport) {
       // Fit inside the focus ring the console draws around the canvas, instead of under it.
       const size = this._screenSize();
+      const inset = this.edgeToEdge ? 0 : 2 * FOCUS_RING_WIDTH;
 
-      this._display.autoscale(size.w - (2 * FOCUS_RING_WIDTH), size.h - (2 * FOCUS_RING_WIDTH));
+      this._display.autoscale(size.w - inset, size.h - inset);
       this._fixScrollbars();
     } else {
       this._display.scale = this.zoomPercent / 100;
