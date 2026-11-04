@@ -132,6 +132,7 @@ export default {
         <LabeledInput
           type="integer"
           min="1"
+          :required="!isView"
           :value="ioThreadCount"
           :label="t('harvester.virtualMachine.volume.diskPerformance.ioThreadCount.label')"
           :tooltip="t('harvester.virtualMachine.volume.diskPerformance.ioThreadCount.tip')"

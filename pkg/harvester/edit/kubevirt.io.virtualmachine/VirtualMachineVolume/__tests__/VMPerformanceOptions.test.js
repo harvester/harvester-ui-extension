@@ -53,6 +53,17 @@ describe('component: VMPerformanceOptions', () => {
   });
 
   it.each([
+    [_CREATE, true],
+    [_VIEW, false],
+  ])('in %s mode, should mark the supplemental pool thread count as required: %p', (mode, required) => {
+    const wrapper = mountOptions({
+      mode, ioThreadsPolicy: 'supplementalPool', ioThreadCount: 4
+    });
+
+    expect(wrapper.find('[data-testid="input-vm-iothread-count"] .required').exists()).toBe(required);
+  });
+
+  it.each([
     [{}, false],
     [{ blockMultiQueue: true }, true],
     [{ ioThreadsPolicy: 'auto' }, true],

@@ -219,17 +219,25 @@ export default {
       color="info"
       label-key="harvester.virtualMachine.volume.performance.highProfileTip"
     />
-    <Banner
-      v-if="showBusTip"
-      color="warning"
-      data-testid="disk-perf-bus-tip"
-      :label="t('harvester.virtualMachine.volume.performance.busTip', { bus: value.bus }, true)"
-    />
-    <Banner
-      v-if="showFilesystemCacheWarning"
-      color="warning"
-      label-key="harvester.virtualMachine.volume.performance.cacheMode.filesystemWarning"
-    />
+
+    <!-- Always rendered, so screen readers announce these warnings when changing the fields below makes them appear
+         above the focused field -->
+    <div
+      role="status"
+      data-testid="disk-perf-warning-status"
+    >
+      <Banner
+        v-if="showBusTip"
+        color="warning"
+        data-testid="disk-perf-bus-tip"
+        :label="t('harvester.virtualMachine.volume.performance.busTip', { bus: value.bus }, true)"
+      />
+      <Banner
+        v-if="showFilesystemCacheWarning"
+        color="warning"
+        label-key="harvester.virtualMachine.volume.performance.cacheMode.filesystemWarning"
+      />
+    </div>
 
     <template v-if="isCustom">
       <div class="row mb-20">

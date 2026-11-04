@@ -1,3 +1,6 @@
+import fs from 'fs';
+import path from 'path';
+import { load } from 'js-yaml';
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import { _EDIT } from '@shell/config/query-params';
@@ -26,6 +29,9 @@ const hardDisk = (overrides = {}) => ({
 
 const nativeTip = (wrapper) => wrapper.findAllComponents(Banner)
   .find((b) => b.props('labelKey') === 'harvester.virtualMachine.volume.performance.ioMode.nativeRequiresNoCacheTip');
+
+const filesystemWarning = (wrapper) => wrapper.findAllComponents(Banner)
+  .find((b) => b.props('labelKey') === 'harvester.virtualMachine.volume.performance.cacheMode.filesystemWarning');
 
 describe('component: DiskPerformanceOptions', () => {
   it('is hidden when the highPerformanceStorage feature is disabled', () => {
@@ -71,6 +77,30 @@ describe('component: DiskPerformanceOptions', () => {
     expect(tuned.find('[data-testid="disk-perf-bus-tip"]').exists()).toBe(true);
   });
 
+  it('says in the bus tip that a dedicated I/O thread needs the virtio bus', () => {
+    const translations = load(fs.readFileSync(path.join(__dirname, '../../../../l10n/en-us.yaml'), 'utf8'));
+    const { busTip } = translations.harvester.virtualMachine.volume.performance;
+
+    expect(busTip).toContain('{bus}');
+    expect(busTip).toContain('A dedicated I/O thread needs the virtio bus');
+  });
+
+  it('shows the bus tip and the Filesystem warning inside a live region that is there before they appear', async() => {
+    const disk = { bus: 'sata', volumeMode: 'Filesystem' };
+    const wrapper = mount(DiskPerformanceOptions, mountOptions(hardDisk(disk)));
+    const status = wrapper.find('[data-testid="disk-perf-warning-status"]');
+
+    expect(status.attributes('role')).toBe('status');
+    expect(status.find('[data-testid="disk-perf-bus-tip"]').exists()).toBe(false);
+    expect(filesystemWarning(wrapper)).toBeUndefined();
+
+    await wrapper.setProps({ value: hardDisk({ ...disk, cache: 'none' }) });
+
+    expect(wrapper.find('[data-testid="disk-perf-warning-status"]').element).toBe(status.element);
+    expect(status.find('[data-testid="disk-perf-bus-tip"]').exists()).toBe(true);
+    expect(status.element.contains(filesystemWarning(wrapper)?.element)).toBe(true);
+  });
+
   it('shows the Native I/O tip inside a live region that is there before Native I/O is picked', async() => {
     const value = hardDisk({ cache: 'writeback', io: 'threads' });
     const wrapper = mount(DiskPerformanceOptions, mountOptions(value));
@@ -106,8 +136,7 @@ describe('component: DiskPerformanceOptions', () => {
 
   it('passes the Filesystem warning as a label key so its quotes are not double-escaped', () => {
     const wrapper = mount(DiskPerformanceOptions, mountOptions(hardDisk({ cache: 'none', volumeMode: 'Filesystem' })));
-    const banner = wrapper.findAllComponents(Banner)
-      .find((b) => b.props('labelKey') === 'harvester.virtualMachine.volume.performance.cacheMode.filesystemWarning');
+    const banner = filesystemWarning(wrapper);
 
     expect(banner).toBeDefined();
     expect(banner?.props('label')).toBeFalsy();
