@@ -1644,6 +1644,7 @@ harvester:
       imagePreloadStrategy: Image Preload Strategy
       nodeUpgradeOption: Node Upgrade Option
       restoreVM: Restore VM
+      shutdownVMOnMigrationFailure: Shut Down VM on Migration Failure
       strategy: Strategy
       pauseNodes: Pause Nodes
       strategyType: Strategy Type
