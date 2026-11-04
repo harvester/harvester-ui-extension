@@ -1,13 +1,15 @@
 //@ts-nocheck
 import { ClusterNotFoundError } from '@shell/utils/error';
 import { SETTING } from '@shell/config/settings';
-import {
-  COUNT, NAMESPACE, MANAGEMENT, STORAGE_CLASS, PVC, NETWORK_ATTACHMENT
-} from '@shell/config/types';
+import { COUNT, NAMESPACE, MANAGEMENT } from '@shell/config/types';
 import { allHash } from '@shell/utils/promise';
 import { DEV, NAMESPACE_FILTERS } from '@shell/store/prefs';
 import { createNamespaceFilterKeyWithId } from '@shell/utils/namespace-filter';
-import { HCI, VOLUME_SNAPSHOT } from '../../types';
+import debounce from 'lodash/debounce';
+import { HCI } from '../../types';
+import {
+  SERVER_FILTERED_COUNTS, countedNamespaces, filteredCountRequest, isFilteredByNamespace
+} from './nav-counts';
 
 export default {
   async loadCluster({
@@ -107,37 +109,6 @@ export default {
       hash.upgradeLogs = dispatch('findAll', { type: HCI.UPGRADE_LOG });
     }
 
-    // The side navigation counts Volumes, VM Networks, VM Backups, VM Snapshots, VM
-    // Schedules, Volume Snapshots and Storage Classes from these store lists (see
-    // `filteredCount` in getters.ts). Request them here, without awaiting them; otherwise these
-    // nav items show no count until a page that loads the list has been opened (e.g. the
-    // dashboard loads PVCs and network attachments). ConfigMaps (Cloud Configuration
-    // Templates) are not requested here, as that would load all ConfigMaps of the cluster, not
-    // only the templates.
-    if (getters['schemaFor'](HCI.BACKUP)) {
-      dispatch('findAll', { type: HCI.BACKUP }).catch(() => {});
-    }
-
-    if (getters['schemaFor'](HCI.SCHEDULE_VM_BACKUP)) {
-      dispatch('findAll', { type: HCI.SCHEDULE_VM_BACKUP }).catch(() => {});
-    }
-
-    if (getters['schemaFor'](VOLUME_SNAPSHOT)) {
-      dispatch('findAll', { type: VOLUME_SNAPSHOT }).catch(() => {});
-    }
-
-    if (getters['schemaFor'](STORAGE_CLASS)) {
-      dispatch('findAll', { type: STORAGE_CLASS }).catch(() => {});
-    }
-
-    if (getters['schemaFor'](PVC)) {
-      dispatch('findAll', { type: PVC }).catch(() => {});
-    }
-
-    if (getters['schemaFor'](NETWORK_ATTACHMENT)) {
-      dispatch('findAll', { type: NETWORK_ATTACHMENT }).catch(() => {});
-    }
-
     const res: any = await allHash(hash);
 
     const isHarvesterVersionSupported = rootGetters['harvester-common/getFeatureEnabled']('supportHarvesterClusterVersion');
@@ -163,6 +134,8 @@ export default {
       all:     getters.filterNamespace(),
       getters
     }, { root: true });
+
+    dispatch('watchFilteredCounts', { clusterId: id });
 
     // Solve compatibility with Rancher v2.6.x, fell remove these codes after not support v2.6.x
     const definition = {
@@ -198,5 +171,83 @@ export default {
         isRancher:      true,
       }, { root: true });
     }
+  },
+
+  /**
+   * Requests the side navigation counts of the nav items in SERVER_FILTERED_COUNTS
+   * (all of them by default), see nav-counts.ts. Responses of an outdated request
+   * of a nav item (e.g. before a namespace filter change) are ignored.
+   */
+  async fetchFilteredCounts({
+    state, commit, dispatch, getters, rootGetters
+  }: any, names: string[] = Object.keys(SERVER_FILTERED_COUNTS)) {
+    await Promise.all(names.map(async(name: string) => {
+      commit('filteredCountRequested', name);
+
+      const requestId = state.filteredCountRequests[name];
+      const request = filteredCountRequest(getters, rootGetters, name);
+      let count = request?.count ?? null;
+
+      if (request?.url) {
+        try {
+          const res = await dispatch('request', { url: request.url });
+
+          // Steve leaves out `count` when nothing matches
+          count = res?.count ?? 0;
+        } catch (e) {
+          count = null;
+        }
+      }
+
+      if (state.filteredCountRequests[name] === requestId) {
+        commit('setFilteredCount', { name, count });
+      }
+    }));
+  },
+
+  /**
+   * Requests the counts of SERVER_FILTERED_COUNTS, and requests them again when
+   * they may have changed: when the counts endpoint reports other numbers for
+   * their resource type (it is kept up to date through the websocket), and when
+   * the namespace filter changes. A change that leaves these numbers as they are
+   * (e.g. adding the cloud-init template label to an existing ConfigMap) shows up
+   * with the next change of that resource type.
+   */
+  watchFilteredCounts({
+    state, commit, dispatch, getters, rootGetters
+  }: any, { clusterId }: any) {
+    state.filteredCountWatchers.forEach((unwatch: () => void) => unwatch());
+    commit('resetFilteredCounts');
+
+    // The watchers stay registered after leaving the cluster, until the next `loadCluster`
+    const refresh = (names: string[]) => {
+      if (rootGetters.clusterId === clusterId) {
+        dispatch('fetchFilteredCounts', names);
+      }
+    };
+    const names = Object.keys(SERVER_FILTERED_COUNTS);
+    const namesByType: Record<string, string[]> = {};
+
+    names.forEach((name) => {
+      const type = getters.schemaFor(name)?.id;
+
+      if (type) {
+        namesByType[type] = [...(namesByType[type] || []), name];
+      }
+    });
+
+    const unwatchers = Object.entries(namesByType).map(([type, namesOfType]) => this.watch(
+      () => JSON.stringify(getters.all(COUNT)?.[0]?.counts?.[type] || null),
+      debounce(() => refresh(namesOfType), 1000)
+    ));
+
+    unwatchers.push(this.watch(
+      () => JSON.stringify(countedNamespaces(rootGetters)),
+      () => refresh(names.filter((name) => isFilteredByNamespace(name, getters.schemaFor(name))))
+    ));
+
+    commit('setFilteredCountWatchers', unwatchers);
+
+    return dispatch('fetchFilteredCounts');
   },
 };

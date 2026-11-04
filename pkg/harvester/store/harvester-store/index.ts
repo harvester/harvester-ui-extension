@@ -9,6 +9,15 @@ import actions from './actions';
 
 const harvesterFactory = (): CoreStoreSpecifics => {
   const steveFactory = SteveFactory(null, null);
+  const steveState = steveFactory.state;
+
+  steveFactory.state = () => ({
+    ...steveState(),
+    // Side navigation counts requested by `fetchFilteredCounts`, see nav-counts.ts
+    filteredCounts:        {},
+    filteredCountRequests: {},
+    filteredCountWatchers: [],
+  });
 
   steveFactory.getters = {
     ...steveFactory.getters,

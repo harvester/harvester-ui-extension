@@ -1,10 +1,8 @@
-import { reactive } from 'vue';
 import {
-  CONFIG_MAP, COUNT, NETWORK_ATTACHMENT, NODE, PVC, STORAGE_CLASS
+  CONFIG_MAP, COUNT, NAMESPACE, NETWORK_ATTACHMENT, NODE, PVC, STORAGE_CLASS
 } from '@shell/config/types';
 import harvesterGetters from '../getters';
 import { HCI, VOLUME_SNAPSHOT } from '../../../types';
-import { HCI as HCI_ANNOTATIONS } from '../../../config/labels-annotations';
 
 // Nav item -> resource type, like `configureType(..., { resource })` in config/harvester-cluster.js
 const RESOURCE_MAP: Record<string, string> = {
@@ -17,21 +15,20 @@ const RESOURCE_MAP: Record<string, string> = {
   [HCI.STORAGE]:            STORAGE_CLASS,
 };
 
-const CLUSTER_SCOPED = [NODE, STORAGE_CLASS];
+const CLUSTER_SCOPED = [NODE, STORAGE_CLASS, NAMESPACE];
 
-const backup = (namespace: string, type: string) => ({ metadata: { namespace }, spec: { type } });
-const pvc = (namespace: string, flags = {}) => ({ metadata: { namespace }, ...flags });
 const counts = (byNamespace: Record<string, number>) => ({
   summary:    { count: Object.values(byNamespace).reduce((sum, count) => sum + count, 0) },
   namespaces: Object.fromEntries(Object.entries(byNamespace).map(([ns, count]) => [ns, { count }])),
 });
 
 /**
- * Creates the `count` getter with a minimal store. `lists` are the loaded store
- * lists, `counts` the result of Steve's counts endpoint.
+ * Creates the `count` getter with a minimal store. `counts` is the result of
+ * Steve's counts endpoint, `filteredCounts` the counts requested by
+ * `fetchFilteredCounts` and `lists` the loaded store lists.
  */
 function createCount({
-  counts = {}, lists = {}, isAllNamespaces = true, hideSystemResources = false, namespaces = {}
+  counts = {}, filteredCounts = {}, lists = {}, isAllNamespaces = true, hideSystemResources = false, namespaces = {}
 }: any = {}) {
   const schemas = new Map<string, any>();
 
@@ -39,11 +36,11 @@ function createCount({
   // schema marks the type as namespaced, so a namespaced type without a schema here would be
   // counted in all namespaces. RESOURCE_MAP contains the resource types of nav items with a
   // different name, the others are nav items named like the resource type they list.
-  [...Object.values(RESOURCE_MAP), HCI.BACKUP, HCI.VM, HCI.FLOW].forEach((id) => {
+  [...Object.values(RESOURCE_MAP), HCI.BACKUP, HCI.SCHEDULE_VM_BACKUP, HCI.VM, HCI.FLOW, NAMESPACE].forEach((id) => {
     schemas.set(id, { id, attributes: { namespaced: !CLUSTER_SCOPED.includes(id) } });
   });
 
-  const state = { types: { schema: { map: schemas } } };
+  const state = { types: { schema: { map: schemas } }, filteredCounts };
   const rootGetters = {
     isAllNamespaces,
     namespaces:            () => namespaces,
@@ -125,135 +122,72 @@ describe('harvester store: count', () => {
       expect(count(HCI.HOST)).toBe(3);
     });
 
+    it('should count all VM Schedules, whatever their type', () => {
+      const count = createCount({ counts: { [HCI.SCHEDULE_VM_BACKUP]: counts({ default: 2 }) } });
+
+      expect(count(HCI.SCHEDULE_VM_BACKUP)).toBe(2);
+    });
+
     it('should return null for nav items without counts', () => {
       expect(createCount()(HCI.DASHBOARD)).toBeNull();
     });
   });
 
   describe('nav items listing a subset of a resource type', () => {
-    it('should return null until the list is loaded', () => {
-      const count = createCount({ counts: { [HCI.BACKUP]: counts({ default: 2 }) } });
-
-      expect(count(HCI.VM_SNAPSHOT)).toBeNull();
-      expect(count(HCI.BACKUP)).toBeNull();
-    });
-
-    it('should return 0 before the list is loaded if there are no resources of that type', () => {
-      const count = createCount({ counts: { [HCI.BACKUP]: counts({}) } });
-
-      expect(count(HCI.VM_SNAPSHOT)).toBe(0);
-    });
-
-    it('should not count golden image, CDI populator and system resource volumes', () => {
+    it('should show the count requested from the server', () => {
       const count = createCount({
-        counts: { [PVC]: counts({ default: 4 }) },
-        lists:  {
-          [PVC]: reactive([
-            pvc('default'),
-            pvc('default', { isGoldenImageVolume: true }),
-            pvc('default', { isCDIPopulatorVolume: true }),
-            pvc('default', { isSystemResource: true }),
-          ])
-        },
+        counts:         { [HCI.BACKUP]: counts({ default: 3 }) },
+        filteredCounts: { [HCI.BACKUP]: 1, [HCI.VM_SNAPSHOT]: 2 },
       });
-
-      expect(count(HCI.VOLUME)).toBe(1);
-    });
-
-    it('should not count the storage network and ignore the namespace filter', () => {
-      const count = createCount({
-        lists: {
-          [NETWORK_ATTACHMENT]: reactive([
-            { metadata: { namespace: 'a' } },
-            { metadata: { namespace: 'b' } },
-            { metadata: { namespace: 'b', annotations: { [HCI_ANNOTATIONS.STORAGE_NETWORK]: 'true' } } },
-          ])
-        },
-        isAllNamespaces:      false,
-        namespaces: { a: true },
-      });
-
-      expect(count(HCI.NETWORK_ATTACHMENT)).toBe(2);
-    });
-
-    it('should tell VM backups and VM snapshots apart', () => {
-      const count = createCount({ lists: { [HCI.BACKUP]: reactive([backup('a', 'backup'), backup('a', 'snapshot'), backup('b', 'snapshot')]) } });
 
       expect(count(HCI.BACKUP)).toBe(1);
       expect(count(HCI.VM_SNAPSHOT)).toBe(2);
     });
 
-    it('should not count snapshot-type VM Schedules', () => {
-      const count = createCount({ lists: { [HCI.SCHEDULE_VM_BACKUP]: reactive([backup('a', 'backup'), backup('a', 'snapshot')]) } });
+    it.each([
+      HCI.BACKUP, HCI.VM_SNAPSHOT, HCI.SNAPSHOT, HCI.STORAGE, HCI.CLOUD_TEMPLATE, HCI.NETWORK_ATTACHMENT
+    ])('should not use the total of the counts endpoint for %s before the server count arrives', (name) => {
+      const count = createCount({ counts: Object.fromEntries(Object.values(RESOURCE_MAP).concat(HCI.BACKUP).map((type) => [type, counts({ default: 3 })])) });
 
-      expect(count(HCI.SCHEDULE_VM_BACKUP)).toBe(1);
+      expect(count(name)).toBeNull();
     });
 
-    it('should only count volume snapshots of volumes, not those of VM snapshots', () => {
+    it('should show 0 when the server count is 0', () => {
+      expect(createCount({ filteredCounts: { [HCI.STORAGE]: 0 } })(HCI.STORAGE)).toBe(0);
+    });
+  });
+
+  describe('volumes', () => {
+    it('should not show a count, as the total of the counts endpoint includes hidden volumes', () => {
+      const count = createCount({ counts: { [PVC]: counts({ default: 4 }) } });
+
+      expect(count(HCI.VOLUME)).toBeNull();
+    });
+  });
+
+  describe('namespaces', () => {
+    const namespace = (isSystem = false, isFleetManaged = false) => ({ isSystem, isFleetManaged });
+
+    it('should not count system and Fleet managed namespaces when system resources are hidden', () => {
       const count = createCount({
-        lists: {
-          [VOLUME_SNAPSHOT]: reactive([
-            { metadata: { namespace: 'a', ownerReferences: [{ kind: 'PersistentVolumeClaim' }] } },
-            { metadata: { namespace: 'a', ownerReferences: [{ kind: 'VirtualMachineBackup' }] } },
-          ])
-        },
+        counts:              { [NAMESPACE]: counts({ '': 4 }) },
+        lists:               { [NAMESPACE]: [namespace(), namespace(), namespace(true), namespace(false, true)] },
+        hideSystemResources: true,
       });
 
-      expect(count(HCI.SNAPSHOT)).toBe(1);
+      expect(count(NAMESPACE)).toBe(2);
     });
 
-    it('should only count cloud-init template ConfigMaps', () => {
-      const count = createCount({
-        lists: {
-          [CONFIG_MAP]: reactive([
-            { metadata: { namespace: 'default', labels: { [HCI_ANNOTATIONS.CLOUD_INIT]: 'user' } } },
-            { metadata: { namespace: 'default', name: 'kube-root-ca.crt' } },
-          ])
-        },
-      });
+    it('should return null until the namespaces are loaded when system resources are hidden', () => {
+      const count = createCount({ counts: { [NAMESPACE]: counts({ '': 4 }) }, hideSystemResources: true });
 
-      expect(count(HCI.CLOUD_TEMPLATE)).toBe(1);
+      expect(count(NAMESPACE)).toBeNull();
     });
 
-    it('should not count backing image StorageClasses and ignore the namespace filter', () => {
-      const count = createCount({
-        lists: {
-          [STORAGE_CLASS]: reactive([
-            { metadata: { name: 'harvester-longhorn' }, parameters: {} },
-            { metadata: { name: 'longhorn-image-abc' }, parameters: { backingImage: 'vmi-abc' } },
-          ])
-        },
-        isAllNamespaces:      false,
-        namespaces: { default: true },
-      });
+    it('should count all namespaces when system resources are shown', () => {
+      const count = createCount({ counts: { [NAMESPACE]: counts({ '': 4 }) } });
 
-      expect(count(HCI.STORAGE)).toBe(1);
-    });
-
-    it('should count nothing for an empty namespace selection, e.g. a project without namespaces', () => {
-      const count = createCount({
-        counts:               { [PVC]: counts({ default: 2 }) },
-        lists:                { [PVC]: reactive([pvc('default'), pvc('default')]) },
-        isAllNamespaces:      false,
-        namespaces: {},
-      });
-
-      expect(count(HCI.VOLUME)).toBe(0);
-    });
-
-    it('should only count the selected namespaces and update when the list changes in place', () => {
-      const list = reactive([backup('a', 'snapshot'), backup('b', 'snapshot'), backup('c', 'snapshot')]);
-      const count = createCount({
-        lists:                { [HCI.BACKUP]: list },
-        isAllNamespaces:      false,
-        namespaces: { a: true, c: true },
-      });
-
-      expect(count(HCI.VM_SNAPSHOT)).toBe(2);
-
-      list.push(backup('a', 'snapshot'));
-
-      expect(count(HCI.VM_SNAPSHOT)).toBe(3);
+      expect(count(NAMESPACE)).toBe(4);
     });
   });
 });
