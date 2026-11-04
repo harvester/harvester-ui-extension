@@ -29,7 +29,11 @@ describe('list: harvesterhci.io.setting', () => {
 
   // The `customized` flag of a row in the settings list, for the given setting
   function customized(data, row = {}) {
-    const [setting] = SettingsPage.computed.settings.call({ initSettings: [{ id: 'test', data, ...row }] });
+    const [setting] = SettingsPage.computed.settings.call({
+      initSettings: [{
+        id: 'test', data, ...row
+      }]
+    });
 
     return !!setting.customized;
   }
