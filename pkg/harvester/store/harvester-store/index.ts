@@ -13,7 +13,7 @@ const harvesterFactory = (): CoreStoreSpecifics => {
 
   steveFactory.state = () => ({
     ...steveState(),
-    // Side navigation counts requested by `fetchFilteredCounts`, see nav-counts.ts
+    // Side navigation counts requested by `fetchFilteredCounts`, see getters.ts
     filteredCounts:        {},
     filteredCountRequests: {},
     filteredCountWatchers: [],

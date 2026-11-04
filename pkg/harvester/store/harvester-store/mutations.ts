@@ -1,7 +1,7 @@
 //@ts-nocheck
 import { markRaw } from 'vue';
 
-// Side navigation counts requested by `fetchFilteredCounts`, see nav-counts.ts
+// Side navigation counts requested by `fetchFilteredCounts`, see getters.ts
 export default {
   filteredCountRequested(state: any, name: string) {
     state.filteredCountRequests[name] = (state.filteredCountRequests[name] || 0) + 1;

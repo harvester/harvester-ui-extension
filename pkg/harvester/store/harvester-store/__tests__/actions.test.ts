@@ -3,7 +3,7 @@ import {
 } from '@shell/config/types';
 import harvesterActions from '../actions';
 import harvesterMutations from '../mutations';
-import { SERVER_FILTERED_COUNTS, filteredCountRequest } from '../nav-counts';
+import { SERVER_FILTERED_COUNTS, filteredCountRequest } from '../getters';
 import { HCI, VOLUME_SNAPSHOT } from '../../../types';
 
 const BASE = 'https://harvester/v1/harvester';

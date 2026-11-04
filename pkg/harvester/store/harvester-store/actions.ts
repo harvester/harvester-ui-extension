@@ -9,7 +9,7 @@ import debounce from 'lodash/debounce';
 import { HCI } from '../../types';
 import {
   SERVER_FILTERED_COUNTS, countedNamespaces, filteredCountRequest, isFilteredByNamespace
-} from './nav-counts';
+} from './getters';
 
 export default {
   async loadCluster({
@@ -175,7 +175,7 @@ export default {
 
   /**
    * Requests the side navigation counts of the nav items in SERVER_FILTERED_COUNTS
-   * (all of them by default), see nav-counts.ts. Responses of an outdated request
+   * (all of them by default), see getters.ts. Responses of an outdated request
    * of a nav item (e.g. before a namespace filter change) are ignored.
    */
   async fetchFilteredCounts({
