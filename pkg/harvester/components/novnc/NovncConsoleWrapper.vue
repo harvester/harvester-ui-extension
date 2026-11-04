@@ -2,7 +2,7 @@
 import { STEVE } from '@shell/config/types';
 import { RcButton } from '@components/RcButton';
 import { RcModal } from '@components/RcModal';
-import { ToggleSwitch } from '@components/Form/ToggleSwitch';
+import { Checkbox } from '@components/Form/Checkbox';
 import { escapeHtml } from '@shell/utils/string';
 import { allHash } from '@shell/utils/promise';
 import KeyTable from '@novnc/novnc/core/input/keysym';
@@ -128,7 +128,7 @@ const F_KEYS = {
 export default {
   name:       'NovncConsoleWrapper',
   components: {
-    RcButton, RcModal, ToggleSwitch, NovncConsole, NovncConsoleCustomKeys, NovncConnectionStatus, NovncIcon, NovncShortcutKeysMenu, NovncStatusCard, NovncViewOptions
+    RcButton, RcModal, Checkbox, NovncConsole, NovncConsoleCustomKeys, NovncConnectionStatus, NovncIcon, NovncShortcutKeysMenu, NovncStatusCard, NovncViewOptions
   },
 
   // A VM that is not running has no instance, so find it by the uid in the route instead.
@@ -585,9 +585,11 @@ export default {
             @reconnect="reconnect"
           />
 
-          <ToggleSwitch
+          <Checkbox
+            class="console-toolbar__view-only"
             :value="!!settings.viewOnly"
-            :on-label="t('harvester.virtualMachine.detail.console.viewOnly')"
+            :label="t('harvester.virtualMachine.detail.console.viewOnly')"
+            use-body-text-color
             data-testid="vnc-view-only"
             @update:value="setViewOnly"
           />
@@ -835,6 +837,11 @@ export default {
       color: var(--muted);
       font-size: 12px;
       line-height: 18px;
+    }
+
+    // A Checkbox keeps 10px after its label for its place in a form; here the toolbar sets the gap.
+    &__view-only {
+      margin-right: -10px;
     }
 
     &__group {

@@ -10,10 +10,7 @@ const consoleRef = {
   focus:         jest.fn(),
 };
 
-// A stub with the real props, so `on-label` is not read as an event listener.
-const ToggleSwitch = {
-  name: 'ToggleSwitch', props: ['value', 'onLabel'], emits: ['update:value'], template: '<span />'
-};
+const CHECKBOX = { name: 'Checkbox' };
 
 const mountWrapper = ({ preferences = [] } = {}) => {
   // The console settings are saved there, so one test's would load in the next.
@@ -38,7 +35,6 @@ const mountWrapper = ({ preferences = [] } = {}) => {
         $fetchState: { pending: false },
       },
       stubs: {
-        ToggleSwitch,
         NovncConsole: {
           template: '<div />',
           methods:  {
@@ -166,17 +162,17 @@ describe('component: NovncConsoleWrapper', () => {
     expect(wrapper.vm.canSendKeys).toBe(false);
   });
 
-  it('should switch view only with the toggle, and not repeat it in the connection status', async() => {
+  it('should switch view only with the checkbox, and not repeat it in the connection status', async() => {
     const wrapper = mountWrapper();
-    const toggle = () => wrapper.findComponent(ToggleSwitch);
+    const checkbox = () => wrapper.findComponent(CHECKBOX);
 
-    expect(toggle().props('value')).toBe(false);
+    expect(checkbox().props('value')).toBe(false);
 
-    toggle().vm.$emit('update:value', true);
+    checkbox().vm.$emit('update:value', true);
     await wrapper.vm.$nextTick();
 
     expect(wrapper.vm.settings.viewOnly).toBe(true);
-    expect(toggle().props('value')).toBe(true);
+    expect(checkbox().props('value')).toBe(true);
     expect(wrapper.vm.statusLabel).toBe('%harvester.virtualMachine.detail.console.status.connected%');
   });
 
@@ -215,21 +211,21 @@ describe('component: NovncConsoleWrapper', () => {
       expect(wrapper.vm.rfbSettings).toMatchObject({ scaleViewport: false, edgeToEdge: false });
     });
 
-    it('should leave the view only toggle out of the bar, and keep view only as it was', async() => {
+    it('should leave the view only checkbox out of the bar, and keep view only as it was', async() => {
       const wrapper = mountWrapper();
 
       wrapper.vm.setViewOnly(true);
       wrapper.vm.isFullscreen = true;
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.findComponent(ToggleSwitch).exists()).toBe(false);
+      expect(wrapper.findComponent(CHECKBOX).exists()).toBe(false);
       expect(wrapper.vm.rfbSettings.viewOnly).toBe(true);
       expect(wrapper.vm.shortcutMenuProps.disabled).toBe(true);
 
       wrapper.vm.isFullscreen = false;
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.findComponent(ToggleSwitch).props('value')).toBe(true);
+      expect(wrapper.findComponent(CHECKBOX).props('value')).toBe(true);
     });
 
     it('should leave Ctrl+Alt+Del out of the bar', async() => {
