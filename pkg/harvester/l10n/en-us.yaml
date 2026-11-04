@@ -83,6 +83,10 @@ dialog:
     confirmName: "Type <b>{nameToMatch}</b> to delete the {type}:"
     protip: "Tip: Hold the {alternateLabel} key while clicking Delete to bypass the confirmation step."
 
+login:
+  # Replaces the shell's text, which names Rancher. Rancher itself keeps its text, since extensions are unloaded on logout
+  loggedOutSessionIdle: You've been logged out of {vendor} because your session has expired. Log in again to continue.
+
 harvester:
   branding:
     primeLabel: '{vendor}'
