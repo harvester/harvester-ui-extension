@@ -2,6 +2,7 @@
 import { STEVE } from '@shell/config/types';
 import { RcButton } from '@components/RcButton';
 import { RcModal } from '@components/RcModal';
+import { ToggleSwitch } from '@components/Form/ToggleSwitch';
 import { escapeHtml } from '@shell/utils/string';
 import { allHash } from '@shell/utils/promise';
 import KeyTable from '@novnc/novnc/core/input/keysym';
@@ -127,7 +128,7 @@ const F_KEYS = {
 export default {
   name:       'NovncConsoleWrapper',
   components: {
-    RcButton, RcModal, NovncConsole, NovncConsoleCustomKeys, NovncConnectionStatus, NovncIcon, NovncShortcutKeysMenu, NovncStatusCard, NovncViewOptions
+    RcButton, RcModal, ToggleSwitch, NovncConsole, NovncConsoleCustomKeys, NovncConnectionStatus, NovncIcon, NovncShortcutKeysMenu, NovncStatusCard, NovncViewOptions
   },
 
   // A VM that is not running has no instance, so find it by the uid in the route instead.
@@ -299,10 +300,6 @@ export default {
         return this.t('harvester.virtualMachine.detail.console.status.disconnected');
       }
 
-      if (status === CONSOLE_STATUS.CONNECTED && this.settings.viewOnly) {
-        return this.t('harvester.virtualMachine.detail.console.status.connectedViewOnly');
-      }
-
       return this.t(`harvester.virtualMachine.detail.console.status.${ status }`);
     },
   },
@@ -436,8 +433,13 @@ export default {
       this.settings = settings;
     },
 
+    // Back to sending input, the keyboard should reach the VM without clicking the screen first.
     setViewOnly(viewOnly) {
       this.settings = { ...this.settings, viewOnly };
+
+      if (!viewOnly) {
+        this.focusConsole();
+      }
     },
 
     resetSettings() {
@@ -534,9 +536,13 @@ export default {
           :status="connectionStatus"
           :label="statusLabel"
           :vm-name="vmName"
-          :view-only="!!settings.viewOnly"
           @reconnect="reconnect"
-          @update:view-only="setViewOnly"
+        />
+        <ToggleSwitch
+          :value="!!settings.viewOnly"
+          :on-label="t('harvester.virtualMachine.detail.console.viewOnly')"
+          data-testid="vnc-view-only"
+          @update:value="setViewOnly"
         />
         <span
           class="console-toolbar__divider"
@@ -582,9 +588,14 @@ export default {
             :status="connectionStatus"
             :label="statusLabel"
             :vm-name="vmName"
-            :view-only="!!settings.viewOnly"
             @reconnect="reconnect"
-            @update:view-only="setViewOnly"
+          />
+
+          <ToggleSwitch
+            :value="!!settings.viewOnly"
+            :on-label="t('harvester.virtualMachine.detail.console.viewOnly')"
+            data-testid="vnc-view-only"
+            @update:value="setViewOnly"
           />
         </div>
 
@@ -765,8 +776,13 @@ export default {
     left: 50%;
     z-index: 2;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
+    justify-content: center;
     gap: 12px;
+    // From left: 50% it would only get half the window and squeeze its buttons; it wraps when it has to.
+    width: max-content;
+    max-width: calc(100vw - 16px);
     padding: 4px 4px 4px 16px;
     border: 1px solid var(--border);
     border-radius: 24px;

@@ -1030,10 +1030,10 @@ harvester:
           blockedDisconnected: Keys can be sent once the console is connected.
         hint: Clicking the console captures your keyboard. To send a shortcut, use the Shortcut keys menu.
         hintViewOnly: '"View only" mode is on. In this mode, your mouse and keyboard are not sent to the VM.'
+        viewOnly: View only
         connection:
           menuLabel: Connection
           description: Connected to {name}. If the screen stops updating, reconnecting usually fixes it.
-          viewOnly: View only
         customKeys:
           title: Custom shortcuts
           description: Save key combinations you send often. They appear at the top of the Shortcut keys menu.
@@ -1105,7 +1105,6 @@ harvester:
           connected: Connected
           disconnected: Disconnected
           notRunning: Not running
-          connectedViewOnly: Connected (view only)
           failed: Connection failed
           reconnecting: 'Reconnecting {retryTimes} of {maximumRetryTimes}'
           credentialsRequired: This console requires credentials that the dashboard cannot provide.

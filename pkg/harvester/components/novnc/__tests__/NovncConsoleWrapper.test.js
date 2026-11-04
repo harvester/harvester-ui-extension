@@ -10,6 +10,11 @@ const consoleRef = {
   focus:         jest.fn(),
 };
 
+// A stub with the real props, so `on-label` is not read as an event listener.
+const ToggleSwitch = {
+  name: 'ToggleSwitch', props: ['value', 'onLabel'], emits: ['update:value'], template: '<span />'
+};
+
 const mountWrapper = ({ preferences = [] } = {}) => {
   // The console settings are saved there, so one test's would load in the next.
   window.localStorage.clear();
@@ -33,6 +38,7 @@ const mountWrapper = ({ preferences = [] } = {}) => {
         $fetchState: { pending: false },
       },
       stubs: {
+        ToggleSwitch,
         NovncConsole: {
           template: '<div />',
           methods:  {
@@ -158,7 +164,32 @@ describe('component: NovncConsoleWrapper', () => {
     wrapper.vm.setViewOnly(true);
 
     expect(wrapper.vm.canSendKeys).toBe(false);
-    expect(wrapper.vm.statusLabel).toBe('%harvester.virtualMachine.detail.console.status.connectedViewOnly%');
+  });
+
+  it('should switch view only with the toggle, and not repeat it in the connection status', async() => {
+    const wrapper = mountWrapper();
+    const toggle = () => wrapper.findComponent(ToggleSwitch);
+
+    expect(toggle().props('value')).toBe(false);
+
+    toggle().vm.$emit('update:value', true);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.settings.viewOnly).toBe(true);
+    expect(toggle().props('value')).toBe(true);
+    expect(wrapper.vm.statusLabel).toBe('%harvester.virtualMachine.detail.console.status.connected%');
+  });
+
+  it('should give the console the keyboard when view only is turned off, not when it is turned on', async() => {
+    const wrapper = mountWrapper();
+
+    wrapper.vm.setViewOnly(true);
+    await wrapper.vm.$nextTick();
+    expect(consoleRef.focus).not.toHaveBeenCalled();
+
+    wrapper.vm.setViewOnly(false);
+    await wrapper.vm.$nextTick();
+    expect(consoleRef.focus).toHaveBeenCalledTimes(1);
   });
 
   it('should not ask to send Ctrl+Alt+Del while keys cannot be sent', () => {
@@ -182,6 +213,16 @@ describe('component: NovncConsoleWrapper', () => {
 
       wrapper.vm.isFullscreen = false;
       expect(wrapper.vm.rfbSettings).toMatchObject({ scaleViewport: false, edgeToEdge: false });
+    });
+
+    it('should keep the view only toggle in the bar', async() => {
+      const wrapper = mountWrapper();
+
+      wrapper.vm.setViewOnly(true);
+      wrapper.vm.isFullscreen = true;
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find('[data-testid="vnc-fullscreen-bar"]').findComponent(ToggleSwitch).props('value')).toBe(true);
     });
 
     it('should leave Ctrl+Alt+Del out of the bar', async() => {
