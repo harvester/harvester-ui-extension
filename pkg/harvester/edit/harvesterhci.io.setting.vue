@@ -163,15 +163,16 @@ export default {
 
       const t = this.$store.getters['i18n/t'];
 
-      if (!/^\d+$/.test(this.value.value)) {
+      const minutes = Number(this.value.value);
+
+      // Larger numbers would be saved in exponent notation, which the settings can't parse
+      if (!/^\d+$/.test(this.value.value) || !Number.isSafeInteger(minutes)) {
         return t(id === TTL ? 'harvester.setting.sessionTTL.invalidTTL' : 'harvester.setting.sessionTTL.invalidIdle');
       }
 
       if (id === TTL) {
         return null;
       }
-
-      const minutes = Number(this.value.value);
 
       if (minutes < 1) {
         return t('harvester.setting.sessionTTL.invalidIdle');

@@ -53,11 +53,11 @@ describe('edit: harvesterhci.io.setting session timeouts', () => {
     });
   });
 
-  it.each(['0', '-1', 'abc', '1.5'])('should reject %p as an idle timeout, as the Rancher webhook does', async(value) => {
+  it.each(['0', '-1', 'abc', '1.5', '1000000000000000000000'])('should reject %p as an idle timeout, as the Rancher webhook does', async(value) => {
     await expect(form(IDLE_TTL, value).validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.invalidIdle');
   });
 
-  it.each(['-1', 'abc', '1.5'])('should reject %p as a session timeout, as the Rancher webhook does', async(value) => {
+  it.each(['-1', 'abc', '1.5', '1000000000000000000000'])('should reject %p as a session timeout, as the Rancher webhook does', async(value) => {
     await expect(form(TTL, value).validateSessionTTL()).resolves.toBe('harvester.setting.sessionTTL.invalidTTL');
   });
 
@@ -121,6 +121,17 @@ describe('edit: harvesterhci.io.setting session timeouts', () => {
     expect(done).toHaveBeenCalledWith(false);
     expect(ctx.save).not.toHaveBeenCalled();
     expect(ctx.errors).toHaveLength(1);
+  });
+
+  it('should not save a number too large to keep as a whole number', async() => {
+    const ctx = form(TTL, '1000000000000000000000');
+    const done = jest.fn();
+
+    await ctx.saveSettings(done);
+
+    expect(done).toHaveBeenCalledWith(false);
+    expect(ctx.value.value).toBe('1000000000000000000000');
+    expect(ctx.save).not.toHaveBeenCalled();
   });
 
   it('should validate what was typed, before removing leading zeros', async() => {
