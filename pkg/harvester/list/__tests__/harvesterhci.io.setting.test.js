@@ -2,7 +2,11 @@ import HarvesterSettingList from '../harvesterhci.io.setting.vue';
 
 // The `customized` flag of a row in the settings list, for the given setting
 function customized(data, row = {}) {
-  const [setting] = HarvesterSettingList.computed.settings.call({ initSettings: [{ id: 'test', data, ...row }] });
+  const [setting] = HarvesterSettingList.computed.settings.call({
+    initSettings: [{
+      id: 'test', data, ...row
+    }]
+  });
 
   return !!setting.customized;
 }
