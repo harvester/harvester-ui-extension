@@ -1,6 +1,7 @@
 import ManagementSetting from '@shell/models/management.cattle.io.setting';
 import { MANAGEMENT } from '@shell/config/types';
 import { _EDIT, AS, _UNFLAG, MODE } from '@shell/config/query-params';
+import { getPerformanceSetting } from '@shell/utils/settings';
 import { HCI_SETTING } from '../../config/settings';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../config/harvester';
 
@@ -13,6 +14,14 @@ export default class HarvesterManagementSetting extends ManagementSetting {
     }
 
     return actions;
+  }
+
+  get customValue() {
+    if (this.id === HCI_SETTING.UI_PERFORMANCE) {
+      return `${ getPerformanceSetting(this.$rootGetters).disableWebsocketNotification }`;
+    }
+
+    return super.customValue;
   }
 
   goToEdit(moreQuery = {}) {

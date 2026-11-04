@@ -115,7 +115,7 @@ export default {
 
         return {
           ...s,
-          description: isHarvester ? `advancedSettings.descriptions.harv-${ s.id }` : `advancedSettings.descriptions.${ s.id }`,
+          description: s.descriptionKey || (isHarvester ? `advancedSettings.descriptions.harv-${ s.id }` : `advancedSettings.descriptions.${ s.id }`),
           customized:  (!s.readOnly && s.data.value && (
             s.kind === 'json' ? (() => {
               try {
