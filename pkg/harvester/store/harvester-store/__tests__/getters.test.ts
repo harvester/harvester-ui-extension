@@ -2,7 +2,7 @@ import {
   CONFIG_MAP, COUNT, NAMESPACE, NETWORK_ATTACHMENT, NODE, PVC, STORAGE_CLASS
 } from '@shell/config/types';
 import harvesterGetters from '../getters';
-import { HCI, VOLUME_SNAPSHOT } from '../../../types';
+import { HCI, DATA_VOLUME, VOLUME_SNAPSHOT } from '../../../types';
 import { HCI_SETTING } from '../../../config/settings';
 
 // Nav item -> resource type, like `configureType(..., { resource })` in config/harvester-cluster.js
@@ -160,10 +160,31 @@ describe('harvester store: count', () => {
   });
 
   describe('volumes', () => {
-    it('should not show a count, as the total of the counts endpoint includes hidden volumes', () => {
-      const count = createCount({ counts: { [PVC]: counts({ default: 4 }) } });
+    it('should subtract the golden image volumes from the requested volumes', () => {
+      const count = createCount({
+        counts:         { [PVC]: counts({ default: 99 }) },
+        filteredCounts: { [HCI.VOLUME]: 19, [DATA_VOLUME]: 2 },
+      });
 
-      expect(count(HCI.VOLUME)).toBeNull();
+      expect(count(HCI.VOLUME)).toBe(17);
+    });
+
+    it('should show 0 when there are no volumes', () => {
+      expect(createCount({ filteredCounts: { [HCI.VOLUME]: 0, [DATA_VOLUME]: 0 } })(HCI.VOLUME)).toBe(0);
+    });
+
+    it.each([
+      [{}],
+      [{ [HCI.VOLUME]: 19 }],
+      [{ [DATA_VOLUME]: 2 }],
+      [{ [HCI.VOLUME]: null, [DATA_VOLUME]: 2 }],
+      [{ [HCI.VOLUME]: 19, [DATA_VOLUME]: null }],
+    ])('should not show a count until both numbers are known: %j', (filteredCounts) => {
+      expect(createCount({ filteredCounts })(HCI.VOLUME)).toBeNull();
+    });
+
+    it('should not go below 0, as a DataVolume exists briefly before its volume', () => {
+      expect(createCount({ filteredCounts: { [HCI.VOLUME]: 0, [DATA_VOLUME]: 1 } })(HCI.VOLUME)).toBe(0);
     });
   });
 

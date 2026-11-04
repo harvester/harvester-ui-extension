@@ -1,11 +1,11 @@
 import {
-  CONFIG_MAP, COUNT, NETWORK_ATTACHMENT, STORAGE_CLASS
+  CONFIG_MAP, COUNT, NETWORK_ATTACHMENT, PVC, STORAGE_CLASS
 } from '@shell/config/types';
 import harvesterStore from '../index';
 import harvesterActions from '../actions';
 import harvesterMutations from '../mutations';
 import { SERVER_FILTERED_COUNTS, filteredCountRequest } from '../getters';
-import { HCI, VOLUME_SNAPSHOT } from '../../../types';
+import { HCI, DATA_VOLUME, VOLUME_SNAPSHOT } from '../../../types';
 import { PRODUCT_NAME } from '../../../config/harvester';
 
 const BASE = 'https://harvester/v1/harvester';
@@ -18,6 +18,8 @@ const RESOURCE_MAP: Record<string, string> = {
   [HCI.STORAGE]:            STORAGE_CLASS,
   [HCI.CLOUD_TEMPLATE]:     CONFIG_MAP,
   [HCI.NETWORK_ATTACHMENT]: NETWORK_ATTACHMENT,
+  [HCI.VOLUME]:             PVC,
+  [DATA_VOLUME]:            DATA_VOLUME,
 };
 
 const CLUSTER_SCOPED = [STORAGE_CLASS];
@@ -152,8 +154,20 @@ describe('harvester store: side navigation counts', () => {
       expect(req).toStrictEqual({ count: 0 });
     });
 
+    it('should request the volumes without the temporary volumes of CDI', () => {
+      const req = filteredCountRequest(createGetters(), createRootGetters({ hideSystemResources: false }), HCI.VOLUME);
+
+      expect(req).toStrictEqual({ url: `${ BASE }/${ PVC }s?filter=metadata.ownerReferences.kind!%3DPersistentVolumeClaim&pagesize=1` });
+    });
+
+    it('should request the golden image volumes through the DataVolumes owned by a VM image, in the selected namespaces', () => {
+      const req = filteredCountRequest(createGetters(), createRootGetters({ isAllNamespaces: false, namespaces: { a: true } }), DATA_VOLUME);
+
+      expect(req).toStrictEqual({ url: `${ BASE }/${ DATA_VOLUME }s?filter=metadata.ownerReferences.kind%3DVirtualMachineImage&pagesize=1&projectsornamespaces=a` });
+    });
+
     it('should not send a request for an unknown resource type', () => {
-      expect(filteredCountRequest(createGetters(), createRootGetters(), HCI.VOLUME)).toBeNull();
+      expect(filteredCountRequest(createGetters(), createRootGetters(), 'unknown')).toBeNull();
     });
   });
 
@@ -293,8 +307,8 @@ describe('harvester store: side navigation counts', () => {
 
       await done;
 
-      // VirtualMachineBackup, VolumeSnapshot, StorageClass, ConfigMap, NAD + the namespace filter
-      expect(watchers).toHaveLength(6);
+      // VirtualMachineBackup, VolumeSnapshot, StorageClass, ConfigMap, NAD, PVC, DataVolume + the namespace filter
+      expect(watchers).toHaveLength(8);
       expect(watchers.map(({ getter }) => getter())).toContain(JSON.stringify({ summary: { count: 4 } }));
     });
 
@@ -326,7 +340,7 @@ describe('harvester store: side navigation counts', () => {
 
       const urls = request.mock.calls.map(([{ url }]: any) => url);
 
-      expect(urls).toHaveLength(4);
+      expect(urls).toHaveLength(6);
       expect(urls.some((url: string) => url.includes(STORAGE_CLASS) || url.includes(NETWORK_ATTACHMENT))).toBe(false);
     });
 
@@ -401,7 +415,7 @@ describe('harvester store: side navigation counts', () => {
       await done;
       await harvesterActions.watchFilteredCounts.call({ watch: jest.fn(() => jest.fn()) }, context, { clusterId: 'local' });
 
-      expect(unwatch).toHaveBeenCalledTimes(6);
+      expect(unwatch).toHaveBeenCalledTimes(8);
     });
   });
 });

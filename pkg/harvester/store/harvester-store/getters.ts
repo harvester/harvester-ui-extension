@@ -8,7 +8,7 @@ import { COUNT, MANAGEMENT, NAMESPACE } from '@shell/config/types';
 import { sortBy } from '@shell/utils/sort';
 import { filterBy } from '@shell/utils/array';
 import { addParams } from '@shell/utils/url';
-import { HCI } from '../../types';
+import { HCI, DATA_VOLUME } from '../../types';
 import { BACKUP_TYPE } from '../../config/types';
 import { HCI as HCI_ANNOTATIONS } from '../../config/labels-annotations';
 import { HCI_ALLOWED_SETTINGS, HCI_SINGLE_CLUSTER_ALLOWED_SETTING } from '../../config/settings';
@@ -59,16 +59,11 @@ export const SERVER_FILTERED_COUNTS: Record<string, Record<string, string>> = {
   [HCI.CLOUD_TEMPLATE]:     { labelSelector: HCI_ANNOTATIONS.CLOUD_INIT },
   // Hides the storage network: Harvester creates it with this generated name, and its annotation cannot be filtered on
   [HCI.NETWORK_ATTACHMENT]: { filter: 'metadata.generateName!=storagenetwork-' },
+  // Hides the temporary volumes CDI uses to populate a volume, which are owned by that volume
+  [HCI.VOLUME]:             { filter: 'metadata.ownerReferences.kind!=PersistentVolumeClaim' },
+  // Not a nav item: the golden image volumes that the list of Volumes also hides, see `volumeCount`
+  [DATA_VOLUME]:            { filter: 'metadata.ownerReferences.kind=VirtualMachineImage' },
 };
-
-/**
- * Nav items without a count. The list of Volumes hides golden image and CDI
- * populator volumes, which are only marked by annotations: Harvester's API
- * cannot filter on these, and the total of the counts endpoint would be wrong.
- */
-export const NO_COUNT = new Set<string>([
-  HCI.VOLUME,
-]);
 
 /**
  * Nav items whose list view lists the resources of all namespaces whatever the
@@ -175,6 +170,24 @@ function namespaceCount(getters: any): number | null {
 }
 
 /**
+ * Count of the Volumes list, which also hides golden image volumes. These are
+ * only marked by an annotation, which Harvester's API cannot filter on, but each
+ * one belongs to a DataVolume owned by its VM image. So they are counted through
+ * these DataVolumes and subtracted. `null` until both numbers are known.
+ */
+function volumeCount(state: any): number | null {
+  const volumes = state.filteredCounts?.[HCI.VOLUME] ?? null;
+  const goldenImageVolumes = state.filteredCounts?.[DATA_VOLUME] ?? null;
+
+  if (volumes === null || goldenImageVolumes === null) {
+    return null;
+  }
+
+  // A DataVolume exists briefly before its volume
+  return Math.max(volumes - goldenImageVolumes, 0);
+}
+
+/**
  * Count of the Settings page, which shows only some of the settings (see the
  * `visibleSettings` getter). `null` while the settings are not loaded.
  */
@@ -189,8 +202,8 @@ function resourceCount(state: any, rootGetters: any, getters: any, typeObj: any)
     throw new Error(`Resource type required to calc count: ${ JSON.stringify(typeObj) }`);
   }
 
-  if (NO_COUNT.has(type)) {
-    return null;
+  if (type === HCI.VOLUME) {
+    return volumeCount(state);
   }
 
   // Requested by `fetchFilteredCounts` (actions.ts), `null` until the response arrives
