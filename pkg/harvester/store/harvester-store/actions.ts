@@ -7,6 +7,7 @@ import { DEV, NAMESPACE_FILTERS } from '@shell/store/prefs';
 import { createNamespaceFilterKeyWithId } from '@shell/utils/namespace-filter';
 import debounce from 'lodash/debounce';
 import { HCI } from '../../types';
+import { PRODUCT_NAME } from '../../config/harvester';
 import {
   SERVER_FILTERED_COUNTS, countedNamespaces, filteredCountRequest, isFilteredByNamespace
 } from './getters';
@@ -176,7 +177,8 @@ export default {
   /**
    * Requests the side navigation counts of the nav items in SERVER_FILTERED_COUNTS
    * (all of them by default), see getters.ts. Responses of an outdated request
-   * of a nav item (e.g. before a namespace filter change) are ignored.
+   * of a nav item (e.g. before a namespace filter change, or of the previous
+   * cluster) are ignored.
    */
   async fetchFilteredCounts({
     state, commit, dispatch, getters, rootGetters
@@ -192,8 +194,9 @@ export default {
         try {
           const res = await dispatch('request', { url: request.url });
 
-          // Steve leaves out `count` when nothing matches
-          count = res?.count ?? 0;
+          // Steve leaves out `count` when nothing matches. Harvester v1.3 ignores the query and
+          // sends all resources without a `count`, which says nothing about the subset.
+          count = res?.count ?? (res?.data?.length ? null : 0);
         } catch (e) {
           count = null;
         }
@@ -216,12 +219,17 @@ export default {
   watchFilteredCounts({
     state, commit, dispatch, getters, rootGetters
   }: any, { clusterId }: any) {
+    // The `loadCluster` of a cluster left while it was loading can finish after the one of the new cluster
+    if (rootGetters.clusterId !== clusterId) {
+      return;
+    }
+
     state.filteredCountWatchers.forEach((unwatch: () => void) => unwatch());
     commit('resetFilteredCounts');
 
-    // The watchers stay registered after leaving the cluster, until the next `loadCluster`
+    // The watchers stay registered after leaving the cluster or the product, until the next `loadCluster`
     const refresh = (names: string[]) => {
-      if (rootGetters.clusterId === clusterId) {
+      if (rootGetters.clusterId === clusterId && rootGetters.currentProduct?.inStore === PRODUCT_NAME) {
         dispatch('fetchFilteredCounts', names);
       }
     };
@@ -236,10 +244,16 @@ export default {
       }
     });
 
-    const unwatchers = Object.entries(namesByType).map(([type, namesOfType]) => this.watch(
-      () => JSON.stringify(getters.all(COUNT)?.[0]?.counts?.[type] || null),
-      debounce(() => refresh(namesOfType), 1000)
-    ));
+    const unwatchers = Object.entries(namesByType).map(([type, namesOfType]) => {
+      const refreshType = debounce(() => refresh(namesOfType), 1000);
+      // `all` is gone once the store module is unregistered when logging out
+      const unwatch = this.watch(() => JSON.stringify(getters.all?.(COUNT)?.[0]?.counts?.[type] || null), refreshType);
+
+      return () => {
+        unwatch();
+        refreshType.cancel();
+      };
+    });
 
     unwatchers.push(this.watch(
       () => JSON.stringify(countedNamespaces(rootGetters)),

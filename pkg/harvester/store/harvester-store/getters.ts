@@ -55,8 +55,8 @@ export const SERVER_FILTERED_COUNTS: Record<string, Record<string, string>> = {
   [HCI.STORAGE]:            { filter: 'parameters.backingImage!=' },
   // Only ConfigMaps labeled as cloud-init template
   [HCI.CLOUD_TEMPLATE]:     { labelSelector: HCI_ANNOTATIONS.CLOUD_INIT },
-  // Hides the storage network, which always has this label next to its annotation
-  [HCI.NETWORK_ATTACHMENT]: { labelSelector: `!${ HCI_ANNOTATIONS.STORAGE_NETWORK_HASH }` },
+  // Hides the storage network: Harvester creates it with this generated name, and its annotation cannot be filtered on
+  [HCI.NETWORK_ATTACHMENT]: { filter: 'metadata.generateName!=storagenetwork-' },
 };
 
 /**

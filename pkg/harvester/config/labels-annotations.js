@@ -57,7 +57,6 @@ export const HCI = {
   HOST_REQUEST:                     'management.cattle.io/pod-requests',
   STORAGE_CLASS:                    'harvesterhci.io/storageClassName',
   STORAGE_NETWORK:                  'storage-network.settings.harvesterhci.io',
-  STORAGE_NETWORK_HASH:             'storage-network.settings.harvesterhci.io/hash',
   ADDON_EXPERIMENTAL:               'addon.harvesterhci.io/experimental',
   ADDON_DISPLAYNAME:                'addon.harvesterhci.io/displayName',
   VOLUME_ERROR:                     'longhorn.io/volume-scheduling-error',

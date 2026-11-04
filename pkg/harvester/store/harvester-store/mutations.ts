@@ -11,9 +11,9 @@ export default {
     state.filteredCounts = { ...state.filteredCounts, [name]: count };
   },
 
+  // Keeps `filteredCountRequests`, so that a response of the previous cluster is still outdated
   resetFilteredCounts(state: any) {
     state.filteredCounts = {};
-    state.filteredCountRequests = {};
   },
 
   setFilteredCountWatchers(state: any, unwatchers: (() => void)[]) {

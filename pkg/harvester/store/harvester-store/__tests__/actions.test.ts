@@ -1,10 +1,12 @@
 import {
   CONFIG_MAP, COUNT, NETWORK_ATTACHMENT, STORAGE_CLASS
 } from '@shell/config/types';
+import harvesterStore from '../index';
 import harvesterActions from '../actions';
 import harvesterMutations from '../mutations';
 import { SERVER_FILTERED_COUNTS, filteredCountRequest } from '../getters';
 import { HCI, VOLUME_SNAPSHOT } from '../../../types';
+import { PRODUCT_NAME } from '../../../config/harvester';
 
 const BASE = 'https://harvester/v1/harvester';
 
@@ -41,7 +43,7 @@ function createRootGetters({
 }: any = {}) {
   return {
     isAllNamespaces,
-    currentProduct: { hideSystemResources },
+    currentProduct: { hideSystemResources, inStore: PRODUCT_NAME },
     namespaces:     () => namespaces,
     clusterId,
   };
@@ -80,6 +82,32 @@ function createContext({ responses = {}, getters = createGetters(), rootGetters 
 }
 
 describe('harvester store: side navigation counts', () => {
+  it('should have the state of the counts in the store', () => {
+    expect((harvesterStore.specifics as any).state()).toMatchObject({
+      filteredCounts: {}, filteredCountRequests: {}, filteredCountWatchers: []
+    });
+  });
+
+  it('should start the counts when the cluster is loaded', async() => {
+    const dispatch = jest.fn((action: string) => Promise.resolve(action === 'management/findAll' ? [{ metadata: { name: 'local' } }] : { id: 'local' }));
+    const context: any = {
+      state:       {},
+      commit:      jest.fn(),
+      dispatch,
+      getters:     { schemaFor: () => null, filterNamespace: () => [] },
+      rootGetters: {
+        'management/schemaFor':                () => null,
+        'harvester-common/getFeatureEnabled': () => true,
+        'prefs/get':                           () => ({}),
+      },
+      rootState: { managementReady: true },
+    };
+
+    await (harvesterActions as any).loadCluster(context, { id: 'local' });
+
+    expect(dispatch).toHaveBeenCalledWith('watchFilteredCounts', { clusterId: 'local' });
+  });
+
   describe('filteredCountRequest', () => {
     it('should request the filtered list with a page size of 1', () => {
       const req = filteredCountRequest(createGetters(), createRootGetters({ hideSystemResources: false }), HCI.BACKUP);
@@ -156,6 +184,14 @@ describe('harvester store: side navigation counts', () => {
       expect(state.filteredCounts).toStrictEqual({ [HCI.STORAGE]: 0 });
     });
 
+    it('should save no count when the response has resources but no count, as Harvester v1.3 ignores the query', async() => {
+      const { context, state } = createContext({ responses: { [STORAGE_CLASS]: { data: [{}, {}] } } });
+
+      await harvesterActions.fetchFilteredCounts(context as any, [HCI.STORAGE]);
+
+      expect(state.filteredCounts).toStrictEqual({ [HCI.STORAGE]: null });
+    });
+
     it('should save no count when the request fails', async() => {
       const { context, state } = createContext({ responses: { [CONFIG_MAP]: new Error('500') } });
 
@@ -185,6 +221,26 @@ describe('harvester store: side navigation counts', () => {
 
       const first = harvesterActions.fetchFilteredCounts(context as any, [HCI.BACKUP]);
 
+      await harvesterActions.fetchFilteredCounts(context as any, [HCI.BACKUP]);
+      resolveFirst({ count: 3 });
+      await first;
+
+      expect(state.filteredCounts).toStrictEqual({ [HCI.BACKUP]: 5 });
+    });
+
+    it('should ignore the response of a request of the previous cluster', async() => {
+      const { context, state } = createContext();
+      let resolveFirst: any;
+
+      context.dispatch = jest.fn()
+        .mockImplementationOnce(() => new Promise((resolve) => {
+          resolveFirst = resolve;
+        }))
+        .mockImplementationOnce(() => Promise.resolve({ count: 5 }));
+
+      const first = harvesterActions.fetchFilteredCounts(context as any, [HCI.BACKUP]);
+
+      context.commit('resetFilteredCounts');
       await harvesterActions.fetchFilteredCounts(context as any, [HCI.BACKUP]);
       resolveFirst({ count: 3 });
       await first;
@@ -284,6 +340,58 @@ describe('harvester store: side navigation counts', () => {
       watchers[watchers.length - 1].cb();
       await Promise.resolve();
 
+      expect(request).not.toHaveBeenCalled();
+    });
+
+    it('should not request anything once another product is shown', async() => {
+      const rootGetters = createRootGetters();
+      const { watchers, request, done } = watch({ rootGetters });
+
+      await done;
+      request.mockClear();
+      rootGetters.currentProduct = { inStore: 'cluster' };
+      watchers[watchers.length - 1].cb();
+      await Promise.resolve();
+
+      expect(request).not.toHaveBeenCalled();
+    });
+
+    it('should not request anything for a change seen just before the watchers were stopped', async() => {
+      const { context, watchers, request, done } = watch();
+
+      await done;
+      request.mockClear();
+      watchers[0].cb();
+      await harvesterActions.watchFilteredCounts.call({ watch: jest.fn(() => jest.fn()) }, context, { clusterId: 'local' });
+      request.mockClear();
+      jest.advanceTimersByTime(1000);
+      await Promise.resolve();
+
+      expect(request).not.toHaveBeenCalled();
+    });
+
+    it('should cope with the store module being unregistered when logging out', async() => {
+      const getters: any = createGetters();
+      const { watchers, done } = watch({ getters });
+
+      await done;
+      delete getters.all;
+
+      expect(watchers[0].getter()).toBe('null');
+    });
+
+    it('should keep the watchers when a cluster left while it was loading finishes loading', async() => {
+      const { context, unwatch, request, done } = watch();
+
+      await done;
+      request.mockClear();
+
+      const store = { watch: jest.fn() };
+
+      await harvesterActions.watchFilteredCounts.call(store, context, { clusterId: 'c-left' });
+
+      expect(store.watch).not.toHaveBeenCalled();
+      expect(unwatch).not.toHaveBeenCalled();
       expect(request).not.toHaveBeenCalled();
     });
 
