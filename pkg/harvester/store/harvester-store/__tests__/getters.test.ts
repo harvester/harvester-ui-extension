@@ -3,6 +3,7 @@ import {
 } from '@shell/config/types';
 import harvesterGetters from '../getters';
 import { HCI, VOLUME_SNAPSHOT } from '../../../types';
+import { HCI_SETTING } from '../../../config/settings';
 
 // Nav item -> resource type, like `configureType(..., { resource })` in config/harvester-cluster.js
 const RESOURCE_MAP: Record<string, string> = {
@@ -28,7 +29,7 @@ const counts = (byNamespace: Record<string, number>) => ({
  * `fetchFilteredCounts` and `lists` the loaded store lists.
  */
 function createCount({
-  counts = {}, filteredCounts = {}, lists = {}, isAllNamespaces = true, hideSystemResources = false, namespaces = {}
+  counts = {}, filteredCounts = {}, lists = {}, visibleSettings = [], isAllNamespaces = true, hideSystemResources = false, namespaces = {}
 }: any = {}) {
   const schemas = new Map<string, any>();
 
@@ -55,6 +56,7 @@ function createCount({
     normalizeType: (type: string) => type,
     haveAll:       jest.fn((type: string) => !!lists[type]),
     all:           jest.fn((type: string) => (type === COUNT ? [{ counts }] : lists[type] || [])),
+    visibleSettings,
   };
 
   getters.schemaFor = harvesterGetters.schemaFor(state, getters, {}, rootGetters);
@@ -165,6 +167,22 @@ describe('harvester store: count', () => {
     });
   });
 
+  describe('settings', () => {
+    it('should count the settings shown by the page, not all the settings', () => {
+      const count = createCount({
+        counts:          { [HCI.SETTING]: counts({ '': 5 }) },
+        lists:           { [HCI.SETTING]: [{}] },
+        visibleSettings: [{}, {}],
+      });
+
+      expect(count(HCI.SETTING)).toBe(2);
+    });
+
+    it('should return null until the settings are loaded', () => {
+      expect(createCount({ visibleSettings: [{}] })(HCI.SETTING)).toBeNull();
+    });
+  });
+
   describe('namespaces', () => {
     const namespace = (isSystem = false, isFleetManaged = false) => ({ isSystem, isFleetManaged });
 
@@ -189,5 +207,63 @@ describe('harvester store: count', () => {
 
       expect(count(NAMESPACE)).toBe(4);
     });
+  });
+});
+
+describe('harvester store: visibleSettings', () => {
+  const { BACKUP_TARGET, MAX_HOTPLUG_RATIO, UI_PL } = HCI_SETTING;
+  const setting = (id: string, source = 'harvester') => ({ id, source });
+
+  function visibleSettings({
+    harvester = [] as string[], management = [] as string[], isSingleProduct = false, isStandaloneHarvester = false, enabledFeatures = [] as string[]
+  } = {}) {
+    const rootGetters = {
+      isSingleProduct,
+      isStandaloneHarvester,
+      'management/all':                     () => management.map((id) => setting(id, 'management')),
+      'harvester-common/getFeatureEnabled': (feature: string) => enabledFeatures.includes(feature),
+    };
+
+    return harvesterGetters.visibleSettings({}, { all: () => harvester.map((id) => setting(id)) }, {}, rootGetters);
+  }
+
+  const ids = (args: any) => visibleSettings(args).map(({ id }: any) => id);
+
+  it('should only show the allowed settings', () => {
+    expect(ids({ harvester: [BACKUP_TARGET, 'api-ui-version'] })).toStrictEqual([BACKUP_TARGET]);
+  });
+
+  it('should return the config and the resource of a setting', () => {
+    const [shown] = visibleSettings({ harvester: [BACKUP_TARGET] });
+
+    expect(shown.data).toStrictEqual(setting(BACKUP_TARGET));
+    expect(shown.config.kind).toBe('json');
+  });
+
+  it('should not show allowed settings that do not exist in the cluster', () => {
+    expect(ids({ harvester: [] })).toStrictEqual([]);
+  });
+
+  it('should only show settings with a feature flag when the version supports it', () => {
+    expect(ids({ harvester: [MAX_HOTPLUG_RATIO] })).toStrictEqual([]);
+    expect(ids({ harvester: [MAX_HOTPLUG_RATIO], enabledFeatures: ['cpuMemoryHotplug'] })).toStrictEqual([MAX_HOTPLUG_RATIO]);
+  });
+
+  it('should only show the single cluster settings on a standalone Harvester', () => {
+    expect(ids({ harvester: [UI_PL] })).toStrictEqual([]);
+    expect(ids({ harvester: [UI_PL], isStandaloneHarvester: true })).toStrictEqual([UI_PL]);
+  });
+
+  it('should only use the settings of the management store in a single product', () => {
+    expect(ids({ management: [BACKUP_TARGET] })).toStrictEqual([]);
+    expect(ids({ management: [BACKUP_TARGET], isSingleProduct: true })).toStrictEqual([BACKUP_TARGET]);
+  });
+
+  it('should prefer the Harvester setting over the management setting with the same id', () => {
+    const [shown] = visibleSettings({
+      harvester: [BACKUP_TARGET], management: [BACKUP_TARGET], isSingleProduct: true
+    });
+
+    expect(shown.data.source).toBe('harvester');
   });
 });

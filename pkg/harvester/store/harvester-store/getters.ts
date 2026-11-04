@@ -11,6 +11,7 @@ import { addParams } from '@shell/utils/url';
 import { HCI } from '../../types';
 import { BACKUP_TYPE } from '../../config/types';
 import { HCI as HCI_ANNOTATIONS } from '../../config/labels-annotations';
+import { HCI_ALLOWED_SETTINGS, HCI_SINGLE_CLUSTER_ALLOWED_SETTING } from '../../config/settings';
 
 // ---------------------------------------------------------------------------
 // Side navigation counts
@@ -25,7 +26,8 @@ import { HCI as HCI_ANNOTATIONS } from '../../config/labels-annotations';
 // All counts come from the server: Steve's counts endpoint for nav items
 // listing all resources of a type, and a filtered request with a page size of 1
 // for the nav items in SERVER_FILTERED_COUNTS. Resource lists are not loaded
-// for the counts.
+// for the counts: only Namespaces and Settings count their list, which is always
+// loaded with the cluster.
 // ---------------------------------------------------------------------------
 
 /**
@@ -172,6 +174,14 @@ function namespaceCount(getters: any): number | null {
   return getters.all(NAMESPACE).filter((namespace: any) => !namespace.isSystem && !namespace.isFleetManaged).length;
 }
 
+/**
+ * Count of the Settings page, which shows only some of the settings (see the
+ * `visibleSettings` getter). `null` while the settings are not loaded.
+ */
+function settingCount(getters: any): number | null {
+  return getters.haveAll(HCI.SETTING) ? getters.visibleSettings.length : null;
+}
+
 function resourceCount(state: any, rootGetters: any, getters: any, typeObj: any): number | null {
   const type = typeObj?.name;
 
@@ -190,6 +200,10 @@ function resourceCount(state: any, rootGetters: any, getters: any, typeObj: any)
 
   if (type === NAMESPACE && rootGetters.currentProduct?.hideSystemResources) {
     return namespaceCount(getters);
+  }
+
+  if (type === HCI.SETTING) {
+    return settingCount(getters);
   }
 
   // schemaFor falls back to the resource of `configureType`, so this resolves
@@ -316,6 +330,26 @@ export default {
     const clusterId = currentCluster.id;
 
     return projectsInAllClusters.filter((project: any) => project.spec.clusterName === clusterId && project.nameDisplay !== 'System');
+  },
+
+  /**
+   * The settings shown by the Settings page: the allowed ones that exist in the
+   * cluster and are supported by its version. The page and the count of its nav
+   * item both use this, so that they always agree.
+   */
+  visibleSettings(state: any, getters: any, rootState: any, rootGetters: any) {
+    const settings = [
+      ...(rootGetters.isSingleProduct ? rootGetters['management/all'](MANAGEMENT.SETTING) : []),
+      ...getters.all(HCI.SETTING),
+    ];
+    const settingsById = Object.fromEntries(settings.map((setting: any) => [setting.id, setting]));
+    const allowed = rootGetters.isStandaloneHarvester ? { ...HCI_ALLOWED_SETTINGS, ...HCI_SINGLE_CLUSTER_ALLOWED_SETTING } : HCI_ALLOWED_SETTINGS;
+
+    return Object.entries(allowed)
+      .filter(([id, config]: any) => settingsById[id] && (!config.featureFlag || rootGetters['harvester-common/getFeatureEnabled'](config.featureFlag)))
+      .map(([id, config]: any) => ({
+        id, config, data: settingsById[id]
+      }));
   },
 
   // Few harvester resources name and REAL resource are different. E.g. HCI.NETWORK_ATTACHMENT page resource is NETWORK_ATTACHMENT.
