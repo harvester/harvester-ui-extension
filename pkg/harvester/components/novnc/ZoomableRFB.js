@@ -51,6 +51,14 @@ export default class ZoomableRFB extends RFB {
     }
   }
 
+  // noVNC only stops a click on the screen, which Firefox delivers there (others to the page, past
+  // noVNC's mouse capture). An open menu would never see the click outside it and would stay open.
+  _handleMouse(ev) {
+    if (ev.type !== 'click') {
+      super._handleMouse(ev);
+    }
+  }
+
   // noVNC hides the mouse over the screen until the guest sends a pointer image, and a text console
   // or a guest that draws its own pointer never does. Show the system pointer unless one arrives.
   _refreshCursor() {

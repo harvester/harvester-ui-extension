@@ -18,6 +18,10 @@ jest.mock('@novnc/novnc/core/rfb', () => ({
 
     _fixScrollbars() {}
 
+    _handleMouse(ev) {
+      ev.stopPropagation();
+    }
+
     // As noVNC does: nothing visible hides the mouse, an image is shown as the pointer.
     _refreshCursor() {
       this._canvas.style.cursor = this._cursorImage.rgbaPixels.length ? 'url(guest-pointer) 0 0, default' : 'none';
@@ -62,6 +66,26 @@ describe('zoomableRFB', () => {
       rfb._refreshCursor();
 
       expect(rfb._canvas.style.cursor).toBe('default');
+    });
+  });
+
+  describe('mouse events on the screen', () => {
+    it('should let a click through, so an open menu sees it as a click outside', () => {
+      const rfb = new ZoomableRFB();
+      const stopPropagation = jest.fn();
+
+      rfb._handleMouse({ type: 'click', stopPropagation });
+
+      expect(stopPropagation).not.toHaveBeenCalled();
+    });
+
+    it('should leave the others to noVNC', () => {
+      const rfb = new ZoomableRFB();
+      const stopPropagation = jest.fn();
+
+      rfb._handleMouse({ type: 'mousedown', stopPropagation });
+
+      expect(stopPropagation).toHaveBeenCalledTimes(1);
     });
   });
 
