@@ -215,14 +215,21 @@ describe('component: NovncConsoleWrapper', () => {
       expect(wrapper.vm.rfbSettings).toMatchObject({ scaleViewport: false, edgeToEdge: false });
     });
 
-    it('should keep the view only toggle in the bar', async() => {
+    it('should leave the view only toggle out of the bar, and keep view only as it was', async() => {
       const wrapper = mountWrapper();
 
       wrapper.vm.setViewOnly(true);
       wrapper.vm.isFullscreen = true;
       await wrapper.vm.$nextTick();
 
-      expect(wrapper.find('[data-testid="vnc-fullscreen-bar"]').findComponent(ToggleSwitch).props('value')).toBe(true);
+      expect(wrapper.findComponent(ToggleSwitch).exists()).toBe(false);
+      expect(wrapper.vm.rfbSettings.viewOnly).toBe(true);
+      expect(wrapper.vm.shortcutMenuProps.disabled).toBe(true);
+
+      wrapper.vm.isFullscreen = false;
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.findComponent(ToggleSwitch).props('value')).toBe(true);
     });
 
     it('should leave Ctrl+Alt+Del out of the bar', async() => {

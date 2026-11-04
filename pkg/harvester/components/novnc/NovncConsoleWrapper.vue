@@ -538,12 +538,6 @@ export default {
           :vm-name="vmName"
           @reconnect="reconnect"
         />
-        <ToggleSwitch
-          :value="!!settings.viewOnly"
-          :on-label="t('harvester.virtualMachine.detail.console.viewOnly')"
-          data-testid="vnc-view-only"
-          @update:value="setViewOnly"
-        />
         <span
           class="console-toolbar__divider"
           aria-hidden="true"
