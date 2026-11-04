@@ -44,6 +44,24 @@ describe('class HarvesterManagementSetting', () => {
     expect(setting(HCI_SETTING.UI_PL).model.customValue).toBeUndefined();
   });
 
+  it.each([
+    ['', false],
+    ['{"disableWebsocketNotification":true}', false],
+    ['{"disableWebsocketNotification":true,"manualRefresh":{"enabled":true,"threshold":100}}', false],
+    ['{"manualRefresh":{"enabled":true,"threshold":100}}', false],
+    ['{"disableWebsocketNotification":false}', true],
+  ])('should only count the websocket notifications option as customized, from a ui-performance value of %p', (value, expected) => {
+    const { model } = setting(HCI_SETTING.UI_PERFORMANCE);
+
+    model.$rootGetters['management/byId'] = () => ({ value });
+
+    expect(model.hasCustomized).toBe(expected);
+  });
+
+  it('should leave what counts as customized in other settings to the settings list', () => {
+    expect(setting(HCI_SETTING.UI_PL).model.hasCustomized).toBeUndefined();
+  });
+
   it('should open a session setting in the Harvester settings form', () => {
     const { model, push } = setting('auth-user-session-idle-ttl-minutes');
     const superGoToEdit = jest.spyOn(ManagementSetting.prototype, 'goToEdit');

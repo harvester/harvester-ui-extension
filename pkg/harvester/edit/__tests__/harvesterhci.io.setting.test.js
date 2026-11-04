@@ -46,7 +46,7 @@ describe('edit: harvesterhci.io.setting session timeouts', () => {
     expect(HCI_SINGLE_CLUSTER_ALLOWED_SETTING[HCI_SETTING.UI_PERFORMANCE]).toStrictEqual({
       kind:           'custom',
       from:           'import',
-      alias:          'disable-websocket-notifications',
+      alias:          'ui-performance/disableWebsocketNotification',
       canReset:       true,
       descriptionKey: 'performance.websocketNotification.description',
       featureFlag:    'websocketNotificationsSetting',

@@ -1,5 +1,6 @@
 import ManagementSetting from '@shell/models/management.cattle.io.setting';
 import { MANAGEMENT } from '@shell/config/types';
+import { DEFAULT_PERF_SETTING } from '@shell/config/settings';
 import { _EDIT, AS, _UNFLAG, MODE } from '@shell/config/query-params';
 import { getPerformanceSetting } from '@shell/utils/settings';
 import { HCI_SETTING } from '../../config/settings';
@@ -22,6 +23,15 @@ export default class HarvesterManagementSetting extends ManagementSetting {
     }
 
     return super.customValue;
+  }
+
+  // Harvester only exposes one option of ui-performance, so it's only modified when that option is. The settings list compares the value of the others
+  get hasCustomized() {
+    if (this.id === HCI_SETTING.UI_PERFORMANCE) {
+      return getPerformanceSetting(this.$rootGetters).disableWebsocketNotification !== DEFAULT_PERF_SETTING.disableWebsocketNotification;
+    }
+
+    return undefined;
   }
 
   goToEdit(moreQuery = {}) {

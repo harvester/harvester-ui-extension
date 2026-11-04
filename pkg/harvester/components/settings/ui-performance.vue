@@ -24,14 +24,17 @@ export default {
 
   methods: {
     update() {
+      // Only this option changes, but all of them have to be saved: the shell's resource-fetch mixin reads the value without merging the defaults
       const value = JSON.stringify(this.perfSetting);
 
-      // Stay empty while it matches the defaults, so that the settings list doesn't tag it as modified
+      // Stay empty while it matches the defaults, so that it keeps following them
       this.value['value'] = value === JSON.stringify(DEFAULT_PERF_SETTING) ? '' : value;
     },
 
+    // The form empties the whole value before calling this, so put back the other options
     useDefault() {
-      this.perfSetting = { ...DEFAULT_PERF_SETTING };
+      this.perfSetting.disableWebsocketNotification = DEFAULT_PERF_SETTING.disableWebsocketNotification;
+      this.update();
     },
   },
 };
@@ -43,7 +46,7 @@ export default {
     :mode="mode"
     :label="t('performance.websocketNotification.checkboxLabel')"
     :primary="true"
-    data-testid="disable-websocket-notifications"
+    data-testid="disable-websocket-notification"
     @update:value="update"
   />
 </template>
