@@ -461,11 +461,11 @@ export default {
         />
       </div>
     </div>
-    <div class="row mb-20">
-      <div
-        v-if="value.volumeBackups && isView"
-        class="col span-3"
-      >
+    <div
+      v-if="value.volumeBackups && isView"
+      class="row mb-20"
+    >
+      <div class="col span-3">
         <LabelValue
           :name="t('harvester.virtualMachine.volume.readyToUse')"
           :value="readyToUse"

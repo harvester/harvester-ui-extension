@@ -51,4 +51,11 @@ describe('component: HarvesterEditContainer', () => {
 
     expect(wrapper.emitted('update')).toHaveLength(1);
   });
+
+  it('should not render an empty row when there is no backup to show', () => {
+    const wrapper = mount(HarvesterEditContainer, mountOptions());
+    const emptyRows = wrapper.findAll('.row').filter((row) => row.element.children.length === 0);
+
+    expect(emptyRows).toHaveLength(0);
+  });
 });
