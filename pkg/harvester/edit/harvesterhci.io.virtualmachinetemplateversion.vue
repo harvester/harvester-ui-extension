@@ -21,6 +21,7 @@ import { HCI } from '../types';
 import VM_MIXIN from '../mixins/harvester-vm';
 import Reserved from './kubevirt.io.virtualmachine/VirtualMachineReserved';
 import Volume from './kubevirt.io.virtualmachine/VirtualMachineVolume';
+import VMPerformanceOptions from './kubevirt.io.virtualmachine/VirtualMachineVolume/VMPerformanceOptions';
 import Network from './kubevirt.io.virtualmachine/VirtualMachineNetwork';
 import CpuMemory from './kubevirt.io.virtualmachine/VirtualMachineCpuMemory';
 import CpuModel from './kubevirt.io.virtualmachine/VirtualMachineCpuModel';
@@ -37,6 +38,7 @@ export default {
     Tab,
     SSHKey,
     Volume,
+    VMPerformanceOptions,
     Tabbed,
     Network,
     Checkbox,
@@ -390,9 +392,6 @@ export default {
       >
         <Volume
           v-model:value="diskRows"
-          v-model:block-multi-queue="blockMultiQueue"
-          v-model:io-threads-policy="ioThreadsPolicy"
-          v-model:io-thread-count="ioThreadCount"
           :mode="mode"
           :namespace="value.metadata.namespace"
           :existing-volume-disabled="true"
@@ -577,6 +576,16 @@ export default {
             </div>
           </div>
         </div>
+
+        <VMPerformanceOptions
+          v-model:block-multi-queue="blockMultiQueue"
+          v-model:io-threads-policy="ioThreadsPolicy"
+          v-model:io-thread-count="ioThreadCount"
+          :has-virtio-disk="hasVirtioDisk"
+          :has-dedicated-iothread="hasDedicatedIOThread"
+          :mode="mode"
+          class="mb-20"
+        />
 
         <CloudConfig
           ref="yamlEditor"

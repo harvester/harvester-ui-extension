@@ -133,4 +133,30 @@ describe('component: HarvesterEditVMImage', () => {
 
     expect(wrapper.emitted('update')).toHaveLength(1);
   });
+
+  it('should not render an empty row when there is no backup to show', () => {
+    const wrapper = mount(HarvesterEditVMImage, {
+      props: {
+        mode:             _CREATE,
+        isVirtualType:    false,
+        newCreateId:      '123',
+        validateRequired: true,
+        idx:              1
+      },
+      global: {
+        mocks: {
+          $store: {
+            getters: {
+              'harvester-common/getFeatureEnabled': () => true,
+              'harvester/all':                      jest.fn(),
+              'i18n/t':                             jest.fn(),
+            }
+          },
+        }
+      }
+    });
+    const emptyRows = wrapper.findAll('.row').filter((row) => row.element.children.length === 0);
+
+    expect(emptyRows).toHaveLength(0);
+  });
 });
