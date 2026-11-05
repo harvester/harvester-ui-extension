@@ -391,6 +391,20 @@ export default {
             @update:value="update"
           />
         </InputOrDisplay>
+        <div
+          v-if="isLun"
+          data-testid="input-hee-errorPolicy"
+          class="mt-20"
+        >
+          <LabeledSelect
+            v-model:value="value.errorPolicy"
+            :label="t('harvester.virtualMachine.volume.lun.errorPolicy.label')"
+            :tooltip="t('harvester.virtualMachine.volume.lun.errorPolicy.tip')"
+            :mode="mode"
+            :options="DISK_ERROR_POLICY"
+            @update:value="update"
+          />
+        </div>
       </div>
       <div
         v-if="isLun"
@@ -419,21 +433,7 @@ export default {
         </Banner>
         <Banner
           color="info"
-          :label="t('harvester.virtualMachine.volume.lun.info')"
-        />
-      </div>
-      <div
-        v-if="isLun"
-        data-testid="input-hee-errorPolicy"
-        class="col span-6"
-      >
-        <LabeledSelect
-          v-model:value="value.errorPolicy"
-          :label="t('harvester.virtualMachine.volume.lun.errorPolicy.label')"
-          :tooltip="t('harvester.virtualMachine.volume.lun.errorPolicy.tip')"
-          :mode="mode"
-          :options="DISK_ERROR_POLICY"
-          @update:value="update"
+          :label="t('harvester.virtualMachine.volume.lun.info', {}, true)"
         />
       </div>
       <div

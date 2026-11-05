@@ -55,7 +55,7 @@ export function vmDisks(spec, getters, errors, validatorArgs, displayKey, value)
   _disks.forEach((D, idx) => {
     const prefix = D.name || _volumes[idx]?.name || `Volume ${ idx + 1 }`;
 
-    if (!D.disk && !D.cdrom) {
+    if (!D.disk && !D.cdrom && !D.lun) {
       const key = getters['i18n/t']('harvester.fields.type');
       const message = getters['i18n/t']('validation.required', { key });
 
