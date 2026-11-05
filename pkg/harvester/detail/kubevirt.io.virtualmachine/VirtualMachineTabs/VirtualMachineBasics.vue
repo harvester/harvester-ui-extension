@@ -6,6 +6,7 @@ import HarvesterIpAddress from '../../../formatters/HarvesterIpAddress';
 import VMConsoleBar from '../../../components/VMConsoleBar';
 import { HCI } from '../../../types';
 import { getVmCPUMemoryValues } from '../../../utils/cpuMemory';
+import { getBootDevices } from '../../../utils/vm';
 
 const UNDEFINED = 'n/a';
 
@@ -69,18 +70,8 @@ export default {
       return image?.spec?.displayName || 'N/A';
     },
 
-    disks() {
-      const disks = this.value?.spec?.template?.spec?.domain?.devices?.disks || [];
-
-      return disks.filter((disk) => {
-        return !!disk.bootOrder;
-      }).sort((a, b) => {
-        if (a.bootOrder < b.bootOrder) {
-          return -1;
-        }
-
-        return 1;
-      });
+    bootDevices() {
+      return getBootDevices(this.value?.spec?.template?.spec?.domain?.devices);
     },
 
     cdroms() {
@@ -122,8 +113,10 @@ export default {
     getDeviceType(o) {
       if (o.disk) {
         return 'Disk';
-      } else {
+      } else if (o.cdrom) {
         return 'CD-ROM';
+      } else {
+        return 'Network';
       }
     },
     isEmpty(o) {
@@ -219,16 +212,16 @@ export default {
         <div class="col span-6">
           <InputOrDisplay
             :name="t('harvester.virtualMachine.detail.details.bootOrder')"
-            :value="disks"
+            :value="bootDevices"
             :mode="mode"
           >
             <template #value>
               <ul>
                 <li
-                  v-for="(disk, i) in disks"
+                  v-for="(device, i) in bootDevices"
                   :key="i"
                 >
-                  {{ disk.bootOrder }}. {{ disk.name }} ({{ getDeviceType(disk) }})
+                  {{ device.bootOrder }}. {{ device.name }} ({{ getDeviceType(device) }})
                 </li>
               </ul>
             </template>

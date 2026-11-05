@@ -1,5 +1,6 @@
 <script>
 import InfoBox from '@shell/components/InfoBox';
+import { RadioGroup } from '@components/Form/Radio';
 import { NETWORK_ATTACHMENT } from '@shell/config/types';
 import { sortBy } from '@shell/utils/sort';
 import { clone } from '@shell/utils/object';
@@ -10,7 +11,11 @@ import { HCI as HCI_ANNOTATIONS } from '../../../config/labels-annotations';
 import Base from './base';
 
 export default {
-  components: { InfoBox, Base },
+  components: {
+    InfoBox, Base, RadioGroup
+  },
+
+  emits: ['update:value', 'update:networkBootFirst'],
 
   props: {
     vm: {
@@ -33,6 +38,11 @@ export default {
     },
 
     isSingle: {
+      type:    Boolean,
+      default: true
+    },
+
+    networkBootFirst: {
       type:    Boolean,
       default: true
     }
@@ -82,6 +92,20 @@ export default {
 
     vmState() {
       return this.vm?.stateDisplay;
+    },
+
+    hasNetworkBoot() {
+      return this.rows.some((R) => R.networkBoot);
+    },
+
+    networkBootOrderOptions() {
+      return [{
+        label: this.t('harvester.virtualMachine.network.networkBoot.first'),
+        value: true
+      }, {
+        label: this.t('harvester.virtualMachine.network.networkBoot.last'),
+        value: false
+      }];
     }
   },
 
@@ -217,6 +241,22 @@ export default {
         @update="update"
       />
     </InfoBox>
+
+    <div
+      v-if="hasNetworkBoot"
+      data-testid="input-hen-networkBootFirst"
+      class="mb-20"
+    >
+      <RadioGroup
+        :value="networkBootFirst"
+        name="networkBootFirst"
+        :label="t('harvester.virtualMachine.network.networkBoot.order')"
+        :options="networkBootOrderOptions"
+        :mode="mode"
+        :row="true"
+        @update:value="$emit('update:networkBootFirst', $event)"
+      />
+    </div>
 
     <button
       v-if="!isView"

@@ -3,6 +3,7 @@ export const HCI_SETTING = {
   CONTAINERD_REGISTRY:                      'containerd-registry',
   LOG_LEVEL:                                'log-level',
   SERVER_VERSION:                           'server-version',
+  SERVER_FLAVOR:                            'server-flavor',
   UI_INDEX:                                 'ui-index',
   UPGRADE_CHECKER_ENABLED:                  'upgrade-checker-enabled',
   UPGRADE_CHECKER_URL:                      'upgrade-checker-url',
@@ -44,7 +45,8 @@ export const HCI_SETTING = {
   MAX_HOTPLUG_RATIO:                        'max-hotplug-ratio',
   KUBEVIRT_MIGRATION:                       'kubevirt-migration',
   INSTANCE_MANAGER_RESOURCES:               'instance-manager-resources',
-  CLUSTER_POD_SECURITY_STANDARD:            'cluster-pod-security-standard'
+  CLUSTER_POD_SECURITY_STANDARD:            'cluster-pod-security-standard',
+  MAINTENANCE_MODE_DRAIN_TIMEOUT:           'maintenance-mode-drain-timeout'
 };
 
 export const HCI_ALLOWED_SETTINGS = {
@@ -68,6 +70,7 @@ export const HCI_ALLOWED_SETTINGS = {
     kind: 'json', from: 'import', featureFlag: 'csiOnlineExpandValidation'
   },
   [HCI_SETTING.SERVER_VERSION]:               { readOnly: true },
+  [HCI_SETTING.SERVER_FLAVOR]:                { readOnly: true },
   [HCI_SETTING.UPGRADE_CHECKER_ENABLED]:      { kind: 'boolean' },
   [HCI_SETTING.UPGRADE_CHECKER_URL]:          { kind: 'url' },
   [HCI_SETTING.HTTP_PROXY]:                   { kind: 'json', from: 'import' },
@@ -111,15 +114,17 @@ export const HCI_ALLOWED_SETTINGS = {
   [HCI_SETTING.KUBECONFIG_DEFAULT_TOKEN_TTL_MINUTES]:   { kind: 'number', featureFlag: 'kubeconfigDefaultTokenTTLMinutesSetting' },
   [HCI_SETTING.LONGHORN_V2_DATA_ENGINE_ENABLED]:        {
     kind:         'boolean',
-    experimental: true,
+    preview:      true,
     featureFlag:  'longhornV2LVMSupport'
   },
   [HCI_SETTING.LONGHORN_V2_DATA_ENGINE_HUGEPAGE_ENABLED]: {
     kind:         'boolean',
+    preview:      true,
     featureFlag:  'longhornV2HugepageSettings'
   },
   [HCI_SETTING.LONGHORN_V2_DATA_ENGINE_MEMORY_SIZE]: {
     kind:         'number',
+    preview:      true,
     featureFlag:  'longhornV2HugepageSettings'
   },
   [HCI_SETTING.ADDITIONAL_GUEST_MEMORY_OVERHEAD_RATIO]: { kind: 'string', from: 'import' },
@@ -144,6 +149,9 @@ export const HCI_ALLOWED_SETTINGS = {
   },
   [HCI_SETTING.CLUSTER_POD_SECURITY_STANDARD]: {
     kind: 'json', from: 'import', canReset: true, featureFlag: 'clusterPodSecurityStandardSetting'
+  },
+  [HCI_SETTING.MAINTENANCE_MODE_DRAIN_TIMEOUT]: {
+    kind: 'number', canReset: true, featureFlag: 'maintenanceModeDrainTimeoutSetting'
   }
 };
 

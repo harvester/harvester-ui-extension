@@ -59,6 +59,8 @@ You are an expert Senior Software Engineer specializing in Vue.js and TypeScript
 | `yarn serve-pkgs` | Serve the locally built extension for testing |
 | `yarn lint` | Run ESLint (zero warnings allowed) |
 | `yarn lint:fix` | Run ESLint with auto-fix |
+| `yarn test` | Run the unit tests (Jest) in watch mode |
+| `yarn test:ci` | Run the unit tests once, as CI does (silent) |
 | `yarn clean` | Clean build artifacts |
 | `yarn agents:generate` | Regenerate `AGENTS.md` from `docs/agents.md/` sources |
 
@@ -94,6 +96,16 @@ You are an expert Senior Software Engineer specializing in Vue.js and TypeScript
   ```
 - ESLint covers `.js`, `.ts`, and `.vue` files.
 - Always run `yarn lint:fix` before committing.
+
+### Unit Tests
+
+- **Run**:
+  ```bash
+  yarn test
+  ```
+  - `yarn test` starts Jest in watch mode (like in the Rancher dashboard) and only runs the tests related to changed files. It does not exit, so use `yarn test:ci` for a single run of all tests, e.g. in scripts.
+- CI runs `yarn test:ci` on every pull request.
+- See the Unit Tests section of the Contributors Guide for how the tests are set up.
 
 ### Commit Conventions
 
@@ -186,6 +198,19 @@ To add a feature in a new release, follow these steps:
 ## E2E Tests (Cypress)
 
 See https://github.com/harvester/harvester-ui-tests
+
+## Unit Tests (Jest)
+
+Unit and component tests run with [Jest](https://jestjs.io/). The setup follows the Rancher dashboard and the Rancher extension template ([rancher/ui-plugin-examples](https://github.com/rancher/ui-plugin-examples)), so both stay aligned.
+
+- Run the tests in watch mode with `yarn test`, all tests once with `yarn test:ci`, a single file with `yarn test <path>`. CI runs `yarn test:ci` on every pull request.
+- Test files live next to the code in `__tests__` folders and are named `<name>.test.js` or `<name>.test.ts`.
+- Configuration:
+  - `jest.config.js`: environment, module aliases (`@shell`, `@components`, `@pkg`) and transforms.
+  - `jest.setup.js`: global mocks (`t`, `$store`, common directives) and browser APIs that jsdom does not provide.
+  - `vue3JestRegisterTs.js`: makes TypeScript available to the Vue compiler, otherwise `.vue` files with typed props fail to compile.
+- Components are tested with the Vue Test Utils 2 API: use `props` and `global.mocks`, not the Vue 2 options `propsData` and `mocks`.
+- Models and utils can be tested without mounting anything, see `pkg/harvester/models/__tests__` for examples.
 
 ## Node Dependencies
 

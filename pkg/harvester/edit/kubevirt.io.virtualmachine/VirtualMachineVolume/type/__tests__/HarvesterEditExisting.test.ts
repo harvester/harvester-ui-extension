@@ -5,14 +5,17 @@ import HarvesterEditExisting from '../existing.vue';
 describe('component: HarvesterEditExisting', () => {
   it('should display all the inputs', () => {
     const wrapper = mount(HarvesterEditExisting, {
-      propsData: {
+      props: {
         mode: _EDIT, value: {}, rows: []
       },
-      mocks: {
-        $store: {
-          getters: {
-            'harvester/all': () => [],
-            'i18n/t':        jest.fn()
+      global: {
+        mocks: {
+          $store: {
+            getters: {
+              'harvester-common/getFeatureEnabled': () => true,
+              'harvester/all':                      () => [],
+              'i18n/t':                             jest.fn()
+            }
           }
         }
       }
@@ -27,14 +30,17 @@ describe('component: HarvesterEditExisting', () => {
     'name',
   ])('should emit an update on %p input', (field) => {
     const wrapper = mount(HarvesterEditExisting, {
-      propsData: {
+      props: {
         mode: _EDIT, value: {}, rows: []
       },
-      mocks: {
-        $store: {
-          getters: {
-            'harvester/all': () => [],
-            'i18n/t':        jest.fn()
+      global: {
+        mocks: {
+          $store: {
+            getters: {
+              'harvester-common/getFeatureEnabled': () => true,
+              'harvester/all':                      () => [],
+              'i18n/t':                             jest.fn()
+            }
           }
         }
       }
@@ -53,14 +59,17 @@ describe('component: HarvesterEditExisting', () => {
     'size',
   ])('should emit an update on %p input and blur', (field) => {
     const wrapper = mount(HarvesterEditExisting, {
-      propsData: {
+      props: {
         mode: _EDIT, value: {}, rows: []
       },
-      mocks: {
-        $store: {
-          getters: {
-            'harvester/all': () => [],
-            'i18n/t':        jest.fn()
+      global: {
+        mocks: {
+          $store: {
+            getters: {
+              'harvester-common/getFeatureEnabled': () => true,
+              'harvester/all':                      () => [],
+              'i18n/t':                             jest.fn()
+            }
           }
         }
       }
@@ -80,14 +89,17 @@ describe('component: HarvesterEditExisting', () => {
     // 'bus',  // disabled
   ])('should emit an update on %p selection change', async(field) => {
     const wrapper = mount(HarvesterEditExisting, {
-      propsData: {
+      props: {
         mode: _EDIT, value: {}, rows: []
       },
-      mocks: {
-        $store: {
-          getters: {
-            'harvester/all': () => [],
-            'i18n/t':        jest.fn()
+      global: {
+        mocks: {
+          $store: {
+            getters: {
+              'harvester-common/getFeatureEnabled': () => true,
+              'harvester/all':                      () => [],
+              'i18n/t':                             jest.fn()
+            }
           }
         }
       }

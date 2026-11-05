@@ -56,6 +56,7 @@ const FEATURE_FLAGS = {
     'kubevirtMigration',
     'hotplugNic',
     'resumeUpgradePausedNode',
+    'vncPreserveSession',
   ],
   'v1.7.1': [],
   'v1.8.0': [
@@ -76,6 +77,14 @@ const FEATURE_FLAGS = {
     'longhornV2HugepageSettings',
     'staticIPForVM',
     'fsFreezeDeadline',
+  ],
+  'v1.9.1': [
+    'lvmDmThinOnly',
+    'highPerformanceStorage',
+  ],
+  'v1.10.0': [
+    'maintenanceModeConditions',
+    'maintenanceModeDrainTimeoutSetting',
   ],
 };
 

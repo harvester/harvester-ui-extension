@@ -68,29 +68,35 @@ export default defineComponent({
       return (this.value || []).map((plan) => {
         const planName = plan?.metadata?.name || '-';
         const namespace = plan?.metadata?.namespace || '';
+        const networkMapRef = this.getPlanMapRef(plan, 'network');
+        const storageMapRef = this.getPlanMapRef(plan, 'storage');
 
         const migrations = existing[HCI.FORKLIFT_MIGRATION]
           .filter((resource) => this.ownedByPlan(resource, plan))
-          .map((resource) => ({
-            name:      resource?.metadata?.name,
-            namespace: resource?.metadata?.namespace || namespace,
-          }));
+          .map((resource) => resource?.metadata?.name)
+          .filter(Boolean);
 
-        const matchedNetworkMap = existing[HCI.FORKLIFT_NETWORK_MAP].find((resource) => this.ownedByPlan(resource, plan));
-        const matchedStorageMap = existing[HCI.FORKLIFT_STORAGE_MAP].find((resource) => this.ownedByPlan(resource, plan));
+        const matchedNetworkMap = networkMapRef ? existing[HCI.FORKLIFT_NETWORK_MAP].find((resource) => resource?.metadata?.name === networkMapRef.name && resource?.metadata?.namespace === networkMapRef.namespace) : null;
+        const matchedStorageMap = storageMapRef ? existing[HCI.FORKLIFT_STORAGE_MAP].find((resource) => resource?.metadata?.name === storageMapRef.name && resource?.metadata?.namespace === storageMapRef.namespace) : null;
 
         return {
           planName,
           namespace,
           migrations,
           networkMap: matchedNetworkMap ? {
-            namespace: matchedNetworkMap?.metadata?.namespace || namespace,
+            namespace: matchedNetworkMap?.metadata?.namespace || networkMapRef?.namespace || namespace,
             name:      matchedNetworkMap?.metadata?.name,
-          } : null,
+          } : (networkMapRef ? {
+            namespace: networkMapRef.namespace,
+            name:      networkMapRef.name,
+          } : null),
           storageMap: matchedStorageMap ? {
-            namespace: matchedStorageMap?.metadata?.namespace || namespace,
+            namespace: matchedStorageMap?.metadata?.namespace || storageMapRef?.namespace || namespace,
             name:      matchedStorageMap?.metadata?.name,
-          } : null,
+          } : (storageMapRef ? {
+            namespace: storageMapRef.namespace,
+            name:      storageMapRef.name,
+          } : null),
         };
       });
     },
@@ -112,6 +118,20 @@ export default defineComponent({
 
   methods: {
     resourceNames,
+
+    getPlanMapRef(plan, mapType) {
+      const ref = plan?.spec?.map?.[mapType];
+      const name = ref?.name;
+
+      if (!name) {
+        return null;
+      }
+
+      return {
+        name,
+        namespace: ref?.namespace || plan?.metadata?.namespace || '',
+      };
+    },
 
     /**
      * Determine whether a related resource (migration / network map / storage map)
@@ -137,9 +157,8 @@ export default defineComponent({
       const existing = this.existingRelatedResources;
       const targets = new Map();
 
-      const addTarget = (type, resource) => {
-        const name = resource?.metadata?.name;
-        const ns = resource?.metadata?.namespace;
+      const addTarget = (type, name, namespace) => {
+        const ns = namespace || '';
 
         if (!name) {
           return;
@@ -153,17 +172,20 @@ export default defineComponent({
       };
 
       for (const plan of this.value || []) {
-        existing[HCI.FORKLIFT_NETWORK_MAP]
-          .filter((resource) => this.ownedByPlan(resource, plan))
-          .forEach((resource) => addTarget(HCI.FORKLIFT_NETWORK_MAP, resource));
+        const networkMapRef = this.getPlanMapRef(plan, 'network');
+        const storageMapRef = this.getPlanMapRef(plan, 'storage');
 
-        existing[HCI.FORKLIFT_STORAGE_MAP]
-          .filter((resource) => this.ownedByPlan(resource, plan))
-          .forEach((resource) => addTarget(HCI.FORKLIFT_STORAGE_MAP, resource));
+        if (networkMapRef) {
+          addTarget(HCI.FORKLIFT_NETWORK_MAP, networkMapRef.name, networkMapRef.namespace);
+        }
+
+        if (storageMapRef) {
+          addTarget(HCI.FORKLIFT_STORAGE_MAP, storageMapRef.name, storageMapRef.namespace);
+        }
 
         existing[HCI.FORKLIFT_MIGRATION]
           .filter((resource) => this.ownedByPlan(resource, plan))
-          .forEach((resource) => addTarget(HCI.FORKLIFT_MIGRATION, resource));
+          .forEach((resource) => addTarget(HCI.FORKLIFT_MIGRATION, resource?.metadata?.name, resource?.metadata?.namespace));
       }
 
       return [...targets.values()];
@@ -256,11 +278,11 @@ export default defineComponent({
       <div>• {{ t('harvester.addons.vmMigration.labels.migration') }}:</div>
       <template v-if="summary.migrations.length">
         <div
-          v-for="migration in summary.migrations"
-          :key="`${ migration.namespace }/${ migration.name }`"
+          v-for="migrationName in summary.migrations"
+          :key="migrationName"
         >
           <div class="ml-20">
-            - {{ migration.name }}
+            - {{ migrationName }}
           </div>
         </div>
       </template>

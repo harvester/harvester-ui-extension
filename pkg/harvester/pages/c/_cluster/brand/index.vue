@@ -63,6 +63,7 @@ export default {
     return {
       vendor:             getVendor(),
       uiPLSetting:        {},
+      privateLabelDraft:  null,
       uiLogoDarkSetting:  {},
       uiLogoDark:         '',
       uiLogoLightSetting: {},
@@ -81,6 +82,17 @@ export default {
     };
   },
   computed: {
+    isHarvesterPrime() {
+      return !!this.$store.getters['harvester-common/isHarvesterPrime'];
+    },
+    privateLabel: {
+      get() {
+        return this.privateLabelDraft ?? (this.isHarvesterPrime ? this.$store.getters['harvester-common/privateLabel'] : this.uiPLSetting.value);
+      },
+      set(value) {
+        this.privateLabelDraft = value;
+      }
+    },
     mode() {
       const schema = this.$store.getters[`management/schemaFor`](MANAGEMENT.SETTING);
 
@@ -112,7 +124,7 @@ export default {
       this.errors.push(e);
     },
     async save(btnCB) {
-      this.uiPLSetting.value = this.uiPLSetting.value.replaceAll(/[\<>&=#()"]/gm, '');
+      this.uiPLSetting.value = (this.privateLabel || '').replaceAll(/[\<>&=#()"]/gm, '');
       if (this.customizeLogo) {
         this.uiLogoLightSetting.value = this.uiLogoLight;
         this.uiLogoDarkSetting.value = this.uiLogoDark;
@@ -169,7 +181,7 @@ export default {
       <div class="row mb-20">
         <div class="col span-6">
           <LabeledInput
-            v-model:value="uiPLSetting.value"
+            v-model:value="privateLabel"
             :label="t('branding.uiPL.label')"
             :mode="mode"
             :maxlength="100"
@@ -198,7 +210,8 @@ export default {
             <FileSelector
               :byte-limit="20000"
               :read-as-data-url="true"
-              class="role-secondary"
+              variant="secondary"
+              size="large"
               :label="t('branding.logos.uploadLight')"
               :mode="mode"
               @error="setError"
@@ -221,7 +234,8 @@ export default {
             <FileSelector
               :byte-limit="20000"
               :read-as-data-url="true"
-              class="role-secondary"
+              variant="secondary"
+              size="large"
               :label="t('branding.logos.uploadDark')"
               :mode="mode"
               @error="setError"
@@ -262,7 +276,8 @@ export default {
             <FileSelector
               :byte-limit="20000"
               :read-as-data-url="true"
-              class="role-secondary"
+              variant="secondary"
+              size="large"
               :label="t('branding.favicon.upload')"
               :mode="mode"
               @error="setError"

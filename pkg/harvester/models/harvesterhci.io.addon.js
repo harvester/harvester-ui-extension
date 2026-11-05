@@ -5,12 +5,14 @@ import HarvesterResource from './harvester';
 import { HCI } from '../types';
 
 const HARVESTER_NVIDIA_DRIVER_TOOLKIT = 'harvester-system/nvidia-driver-toolkit';
+const RANCHER_VCLUSTER = 'harvester-system/rancher-vcluster';
+const RANCHER_K3K_ADDON = 'rancher-k3k/rancher-k3k';
 
 export default class HciAddonConfig extends HarvesterResource {
   get availableActions() {
     const out = super._availableActions;
 
-    if (this.id === 'harvester-system/rancher-vcluster') {
+    if (this.id === RANCHER_VCLUSTER || this.id === RANCHER_K3K_ADDON) {
       const rancherDashboard = {
         action:  'goToRancher',
         enabled: this.spec.enabled,
@@ -57,6 +59,15 @@ export default class HciAddonConfig extends HarvesterResource {
         return;
       }
 
+      if (!this.spec.enabled && this.id === RANCHER_K3K_ADDON) {
+        this.$dispatch('promptModal', {
+          resources: [this],
+          component: 'HarvesterEnableK3k',
+        });
+
+        return;
+      }
+
       this.spec.enabled = !this.spec.enabled;
       await this.save();
     } catch (err) {
@@ -69,18 +80,19 @@ export default class HciAddonConfig extends HarvesterResource {
   }
 
   goToRancher() {
-    const valuesContent = jsyaml.load(this.spec.valuesContent);
-
     window.open(
-      `https://${ valuesContent.hostname }`,
+      this.rancherHostname,
       '_blank',
     );
   }
 
   get rancherHostname() {
-    const valuesContent = jsyaml.load(this.spec.valuesContent);
+    const valuesContent = jsyaml.load(this.spec.valuesContent) || {};
 
-    return `https://${ valuesContent.hostname }`;
+    // rancher-k3k nests the hostname under `rancher`, rancher-vcluster keeps it at the top level
+    const hostname = this.id === RANCHER_K3K_ADDON ? valuesContent.rancher?.hostname : valuesContent.hostname;
+
+    return `https://${ hostname }`;
   }
 
   get stateColor() {

@@ -12,6 +12,7 @@ import { PRODUCT_NAME } from '@pkg/harvester/config/harvester';
 import { currentRouter, currentRoute } from '@pkg/harvester/utils/router';
 import { decodeSecretValue } from '@pkg/harvester/utils/forklift';
 import { HCI } from '@pkg/harvester/types';
+import { preventImplicitSubmit } from '@pkg/harvester/utils/wizard';
 
 const store = useStore();
 const route = currentRoute();
@@ -258,6 +259,7 @@ init();
     :title="wizardTitle"
     finish-mode="finish"
     class="wizard"
+    @keydown.enter.capture="preventImplicitSubmit"
     @cancel="onCancel"
     @finish="onFinish"
   >

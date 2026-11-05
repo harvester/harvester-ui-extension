@@ -151,7 +151,8 @@ export default {
     },
 
     rows() {
-      const matchVMIs = this.allVMIs.filter((VMI) => !this.allVMs.find((VM) => VM.id === VMI.id));
+      const vmIds = new Set(this.allVMs.map((VM) => VM.id));
+      const matchVMIs = this.allVMIs.filter((VMI) => !vmIds.has(VMI.id));
 
       return [...this.allVMs, ...matchVMIs];
     },
@@ -160,7 +161,11 @@ export default {
      * We want to show the progress bar only for Backup's restore; snapshot's restore is immediate.
      */
     hasBackUpRestoreInProgress() {
-      return !!this.rows.find((r) => r.restoreResource && !r.restoreResource.fromSnapshot && !r.restoreResource.isComplete);
+      return this.rows.some((r) => {
+        const restore = r.restoreResource;
+
+        return restore && !restore.fromSnapshot && !restore.isComplete;
+      });
     },
 
     vmRestartRequiredNames() {

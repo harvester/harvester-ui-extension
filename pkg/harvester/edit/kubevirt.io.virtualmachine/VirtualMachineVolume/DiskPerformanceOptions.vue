@@ -1,0 +1,301 @@
+<script>
+import LabeledSelect from '@shell/components/form/LabeledSelect';
+import { Checkbox } from '@components/Form/Checkbox';
+import { Banner } from '@components/Banner';
+import { DISK_CACHE_MODE, DISK_IO_MODE, DISK_PERFORMANCE_PROFILE } from '../../../config/harvester-map';
+
+const { DEFAULT, HIGH, CUSTOM } = DISK_PERFORMANCE_PROFILE;
+
+export default {
+  name: 'DiskPerformanceOptions',
+
+  components: {
+    LabeledSelect, Checkbox, Banner
+  },
+
+  emits: ['update'],
+
+  props: {
+    // The disk row. This component reads/writes value.cache, value.io,
+    // value.dedicatedIOThread and (for the "High Performance" preset) value.bus.
+    value: {
+      type:    Object,
+      default: () => ({})
+    },
+
+    mode: {
+      type:    String,
+      default: 'create'
+    },
+  },
+
+  data() {
+    return {
+      DISK_PERFORMANCE_PROFILE,
+      profile:              this.detectProfile(),
+      // Bus the disk used before the "High Performance" preset switched it to
+      // virtio, so returning to "Default" can put it back.
+      busBeforeHighProfile: null,
+      // True only while the user has explicitly picked "Custom" in the selector.
+      userSelectedCustom:   false,
+    };
+  },
+
+  computed: {
+    storagePerformanceEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('highPerformanceStorage');
+    },
+
+    isCdRom() {
+      return this.value.type === 'cd-rom';
+    },
+
+    isCustom() {
+      return this.profile === CUSTOM;
+    },
+
+    isNativeIo() {
+      return this.value.io === 'native';
+    },
+
+    profileOptions() {
+      return [DEFAULT, HIGH, CUSTOM].map((value) => ({
+        label: this.t(`harvester.virtualMachine.volume.performance.profile.${ value }`),
+        value,
+      }));
+    },
+
+    cacheOptions() {
+      return DISK_CACHE_MODE.map((value) => ({
+        label:    this.cacheLabel(value),
+        value,
+        // Native AIO only works with an uncached (O_DIRECT) disk, so while it is
+        // selected the only valid cache option is "none" — disable everything
+        // else, including "Default", to prevent an invalid combination.
+        disabled: this.isNativeIo && value !== 'none',
+      }));
+    },
+
+    ioOptions() {
+      return DISK_IO_MODE.map((value) => ({
+        label: value === '' ? this.t('harvester.virtualMachine.volume.performance.ioMode.default') : this.t(`harvester.virtualMachine.volume.performance.ioMode.${ value }`),
+        value,
+      }));
+    },
+
+    showFilesystemCacheWarning() {
+      return this.value.cache === 'none' && this.value.volumeMode === 'Filesystem';
+    },
+
+    showBusTip() {
+      const hasPerf = !!(this.value.cache || this.value.io || this.value.dedicatedIOThread);
+
+      return hasPerf && this.value.bus && this.value.bus !== 'virtio';
+    },
+  },
+
+  watch: {
+    // Keep the profile selector in sync if the row is repopulated (e.g. editing an existing VM).
+    'value.cache'() {
+      this.syncProfile();
+    },
+    'value.io'() {
+      this.syncProfile();
+    },
+    'value.dedicatedIOThread'() {
+      this.syncProfile();
+    },
+  },
+
+  methods: {
+    detectProfile() {
+      const { cache, io, dedicatedIOThread } = this.value;
+
+      if (!cache && !io && !dedicatedIOThread) {
+        return DEFAULT;
+      }
+
+      if (cache === 'none' && io === 'native' && dedicatedIOThread) {
+        return HIGH;
+      }
+
+      return CUSTOM;
+    },
+
+    syncProfile() {
+      // An explicit "Custom" choice sticks, even if the options happen to
+      // match the Default or High Performance preset. An inferred "Custom"
+      // still follows the disk values.
+      if (this.userSelectedCustom) {
+        return;
+      }
+      this.profile = this.detectProfile();
+    },
+
+    cacheLabel(value) {
+      if (value === '') {
+        return this.t('harvester.virtualMachine.volume.performance.cacheMode.default');
+      }
+
+      return this.t(`harvester.virtualMachine.volume.performance.cacheMode.${ value }`);
+    },
+
+    onProfileChange(profile) {
+      const previous = this.profile;
+
+      this.profile = profile;
+      this.userSelectedCustom = profile === CUSTOM;
+
+      if (profile === DEFAULT) {
+        this.value.cache = '';
+        this.value.io = '';
+        this.value.dedicatedIOThread = false;
+
+        // "Default" means no overrides, so also undo the virtio bus that the
+        // "High Performance" preset applied. Skip it if the user has since
+        // picked a different bus themselves — that choice is theirs to keep.
+        if (this.busBeforeHighProfile !== null) {
+          if (this.value.bus === 'virtio') {
+            this.value.bus = this.busBeforeHighProfile;
+          }
+          this.busBeforeHighProfile = null;
+        }
+      } else if (profile === HIGH) {
+        this.value.cache = 'none';
+        this.value.io = 'native';
+        this.value.dedicatedIOThread = true;
+
+        if (previous !== HIGH) {
+          this.busBeforeHighProfile = this.value.bus || '';
+        }
+        this.value.bus = 'virtio';
+      }
+      // CUSTOM keeps whatever is currently set, including the bus.
+
+      this.update();
+    },
+
+    onIoChange(io) {
+      this.value.io = io;
+      // Native AIO requires an uncached disk; force cache to "none" to keep the
+      // combo valid — including when cache is still on its "Default" ('') value,
+      // which libvirt would otherwise reject at domain start.
+      if (io === 'native' && this.value.cache !== 'none') {
+        this.value.cache = 'none';
+      }
+      this.update();
+    },
+
+    update() {
+      this.$emit('update');
+    },
+  },
+};
+</script>
+
+<template>
+  <div
+    v-if="!isCdRom && storagePerformanceEnabled"
+    class="disk-performance"
+  >
+    <div class="row mb-20">
+      <div
+        class="col span-6"
+        data-testid="input-disk-perf-profile"
+      >
+        <LabeledSelect
+          :value="profile"
+          :label="t('harvester.virtualMachine.volume.performance.profile.label')"
+          :tooltip="t('harvester.virtualMachine.volume.performance.profile.tip')"
+          :options="profileOptions"
+          :mode="mode"
+          @update:value="onProfileChange"
+        />
+      </div>
+    </div>
+
+    <Banner
+      v-if="profile === DISK_PERFORMANCE_PROFILE.HIGH"
+      color="info"
+      label-key="harvester.virtualMachine.volume.performance.highProfileTip"
+    />
+
+    <!-- Always rendered, so screen readers announce these warnings when changing the fields below makes them appear
+         above the focused field -->
+    <div
+      role="status"
+      data-testid="disk-perf-warning-status"
+    >
+      <Banner
+        v-if="showBusTip"
+        color="warning"
+        data-testid="disk-perf-bus-tip"
+        :label="t('harvester.virtualMachine.volume.performance.busTip', { bus: value.bus }, true)"
+      />
+      <Banner
+        v-if="showFilesystemCacheWarning"
+        color="warning"
+        label-key="harvester.virtualMachine.volume.performance.cacheMode.filesystemWarning"
+      />
+    </div>
+
+    <template v-if="isCustom">
+      <div class="row mb-20">
+        <div
+          class="col span-6"
+          data-testid="input-disk-cache"
+        >
+          <LabeledSelect
+            v-model:value="value.cache"
+            :label="t('harvester.virtualMachine.volume.performance.cacheMode.label')"
+            :tooltip="t('harvester.virtualMachine.volume.performance.cacheMode.tip')"
+            :options="cacheOptions"
+            :mode="mode"
+            @update:value="update"
+          />
+        </div>
+        <div
+          class="col span-6"
+          data-testid="input-disk-io"
+        >
+          <LabeledSelect
+            :value="value.io"
+            :label="t('harvester.virtualMachine.volume.performance.ioMode.label')"
+            :tooltip="t('harvester.virtualMachine.volume.performance.ioMode.tip')"
+            :options="ioOptions"
+            :mode="mode"
+            @update:value="onIoChange"
+          />
+        </div>
+      </div>
+
+      <div class="row mb-20">
+        <div
+          class="col span-12"
+          data-testid="input-disk-dedicated-iothread"
+        >
+          <Checkbox
+            v-model:value="value.dedicatedIOThread"
+            :label="t('harvester.virtualMachine.volume.performance.dedicatedIOThread.label')"
+            :tooltip="t('harvester.virtualMachine.volume.performance.dedicatedIOThread.tip')"
+            :mode="mode"
+            @update:value="update"
+          />
+        </div>
+      </div>
+    </template>
+
+    <!-- Always rendered, also outside Custom, so screen readers announce the tip when picking Native I/O changes
+         the cache mode, even if the new values switch the profile to High Performance -->
+    <div
+      role="status"
+      data-testid="disk-perf-native-status"
+    >
+      <Banner
+        v-if="isNativeIo"
+        color="info"
+        label-key="harvester.virtualMachine.volume.performance.ioMode.nativeRequiresNoCacheTip"
+      />
+    </div>
+  </div>
+</template>

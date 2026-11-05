@@ -246,4 +246,27 @@ export default {
 .group-actions  {
   display: inline;
 }
+
+// Match the enable/disable passthrough bulk-action buttons height to the .btn (40px) on the right.
+:deep(.bulk .rc-button.btn-medium.bulk-action:not(.btn-sm)) {
+  min-height: 40px;
+}
+
+// Make the collapsed "Actions" dropdown button 40px too.
+:deep(.bulk .rc-button.btn-medium.bulk-actions-dropdown:not(.btn-sm)) {
+  min-height: 40px;
+}
+
+// Lay the bulk row out with flex so the "N selected" label can wrap below the buttons.
+:deep(.bulk) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+:deep(.bulk .action-availability) {
+  flex-basis: 100%;
+  margin-left: 0;
+  margin-top: 6px;
+}
 </style>

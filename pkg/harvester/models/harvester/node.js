@@ -23,6 +23,13 @@ const ALLOW_SYSTEM_LABEL_KEYS = [
 
 const HEALTHY = 'healthy';
 const WARNING = 'warning';
+const MAINTENANCE_MODE = 'MaintenanceMode';
+const MAINTENANCE_ERROR = 'Error';
+const MAINTENANCE_ENTERING_REASONS = ['Validating', 'Draining', 'Evacuating'];
+const MAINTENANCE_COMPLETED = 'Completed';
+// Legacy `harvesterhci.io/maintain-status` annotation values (clusters < v1.10)
+const LEGACY_MAINTENANCE_RUNNING = 'running';
+const LEGACY_MAINTENANCE_COMPLETED = 'completed';
 
 export default class HciNode extends HarvesterResource {
   get _availableActions() {
@@ -55,6 +62,14 @@ export default class HciNode extends HarvesterResource {
       enabled: this.hasAction('disableMaintenanceMode'),
       icon:    'icon icon-fw icon-lock',
       label:   this.t('harvester.action.disableMaintenance'),
+      total:   1
+    };
+
+    const clearMaintenance = {
+      action:  'clearMaintenanceMode',
+      enabled: this.hasAction('clearMaintenanceMode'),
+      icon:    'icon icon-fw icon-close',
+      label:   this.t('harvester.action.clearMaintenance'),
       total:   1
     };
 
@@ -103,6 +118,7 @@ export default class HciNode extends HarvesterResource {
       uncordon,
       enableMaintenance,
       disableMaintenance,
+      clearMaintenance,
       enableCPUManager,
       disableCPUManager,
       shutDown,
@@ -198,6 +214,10 @@ export default class HciNode extends HarvesterResource {
   }
 
   get stateDisplay() {
+    if (this.isMaintenanceModeError) {
+      return super.stateDisplay;
+    }
+
     if (this.isEnteringMaintenance) {
       return 'Entering maintenance mode';
     }
@@ -246,6 +266,10 @@ export default class HciNode extends HarvesterResource {
   }
 
   get stateDescription() {
+    if (this.isMaintenanceModeError) {
+      return super.stateDescription;
+    }
+
     const currentIP = this.metadata?.annotations?.[HCI_ANNOTATIONS.CURRENT_IP];
     const initIP = this.metadata?.annotations?.[HCI_ANNOTATIONS.INIT_IP];
 
@@ -325,7 +349,11 @@ export default class HciNode extends HarvesterResource {
   }
 
   disableMaintenanceMode() {
-    this.doAction('disableMaintenanceMode', {});
+    this.doActionGrowl('disableMaintenanceMode', {});
+  }
+
+  clearMaintenanceMode() {
+    this.doActionGrowl('clearMaintenanceMode', {});
   }
 
   enableCPUManager() {
@@ -343,11 +371,32 @@ export default class HciNode extends HarvesterResource {
     );
   }
 
+  get maintenanceModeCondition() {
+    return (this.status?.conditions || []).find(
+      (c) => c.type === MAINTENANCE_MODE
+    );
+  }
+
+  get maintenanceModeConditionsEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('maintenanceModeConditions');
+  }
+
+  // Clusters < v1.10 only expose the `harvesterhci.io/maintain-status` annotation
+  get legacyMaintenanceStatus() {
+    return this.metadata?.annotations?.[HCI_ANNOTATIONS.MAINTENANCE_STATUS];
+  }
+
+  get isMaintenanceModeError() {
+    return this.maintenanceModeConditionsEnabled && this.maintenanceModeCondition?.reason === MAINTENANCE_ERROR;
+  }
+
   get isMigratable() {
     const states = ['in-progress', 'unavailable'];
 
+    const engaged = this.maintenanceModeConditionsEnabled ? this.maintenanceModeCondition?.status === 'True' : !!this.legacyMaintenanceStatus;
+
     return (
-      !this.metadata?.annotations?.[HCI_ANNOTATIONS.MAINTENANCE_STATUS] &&
+      !engaged &&
       !this.isUnSchedulable &&
       !states.includes(this.state)
     );
@@ -362,17 +411,26 @@ export default class HciNode extends HarvesterResource {
   }
 
   get isEnteringMaintenance() {
+    if (!this.maintenanceModeConditionsEnabled) {
+      return this.legacyMaintenanceStatus === LEGACY_MAINTENANCE_RUNNING;
+    }
+
+    const cond = this.maintenanceModeCondition;
+
     return (
-      this.metadata?.annotations?.[HCI_ANNOTATIONS.MAINTENANCE_STATUS] ===
-      'running'
+      cond?.status === 'True' &&
+      MAINTENANCE_ENTERING_REASONS.includes(cond?.reason)
     );
   }
 
   get isMaintenance() {
-    return (
-      this.metadata?.annotations?.[HCI_ANNOTATIONS.MAINTENANCE_STATUS] ===
-      'completed'
-    );
+    if (!this.maintenanceModeConditionsEnabled) {
+      return this.legacyMaintenanceStatus === LEGACY_MAINTENANCE_COMPLETED;
+    }
+
+    const cond = this.maintenanceModeCondition;
+
+    return cond?.status === 'True' && cond?.reason === MAINTENANCE_COMPLETED;
   }
 
   get cpuPinningFeatureEnabled() {

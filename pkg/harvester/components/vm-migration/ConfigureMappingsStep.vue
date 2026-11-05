@@ -15,7 +15,7 @@ import MappingColumn from './MappingColumn.vue';
 import StorageDefaultsModal from './StorageDefaultsModal.vue';
 
 const DEFAULT_VOLUME_MODE = VOLUME_MODE.FILE_SYSTEM;
-const DEFAULT_ACCESS_MODES = [ACCESS_MODE.READ_WRITE_MANY];
+const DEFAULT_ACCESS_MODE = ACCESS_MODE?.READ_WRITE_MANY ?? 'ReadWriteMany';
 
 const props = defineProps({
   providerName:       { type: String, default: '' },
@@ -268,9 +268,9 @@ const buildStorageEntries = () => {
               capacity:              0,
               target:                '',
               volumeMode:            DEFAULT_VOLUME_MODE,
-              accessModes:           [...DEFAULT_ACCESS_MODES],
+              accessModes:           [DEFAULT_ACCESS_MODE],
               inheritedVolumeMode:   DEFAULT_VOLUME_MODE,
-              inheritedAccessModes:  [...DEFAULT_ACCESS_MODES],
+              inheritedAccessModes:  [DEFAULT_ACCESS_MODE],
               inheritedFromProvider: false,
               overridden:            false,
               usedBy:                [],
@@ -310,9 +310,9 @@ const buildStorageEntriesFromProvider = (datastoresData) => {
     capacity:              ds.capacity || 0,
     target:                '',
     volumeMode:            DEFAULT_VOLUME_MODE,
-    accessModes:           [...DEFAULT_ACCESS_MODES],
+    accessModes:           [DEFAULT_ACCESS_MODE],
     inheritedVolumeMode:   DEFAULT_VOLUME_MODE,
-    inheritedAccessModes:  [...DEFAULT_ACCESS_MODES],
+    inheritedAccessModes:  [DEFAULT_ACCESS_MODE],
     inheritedFromProvider: false,
     overridden:            false,
     usedBy:                [],

@@ -7,7 +7,11 @@ import { allHash } from '@shell/utils/promise';
 import { clone } from '@shell/utils/object';
 import { HCI } from '../../../types';
 import { NODE } from '@shell/config/types';
+import { _CREATE, _CLONE } from '@shell/config/query-params';
 import { LVM_TOPOLOGY_LABEL } from '../index.vue';
+
+const STRIPED_TYPE = 'striped';
+const DM_THIN_TYPE = 'dm-thin';
 
 const DEFAULT_PARAMETERS = [
   'type',
@@ -54,8 +58,17 @@ export default {
   data() {
     const node = (this.value.allowedTopologies?.[0]?.matchLabelExpressions || []).find((t) => t.key === LVM_TOPOLOGY_LABEL)?.values[0];
 
+    // striped is dropped once the LVM add-on reaches GA (v1.9.1); dm-thin is the only supported type.
+    const dmThinOnly = this.$store.getters['harvester-common/getFeatureEnabled']('lvmDmThinOnly');
+    const volumeGroupTypes = dmThinOnly ? [DM_THIN_TYPE] : [STRIPED_TYPE, DM_THIN_TYPE];
+
+    // Default new storage classes to dm-thin, and reset a cloned striped type that is no longer selectable.
+    if (dmThinOnly && [_CREATE, _CLONE].includes(this.realMode) && !volumeGroupTypes.includes(this.value.parameters.type)) {
+      this.value.parameters.type = DM_THIN_TYPE;
+    }
+
     return {
-      volumeGroupTypes: ['striped', 'dm-thin'],
+      volumeGroupTypes,
       node,
     };
   },

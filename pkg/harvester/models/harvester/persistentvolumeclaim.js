@@ -326,7 +326,7 @@ export default class HciPv extends HarvesterResource {
   }
 
   get relatedPV() {
-    return this.$rootGetters['harvester/all'](PV).find((pv) => pv.metadata?.name === this.spec?.volumeName);
+    return this.$rootGetters['harvester/byId'](PV, this.spec?.volumeName);
   }
 
   get volumeProvider() {

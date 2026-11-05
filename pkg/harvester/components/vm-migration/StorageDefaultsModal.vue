@@ -8,16 +8,22 @@ import { useI18n } from '@shell/composables/useI18n';
 import { VOLUME_MODE, ACCESS_MODE } from '../../config/types';
 
 const VOLUME_MODE_OPTIONS = [VOLUME_MODE.FILE_SYSTEM, VOLUME_MODE.BLOCK];
-const ACCESS_MODE_OPTIONS = [ACCESS_MODE.READ_WRITE_ONCE, ACCESS_MODE.READ_WRITE_MANY, ACCESS_MODE.READ_ONLY_MANY];
+const {
+  READ_WRITE_ONCE = 'ReadWriteOnce',
+  READ_ONLY_MANY = 'ReadOnlyMany',
+  READ_WRITE_MANY = 'ReadWriteMany',
+  READ_WRITE_ONCE_POD = 'ReadWriteOncePod'
+} = ACCESS_MODE || {};
+const ACCESS_MODE_OPTIONS = [READ_WRITE_ONCE, READ_WRITE_MANY, READ_ONLY_MANY, READ_WRITE_ONCE_POD];
 
 const props = defineProps({
   storageClassName:     { type: String, default: '' },
   providerName:         { type: String, default: '' },
   showInherited:        { type: Boolean, default: false },
   volumeMode:           { type: String, default: VOLUME_MODE.FILE_SYSTEM },
-  accessModes:          { type: Array, default: () => [ACCESS_MODE.READ_WRITE_MANY] },
+  accessModes:          { type: Array, default: () => ['ReadWriteMany'] },
   inheritedVolumeMode:  { type: String, default: VOLUME_MODE.FILE_SYSTEM },
-  inheritedAccessModes: { type: Array, default: () => [ACCESS_MODE.READ_WRITE_MANY] },
+  inheritedAccessModes: { type: Array, default: () => ['ReadWriteMany'] },
 });
 
 const emit = defineEmits(['apply', 'close']);
@@ -26,7 +32,7 @@ const store = useStore();
 const { t } = useI18n(store);
 
 const localVolumeMode = ref(props.volumeMode || VOLUME_MODE.FILE_SYSTEM);
-const localAccessMode = ref(props.accessModes?.[0] || ACCESS_MODE.READ_WRITE_MANY);
+const localAccessMode = ref(props.accessModes?.[0] || READ_WRITE_MANY);
 
 const volumeModeOptions = VOLUME_MODE_OPTIONS.map((value) => ({ label: value, value }));
 const accessModeOptions = ACCESS_MODE_OPTIONS.map((value) => ({ label: value, value }));
@@ -42,7 +48,7 @@ const apply = () => {
 // Repopulate the dropdowns with the provider default values; the user then applies.
 const reset = () => {
   localVolumeMode.value = props.inheritedVolumeMode || VOLUME_MODE.FILE_SYSTEM;
-  localAccessMode.value = props.inheritedAccessModes?.[0] || ACCESS_MODE.READ_WRITE_MANY;
+  localAccessMode.value = props.inheritedAccessModes?.[0] || READ_WRITE_MANY;
 };
 
 const cancel = () => {

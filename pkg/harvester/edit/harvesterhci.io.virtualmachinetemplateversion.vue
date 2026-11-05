@@ -22,6 +22,7 @@ import { HCI } from '../types';
 import VM_MIXIN from '../mixins/harvester-vm';
 import Reserved from './kubevirt.io.virtualmachine/VirtualMachineReserved';
 import Volume from './kubevirt.io.virtualmachine/VirtualMachineVolume';
+import VMPerformanceOptions from './kubevirt.io.virtualmachine/VirtualMachineVolume/VMPerformanceOptions';
 import Network from './kubevirt.io.virtualmachine/VirtualMachineNetwork';
 import CpuMemory from './kubevirt.io.virtualmachine/VirtualMachineCpuMemory';
 import CpuModel from './kubevirt.io.virtualmachine/VirtualMachineCpuModel';
@@ -38,6 +39,7 @@ export default {
     Tab,
     SSHKey,
     Volume,
+    VMPerformanceOptions,
     Tabbed,
     Network,
     Checkbox,
@@ -306,6 +308,25 @@ export default {
         name="Basics"
         :label="t('harvester.vmTemplate.tabs.basics')"
       >
+        <div class="row mb-20">
+          <div class="col span-6">
+            <LabeledSelect
+              v-model:value="osType"
+              label-key="harvester.virtualMachine.osType"
+              :mode="mode"
+              :options="OS"
+              :tooltip="isCreate ? t('harvester.virtualMachine.osTypeTooltip') : null"
+            />
+          </div>
+          <div class="col span-6">
+            <CpuModel
+              :value="spec.template.spec.domain.cpu?.model || ''"
+              :mode="mode"
+              @update:value="updateCpuModel"
+            />
+          </div>
+        </div>
+
         <CpuMemory
           class="mb-20"
           :cpu="cpu"
@@ -316,6 +337,69 @@ export default {
           :disabled="isConfig"
           @updateCpuMemory="updateCpuMemory"
         />
+
+        <div class="mb-20">
+          <Checkbox
+            v-if="value.cpuPinningFeatureEnabled"
+            v-model:value="cpuPinning"
+            class="check"
+            type="checkbox"
+            tooltip-key="harvester.virtualMachine.cpuPinning.tooltip"
+            label-key="harvester.virtualMachine.cpuPinning.label"
+            :mode="mode"
+          />
+
+          <Checkbox
+            v-model:value="installUSBTablet"
+            class="check"
+            type="checkbox"
+            :label="t('harvester.virtualMachine.enableUsb')"
+            :mode="mode"
+          />
+
+          <Checkbox
+            v-model:value="tpmEnabled"
+            class="check"
+            type="checkbox"
+            label-key="harvester.virtualMachine.systemOptions.tpm"
+            :mode="mode"
+          />
+
+          <Checkbox
+            v-if="value.tpmPersistentStateFeatureEnabled && tpmEnabled"
+            v-model:value="tpmPersistentStateEnabled"
+            class="check"
+            type="checkbox"
+            :label="t('harvester.virtualMachine.systemOptions.tpmPersistentState')"
+            :mode="mode"
+          />
+
+          <Checkbox
+            v-model:value="efiEnabled"
+            class="check"
+            type="checkbox"
+            :label="t('harvester.virtualMachine.systemOptions.efiEnabled')"
+            :mode="mode"
+          />
+
+          <Checkbox
+            v-if="value.efiPersistentStateFeatureEnabled && efiEnabled"
+            v-model:value="efiPersistentStateEnabled"
+            class="check"
+            type="checkbox"
+            :label="t('harvester.virtualMachine.systemOptions.efiPersistentState')"
+            :mode="mode"
+          />
+
+          <Checkbox
+            v-if="efiEnabled"
+            v-model:value="secureBoot"
+            class="check"
+            type="checkbox"
+            :label="t('harvester.virtualMachine.systemOptions.secureBoot')"
+            :mode="mode"
+          />
+        </div>
 
         <div class="mb-20">
           <SSHKey
@@ -349,6 +433,7 @@ export default {
       >
         <Network
           v-model:value="networkRows"
+          v-model:network-boot-first="networkBootFirst"
           :mode="mode"
         />
       </Tab>
@@ -470,18 +555,6 @@ export default {
               :mode="mode"
             />
           </div>
-
-          <div class="col span-6">
-            <LabeledSelect
-              v-model:value="osType"
-              label-key="harvester.virtualMachine.osType"
-              :mode="mode"
-              :options="OS"
-            />
-          </div>
-        </div>
-
-        <div class="row mb-20">
           <div class="col span-6">
             <LabeledSelect
               v-model:value="maintenanceStrategy"
@@ -491,21 +564,14 @@ export default {
               :mode="mode"
             />
           </div>
+        </div>
+
+        <div class="row mb-20">
           <div class="col span-6">
             <Reserved
               :reserved-memory="reservedMemory"
               :mode="mode"
               @updateReserved="updateReserved"
-            />
-          </div>
-        </div>
-
-        <div class="row mb-20">
-          <div class="col span-6">
-            <CpuModel
-              :value="spec.template.spec.domain.cpu?.model || ''"
-              :mode="mode"
-              @update:value="updateCpuModel"
             />
           </div>
         </div>
@@ -539,6 +605,16 @@ export default {
           </div>
         </div>
 
+        <VMPerformanceOptions
+          v-model:block-multi-queue="blockMultiQueue"
+          v-model:io-threads-policy="ioThreadsPolicy"
+          v-model:io-thread-count="ioThreadCount"
+          :has-virtio-disk="hasVirtioDisk"
+          :has-dedicated-iothread="hasDedicatedIOThread"
+          :mode="mode"
+          class="mb-20"
+        />
+
         <CloudConfig
           ref="yamlEditor"
           :mode="mode"
@@ -547,76 +623,17 @@ export default {
           :network-script="networkScript"
           @updateUserData="updateUserData"
           @updateNetworkData="updateNetworkData"
-        />
-
-        <div class="spacer"></div>
-        <Checkbox
-          v-if="value.cpuPinningFeatureEnabled"
-          v-model:value="cpuPinning"
-          class="check"
-          type="checkbox"
-          tooltip-key="harvester.virtualMachine.cpuPinning.tooltip"
-          label-key="harvester.virtualMachine.cpuPinning.label"
-          :mode="mode"
-        />
-        <Checkbox
-          v-model:value="installUSBTablet"
-          class="check"
-          type="checkbox"
-          :label="t('harvester.virtualMachine.enableUsb')"
-          :mode="mode"
-        />
-
-        <Checkbox
-          v-model:value="installAgent"
-          class="check"
-          type="checkbox"
-          label-key="harvester.virtualMachine.installAgent"
-          :mode="mode"
-        />
-
-        <Checkbox
-          v-model:value="tpmEnabled"
-          class="check"
-          type="checkbox"
-          label-key="harvester.virtualMachine.advancedOptions.tpm"
-          :mode="mode"
-        />
-
-        <Checkbox
-          v-if="value.tpmPersistentStateFeatureEnabled && tpmEnabled"
-          v-model:value="tpmPersistentStateEnabled"
-          class="check"
-          type="checkbox"
-          :label="t('harvester.virtualMachine.advancedOptions.tpmPersistentState')"
-          :mode="mode"
-        />
-
-        <Checkbox
-          v-model:value="efiEnabled"
-          class="check"
-          type="checkbox"
-          :label="t('harvester.virtualMachine.advancedOptions.efiEnabled')"
-          :mode="mode"
-        />
-
-        <Checkbox
-          v-if="value.efiPersistentStateFeatureEnabled && efiEnabled"
-          v-model:value="efiPersistentStateEnabled"
-          class="check"
-          type="checkbox"
-          :label="t('harvester.virtualMachine.advancedOptions.efiPersistentState')"
-          :mode="mode"
-        />
-
-        <Checkbox
-          v-if="efiEnabled"
-          v-model:value="secureBoot"
-          class="check"
-          type="checkbox"
-          :label="t('harvester.virtualMachine.advancedOptions.secureBoot')"
-          :mode="mode"
-        />
+        >
+          <template #after-user-data>
+            <Checkbox
+              v-model:value="installAgent"
+              class="check mb-20"
+              type="checkbox"
+              label-key="harvester.virtualMachine.installAgent"
+              :mode="mode"
+            />
+          </template>
+        </CloudConfig>
       </Tab>
     </Tabbed>
   </CruResource>

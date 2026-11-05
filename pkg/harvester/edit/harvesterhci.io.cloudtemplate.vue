@@ -7,6 +7,7 @@ import NameNsDescription from '@shell/components/form/NameNsDescription';
 import YamlEditor from '@shell/components/YamlEditor';
 
 import CreateEditView from '@shell/mixins/create-edit-view';
+import FormValidation from '@shell/mixins/form-validation';
 import { HCI } from '@pkg/harvester/config/labels-annotations';
 
 export default {
@@ -23,14 +24,19 @@ export default {
     NameNsDescription,
   },
 
-  mixins: [CreateEditView],
+  mixins: [CreateEditView, FormValidation],
 
   inheritAttrs: false,
 
   data() {
     return {
-      config: this.value.data?.cloudInit || '',
-      type:   this.value?.metadata?.labels?.[HCI.CLOUD_INIT] || 'user',
+      config:         this.value.data?.cloudInit || '',
+      type:           this.value?.metadata?.labels?.[HCI.CLOUD_INIT] || 'user',
+      fvFormRuleSets: [{
+        path:           'metadata.name',
+        rules:          ['required'],
+        translationKey: 'nameNsDescription.name.label',
+      }],
     };
   },
 
@@ -53,8 +59,8 @@ export default {
   },
 
   methods: {
-    update() {
-      this.value.data = { cloudInit: this.config };
+    update(config) {
+      this.value.data = { cloudInit: config };
     },
 
     updateBeforeSave() {
@@ -78,6 +84,7 @@ export default {
     :resource="value"
     :errors="errors"
     :apply-hooks="applyHooks"
+    :validation-passed="fvFormIsValid"
     @finish="save"
     @cancel="done"
     @error="e=>errors=e"
@@ -86,6 +93,7 @@ export default {
       :value="value"
       :mode="mode"
       :namespaced="true"
+      :rules="{ name: fvGetAndReportPathRules('metadata.name') }"
       @update:value="$emit('update:value', $event)"
     />
 
@@ -111,7 +119,7 @@ export default {
             :mode="mode"
             class="yaml-editor"
             :editor-mode="mode === 'view' ? 'VIEW_CODE' : 'EDIT_CODE'"
-            @onChanges="update"
+            @update:value="update"
           />
         </div>
       </Tab>
@@ -125,9 +133,7 @@ export default {
   :deep() .yaml-editor{
     flex: 1;
     min-height: $yaml-height;
-    & .code-mirror .CodeMirror {
-      position: initial;
-      height: auto;
+    & .code-mirror .cm-editor {
       min-height: $yaml-height;
     }
   }

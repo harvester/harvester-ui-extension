@@ -35,6 +35,7 @@ import CpuMemory from './VirtualMachineCpuMemory';
 import CpuModel from './VirtualMachineCpuModel';
 import Network from './VirtualMachineNetwork';
 import Volume from './VirtualMachineVolume';
+import VMPerformanceOptions from './VirtualMachineVolume/VMPerformanceOptions';
 import SSHKey from './VirtualMachineSSHKey';
 import Reserved from './VirtualMachineReserved';
 import Filesystem from './VirtualMachineFilesystem';
@@ -56,6 +57,7 @@ export default {
     LabeledSelect,
     NameNsDescription,
     Volume,
+    VMPerformanceOptions,
     SSHKey,
     Network,
     CpuMemory,
@@ -762,6 +764,25 @@ export default {
         name="basics"
         :label="t('harvester.virtualMachine.detail.tabs.basics')"
       >
+        <div class="row mb-20">
+          <div class="col span-6">
+            <LabeledSelect
+              v-model:value="osType"
+              label-key="harvester.virtualMachine.osType"
+              :options="OS"
+              :disabled="!isCreate"
+              :tooltip="isCreate ? t('harvester.virtualMachine.osTypeTooltip') : null"
+            />
+          </div>
+          <div class="col span-6">
+            <CpuModel
+              v-model:value="cpuModel"
+              :mode="mode"
+              @update:value="updateCpuModel"
+            />
+          </div>
+        </div>
+
         <CpuMemory
           class="mb-20"
           :cpu="cpu"
@@ -772,6 +793,87 @@ export default {
           :enable-hot-plug="cpuMemoryHotplugEnabled"
           @updateCpuMemory="updateCpuMemory"
         />
+
+        <div class="mb-20">
+          <Checkbox
+            v-if="value.cpuPinningFeatureEnabled"
+            v-model:value="cpuPinning"
+            :disabled="!enableCpuPinningCheckbox"
+            class="check"
+            type="checkbox"
+            tooltip-key="harvester.virtualMachine.cpuPinning.tooltip"
+            label-key="harvester.virtualMachine.cpuPinning.label"
+            :mode="mode"
+          />
+
+          <Checkbox
+            v-model:value="installUSBTablet"
+            class="check"
+            type="checkbox"
+            tooltip-key="harvester.virtualMachine.usbTip"
+            label-key="harvester.virtualMachine.enableUsb"
+            :mode="mode"
+          />
+
+          <Checkbox
+            v-model:value="tpmEnabled"
+            class="check"
+            type="checkbox"
+            label-key="harvester.virtualMachine.systemOptions.tpm"
+            :mode="mode"
+          />
+
+          <Checkbox
+            v-if="value.tpmPersistentStateFeatureEnabled && tpmEnabled"
+            v-model:value="tpmPersistentStateEnabled"
+            class="check"
+            type="checkbox"
+            :label="t('harvester.virtualMachine.systemOptions.tpmPersistentState')"
+            :mode="mode"
+          />
+
+          <Checkbox
+            v-model:value="efiEnabled"
+            class="check"
+            type="checkbox"
+            :label="t('harvester.virtualMachine.systemOptions.efiEnabled')"
+            :mode="mode"
+          />
+
+          <Checkbox
+            v-if="value.efiPersistentStateFeatureEnabled && efiEnabled"
+            v-model:value="efiPersistentStateEnabled"
+            class="check"
+            type="checkbox"
+            :label="t('harvester.virtualMachine.systemOptions.efiPersistentState')"
+            :mode="mode"
+          />
+
+          <Checkbox
+            v-if="efiEnabled"
+            v-model:value="secureBoot"
+            class="check"
+            type="checkbox"
+            :label="t('harvester.virtualMachine.systemOptions.secureBoot')"
+            :mode="mode"
+          />
+        </div>
+
+        <Banner
+          v-if="showCpuPinningBanner"
+          :color="mode === 'create' ? 'info' : 'warning'"
+        >
+          <MessageLink
+            v-if="mode === 'create'"
+            :to="to"
+            prefix-label="harvester.virtualMachine.cpuPinning.cpuManager.prefix"
+            middle-label="harvester.virtualMachine.cpuPinning.cpuManager.middle"
+            suffix-label="harvester.virtualMachine.cpuPinning.cpuManager.suffix"
+          />
+          <span v-if="mode==='edit'">
+            {{ t('harvester.virtualMachine.cpuPinning.restartVMMessage') }}
+          </span>
+        </Banner>
 
         <SSHKey
           v-model:value="sshKey"
@@ -808,6 +910,7 @@ export default {
       >
         <Network
           v-model:value="networkRows"
+          v-model:network-boot-first="networkBootFirst"
           :mode="mode"
           :is-single="isSingle"
         />
@@ -985,18 +1088,6 @@ export default {
               :mode="mode"
             />
           </div>
-
-          <div class="col span-6">
-            <LabeledSelect
-              v-model:value="osType"
-              label-key="harvester.virtualMachine.osType"
-              :options="OS"
-              :disabled="!isCreate"
-            />
-          </div>
-        </div>
-
-        <div class="row mb-20">
           <div class="col span-6">
             <LabeledSelect
               v-model:value="maintenanceStrategy"
@@ -1006,21 +1097,14 @@ export default {
               :mode="mode"
             />
           </div>
+        </div>
+
+        <div class="row mb-20">
           <div class="col span-6">
             <Reserved
               :reserved-memory="reservedMemory"
               :mode="mode"
               @updateReserved="updateReserved"
-            />
-          </div>
-        </div>
-
-        <div class="row mb-20">
-          <div class="col span-6">
-            <CpuModel
-              v-model:value="cpuModel"
-              :mode="mode"
-              @update:value="updateCpuModel"
             />
           </div>
         </div>
@@ -1081,6 +1165,16 @@ export default {
           </div>
         </div>
 
+        <VMPerformanceOptions
+          v-model:block-multi-queue="blockMultiQueue"
+          v-model:io-threads-policy="ioThreadsPolicy"
+          v-model:io-thread-count="ioThreadCount"
+          :has-virtio-disk="hasVirtioDisk"
+          :has-dedicated-iothread="hasDedicatedIOThread"
+          :mode="mode"
+          class="mb-20"
+        />
+
         <CloudConfig
           ref="yamlEditor"
           :user-script="userScript"
@@ -1091,7 +1185,19 @@ export default {
           @updateUserData="updateUserData"
           @updateNetworkData="updateNetworkData"
           @updateDataTemplateId="updateDataTemplateId"
-        />
+        >
+          <template #after-user-data>
+            <Checkbox
+              v-model:value="installAgent"
+              class="check mb-20"
+              type="checkbox"
+              :disabled="isWindows"
+              label-key="harvester.virtualMachine.installAgent"
+              :mode="mode"
+              @update:value="updateAgent"
+            />
+          </template>
+        </CloudConfig>
 
         <WindowsSysprep
           v-if="isWindows"
@@ -1100,95 +1206,6 @@ export default {
           :mode="mode"
           :namespace="value.metadata.namespace"
         />
-
-        <Checkbox
-          v-if="value.cpuPinningFeatureEnabled"
-          v-model:value="cpuPinning"
-          :disabled="!enableCpuPinningCheckbox"
-          class="check"
-          type="checkbox"
-          tooltip-key="harvester.virtualMachine.cpuPinning.tooltip"
-          label-key="harvester.virtualMachine.cpuPinning.label"
-          :mode="mode"
-        />
-
-        <Checkbox
-          v-model:value="installUSBTablet"
-          class="check mt-20"
-          type="checkbox"
-          tooltip-key="harvester.virtualMachine.usbTip"
-          label-key="harvester.virtualMachine.enableUsb"
-          :mode="mode"
-        />
-
-        <Checkbox
-          v-model:value="installAgent"
-          class="check"
-          type="checkbox"
-          :disabled="isWindows"
-          label-key="harvester.virtualMachine.installAgent"
-          :mode="mode"
-          @update:value="updateAgent"
-        />
-
-        <Checkbox
-          v-model:value="tpmEnabled"
-          class="check"
-          type="checkbox"
-          label-key="harvester.virtualMachine.advancedOptions.tpm"
-          :mode="mode"
-        />
-
-        <Checkbox
-          v-if="value.tpmPersistentStateFeatureEnabled && tpmEnabled"
-          v-model:value="tpmPersistentStateEnabled"
-          class="check"
-          type="checkbox"
-          :label="t('harvester.virtualMachine.advancedOptions.tpmPersistentState')"
-          :mode="mode"
-        />
-
-        <Checkbox
-          v-model:value="efiEnabled"
-          class="check"
-          type="checkbox"
-          :label="t('harvester.virtualMachine.advancedOptions.efiEnabled')"
-          :mode="mode"
-        />
-
-        <Checkbox
-          v-if="value.efiPersistentStateFeatureEnabled && efiEnabled"
-          v-model:value="efiPersistentStateEnabled"
-          class="check"
-          type="checkbox"
-          :label="t('harvester.virtualMachine.advancedOptions.efiPersistentState')"
-          :mode="mode"
-        />
-
-        <Checkbox
-          v-if="efiEnabled"
-          v-model:value="secureBoot"
-          class="check"
-          type="checkbox"
-          :label="t('harvester.virtualMachine.advancedOptions.secureBoot')"
-          :mode="mode"
-        />
-
-        <Banner
-          v-if="showCpuPinningBanner"
-          color="warning"
-        >
-          <MessageLink
-            v-if="mode === 'create'"
-            :to="to"
-            prefix-label="harvester.virtualMachine.advancedOptions.cpuManager.prefix"
-            middle-label="harvester.virtualMachine.advancedOptions.cpuManager.middle"
-            suffix-label="harvester.virtualMachine.advancedOptions.cpuManager.suffix"
-          />
-          <span v-if="mode==='edit'">
-            {{ t('harvester.virtualMachine.cpuPinning.restartVMMessage') }}
-          </span>
-        </Banner>
       </Tab>
     </Tabbed>
 

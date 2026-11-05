@@ -10,6 +10,7 @@ import { docLink } from '../utils/feature-flags';
 const CATEGORY = {
   ui: [
     'branding',
+    HCI_SETTING.SERVER_FLAVOR,
     'ui-source',
     'ui-index',
   ]
@@ -53,7 +54,7 @@ export default {
     };
   },
 
-  computed: { ...mapGetters({ t: 'i18n/t' }) },
+  computed: { ...mapGetters({ t: 'i18n/t', isHarvesterPrime: 'harvester-common/isHarvesterPrime' }) },
 
   watch: {
     settings: {
@@ -231,14 +232,21 @@ export default {
               v-if="setting.customized"
               class="modified"
             >
-              Modified
+              {{ t('advancedSettings.tags.modified.label') }}
             </span>
             <span
               v-if="setting.experimental"
-              v-clean-tooltip="t('advancedSettings.experimental')"
+              v-clean-tooltip="t('advancedSettings.tags.experimental.description')"
               class="experimental"
             >
-              Experimental
+              {{ t('advancedSettings.tags.experimental.label') }}
+            </span>
+            <span
+              v-if="setting.preview"
+              v-clean-tooltip="t('advancedSettings.tags.preview.description')"
+              class="preview"
+            >
+              {{ t('advancedSettings.tags.preview.label') }}
             </span>
           </h1>
           <h2 v-clean-html="t(setting.description, getDocLinkParams(setting) || {}, true)">
@@ -262,7 +270,8 @@ export default {
           v-if="!setting.hide"
           class="settings-value"
         >
-          <pre v-if="setting.kind === 'json'">{{ setting.json }}</pre>
+          <pre v-if="setting.id === 'branding' && isHarvesterPrime">{{ $store.getters['harvester-common/privateLabel'] }}</pre>
+          <pre v-else-if="setting.kind === 'json'">{{ setting.json }}</pre>
           <pre v-else-if="setting.kind === 'multiline'">{{ setting.data.value || setting.data.default }}</pre>
           <pre v-else-if="setting.kind === 'enum'">{{ t(setting.enum) }}</pre>
           <pre v-else-if="setting.kind === 'custom' && setting.custom">{{ setting.custom }}</pre>
@@ -352,21 +361,19 @@ export default {
   flex: 1;
 }
 
-.modified {
+.modified,
+.experimental,
+.preview {
   margin-left: 10px;
-  border: 1px solid var(--primary);
+  border: 1px solid;
   border-radius: 5px;
   padding: 2px 10px;
   font-size: 12px;
 }
 
-.experimental {
-  margin-left: 10px;
-  border: 1px solid var(--error);
-  border-radius: 5px;
-  padding: 2px 10px;
-  font-size: 12px;
-}
+.modified { border-color: var(--primary); }
+.experimental { border-color: var(--error); }
+.preview { border-color: var(--warning); }
 
 .no-search-match {
   text-align: center;

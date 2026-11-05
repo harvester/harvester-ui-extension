@@ -14,9 +14,11 @@ import Labels from '@shell/components/form/Labels';
 import LabelValue from '@shell/components/LabelValue';
 import { HCI } from '../../types';
 import VM_MIXIN from '../../mixins/harvester-vm';
+import { getLatestMigration } from '../../utils/vm';
 
 import CloudConfig from '../../edit/kubevirt.io.virtualmachine/VirtualMachineCloudConfig';
 import Volume from '../../edit/kubevirt.io.virtualmachine/VirtualMachineVolume';
+import VMPerformanceOptions from '../../edit/kubevirt.io.virtualmachine/VirtualMachineVolume/VMPerformanceOptions';
 import Network from '../../edit/kubevirt.io.virtualmachine/VirtualMachineNetwork';
 import AccessCredentials from '../../edit/kubevirt.io.virtualmachine/VirtualMachineAccessCredentials';
 import Events from './VirtualMachineTabs/VirtualMachineEvents';
@@ -39,6 +41,7 @@ export default {
     OverviewBasics,
     LabelValue,
     Volume,
+    VMPerformanceOptions,
     Network,
     OverviewKeypairs,
     CloudConfig,
@@ -139,18 +142,7 @@ export default {
       const inStore = this.$store.getters['currentProduct'].inStore;
       const vmimList = this.$store.getters[`${ inStore }/all`](HCI.VMIM) || [];
 
-      const vmiName = this.vmi?.name || '';
-
-      // filter the corresponding vmims by vmim.spec.vmiName and find the latest one by creationTimestamp
-      const vmim = vmimList.filter((VMIM) => VMIM?.spec?.vmiName === vmiName).sort((a, b) => {
-        if (a?.metadata?.creationTimestamp > b?.metadata?.creationTimestamp) {
-          return -1;
-        }
-
-        return 1;
-      });
-
-      return vmim.length > 0 && vmim[0] ? vmim[0] : null;
+      return getLatestMigration(vmimList, this.vmi?.metadata?.namespace, this.vmi?.name) || null;
     },
 
     migrationEvents() {
@@ -214,6 +206,15 @@ export default {
 
         this['diskRows'] = diskRows;
         this['networkRows'] = this.getNetworkRows(neu, { fromTemplate: false, init: false });
+        this['networkBootFirst'] = this.isNetworkBootFirst(neu.spec);
+
+        // getInitConfig() seeds these on created(); refresh them here too so the
+        // VM-wide performance panel does not go stale when the spec changes.
+        const domain = neu?.spec?.template?.spec?.domain;
+
+        this['blockMultiQueue'] = domain?.devices?.blockMultiQueue || false;
+        this['ioThreadsPolicy'] = domain?.ioThreadsPolicy || '';
+        this['ioThreadCount'] = domain?.ioThreads?.supplementalPoolThreadCount || 2;
       },
       deep: true
     }
@@ -255,6 +256,15 @@ export default {
           :vm="value"
           :resource-type="value.type"
         />
+        <VMPerformanceOptions
+          :block-multi-queue="blockMultiQueue"
+          :io-threads-policy="ioThreadsPolicy"
+          :io-thread-count="ioThreadCount"
+          :has-virtio-disk="hasVirtioDisk"
+          :has-dedicated-iothread="hasDedicatedIOThread"
+          mode="view"
+          class="mt-20"
+        />
       </Tab>
 
       <Tab
@@ -265,6 +275,7 @@ export default {
       >
         <Network
           v-model:value="networkRows"
+          :network-boot-first="networkBootFirst"
           mode="view"
           :vm="value"
         />
@@ -390,14 +401,17 @@ export default {
           :vmi-resource="vmi"
           :vmim-resource="vmim"
         />
-        <DashboardMetrics
+        <div
           v-if="showVmMetrics && liveMigrationProgressEnabled"
-          :detail-url="VM_MIGRATION_DETAIL_URL"
-          graph-height="640px"
-          :has-summary-and-detail="false"
-          :vars="graphVars"
-          class="mb-30"
-        />
+          class="migration-metrics-scroll mb-30"
+        >
+          <DashboardMetrics
+            :detail-url="VM_MIGRATION_DETAIL_URL"
+            graph-height="960px"
+            :has-summary-and-detail="false"
+            :vars="graphVars"
+          />
+        </div>
         <Events
           v-if="liveMigrationProgressEnabled"
           :resource="vmi"
@@ -436,3 +450,10 @@ export default {
     </Tabbed>
   </div>
 </template>
+
+<style lang="scss" scoped>
+.migration-metrics-scroll {
+  max-height: 640px;
+  overflow-y: auto;
+}
+</style>
