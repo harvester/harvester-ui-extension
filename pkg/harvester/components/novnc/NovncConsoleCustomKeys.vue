@@ -230,10 +230,10 @@ export default {
           class="btn role-secondary mr-20"
           @click.prevent="closeRecordingModal"
         >
-          <t k="generic.close" />
+          <t k="generic.cancel" />
         </button>
         <AsyncButton
-          mode="done"
+          mode="edit"
           @click="saveKeys"
         />
       </div>

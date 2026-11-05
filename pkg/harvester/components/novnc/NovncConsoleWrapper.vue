@@ -516,6 +516,7 @@ export default {
               <div
                 v-for="(keys, index) in preferredShortcutKeys"
                 :key="index"
+                class="custom-shortcut"
               >
                 <button
                   class="btn btn-sm bg-primary"
@@ -731,6 +732,11 @@ export default {
     display: flex;
     justify-content: flex-end;
     width: 100%;
+  }
+
+  // The space around the separator above the list.
+  .custom-shortcut + .custom-shortcut {
+    margin-top: 7px;
   }
 
   .console-status {
