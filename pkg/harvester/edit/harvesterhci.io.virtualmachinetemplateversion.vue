@@ -1,5 +1,4 @@
 <script>
-import jsyaml from 'js-yaml';
 import { mapGetters } from 'vuex';
 import Tabbed from '@shell/components/Tabbed';
 import Tab from '@shell/components/Tabbed/Tab';
@@ -247,24 +246,6 @@ export default {
     onTabChanged({ tab }) {
       if (tab.name === 'advanced') {
         this.$refs.yamlEditor?.refresh();
-      }
-    },
-
-    validateCloudInit() {
-      if (this.userScript) {
-        try {
-          jsyaml.load(this.userScript);
-        } catch (e) {
-          this.errors.push(this.t('harvester.virtualMachine.cloudConfig.user.invalidYaml'));
-        }
-      }
-
-      if (this.networkScript) {
-        try {
-          jsyaml.load(this.networkScript);
-        } catch (e) {
-          this.errors.push(this.t('harvester.virtualMachine.cloudConfig.network.invalidYaml'));
-        }
       }
     },
   },

@@ -2,6 +2,8 @@ import YAML from 'yaml';
 import jsyaml from 'js-yaml';
 import isEqual from 'lodash/isEqual';
 import isEmpty from 'lodash/isEmpty';
+import isNil from 'lodash/isNil';
+import isPlainObject from 'lodash/isPlainObject';
 import difference from 'lodash/difference';
 import { sortBy } from '@shell/utils/sort';
 import { set } from '@shell/utils/object';
@@ -23,7 +25,7 @@ import {
 import { HCI_SETTING } from '../../config/settings';
 import { HCI } from '../../types';
 import { parseVolumeClaimTemplates, EMPTY_IMAGE } from '../../utils/vm';
-import impl, { QGA_JSON, USB_TABLET } from './impl';
+import impl, { CLOUD_CONFIG_HEADER, QGA_JSON, USB_TABLET } from './impl';
 import { GIBIBYTE } from '../../utils/unit';
 import { VOLUME_MODE, ACCESS_MODE, FILESYSTEM_SOURCE_TYPE } from '@pkg/harvester/config/types';
 
@@ -1481,6 +1483,27 @@ export default {
 
     updateNetworkData(value) {
       this.networkScript = value;
+    },
+
+    validateCloudInit() {
+      const isYamlMapping = (text) => {
+        try {
+          const doc = jsyaml.load(text);
+
+          return isNil(doc) || isPlainObject(doc);
+        } catch (e) {
+          return false;
+        }
+      };
+
+      // Cloud-init picks the user data format from the first line: scripts, MIME and others are valid without being YAML.
+      if (CLOUD_CONFIG_HEADER.test(this.userScript) && !isYamlMapping(this.userScript)) {
+        this.errors.push(this.t('harvester.virtualMachine.cloudConfig.user.invalidYaml'));
+      }
+
+      if (this.networkScript && !isYamlMapping(this.networkScript)) {
+        this.errors.push(this.t('harvester.virtualMachine.cloudConfig.network.invalidYaml'));
+      }
     },
 
     mergeSSHAuthorizedKeys(yaml) {

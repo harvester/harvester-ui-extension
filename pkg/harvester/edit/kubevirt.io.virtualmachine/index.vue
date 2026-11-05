@@ -1,5 +1,4 @@
 <script>
-import jsyaml from 'js-yaml';
 import { isEqual } from 'lodash';
 import { mapGetters } from 'vuex';
 import Tabbed from '@shell/components/Tabbed';
@@ -425,24 +424,6 @@ export default {
 
       if (sysprepValidationError) {
         this.errors.push(sysprepValidationError);
-      }
-    },
-
-    validateCloudInit() {
-      if (this.userScript) {
-        try {
-          jsyaml.load(this.userScript);
-        } catch (e) {
-          this.errors.push(this.t('harvester.virtualMachine.cloudConfig.user.invalidYaml'));
-        }
-      }
-
-      if (this.networkScript) {
-        try {
-          jsyaml.load(this.networkScript);
-        } catch (e) {
-          this.errors.push(this.t('harvester.virtualMachine.cloudConfig.network.invalidYaml'));
-        }
       }
     },
 
