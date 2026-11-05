@@ -78,7 +78,7 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@5119fcb9089d432beecbf79bb2c7915207344b78 # v3
         with:
-          version: v3.8.0
+          version: v3.22.1
 
       - name: Build Helm charts
         run: |
@@ -138,7 +138,7 @@ jobs:
           git push origin ${{ needs.setup-target-branch.outputs.target_branch }}
 
       - name: Run Helm chart releaser
-        uses: helm/chart-releaser-action@cae68fefc6b5f367a0275617c9f83181ba54714f # v1.7.0
+        uses: helm/chart-releaser-action@df287104677278f869ca5480bd260358397cc3f9 # v1.8.0
         with:
           charts_dir: ./charts
         env:
