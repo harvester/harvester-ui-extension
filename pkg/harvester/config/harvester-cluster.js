@@ -806,9 +806,10 @@ export function init($plugin, store) {
       name:   `${ PRODUCT_NAME }-c-cluster-resource`,
       params: { resource: HCI.NETWORK_ATTACHMENT }
     },
-    resource:       NETWORK_ATTACHMENT,
-    resourceDetail: HCI.NETWORK_ATTACHMENT,
-    resourceEdit:   HCI.NETWORK_ATTACHMENT,
+    resource:           NETWORK_ATTACHMENT,
+    resourceDetail:     HCI.NETWORK_ATTACHMENT,
+    resourceEdit:       HCI.NETWORK_ATTACHMENT,
+    notFilterNamespace: ['kube-system'],
   });
 
   virtualType({
