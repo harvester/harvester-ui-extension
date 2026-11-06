@@ -1,5 +1,5 @@
 import { reactive } from 'vue';
-import { getLatestMigration, isBridgeNAD, isNADOnlyChange } from '../vm';
+import { getLatestMigration, liveSwapNADType, canLiveSwapNAD, isNADOnlyChange } from '../vm';
 
 const migration = (namespace, timestamp, vmiName = 'vm1') => ({
   metadata: { namespace, creationTimestamp: timestamp },
@@ -51,30 +51,63 @@ describe('getLatestMigration', () => {
   });
 });
 
-describe('isBridgeNAD', () => {
-  const nads = [
-    { id: 'default/vlan-100', parseConfig: { type: 'bridge' } },
-    { id: 'vm-ns/vlan-200', parseConfig: { type: 'bridge' } },
-    { id: 'vm-ns/overlay', parseConfig: { type: 'kube-ovn' } },
-  ];
+const nads = [
+  { id: 'default/vlan-100', parseConfig: { type: 'bridge' } },
+  { id: 'vm-ns/vlan-200', parseConfig: { type: 'bridge' } },
+  { id: 'vm-ns/overlay', parseConfig: { type: 'kube-ovn' } },
+  { id: 'vm-ns/overlay-2', parseConfig: { type: 'kube-ovn' } },
+  { id: 'vm-ns/sriov', parseConfig: { type: 'sriov' } },
+  { id: 'harvester-system/mgmt', parseConfig: { type: 'kube-ovn' } },
+];
 
+describe('liveSwapNADType', () => {
   it('should look up a namespaced network name as is', () => {
-    expect(isBridgeNAD(nads, 'vm-ns/vlan-200', 'other')).toBe(true);
-    expect(isBridgeNAD(nads, 'vm-ns/overlay', 'vm-ns')).toBe(false);
+    expect(liveSwapNADType(nads, 'vm-ns/vlan-200', 'other')).toBe('bridge');
+    expect(liveSwapNADType(nads, 'vm-ns/overlay', 'other')).toBe('kube-ovn');
   });
 
   it('should resolve a network name without a namespace in the namespace of the VM', () => {
-    expect(isBridgeNAD(nads, 'vlan-200', 'vm-ns')).toBe(true);
-    expect(isBridgeNAD(nads, 'vlan-100', 'vm-ns')).toBe(false);
+    expect(liveSwapNADType(nads, 'vlan-200', 'vm-ns')).toBe('bridge');
+    expect(liveSwapNADType(nads, 'vlan-100', 'vm-ns')).toBeUndefined();
   });
 
   it('should fall back to the default namespace only when the VM namespace is unknown', () => {
-    expect(isBridgeNAD(nads, 'vlan-100')).toBe(true);
+    expect(liveSwapNADType(nads, 'vlan-100')).toBe('bridge');
   });
 
-  it('should return false for an empty or unknown network name', () => {
-    expect(isBridgeNAD(nads, '', 'vm-ns')).toBe(false);
-    expect(isBridgeNAD(nads, 'vm-ns/missing', 'vm-ns')).toBe(false);
+  it('should return undefined for other CNI types and for the management network', () => {
+    expect(liveSwapNADType(nads, 'vm-ns/sriov', 'vm-ns')).toBeUndefined();
+    expect(liveSwapNADType(nads, 'harvester-system/mgmt', 'vm-ns')).toBeUndefined();
+  });
+
+  it('should return undefined for an empty or unknown network name', () => {
+    expect(liveSwapNADType(nads, '', 'vm-ns')).toBeUndefined();
+    expect(liveSwapNADType(nads, 'vm-ns/missing', 'vm-ns')).toBeUndefined();
+  });
+});
+
+describe('canLiveSwapNAD', () => {
+  it('should be true from a bridge network to another bridge network', () => {
+    expect(canLiveSwapNAD(nads, 'default/vlan-100', 'vm-ns/vlan-200', 'vm-ns')).toBe(true);
+  });
+
+  it('should be true from an overlay network to another overlay network', () => {
+    expect(canLiveSwapNAD(nads, 'overlay', 'overlay-2', 'vm-ns')).toBe(true);
+  });
+
+  it('should be false between a bridge network and an overlay network', () => {
+    expect(canLiveSwapNAD(nads, 'vlan-200', 'overlay', 'vm-ns')).toBe(false);
+    expect(canLiveSwapNAD(nads, 'overlay', 'vlan-200', 'vm-ns')).toBe(false);
+  });
+
+  it('should be false to or from the management network', () => {
+    expect(canLiveSwapNAD(nads, 'harvester-system/mgmt', 'overlay', 'vm-ns')).toBe(false);
+    expect(canLiveSwapNAD(nads, 'overlay', 'harvester-system/mgmt', 'vm-ns')).toBe(false);
+  });
+
+  it('should be false for other CNI types and unknown networks', () => {
+    expect(canLiveSwapNAD(nads, 'sriov', 'sriov', 'vm-ns')).toBe(false);
+    expect(canLiveSwapNAD(nads, 'missing', 'other-missing', 'vm-ns')).toBe(false);
   });
 });
 
@@ -89,22 +122,28 @@ describe('isNADOnlyChange', () => {
       }
     }
   });
-  const isBridge = (name) => name.startsWith('vlan');
+  // vlan-* stand for bridge NADs and overlay-* for kube-ovn NADs
+  const type = (name) => name.split('-')[0];
+  const canSwap = (oldName, newName) => type(oldName) === type(newName);
 
   it('should be true when only the NAD of a bridge network changes to another bridge network', () => {
-    expect(isNADOnlyChange(vm('vlan-100'), vm('vlan-200'), isBridge)).toBe(true);
+    expect(isNADOnlyChange(vm('vlan-100'), vm('vlan-200'), canSwap)).toBe(true);
+  });
+
+  it('should be true when only the NAD of an overlay network changes to another overlay network', () => {
+    expect(isNADOnlyChange(vm('overlay-1'), vm('overlay-2'), canSwap)).toBe(true);
   });
 
   it('should be false when there is no change', () => {
-    expect(isNADOnlyChange(vm('vlan-100'), vm('vlan-100'), isBridge)).toBe(false);
+    expect(isNADOnlyChange(vm('vlan-100'), vm('vlan-100'), canSwap)).toBe(false);
   });
 
-  it('should be false when the new NAD is not a bridge network', () => {
-    expect(isNADOnlyChange(vm('vlan-100'), vm('overlay'), isBridge)).toBe(false);
+  it('should be false when the NAD cannot be swapped live, for example bridge to overlay', () => {
+    expect(isNADOnlyChange(vm('vlan-100'), vm('overlay-1'), canSwap)).toBe(false);
   });
 
   it('should be false when something else changes as well', () => {
-    expect(isNADOnlyChange(vm('vlan-100'), vm('vlan-200', { hostname: 'x' }), isBridge)).toBe(false);
+    expect(isNADOnlyChange(vm('vlan-100'), vm('vlan-200', { hostname: 'x' }), canSwap)).toBe(false);
   });
 
   it('should ignore the empty node affinity terms added by the Node Scheduling form', () => {
@@ -118,7 +157,7 @@ describe('isNADOnlyChange', () => {
     const oldVM = vm('vlan-100', { affinity: { nodeAffinity: { requiredDuringSchedulingIgnoredDuringExecution: required } } });
     const newVM = vm('vlan-200', { affinity: { nodeAffinity: { requiredDuringSchedulingIgnoredDuringExecution: required, preferredDuringSchedulingIgnoredDuringExecution: [] } } });
 
-    expect(isNADOnlyChange(oldVM, newVM, isBridge)).toBe(true);
+    expect(isNADOnlyChange(oldVM, newVM, canSwap)).toBe(true);
 
     const preferred = [{
       weight:     1,
@@ -131,7 +170,7 @@ describe('isNADOnlyChange', () => {
     const oldPreferredOnly = vm('vlan-100', { affinity: { nodeAffinity: { preferredDuringSchedulingIgnoredDuringExecution: preferred } } });
     const newPreferredOnly = vm('vlan-200', { affinity: { nodeAffinity: { preferredDuringSchedulingIgnoredDuringExecution: preferred, requiredDuringSchedulingIgnoredDuringExecution: { nodeSelectorTerms: [] } } } });
 
-    expect(isNADOnlyChange(oldPreferredOnly, newPreferredOnly, isBridge)).toBe(true);
+    expect(isNADOnlyChange(oldPreferredOnly, newPreferredOnly, canSwap)).toBe(true);
   });
 
   it('should be false when a node affinity term is added as well', () => {
@@ -145,14 +184,14 @@ describe('isNADOnlyChange', () => {
     }];
     const newVM = vm('vlan-200', { affinity: { nodeAffinity: { preferredDuringSchedulingIgnoredDuringExecution: preferred } } });
 
-    expect(isNADOnlyChange(vm('vlan-100'), newVM, isBridge)).toBe(false);
+    expect(isNADOnlyChange(vm('vlan-100'), newVM, canSwap)).toBe(false);
   });
 
   it('should not modify the VMs', () => {
     const oldVM = vm('vlan-100');
     const newVM = vm('vlan-200', { affinity: { nodeAffinity: { preferredDuringSchedulingIgnoredDuringExecution: [] } } });
 
-    isNADOnlyChange(oldVM, newVM, isBridge);
+    isNADOnlyChange(oldVM, newVM, canSwap);
 
     expect(oldVM.spec.template.spec.networks[1].multus.networkName).toBe('vlan-100');
     expect(newVM.spec.template.spec.networks[1].multus.networkName).toBe('vlan-200');

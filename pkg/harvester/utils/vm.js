@@ -60,19 +60,45 @@ export function getLatestMigration(migrations, namespace, vmiName) {
   return getLatestMigrationIndex(migrations).get(`${ namespace }/${ vmiName }`);
 }
 
+// CNI types whose NADs can be swapped on a running VM, as long as the old and new NAD share the type
+const LIVE_SWAP_NAD_TYPES = ['bridge', 'kube-ovn'];
+// The management network NAD is of type kube-ovn too, but it is not a VM network that can be swapped live
+const MGMT_NAD_ID = 'harvester-system/mgmt';
+
 /**
- * Whether a multus networkName refers to a bridge NAD. A name without a namespace is resolved in
- * the VM's namespace, as KubeVirt and the Harvester webhook do.
+ * CNI type of the NAD a multus networkName refers to, if KubeVirt can swap it on a running VM:
+ * `bridge` (VLAN / untagged networks) or `kube-ovn` (overlay networks), otherwise undefined.
+ * A name without a namespace is resolved in the VM's namespace, as KubeVirt and the Harvester
+ * webhook do.
  * @param {Array} nads - NetworkAttachmentDefinitions of the store
  * @param {String} networkName - `<namespace>/<name>` or `<name>`
  * @param {String} vmNamespace
  */
-export function isBridgeNAD(nads, networkName, vmNamespace) {
-  if (!networkName) return false;
+export function liveSwapNADType(nads, networkName, vmNamespace) {
+  if (!networkName) return undefined;
 
   const id = networkName.includes('/') ? networkName : `${ vmNamespace || 'default' }/${ networkName }`;
 
-  return (nads || []).find((nad) => nad.id === id)?.parseConfig?.type === 'bridge';
+  if (id === MGMT_NAD_ID) return undefined;
+
+  const type = (nads || []).find((nad) => nad.id === id)?.parseConfig?.type;
+
+  return LIVE_SWAP_NAD_TYPES.includes(type) ? type : undefined;
+}
+
+/**
+ * Whether a NIC can move from one NAD to another on a running VM without a restart: both NADs
+ * must be of the same live-swappable type (bridge to bridge, or overlay to overlay). Bridge to
+ * overlay changes the interface binding, which KubeVirt only applies on restart.
+ * @param {Array} nads - NetworkAttachmentDefinitions of the store
+ * @param {String} oldNetworkName
+ * @param {String} newNetworkName
+ * @param {String} vmNamespace
+ */
+export function canLiveSwapNAD(nads, oldNetworkName, newNetworkName, vmNamespace) {
+  const oldType = liveSwapNADType(nads, oldNetworkName, vmNamespace);
+
+  return !!oldType && oldType === liveSwapNADType(nads, newNetworkName, vmNamespace);
 }
 
 /**
@@ -105,13 +131,14 @@ function dropEmptyNodeAffinityTerms(spec) {
 
 /**
  * Whether the only spec change between two VMs is the multus networkName (NAD) of existing
- * bridge networks. KubeVirt (LiveUpdateNADRef) applies such a change to a running VM via live
- * migration, so no restart is needed.
+ * networks, each moved to a NAD of the same type (see canLiveSwapNAD). KubeVirt
+ * (LiveUpdateNADRef) applies such a change to a running VM via live migration, so no restart is
+ * needed.
  * @param {Object} oldVM
  * @param {Object} newVM
- * @param {Function} isBridgeNAD - (networkName) => boolean
+ * @param {Function} canSwap - (oldNetworkName, newNetworkName) => boolean
  */
-export function isNADOnlyChange(oldVM, newVM, isBridgeNAD) {
+export function isNADOnlyChange(oldVM, newVM, canSwap) {
   const oldSpec = clone(oldVM?.spec || {});
   const newSpec = clone(newVM?.spec || {});
   const oldNetworks = oldSpec.template?.spec?.networks || [];
@@ -131,7 +158,7 @@ export function isNADOnlyChange(oldVM, newVM, isBridgeNAD) {
     const newNAD = newNet.multus?.networkName;
 
     if (oldNAD === newNAD) continue;
-    if (!oldNAD || !newNAD || oldNet.multus?.default || !isBridgeNAD(oldNAD) || !isBridgeNAD(newNAD)) return false;
+    if (!oldNAD || !newNAD || oldNet.multus?.default || !canSwap(oldNAD, newNAD)) return false;
 
     nadChanged = true;
     oldNet.multus.networkName = '';

@@ -6,6 +6,8 @@ const NADS = [
   { id: 'default/vlan-100', parseConfig: { type: 'bridge' } },
   { id: 'default/vlan-200', parseConfig: { type: 'bridge' } },
   { id: 'default/overlay', parseConfig: { type: 'kube-ovn' } },
+  { id: 'default/overlay-2', parseConfig: { type: 'kube-ovn' } },
+  { id: 'harvester-system/mgmt', parseConfig: { type: 'kube-ovn' } },
 ];
 
 // A VM with one NIC per network name, `null` being the pod network
@@ -46,6 +48,10 @@ describe('edit: kubevirt.io.virtualmachine restart prompt', () => {
     expect(editPage()._shouldPromptRestart(vm(), vm({ networks: ['vlan-200'] }))).toBe(false);
   });
 
+  it('should not prompt for a restart when only the overlay network of a NIC changes on a live-migratable VM', () => {
+    expect(editPage()._shouldPromptRestart(vm({ networks: ['overlay'] }), vm({ networks: ['overlay-2'] }))).toBe(false);
+  });
+
   it('should prompt for a restart for the same change when the VM cannot live-update the NAD', () => {
     expect(editPage({ canLiveUpdateNADRef: false })._shouldPromptRestart(vm(), vm({ networks: ['vlan-200'] }))).toBe(true);
   });
@@ -68,6 +74,8 @@ describe('edit: kubevirt.io.virtualmachine restart prompt', () => {
 
   it.each([
     ['to an overlay network', ['vlan-100'], ['overlay']],
+    ['from an overlay network to a bridge network', ['overlay'], ['vlan-100']],
+    ['from the management network', ['harvester-system/mgmt'], ['overlay']],
     ['from the pod network', [null], ['vlan-200']],
     ['when a NIC is added', ['vlan-100'], ['vlan-100', 'vlan-200']],
   ])('should prompt for a restart when the network changes %s', (_, oldNetworks, newNetworks) => {

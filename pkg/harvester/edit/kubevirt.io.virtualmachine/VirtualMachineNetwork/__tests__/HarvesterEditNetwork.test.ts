@@ -47,6 +47,8 @@ describe('component: HarvesterEditNetwork, live network change banner', () => {
     nad('default/vlan-100', 'bridge'),
     nad('default/vlan-200', 'bridge'),
     nad('default/overlay', 'kube-ovn'),
+    nad('default/overlay-2', 'kube-ovn'),
+    nad('harvester-system/mgmt', 'kube-ovn'),
     nad('vm-ns/vlan-300', 'bridge'),
     nad('vm-ns/vlan-400', 'bridge'),
   ];
@@ -87,6 +89,30 @@ describe('component: HarvesterEditNetwork, live network change banner', () => {
 
   it('should not show the banner when a bridge network is changed to an overlay network', async() => {
     const wrapper = mountNetwork('default/vlan-100');
+
+    await wrapper.setProps({ value: nic('default/overlay') });
+
+    expect(wrapper.find(BANNER).exists()).toBe(false);
+  });
+
+  it('should show the banner when an overlay network is changed to another overlay network', async() => {
+    const wrapper = mountNetwork('default/overlay');
+
+    await wrapper.setProps({ value: nic('default/overlay-2') });
+
+    expect(wrapper.find(BANNER).exists()).toBe(true);
+  });
+
+  it('should not show the banner when an overlay network is changed to a bridge network', async() => {
+    const wrapper = mountNetwork('default/overlay');
+
+    await wrapper.setProps({ value: nic('default/vlan-100') });
+
+    expect(wrapper.find(BANNER).exists()).toBe(false);
+  });
+
+  it('should not show the banner when the management network is changed to an overlay network', async() => {
+    const wrapper = mountNetwork('harvester-system/mgmt');
 
     await wrapper.setProps({ value: nic('default/overlay') });
 

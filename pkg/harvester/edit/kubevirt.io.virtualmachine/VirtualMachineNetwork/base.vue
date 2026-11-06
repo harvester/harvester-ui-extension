@@ -9,7 +9,7 @@ import { clone } from '@shell/utils/object';
 import { _CREATE, _EDIT, _VIEW } from '@shell/config/query-params';
 import { NETWORK_ATTACHMENT } from '@shell/config/types';
 import { MANAGEMENT_NETWORK } from '../../../mixins/harvester-vm';
-import { isBridgeNAD } from '@pkg/utils/vm';
+import { canLiveSwapNAD } from '@pkg/utils/vm';
 
 const MODEL = [{
   label: 'virtio',
@@ -152,7 +152,7 @@ export default {
       return this.isMasquerade ? masquerade : other;
     },
 
-    // Same bridge-to-bridge condition as _isLiveNetworkChange of the VM edit page
+    // Same condition as _isLiveNetworkChange of the VM edit page: bridge to bridge or overlay to overlay
     showLiveNetworkChangeBanner() {
       if (
         this.mode !== _EDIT ||
@@ -166,7 +166,7 @@ export default {
 
       const nads = this.$store.getters['harvester/all'](NETWORK_ATTACHMENT);
 
-      return isBridgeNAD(nads, this.initialNetworkName, this.namespace) && isBridgeNAD(nads, this.value.networkName, this.namespace);
+      return canLiveSwapNAD(nads, this.initialNetworkName, this.value.networkName, this.namespace);
     },
 
     staticIPForVMEnabled() {

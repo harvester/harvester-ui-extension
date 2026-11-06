@@ -22,7 +22,7 @@ import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
 import CreateEditView from '@shell/mixins/create-edit-view';
-import { parseVolumeClaimTemplates, isNADOnlyChange, isBridgeNAD } from '@pkg/utils/vm';
+import { parseVolumeClaimTemplates, isNADOnlyChange, canLiveSwapNAD } from '@pkg/utils/vm';
 import VM_MIXIN from '../../mixins/harvester-vm';
 import { NETWORK_ATTACHMENT } from '@shell/config/types';
 import { HCI } from '../../types';
@@ -551,7 +551,7 @@ export default {
       const nads = this.$store.getters['harvester/all'](NETWORK_ATTACHMENT);
       const namespace = this.value.metadata?.namespace;
 
-      return isNADOnlyChange(oldVM, newVM, (networkName) => isBridgeNAD(nads, networkName, namespace));
+      return isNADOnlyChange(oldVM, newVM, (oldNAD, newNAD) => canLiveSwapNAD(nads, oldNAD, newNAD, namespace));
     },
 
     restartVM() {
