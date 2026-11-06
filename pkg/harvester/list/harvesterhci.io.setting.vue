@@ -115,8 +115,8 @@ export default {
 
         return {
           ...s,
-          description: isHarvester ? `advancedSettings.descriptions.harv-${ s.id }` : `advancedSettings.descriptions.${ s.id }`,
-          customized:  (!s.readOnly && s.data.value && (
+          description: s.descriptionKey || (isHarvester ? `advancedSettings.descriptions.harv-${ s.id }` : `advancedSettings.descriptions.${ s.id }`),
+          customized:  s.data.hasCustomized ?? (!s.readOnly && s.data.value && (
             s.kind === 'json' ? (() => {
               try {
                 return JSON.stringify(JSON.parse(s.data.value)) !== JSON.stringify(JSON.parse(s.data.default));
@@ -124,7 +124,7 @@ export default {
                 return s.data.value !== s.data.default;
               }
             })() : s.data.value !== s.data.default
-          )) || s.data.hasCustomized
+          ))
         };
       });
     }
