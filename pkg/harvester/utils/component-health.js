@@ -1,7 +1,6 @@
 export const COMPONENT_LABEL = 'health.harvesterhci.io/component';
 export const NODE_LABEL = 'health.harvesterhci.io/node';
 export const IGNORE_RULE_SOURCE_LABEL = 'health.harvesterhci.io/source';
-export const IGNORED_BY_MIN_SEVERITY = 'min-severity';
 
 export const IGNORE_DURATION_DAYS = {
   days7:   7,

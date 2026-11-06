@@ -9,7 +9,9 @@ import { Checkbox } from '@components/Form/Checkbox';
 import { RcButton } from '@components/RcButton';
 import { useModal } from '@components/RcModal';
 import ComponentChecksTable from './ComponentChecksTable.vue';
-import IgnoreCheckModal from './IgnoreCheckModal.vue';
+import DeleteIgnoreRuleModal from './DeleteIgnoreRuleModal.vue';
+import IgnoreRuleModal from './IgnoreRuleModal.vue';
+import { allSettled } from '../../utils/promise';
 import {
   COMPONENT_HEALTH_SEVERITIES, HEALTH_SUMMARY_SEVERITY_RANK, NODE_LABEL, activeAffectedResourceNames, affectedResourceKind,
   allAffectedResourceNames, componentOf, healthSummarySeverity, severityColor
@@ -70,7 +72,10 @@ const headers = [
 ];
 
 const {
-  open: openIgnoreModal, isOpen: ignoreModalOpen, payload: checkToIgnore, modal: ignoreModal
+  open: openRuleModal, isOpen: ruleModalOpen, payload: ruleToOpen, modal: ruleModal
+} = useModal();
+const {
+  open: openDeleteModal, isOpen: deleteModalOpen, payload: ruleToDelete, modal: deleteModal
 } = useModal();
 
 const showIgnored = ref(false);
@@ -93,7 +98,6 @@ const checks = computed(() => {
         node,
         checkName,
         ignored:             !!check.ignored,
-        ignoredBy:           check.ignoredBy,
         severity:            check.severity,
         // the table sorts on a row property, the severities are not in alphabetical order
         severityRank:        COMPONENT_HEALTH_SEVERITIES.indexOf(check.severity),
@@ -160,17 +164,21 @@ const rows = computed(() => {
 });
 
 onMounted(async() => {
-  try {
-    [healthSummaries.value, componentHealths.value, ignoreRules.value] = await Promise.all([
-      store.dispatch('harvester/findAll', { type: HCI.HEALTH_SUMMARY }),
-      store.dispatch('harvester/findAll', { type: HCI.COMPONENT_HEALTH }),
-      store.dispatch('harvester/findAll', { type: HCI.HEALTH_IGNORE_RULE }),
-    ]);
-  } catch (err) {
-    console.error('Failed fetching component health with error:', err); // eslint-disable-line no-console
-  } finally {
-    loading.value = false;
+  const lists = {
+    healthSummaries:  store.dispatch('harvester/findAll', { type: HCI.HEALTH_SUMMARY }),
+    componentHealths: store.dispatch('harvester/findAll', { type: HCI.COMPONENT_HEALTH }),
+  };
+
+  if (store.getters['harvester/schemaFor'](HCI.HEALTH_IGNORE_RULE)) {
+    lists.ignoreRules = store.dispatch('harvester/findAll', { type: HCI.HEALTH_IGNORE_RULE });
   }
+
+  const res = await allSettled(lists);
+
+  healthSummaries.value = res.healthSummaries;
+  componentHealths.value = res.componentHealths;
+  ignoreRules.value = res.ignoreRules || [];
+  loading.value = false;
 });
 
 // a closed row would hide what the filter found
@@ -230,17 +238,23 @@ watch(filterText, (text) => {
             :rows="row.checks"
             :ignore-rules="ignoreRules"
             :show-ignored="showIgnored"
-            @ignore="openIgnoreModal"
+            @open-rule="openRuleModal"
+            @delete-rule="openDeleteModal"
           />
         </td>
       </tr>
     </template>
   </SortableTable>
   <!-- mounted each time it opens, so the form always starts over -->
-  <IgnoreCheckModal
-    v-if="ignoreModalOpen"
-    :row="checkToIgnore"
-    :modal="ignoreModal"
+  <IgnoreRuleModal
+    v-if="ruleModalOpen"
+    v-bind="ruleToOpen"
+    :modal="ruleModal"
+  />
+  <DeleteIgnoreRuleModal
+    v-if="deleteModalOpen"
+    v-bind="ruleToDelete"
+    :modal="deleteModal"
   />
 </template>
 

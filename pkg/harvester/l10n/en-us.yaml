@@ -532,14 +532,12 @@ harvester:
         moreAffectedResources: '+{count} more'
         noIssues: No issues detected
         showIgnored: Show ignored
-        actions: Actions
         ignore:
-          action: Ignore
-          title: 'Ignore {name}'
-          restore: Restore
+          create: Create Ignore Rule
+          view: View Ignore Rule
+          edit: Edit Ignore Rule
+          delete: Delete Ignore Rule
           ignored: Ignored
-          minSeverity: Hidden by the minimum severity setting
-          managedByAddon: Managed by the addon values
           scope: Scope
           scopeResources: Selected resources
           scopeCheck: Entire check
@@ -548,10 +546,15 @@ harvester:
           days7: 7 days
           days30: 30 days
           forever: Forever
+          until: 'Until {date}'
+          expiredOn: 'Expired on {date}'
           reason: Reason
           reasonPlaceholder: Why is it ignored? (optional)
-          success: The check {name} is ignored
-          restored: The check is restored
+          created: The ignore rule of {name} is created
+          updated: The ignore rule of {name} is updated
+          deleted: The ignore rule of {name} is deleted
+          attemptingToDelete: You are attempting to delete the ignore rule of
+          reportedAgain: What it ignores will be reported again.
 
     version: Version
   host:

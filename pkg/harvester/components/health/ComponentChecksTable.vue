@@ -5,8 +5,10 @@ import SortableTable from '@shell/components/SortableTable';
 import { BadgeState } from '@components/BadgeState';
 import { RcButton } from '@components/RcButton';
 import { useI18n } from '@shell/composables/useI18n';
+import { _CREATE, _EDIT, _VIEW } from '@shell/config/query-params';
+import { HCI } from '../../types';
 import {
-  AFFECTED_RESOURCES_TRUNCATE_COUNT, IGNORE_RULE_SOURCE_LABEL, IGNORED_BY_MIN_SEVERITY, MESSAGE_TRUNCATE_LENGTH,
+  AFFECTED_RESOURCES_TRUNCATE_COUNT, MESSAGE_TRUNCATE_LENGTH,
   activeAffectedResourceNames, affectedResourceKind, allAffectedResourceNames, resourceIgnoredBy, severityColor
 } from '../../utils/component-health';
 
@@ -25,7 +27,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['ignore']);
+const emit = defineEmits(['open-rule', 'delete-rule']);
 
 const store = useStore();
 const { t } = useI18n(store);
@@ -74,15 +76,48 @@ const allHeaders = [
     formatterOpts: { addSuffix: true },
     width:         140,
   },
-  {
-    align:    'right',
-    name:     'actions',
-    labelKey: 'harvester.dashboard.sections.componentHealth.actions',
-    width:    120,
-  },
 ];
 
 const headers = computed(() => allHeaders.filter((header) => header.name !== 'node' || props.rows.some((row) => row.node)));
+
+const canCreateRule = computed(() => {
+  const schema = store.getters['harvester/schemaFor'](HCI.HEALTH_IGNORE_RULE);
+
+  return !!schema?.collectionMethods?.find((method) => method.toLowerCase() === 'post');
+});
+
+function actionsOf(row) {
+  const rule = props.ignoreRules.find(({ spec }) => spec?.componentHealth === row.componentHealthName && spec?.checkKey === row.checkName);
+  const action = (key, icon, invoke) => ({
+    action:  key,
+    label:   t(`harvester.dashboard.sections.componentHealth.ignore.${ key }`),
+    icon:    `icon ${ icon }`,
+    enabled: true,
+    invoke,
+  });
+  const open = (mode) => () => emit('open-rule', {
+    row, rule, mode
+  });
+
+  if (!rule) {
+    return canCreateRule.value ? [action(_CREATE, 'icon-plus', open(_CREATE))] : [];
+  }
+
+  const actions = [action(_VIEW, 'icon-document', open(_VIEW))];
+
+  if (rule.canUpdate) {
+    actions.push(action(_EDIT, 'icon-edit', open(_EDIT)));
+  }
+
+  if (rule.canDelete) {
+    actions.push({ divider: true }, action('delete', 'icon-trash', () => emit('delete-rule', { row, rule })));
+  }
+
+  return actions;
+}
+
+// the table's action menu reads them from the row, as it does on a resource
+const rowsWithActions = computed(() => props.rows.map((row) => ({ ...row, availableActions: actionsOf(row) })));
 
 const expandedMessageIds = ref([]);
 const expandedResourceIds = ref([]);
@@ -119,36 +154,6 @@ function visibleAffectedResourceNames(row) {
 function remainingAffectedResourcesCount(row) {
   return Math.max(affectedResourceNames(row).length - AFFECTED_RESOURCES_TRUNCATE_COUNT, 0);
 }
-
-function ignoreRuleByName(name) {
-  return props.ignoreRules.find((rule) => rule.metadata?.name === name);
-}
-
-// the rules shipped by the addon values are managed by Helm, they are not removed from the dashboard
-function canRestore(ignoredBy) {
-  const rule = ignoreRuleByName(ignoredBy);
-
-  return !!rule && rule.metadata?.labels?.[IGNORE_RULE_SOURCE_LABEL] !== 'default';
-}
-
-async function restoreIgnored(ignoredBy) {
-  const rule = ignoreRuleByName(ignoredBy);
-
-  if (!rule) {
-    return;
-  }
-
-  try {
-    await rule.remove();
-
-    store.dispatch('growl/success', {
-      title:   t('generic.notification.title.succeed'),
-      message: t('harvester.dashboard.sections.componentHealth.ignore.restored'),
-    }, { root: true });
-  } catch (err) {
-    store.dispatch('growl/fromError', { title: t('generic.notification.title.error'), err }, { root: true });
-  }
-}
 </script>
 
 <template>
@@ -160,12 +165,11 @@ async function restoreIgnored(ignoredBy) {
   </div>
   <SortableTable
     v-else
-    :rows="rows"
+    :rows="rowsWithActions"
     :headers="headers"
     key-field="id"
     :search="false"
     :table-actions="false"
-    :row-actions="false"
     :paging="true"
     :rows-per-page="10"
     default-sort-by="severity"
@@ -176,40 +180,14 @@ async function restoreIgnored(ignoredBy) {
         :label="row.severity"
       />
     </template>
-    <template #cell:actions="{row}">
-      <div v-if="row.ignored">
-        <RcButton
-          v-if="canRestore(row.ignoredBy)"
-          variant="link"
-          size="small"
-          class="compact-link"
-          @click="restoreIgnored(row.ignoredBy)"
-        >
-          {{ t('harvester.dashboard.sections.componentHealth.ignore.restore') }}
-        </RcButton>
-        <span
-          v-else-if="row.ignoredBy === IGNORED_BY_MIN_SEVERITY"
-          v-clean-tooltip="t('harvester.dashboard.sections.componentHealth.ignore.minSeverity')"
-          class="text-muted"
-        >
-          {{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }}
-        </span>
-        <span
-          v-else
-          v-clean-tooltip="t('harvester.dashboard.sections.componentHealth.ignore.managedByAddon')"
-          class="text-muted"
-        >
-          {{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }}
-        </span>
-      </div>
-      <RcButton
-        v-else
-        variant="secondary"
-        size="small"
-        @click="emit('ignore', row)"
+    <template #cell:checkName="{row, value}">
+      {{ value }}
+      <span
+        v-if="row.ignored"
+        class="text-muted"
       >
-        {{ t('harvester.dashboard.sections.componentHealth.ignore.action') }}
-      </RcButton>
+        ({{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }})
+      </span>
     </template>
     <template #cell:node="{value}">
       {{ value || '-' }}
@@ -241,13 +219,7 @@ async function restoreIgnored(ignoredBy) {
         >
           {{ name }}
           <span v-if="resourceIgnoredBy(row, name)">
-            ({{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }}<template v-if="canRestore(resourceIgnoredBy(row, name))">,
-              <RcButton
-                variant="link"
-                size="small"
-                class="compact-link"
-                @click="restoreIgnored(resourceIgnoredBy(row, name))"
-              >{{ t('harvester.dashboard.sections.componentHealth.ignore.restore') }}</RcButton></template>)
+            ({{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }})
           </span>
         </div>
         <RcButton
