@@ -104,6 +104,10 @@ export default class HciStorageClass extends StorageClass {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('thirdPartyStorage');
   }
 
+  get longhornV2RdmaTransportFeatureEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('longhornV2RdmaTransport');
+  }
+
   isInternalStorageClass() {
     return isInternalStorageClass(this.metadata?.name);
   }
