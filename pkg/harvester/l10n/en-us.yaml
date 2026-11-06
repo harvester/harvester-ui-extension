@@ -513,6 +513,47 @@ harvester:
         label: Events
       vmMetrics:
         label: Virtual Machine Metrics
+      healthSummary:
+        component: Component
+        severity: Severity
+        errorCount: Errors
+        warningCount: Warnings
+        expandAll: Expand All
+        collapseAll: Collapse All
+      componentHealth:
+        label: Components
+        component: Component
+        check: Check
+        severity: Severity
+        message: Message
+        affectedCount: Affected Resources
+        lastUpdatedAt: Last Updated
+        noAffectedResources: No affected resources
+        noIssues: No issues detected
+        showIgnored: Show ignored
+        ignore:
+          create: Create Ignore Rule
+          view: View Ignore Rule
+          edit: Edit Ignore Rule
+          delete: Delete Ignore Rule
+          ignored: Ignored
+          scope: Scope
+          scopeResources: Selected resources
+          scopeCheck: Entire check
+          resources: Resources
+          duration: Ignore for
+          days7: 7 days
+          days30: 30 days
+          forever: Forever
+          until: 'Until {date}'
+          expiredOn: 'Expired on {date}'
+          reason: Reason
+          reasonPlaceholder: Why is it ignored? (optional)
+          created: The ignore rule of {name} is created
+          updated: The ignore rule of {name} is updated
+          deleted: The ignore rule of {name} is deleted
+          attemptingToDelete: You are attempting to delete the ignore rule of
+          reportedAgain: What it ignores will be reported again.
 
     version: Version
   host:
