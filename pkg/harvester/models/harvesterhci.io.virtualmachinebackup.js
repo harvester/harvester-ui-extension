@@ -86,7 +86,7 @@ export default class HciVmBackup extends HarvesterResource {
 
   restoreExistingVM(resource = this) {
     const router = this.currentRouter();
-    const targetResource = resource.spec.type === BACKUP_TYPE.BACKUP ? HCI.BACKUP : HCI.VM_SNAPSHOT;
+    const targetResource = resource.spec.type === BACKUP_TYPE.SNAPSHOT ? HCI.VM_SNAPSHOT : HCI.BACKUP;
 
     router.push({
       name:   `${ HARVESTER_PRODUCT }-c-cluster-resource-create`,
@@ -100,7 +100,7 @@ export default class HciVmBackup extends HarvesterResource {
 
   restoreNewVM(resource = this) {
     const router = this.currentRouter();
-    const targetResource = resource.spec.type === BACKUP_TYPE.BACKUP ? HCI.BACKUP : HCI.VM_SNAPSHOT;
+    const targetResource = resource.spec.type === BACKUP_TYPE.SNAPSHOT ? HCI.VM_SNAPSHOT : HCI.BACKUP;
 
     router.push({
       name:   `${ HARVESTER_PRODUCT }-c-cluster-resource-create`,
@@ -141,6 +141,10 @@ export default class HciVmBackup extends HarvesterResource {
 
   get attachVM() {
     return this.spec.source.name;
+  }
+
+  get backupTypeLabel() {
+    return this.t(`harvester.backup.type.${ this.spec?.type || BACKUP_TYPE.BACKUP }`);
   }
 
   get backupContentName() {
