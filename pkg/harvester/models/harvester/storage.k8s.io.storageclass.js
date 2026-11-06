@@ -100,6 +100,13 @@ export default class HciStorageClass extends StorageClass {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('expandOnlineEncryptedVolume');
   }
 
+  // The LVM CSI driver only honors the encrypted parameter from the release
+  // that ships dm-crypt support; older drivers silently ignore it and create
+  // plaintext volumes, so the LVM form is gated separately from Longhorn's.
+  get lvmVolumeEncryptionFeatureEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('lvmVolumeEncryption');
+  }
+
   get thirdPartyStorageFeatureEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('thirdPartyStorage');
   }
