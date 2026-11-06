@@ -107,13 +107,55 @@ describe('isNADOnlyChange', () => {
     expect(isNADOnlyChange(vm('vlan-100'), vm('vlan-200', { hostname: 'x' }), isBridge)).toBe(false);
   });
 
+  it('should ignore the empty node affinity terms added by the Node Scheduling form', () => {
+    const required = {
+      nodeSelectorTerms: [{
+        matchExpressions: [{
+          key: 'network.harvesterhci.io/mgmt', operator: 'In', values: ['true']
+        }]
+      }]
+    };
+    const oldVM = vm('vlan-100', { affinity: { nodeAffinity: { requiredDuringSchedulingIgnoredDuringExecution: required } } });
+    const newVM = vm('vlan-200', { affinity: { nodeAffinity: { requiredDuringSchedulingIgnoredDuringExecution: required, preferredDuringSchedulingIgnoredDuringExecution: [] } } });
+
+    expect(isNADOnlyChange(oldVM, newVM, isBridge)).toBe(true);
+
+    const preferred = [{
+      weight:     1,
+      preference: {
+        matchExpressions: [{
+          key: 'zone', operator: 'In', values: ['a']
+        }]
+      }
+    }];
+    const oldPreferredOnly = vm('vlan-100', { affinity: { nodeAffinity: { preferredDuringSchedulingIgnoredDuringExecution: preferred } } });
+    const newPreferredOnly = vm('vlan-200', { affinity: { nodeAffinity: { preferredDuringSchedulingIgnoredDuringExecution: preferred, requiredDuringSchedulingIgnoredDuringExecution: { nodeSelectorTerms: [] } } } });
+
+    expect(isNADOnlyChange(oldPreferredOnly, newPreferredOnly, isBridge)).toBe(true);
+  });
+
+  it('should be false when a node affinity term is added as well', () => {
+    const preferred = [{
+      weight:     1,
+      preference: {
+        matchExpressions: [{
+          key: 'zone', operator: 'In', values: ['a']
+        }]
+      }
+    }];
+    const newVM = vm('vlan-200', { affinity: { nodeAffinity: { preferredDuringSchedulingIgnoredDuringExecution: preferred } } });
+
+    expect(isNADOnlyChange(vm('vlan-100'), newVM, isBridge)).toBe(false);
+  });
+
   it('should not modify the VMs', () => {
     const oldVM = vm('vlan-100');
-    const newVM = vm('vlan-200');
+    const newVM = vm('vlan-200', { affinity: { nodeAffinity: { preferredDuringSchedulingIgnoredDuringExecution: [] } } });
 
     isNADOnlyChange(oldVM, newVM, isBridge);
 
     expect(oldVM.spec.template.spec.networks[1].multus.networkName).toBe('vlan-100');
     expect(newVM.spec.template.spec.networks[1].multus.networkName).toBe('vlan-200');
+    expect(newVM.spec.template.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution).toStrictEqual([]);
   });
 });

@@ -76,6 +76,34 @@ export function isBridgeNAD(nads, networkName, vmNamespace) {
 }
 
 /**
+ * Drop the empty node affinity terms that the shell NodeScheduling form adds on load
+ * (`preferredDuringSchedulingIgnoredDuringExecution: []` and
+ * `requiredDuringSchedulingIgnoredDuringExecution: { nodeSelectorTerms: [] }`), so that opening
+ * the Node Scheduling tab doesn't count as a spec change.
+ * @param {Object} spec - VM spec, modified in place
+ */
+function dropEmptyNodeAffinityTerms(spec) {
+  const affinity = spec?.template?.spec?.affinity;
+  const nodeAffinity = affinity?.nodeAffinity;
+
+  if (!nodeAffinity) return;
+
+  if (Array.isArray(nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution) && !nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution.length) {
+    delete nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution;
+  }
+
+  const required = nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution;
+
+  if (required && Object.keys(required).length === 1 && Array.isArray(required.nodeSelectorTerms) && !required.nodeSelectorTerms.length) {
+    delete nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution;
+  }
+
+  if (!Object.keys(nodeAffinity).length) {
+    delete affinity.nodeAffinity;
+  }
+}
+
+/**
  * Whether the only spec change between two VMs is the multus networkName (NAD) of existing
  * bridge networks. KubeVirt (LiveUpdateNADRef) applies such a change to a running VM via live
  * migration, so no restart is needed.
@@ -110,5 +138,10 @@ export function isNADOnlyChange(oldVM, newVM, isBridgeNAD) {
     newNet.multus.networkName = '';
   }
 
-  return nadChanged && isEqual(oldSpec, newSpec);
+  if (!nadChanged) return false;
+
+  dropEmptyNodeAffinityTerms(oldSpec);
+  dropEmptyNodeAffinityTerms(newSpec);
+
+  return isEqual(oldSpec, newSpec);
 }
