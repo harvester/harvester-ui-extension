@@ -3,6 +3,7 @@ import Tip from '@shell/components/Tip';
 import Password from '@shell/components/form/Password';
 import MessageLink from '@shell/components/MessageLink';
 import CreateEditView from '@shell/mixins/create-edit-view';
+import { Checkbox } from '@components/Form/Checkbox';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { HCI_SETTING } from '../../config/settings';
@@ -14,7 +15,7 @@ export default {
   name: 'HarvesterEditBackupTarget',
 
   components: {
-    LabeledInput, LabeledSelect, Tip, Password, MessageLink, UnitInput
+    Checkbox, LabeledInput, LabeledSelect, Tip, Password, MessageLink, UnitInput
   },
 
   mixins: [CreateEditView],
@@ -36,7 +37,7 @@ export default {
     }
 
     // set default virtualHostedStyle to false
-    parseDefaultValue.virtualHostedStyle = false;
+    parseDefaultValue.virtualHostedStyle = !!parseDefaultValue.virtualHostedStyle;
 
     return {
       parseDefaultValue,
@@ -67,6 +68,10 @@ export default {
 
     refreshIntervalInSecondEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('refreshIntervalInSecond');
+    },
+
+    thirdPartyBackupEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('thirdPartyVMBackup');
     },
 
     isS3() {
@@ -114,6 +119,7 @@ export default {
         delete this.parseDefaultValue.bucketName;
         delete this.parseDefaultValue.bucketRegion;
         delete this.parseDefaultValue.virtualHostedStyle;
+        delete this.parseDefaultValue.kopiaGCEnabled;
         delete this.parseDefaultValue.cert;
       }
 
@@ -219,6 +225,17 @@ export default {
           class="mb-20"
           label="Virtual Hosted-Style"
           :options="virtualHostedStyleOptions"
+          @update:value="update"
+        />
+
+        <Checkbox
+          v-if="thirdPartyBackupEnabled"
+          v-model:value="parseDefaultValue.kopiaGCEnabled"
+          class="mb-20"
+          data-testid="backup-target-kopia-gc"
+          :label="t('harvester.backup.kopiaGC.label')"
+          :mode="mode"
+          :tooltip="t('harvester.backup.kopiaGC.tooltip', {}, true)"
           @update:value="update"
         />
 
