@@ -92,4 +92,17 @@ describe('component: NovncConsoleWrapper', () => {
 
     expect(wrapper.vm.confirmAction).toBeNull();
   });
+
+  it('should put the whole page in full screen, so that dialogs rendered outside the console show', async() => {
+    const wrapper = mountWrapper();
+    const requestFullscreen = jest.fn().mockResolvedValue();
+
+    document.documentElement.requestFullscreen = requestFullscreen;
+
+    await wrapper.vm.toggleFullscreen();
+
+    expect(requestFullscreen).toHaveBeenCalledTimes(1);
+
+    delete document.documentElement.requestFullscreen;
+  });
 });

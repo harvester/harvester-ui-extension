@@ -290,6 +290,14 @@ export default {
       return this.osType === 'windows';
     },
 
+    hasVirtioDisk() {
+      return (this.diskRows || []).some((R) => R.type === 'disk' && R.bus === 'virtio');
+    },
+
+    hasDedicatedIOThread() {
+      return (this.diskRows || []).some((R) => R.dedicatedIOThread);
+    },
+
     needNewSecret() {
       // When creating a template it is always necessary to create a new secret.
       return this.isCreate || this.showYaml ? false : this.resourceType === HCI.VM_VERSION;
