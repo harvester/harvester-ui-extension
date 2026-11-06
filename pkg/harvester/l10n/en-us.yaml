@@ -514,15 +514,13 @@ harvester:
       vmMetrics:
         label: Virtual Machine Metrics
       healthSummary:
-        label: Health Summary
         component: Component
         severity: Severity
         errorCount: Errors
         warningCount: Warnings
         lastUpdatedAt: Last Updated
       componentHealth:
-        label: Component Health
-        filter: Filter
+        label: Components
         component: Component
         node: Node
         check: Check
@@ -533,11 +531,11 @@ harvester:
         noAffectedResources: No affected resources
         moreAffectedResources: '+{count} more'
         noIssues: No issues detected
-        noMatchingChecks: No checks match the selected filters
         showIgnored: Show ignored
         actions: Actions
         ignore:
           action: Ignore
+          title: 'Ignore {name}'
           restore: Restore
           ignored: Ignored
           minSeverity: Hidden by the minimum severity setting

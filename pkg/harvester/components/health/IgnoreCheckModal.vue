@@ -5,8 +5,9 @@ import dayjs from 'dayjs';
 import Banner from '@components/Banner/Banner.vue';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { RadioGroup } from '@components/Form/Radio';
+import { RcButton } from '@components/RcButton';
+import { RcModal } from '@components/RcModal';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
-import AsyncButton from '@shell/components/AsyncButton';
 import { useI18n } from '@shell/composables/useI18n';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI } from '../../types';
@@ -14,6 +15,11 @@ import { IGNORE_DURATION_DAYS, IGNORE_RULE_SOURCE_LABEL, activeAffectedResourceN
 
 const props = defineProps({
   row: {
+    type:     Object,
+    required: true,
+  },
+  // `show` and the `close` handler, from whoever owns this modal's visibility
+  modal: {
     type:     Object,
     required: true,
   },
@@ -36,6 +42,7 @@ const selected = ref(null);
 const duration = ref('days7');
 const reason = ref('');
 const errors = ref([]);
+const saving = ref(false);
 
 const selectedResources = computed(() => {
   return selected.value === null ? activeResources.value : activeResources.value.filter((name) => selected.value.includes(name));
@@ -54,7 +61,14 @@ const durationOptions = computed(() => Object.keys(IGNORE_DURATION_DAYS).map((ke
   value: key,
 })));
 
-async function ignoreCheck(hide, buttonCb) {
+function close() {
+  // stays open while the rule is saved, so a failure can still be shown
+  if (!saving.value) {
+    props.modal.onClose();
+  }
+}
+
+async function ignoreCheck() {
   const spec = {
     componentHealth: props.row.componentHealthName,
     checkKey:        props.row.checkName,
@@ -75,6 +89,9 @@ async function ignoreCheck(hide, buttonCb) {
     spec.reason = reason.value;
   }
 
+  errors.value = [];
+  saving.value = true;
+
   try {
     const rule = await store.dispatch('harvester/create', {
       type:     HCI.HEALTH_IGNORE_RULE,
@@ -92,83 +109,79 @@ async function ignoreCheck(hide, buttonCb) {
       message: t('harvester.dashboard.sections.componentHealth.ignore.success', { name: props.row.checkName }),
     }, { root: true });
 
-    errors.value = [];
-    buttonCb(true);
-    hide();
+    saving.value = false;
+    close();
   } catch (err) {
     errors.value = exceptionToErrorsArray(err?.data || err);
-    buttonCb(false);
+    saving.value = false;
   }
 }
 </script>
 
 <template>
-  <v-dropdown
-    :triggers="['click']"
-    placement="bottom-end"
-    :distance="10"
+  <!-- Not v-bind="modal": closing goes through close(), which refuses while the rule is saved -->
+  <RcModal
+    :show="modal.show"
+    :title="t('harvester.dashboard.sections.componentHealth.ignore.title', { name: row.checkName })"
+    data-testid="component-health-ignore-modal"
+    @close="close"
+    @primary-action="ignoreCheck"
   >
-    <button class="btn btn-sm role-secondary">
-      {{ t('harvester.dashboard.sections.componentHealth.ignore.action') }}
-    </button>
+    <RadioGroup
+      v-if="activeResources.length"
+      v-model:value="scope"
+      name="ignore-scope"
+      :label="t('harvester.dashboard.sections.componentHealth.ignore.scope')"
+      :options="scopeOptions"
+    />
+    <LabeledSelect
+      v-if="scope === 'resources' && activeResources.length"
+      class="ignore-resources"
+      :value="selectedResources"
+      :label="t('harvester.dashboard.sections.componentHealth.ignore.resources')"
+      :options="activeResources"
+      :multiple="true"
+      :close-on-select="false"
+      :clearable="false"
+      @update:value="selected = $event"
+    />
+    <RadioGroup
+      v-model:value="duration"
+      name="ignore-duration"
+      :label="t('harvester.dashboard.sections.componentHealth.ignore.duration')"
+      :options="durationOptions"
+    />
+    <LabeledInput
+      v-model:value="reason"
+      :label="t('harvester.dashboard.sections.componentHealth.ignore.reason')"
+      :placeholder="t('harvester.dashboard.sections.componentHealth.ignore.reasonPlaceholder')"
+    />
+    <Banner
+      v-for="(err, i) in errors"
+      :key="i"
+      class="m-0"
+      color="error"
+      :label="err"
+    />
 
-    <template #popper="{ hide }">
-      <div class="ignore-popup">
-        <RadioGroup
-          v-if="activeResources.length"
-          v-model:value="scope"
-          :name="`ignore-scope-${ row.id }`"
-          :label="t('harvester.dashboard.sections.componentHealth.ignore.scope')"
-          :options="scopeOptions"
-        />
-        <LabeledSelect
-          v-if="scope === 'resources' && activeResources.length"
-          :value="selectedResources"
-          :label="t('harvester.dashboard.sections.componentHealth.ignore.resources')"
-          :options="activeResources"
-          :multiple="true"
-          :close-on-select="false"
-          :clearable="false"
-          :append-to-body="false"
-          @update:value="selected = $event"
-        />
-        <RadioGroup
-          v-model:value="duration"
-          :name="`ignore-duration-${ row.id }`"
-          :label="t('harvester.dashboard.sections.componentHealth.ignore.duration')"
-          :options="durationOptions"
-        />
-        <LabeledInput
-          v-model:value="reason"
-          :label="t('harvester.dashboard.sections.componentHealth.ignore.reason')"
-          :placeholder="t('harvester.dashboard.sections.componentHealth.ignore.reasonPlaceholder')"
-        />
-        <Banner
-          v-for="(err, i) in errors"
-          :key="i"
-          color="error"
-          :label="err"
-        />
-        <div class="text-right">
-          <AsyncButton
-            mode="apply"
-            :action-label="t('harvester.dashboard.sections.componentHealth.ignore.action')"
-            :disabled="!canIgnore"
-            @click="ignoreCheck(hide, $event)"
-          />
-        </div>
-      </div>
+    <template #primary-action="{ primaryAction }">
+      <RcButton
+        variant="primary"
+        size="large"
+        :disabled="!canIgnore || saving"
+        :aria-busy="saving"
+        data-testid="component-health-ignore-confirm"
+        @click="primaryAction"
+      >
+        {{ t('harvester.dashboard.sections.componentHealth.ignore.action') }}
+      </RcButton>
     </template>
-  </v-dropdown>
+  </RcModal>
 </template>
 
 <style lang="scss" scoped>
-  .ignore-popup {
-    display: grid;
-    gap: 10px;
-    padding: 10px;
-    width: 440px;
-    max-height: 420px;
-    overflow-y: auto;
+  // the modal's body is a flex column, it would squeeze a select with a lot of resources instead of scrolling
+  .ignore-resources {
+    flex-shrink: 0;
   }
 </style>

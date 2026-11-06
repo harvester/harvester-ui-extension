@@ -25,7 +25,6 @@ import { isEmpty } from '@shell/utils/object';
 import { HCI } from '../types';
 import HarvesterUpgrade from '../components/HarvesterUpgrade';
 import HealthSummaryTable from '../components/health/HealthSummaryTable';
-import ComponentHealthSection from '../components/health/ComponentHealthSection';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
 import { UNIT_SUFFIX } from '../utils/unit';
 
@@ -128,7 +127,6 @@ export default {
     Banner,
     MessageLink,
     HealthSummaryTable,
-    ComponentHealthSection,
   },
 
   async fetch() {
@@ -241,8 +239,12 @@ export default {
   computed: {
     ...mapGetters(['currentCluster']),
 
+    // the health resources only exist while the resource health addon is installed
     componentHealthEnabled() {
-      return this.$store.getters['harvester-common/getFeatureEnabled']('componentHealth');
+      const inStore = this.$store.getters['currentProduct'].inStore;
+
+      return this.$store.getters['harvester-common/getFeatureEnabled']('componentHealth') &&
+        !!this.$store.getters[`${ inStore }/schemaFor`](HCI.HEALTH_SUMMARY);
     },
 
     accessibleResources() {
@@ -829,13 +831,16 @@ export default {
             </template>
           </SortableTable>
         </Tab>
+        <Tab
+          v-if="componentHealthEnabled"
+          name="components"
+          :label="t('harvester.dashboard.sections.componentHealth.label')"
+          :weight="95"
+        >
+          <HealthSummaryTable />
+        </Tab>
       </Tabbed>
     </div>
-
-    <template v-if="componentHealthEnabled">
-      <HealthSummaryTable />
-      <ComponentHealthSection />
-    </template>
   </section>
 </template>
 
