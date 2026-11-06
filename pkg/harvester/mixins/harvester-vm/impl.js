@@ -35,10 +35,12 @@ export const SSH_EXISTING_TYPE = {
   EXISTING_ONLY_CLOUD:      'EXISTING_CLOUD',
 };
 
+export const CLOUD_CONFIG_HEADER = /^\s*#cloud-config(\s|$)/;
+
 export default {
   methods: {
     hasCloudConfigComment(userScript) {
-      if (typeof userScript === 'string' && /^\s*#cloud-config(\s|$)/.test(userScript)) {
+      if (typeof userScript === 'string' && CLOUD_CONFIG_HEADER.test(userScript)) {
         return true;
       }
 
