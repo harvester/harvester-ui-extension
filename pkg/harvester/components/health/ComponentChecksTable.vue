@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useStore } from 'vuex';
 import SortableTable from '@shell/components/SortableTable';
 import { BadgeState } from '@components/BadgeState';
+import { RcButton } from '@components/RcButton';
 import { useI18n } from '@shell/composables/useI18n';
 import {
   AFFECTED_RESOURCES_TRUNCATE_COUNT, IGNORE_RULE_SOURCE_LABEL, IGNORED_BY_MIN_SEVERITY, MESSAGE_TRUNCATE_LENGTH,
@@ -177,14 +178,15 @@ async function restoreIgnored(ignoredBy) {
     </template>
     <template #cell:actions="{row}">
       <div v-if="row.ignored">
-        <button
+        <RcButton
           v-if="canRestore(row.ignoredBy)"
-          type="button"
-          class="btn btn-sm role-link pl-0"
+          variant="link"
+          size="small"
+          class="compact-link"
           @click="restoreIgnored(row.ignoredBy)"
         >
           {{ t('harvester.dashboard.sections.componentHealth.ignore.restore') }}
-        </button>
+        </RcButton>
         <span
           v-else-if="row.ignoredBy === IGNORED_BY_MIN_SEVERITY"
           v-clean-tooltip="t('harvester.dashboard.sections.componentHealth.ignore.minSeverity')"
@@ -200,14 +202,14 @@ async function restoreIgnored(ignoredBy) {
           {{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }}
         </span>
       </div>
-      <button
+      <RcButton
         v-else
-        type="button"
-        class="btn btn-sm role-secondary"
+        variant="secondary"
+        size="small"
         @click="emit('ignore', row)"
       >
         {{ t('harvester.dashboard.sections.componentHealth.ignore.action') }}
-      </button>
+      </RcButton>
     </template>
     <template #cell:node="{value}">
       {{ value || '-' }}
@@ -215,15 +217,16 @@ async function restoreIgnored(ignoredBy) {
     <template #cell:message="{row, value}">
       <span>
         {{ displayedMessage(row, value) }}
-        <button
+        <RcButton
           v-if="isMessageTruncated(value)"
-          type="button"
-          class="btn btn-sm role-link pl-0"
+          variant="link"
+          size="small"
+          class="compact-link"
           :aria-expanded="expandedMessageIds.includes(row.id)"
           @click="toggleId(expandedMessageIds, row.id)"
         >
           {{ expandedMessageIds.includes(row.id) ? t('harvester.generic.hideMore') : t('harvester.generic.showMore') }}
-        </button>
+        </RcButton>
       </span>
     </template>
     <template #cell:affectedCount="{row, value}">
@@ -239,22 +242,24 @@ async function restoreIgnored(ignoredBy) {
           {{ name }}
           <span v-if="resourceIgnoredBy(row, name)">
             ({{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }}<template v-if="canRestore(resourceIgnoredBy(row, name))">,
-              <button
-                type="button"
-                class="btn btn-sm role-link p-0"
+              <RcButton
+                variant="link"
+                size="small"
+                class="compact-link"
                 @click="restoreIgnored(resourceIgnoredBy(row, name))"
-              >{{ t('harvester.dashboard.sections.componentHealth.ignore.restore') }}</button></template>)
+              >{{ t('harvester.dashboard.sections.componentHealth.ignore.restore') }}</RcButton></template>)
           </span>
         </div>
-        <button
+        <RcButton
           v-if="remainingAffectedResourcesCount(row)"
-          type="button"
-          class="btn btn-sm role-link pl-0"
+          variant="link"
+          size="small"
+          class="compact-link"
           :aria-expanded="expandedResourceIds.includes(row.id)"
           @click="toggleId(expandedResourceIds, row.id)"
         >
           {{ expandedResourceIds.includes(row.id) ? t('harvester.generic.hideMore') : t('harvester.dashboard.sections.componentHealth.moreAffectedResources', { count: remainingAffectedResourcesCount(row) }) }}
-        </button>
+        </RcButton>
       </div>
       <span v-else>
         {{ t('harvester.dashboard.sections.componentHealth.noAffectedResources') }}
@@ -262,3 +267,10 @@ async function restoreIgnored(ignoredBy) {
     </template>
   </SortableTable>
 </template>
+
+<style lang="scss" scoped>
+  // these sit next to text, so they line up with it
+  .compact-link {
+    --rc-button-padding: 0;
+  }
+</style>

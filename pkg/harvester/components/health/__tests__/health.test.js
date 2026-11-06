@@ -279,7 +279,7 @@ describe('health components', () => {
 
     expect(w.text()).not.toContain(message);
 
-    await w.find('button.role-link').trigger('click');
+    await w.find('button.variant-link').trigger('click');
 
     expect(w.text()).toContain(message);
   });

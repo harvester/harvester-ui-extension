@@ -6,6 +6,7 @@ import { useI18n } from '@shell/composables/useI18n';
 import SortableTable from '@shell/components/SortableTable';
 import { BadgeState } from '@components/BadgeState';
 import { Checkbox } from '@components/Form/Checkbox';
+import { RcButton } from '@components/RcButton';
 import { useModal } from '@components/RcModal';
 import ComponentChecksTable from './ComponentChecksTable.vue';
 import IgnoreCheckModal from './IgnoreCheckModal.vue';
@@ -212,14 +213,14 @@ watch(filterText, (text) => {
     </template>
     <!-- the table's chevron can't take the keyboard focus, this opens the row from the keyboard -->
     <template #cell:component="{row}">
-      <button
-        type="button"
-        class="btn btn-sm role-link component-name"
+      <RcButton
+        variant="link"
+        class="component-name"
         :aria-expanded="!!table?.isExpanded(row)"
         @click="table.toggleExpand(row)"
       >
         {{ row.component }}
-      </button>
+      </RcButton>
     </template>
     <template #sub-row="{row, fullColspan}">
       <tr class="sub-row">
@@ -244,11 +245,14 @@ watch(filterText, (text) => {
 </template>
 
 <style lang="scss" scoped>
-  // a small button is taller than the table's rows
+  // a button is taller than the table's rows
   .component-name {
-    min-height: 0;
-    line-height: inherit;
-    padding: 0;
+    --rc-button-padding: 0;
+
+    &.rc-button.btn-medium:not(.btn-sm) {
+      min-height: 0;
+      line-height: inherit;
+    }
   }
 
   // the shell has this look for a table in a sub-row from 3.0.15, this can go with that bump
