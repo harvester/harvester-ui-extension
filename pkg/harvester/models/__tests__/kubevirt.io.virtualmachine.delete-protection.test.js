@@ -1,5 +1,5 @@
 import VirtVm from '../kubevirt.io.virtualmachine';
-import { VM_DELETE_PROTECTION_LABEL } from '../../config/labels-annotations';
+import { VM_DELETE_PROTECTION_LABEL, SETTING_TRUE_REGEX } from '../../config/labels-annotations';
 
 // Minimal stand-in for the Steve model: labels/setLabels behave like hybrid-class,
 // and patch is recorded so the tests can assert on the request.
@@ -56,9 +56,9 @@ describe('vM delete protection', () => {
   it.each([
     ['true', true],
     ['True', true],
-    ['TRUE', true],
-    ['1', true],
-    ['t', true],
+    ['TRUE', false],
+    ['1', false],
+    ['t', false],
     ['false', false],
     ['0', false],
     ['yes', false],
@@ -126,5 +126,22 @@ describe('vM delete protection', () => {
 
     vm.setLabels({ app: 'db' });
     expect(vm.metadata.labels).toStrictEqual({ app: 'db' });
+  });
+});
+
+describe('default-vm-delete-protection setting value', () => {
+  // The backend parses the setting with strconv.ParseBool, unlike the label.
+  it.each([
+    ['true', true],
+    ['True', true],
+    ['TRUE', true],
+    ['1', true],
+    ['t', true],
+    ['false', false],
+    ['0', false],
+    ['yes', false],
+    ['', false],
+  ])('setting value %p => default on %p', (value, expected) => {
+    expect(SETTING_TRUE_REGEX.test(value)).toBe(expected);
   });
 });

@@ -9,9 +9,12 @@ export const LABELS_TO_IGNORE_REGEX = [
 // KubeVirt's VM delete protection label (same key and semantics as kubevirt/ssp-operator).
 // The VM is protected when the value is "true" or "True".
 export const VM_DELETE_PROTECTION_LABEL = 'kubevirt.io/vm-delete-protection';
+// The label values that enable delete protection, as in the KubeVirt SSP policy and the
+// Harvester webhook.
+export const VM_DELETE_PROTECTION_REGEX = /^(true|True)$/;
 // The true values of Go's strconv.ParseBool, which the Harvester webhook uses for the
-// delete protection label and the default-vm-delete-protection setting.
-export const VM_DELETE_PROTECTION_REGEX = /^(1|t|T|TRUE|true|True)$/;
+// default-vm-delete-protection setting.
+export const SETTING_TRUE_REGEX = /^(1|t|T|TRUE|true|True)$/;
 
 export const HCI = {
   CLOUD_INIT:                       'harvesterhci.io/cloud-init-template',

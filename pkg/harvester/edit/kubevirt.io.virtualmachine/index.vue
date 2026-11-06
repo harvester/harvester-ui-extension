@@ -19,7 +19,7 @@ import KeyValue from '@shell/components/form/KeyValue';
 import { clear } from '@shell/utils/array';
 import { saferDump } from '@shell/utils/create-yaml';
 import { exceptionToErrorsArray } from '@shell/utils/error';
-import { HCI as HCI_ANNOTATIONS, VM_DELETE_PROTECTION_LABEL, VM_DELETE_PROTECTION_REGEX } from '@pkg/harvester/config/labels-annotations';
+import { HCI as HCI_ANNOTATIONS, VM_DELETE_PROTECTION_LABEL, VM_DELETE_PROTECTION_REGEX, SETTING_TRUE_REGEX } from '@pkg/harvester/config/labels-annotations';
 import { HCI_SETTING } from '@pkg/harvester/config/settings';
 import { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
 import CreateEditView from '@shell/mixins/create-edit-view';
@@ -212,7 +212,7 @@ export default {
     defaultDeleteProtection() {
       const setting = this.$store.getters[`${ this.inStore }/all`](HCI.SETTING).find((s) => s.id === HCI_SETTING.DEFAULT_VM_DELETE_PROTECTION) || {};
 
-      return VM_DELETE_PROTECTION_REGEX.test(setting.value || setting.default || '');
+      return SETTING_TRUE_REGEX.test(setting.value || setting.default || '');
     },
 
     deleteProtection: {
