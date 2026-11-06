@@ -74,6 +74,10 @@ export default {
   },
 
   methods: {
+    // A method, as normalizeValue also runs in data(), before computed properties are available
+    shutdownVMOnMigrationFailureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('shutdownVMOnMigrationFailure');
+    },
     normalizeValue(obj) {
       // handle nodeUpgradeOption.strategy
       if (obj?.nodeUpgradeOption?.strategy?.mode === 'auto') {
@@ -106,6 +110,9 @@ export default {
       }
       if (typeof obj.restoreVM !== 'boolean') {
         obj.restoreVM = false;
+      }
+      if (this.shutdownVMOnMigrationFailureEnabled() && typeof obj.shutdownVMOnMigrationFailure !== 'boolean') {
+        obj.shutdownVMOnMigrationFailure = false;
       }
 
       return obj;
@@ -183,6 +190,18 @@ export default {
           :labels="[t('generic.enabled'), t('generic.disabled')]"
           @update:value="update"
         />
+        <div v-if="shutdownVMOnMigrationFailureEnabled()">
+          <label class="mb-5"><b>{{ t('harvester.setting.upgrade.shutdownVMOnMigrationFailure') }}</b></label>
+          <RadioGroup
+            v-model:value="parseDefaultValue.shutdownVMOnMigrationFailure"
+            class="mb-20"
+            name="shutdownVMOnMigrationFailure"
+            :mode="mode"
+            :options="[true, false]"
+            :labels="[t('generic.enabled'), t('generic.disabled')]"
+            @update:value="update"
+          />
+        </div>
         <div v-if="resumeUpgradePausedNodeEnabled">
           <label class="mb-5"><b>{{ t('harvester.setting.upgrade.nodeUpgradeOption') }}</b></label>
           <LabeledSelect
