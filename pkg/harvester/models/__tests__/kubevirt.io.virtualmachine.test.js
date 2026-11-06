@@ -1,6 +1,6 @@
 import { reactive } from 'vue';
 import VirtVm from '../kubevirt.io.virtualmachine';
-import { POD, PVC } from '@shell/config/types';
+import { POD, PV, PVC } from '@shell/config/types';
 import { HCI } from '../../types';
 
 // The Steve base model and the shell resource class pull in most of the dashboard, none of that is needed here
@@ -15,7 +15,7 @@ const VM_ID = 'ns1/vm1';
 // Creates a VM model with mocked store getters. Like the real store, `all` returns the same array that is mutated in place.
 // Reads from the global `$rootGetters` are recorded in `globalReads`.
 function createVm({
-  vm = {}, vmi, pods = [], pvcs = [], restores = [], backups = [], claims = ['disk-pvc'], printableStatus
+  vm = {}, vmi, pods = [], pvcs = [], restores = [], backups = [], claims = ['disk-pvc'], printableStatus, root = {}
 } = {}) {
   const lists = reactive({
     [POD]:         pods,
@@ -31,7 +31,7 @@ function createVm({
     schemaFor: () => undefined,
   };
   const globalReads = [];
-  const rootGetters = new Proxy({ 'harvester-common/getFeatureEnabled': () => false }, {
+  const rootGetters = new Proxy({ 'harvester-common/getFeatureEnabled': () => false, ...root }, {
     get(target, key) {
       globalReads.push(key);
 
@@ -86,7 +86,131 @@ const pvc = (name, encrypted, ns = 'ns1') => ({
   isEncrypted: encrypted,
 });
 
+function backupVm({
+  actions = { backup: '/backup', snapshot: '/snapshot' }, volumes = [{}], target = 's3', csi = {}
+} = {}) {
+  const settings = {
+    'backup-target':     { value: JSON.stringify({ type: target }) },
+    'csi-driver-config': { value: JSON.stringify(csi) },
+  };
+  const pvcs = volumes.map((volume, i) => ({
+    id: `ns1/disk-${ i }`, name: `disk-${ i }`, isBlockVolume: true, ...volume
+  }));
+  const { vm } = createVm({
+    pvcs,
+    claims: pvcs.map((p) => p.name),
+    root:   {
+      'harvester-common/getFeatureEnabled': (feature) => feature === 'thirdPartyVMBackup',
+      'harvester/byId':                     (type, id) => settings[id],
+    },
+  });
+
+  vm.actions = actions;
+
+  return Object.fromEntries(vm.backupTypeOptions.map((option) => [option.value, option.unavailableReason]));
+}
+
+const LVM_CSI = { 'lvm.driver.harvesterhci.io': { volumeSnapshotClassName: 'lvm', backupVolumeSnapshotClassName: 'lvm' } };
+
 describe('class VirtVm', () => {
+  describe('canTakeBackup', () => {
+    it.each([
+      [{ backup: '/b' }, true, true],
+      [{ snapshot: '/s' }, true, true],
+      [{ snapshot: '/s' }, false, false],
+      [{ backup: '/b' }, false, true],
+      [{}, true, false],
+    ])('with actions %j and the feature %s returns %s', (actions, enabled, expected) => {
+      const { vm } = createVm({ root: { 'harvester-common/getFeatureEnabled': () => enabled } });
+
+      vm.actions = actions;
+
+      expect(vm.canTakeBackup).toBe(expected);
+    });
+  });
+
+  describe('backupTypeOptions', () => {
+    it('should offer every type when a third-party driver has both snapshot classes', () => {
+      const reasons = backupVm({ csi: LVM_CSI, volumes: [{ volumeProvider: 'lvm.driver.harvesterhci.io' }] });
+
+      expect(reasons).toStrictEqual({
+        backup: undefined, restic: undefined, kopia: undefined
+      });
+    });
+
+    it('should explain a driver without a backup snapshot class on native only', () => {
+      const reasons = backupVm({
+        csi:     { 'lvm.driver.harvesterhci.io': { volumeSnapshotClassName: 'lvm' } },
+        volumes: [{ volumeProvider: 'lvm.driver.harvesterhci.io' }],
+      });
+
+      expect(reasons.backup).toBe('harvester.backup.typeUnavailable.noBackupSnapshotClass');
+      expect(reasons.kopia).toBeUndefined();
+    });
+
+    it('should offer only Restic and Kopia on Longhorn v2, where the backend drops the backup action', () => {
+      const reasons = backupVm({
+        actions: { snapshot: '/s' },
+        volumes: [{ isLonghornV2: true, volumeProvider: 'driver.longhorn.io' }],
+      });
+
+      expect(reasons.backup).toBe('harvester.backup.typeUnavailable.longhornV2');
+      expect(reasons.restic).toBeUndefined();
+    });
+
+    it('should explain a CDI volume on native', () => {
+      const reasons = backupVm({ actions: { snapshot: '/s' }, volumes: [{ isCreatedForDataVolume: true }] });
+
+      expect(reasons.backup).toBe('harvester.backup.typeUnavailable.cdi');
+      expect(reasons.kopia).toBeUndefined();
+    });
+
+    it.each([
+      ['an NFS target', { target: 'nfs' }, 'requiresS3'],
+      ['a Filesystem volume', { volumes: [{ isBlockVolume: false }] }, 'requiresBlock'],
+      ['a Longhorn v1 volume', { volumes: [{ isLonghornV1: true }] }, 'longhornV1'],
+      ['one bad volume among good ones', { volumes: [{}, { isLonghornV1: true }] }, 'longhornV1'],
+      ['a driver without a snapshot class', {
+        actions: { backup: '/b' },
+        csi:     { 'lvm.driver.harvesterhci.io': { backupVolumeSnapshotClassName: 'lvm' } },
+        volumes: [{ volumeProvider: 'lvm.driver.harvesterhci.io' }],
+      }, 'noSnapshotClass'],
+      ['no snapshot action', { actions: { backup: '/b' } }, 'snapshot'],
+    ])('should block Restic and Kopia with %s', (_, args, reason) => {
+      const reasons = backupVm(args);
+
+      expect(reasons.restic).toBe(`harvester.backup.typeUnavailable.${ reason }`);
+      expect(reasons.kopia).toBe(`harvester.backup.typeUnavailable.${ reason }`);
+    });
+
+    it('should leave a driver check to the webhook when the CSI config is unreadable', () => {
+      const { vm } = createVm({
+        pvcs:   [{ id: 'ns1/disk-pvc', volumeProvider: 'lvm.driver.harvesterhci.io' }],
+        root:   { 'harvester/byId': () => undefined },
+      });
+
+      expect(vm.driverMissingSnapshotClass('backupVolumeSnapshotClassName')).toBeUndefined();
+    });
+  });
+
+  describe('fetchBackupTypeRequirements', () => {
+    it('should load only what the VM needs and survive a resource the user cannot read', async() => {
+      const { vm, lists } = createVm({ pvcs: [{ id: 'ns1/disk-pvc', spec: { volumeName: 'pv-1' } }] });
+      const dispatch = jest.fn((_, { type }) => (type === PV ? Promise.reject(new Error('forbidden')) : Promise.resolve()));
+
+      Object.defineProperty(vm, '$dispatch', { value: dispatch });
+
+      await expect(vm.fetchBackupTypeRequirements()).resolves.toBeUndefined();
+
+      expect(lists[PVC]).toHaveLength(1);
+      expect(dispatch).toHaveBeenCalledWith('find', { type: PVC, id: 'ns1/disk-pvc' });
+      expect(dispatch).toHaveBeenCalledWith('find', { type: HCI.SETTING, id: 'backup-target' });
+      expect(dispatch).toHaveBeenCalledWith('find', { type: HCI.SETTING, id: 'csi-driver-config' });
+      expect(dispatch).toHaveBeenCalledWith('find', { type: PV, id: 'pv-1' });
+      expect(dispatch).toHaveBeenCalledTimes(4);
+    });
+  });
+
   describe('restoreResource', () => {
     it('should distinguish snapshots from backups and follow backup updates', () => {
       const { vm, lists } = createVm({
@@ -106,6 +230,9 @@ describe('class VirtVm', () => {
 
       expect(vm.restoreResource.fromSnapshot).toBe(false);
       expect(vm.restoreState).toBe(false);
+
+      lists[HCI.BACKUP][1].spec.type = 'kopia';
+      expect(vm.restoreResource.fromSnapshot).toBe(false);
 
       lists[HCI.BACKUP][1].spec.type = 'snapshot';
       expect(vm.restoreResource.fromSnapshot).toBe(true);

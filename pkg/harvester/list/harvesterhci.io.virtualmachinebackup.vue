@@ -112,6 +112,15 @@ export default {
         },
       ];
 
+      if (this.thirdPartyBackupFeatureEnabled) {
+        cols.push({
+          name:     'backupType',
+          labelKey: 'harvester.fields.type',
+          value:    'backupTypeLabel',
+          sort:     'backupTypeLabel',
+        });
+      }
+
       if (this.schedulingVMBackupFeatureEnabled) {
         cols.push({
           name:      'backupCreatedFrom',
@@ -153,6 +162,10 @@ export default {
       return cols;
     },
 
+    thirdPartyBackupFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('thirdPartyVMBackup');
+    },
+
     schedulingVMBackupFeatureEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('schedulingVMBackup');
     },
@@ -164,7 +177,7 @@ export default {
       return this.backups.filter((r) => r.spec?.type !== BACKUP_TYPE.SNAPSHOT);
     },
     getRawRows() {
-      return this.rows.filter((r) => r.spec?.type === BACKUP_TYPE.BACKUP);
+      return this.rows.filter((r) => r.spec?.type !== BACKUP_TYPE.SNAPSHOT);
     },
     backupTargetResource() {
       return this.settings.find((O) => O.id === 'backup-target');

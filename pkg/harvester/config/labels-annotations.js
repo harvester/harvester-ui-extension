@@ -89,6 +89,7 @@ export const HCI = {
   STATIC_IP:                        'static-ip.harvesterhci.io',
   NODE_UPGRADE_PAUSE_MAP:           'harvesterhci.io/node-upgrade-pause-map',
   CDI_POPULATOR_KIND:               'cdi.kubevirt.io/storage.populator.kind',
+  CDI_CREATED_FOR_DATA_VOLUME:      'cdi.kubevirt.io/createdForDataVolume',
   CNI_NETWORKS:                     'k8s.v1.cni.cncf.io/networks',
   WINDOWS_SYSPREP:                  'harvesterhci.io/windows-sysprep',
   SKIP_MIG_CONFIGURATION:           'harvesterhci.io/skip-mig-configuration',

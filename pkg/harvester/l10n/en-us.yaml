@@ -96,6 +96,7 @@ harvester:
     backup:
       success: 'Backup { backUpName } has been initiated.'
       addBackup: Add Backup
+      noTypeAvailable: No backup type can protect this virtual machine.
       fileSystemFreezeDeadline:
         label: 'File System Freeze Deadline'
     quota:
@@ -1309,6 +1310,24 @@ harvester:
       label: Refresh Interval
       tip: The interval for the backup target to sync data to [[Harvester]] cluster. Set to 0 to disable refresh mechanism.
     backupTargetTip: The endpoint used to access the backupstore. NFS and S3 are supported.
+    kopiaGC:
+      label: Enable Kopia Garbage Collection
+      tooltip: Runs scheduled Kopia maintenance to remove unused data from the S3 repository.
+    type:
+      backup: Native
+      snapshot: Snapshot
+      restic: Restic
+      kopia: Kopia
+    typeUnavailable:
+      native: Not supported by the volumes of this virtual machine.
+      longhornV2: Not supported on Longhorn V2 volumes such as {volume}.
+      cdi: Not supported on volumes created from a CDI image such as {volume}.
+      noBackupSnapshotClass: Set a backup volume snapshot class for {driver} in the csi-driver-config setting.
+      requiresS3: Requires an S3 backup target.
+      requiresBlock: Requires Block volume mode, but {volume} uses Filesystem.
+      longhornV1: Not supported on Longhorn V1 volumes such as {volume}.
+      noSnapshotClass: Set a volume snapshot class for {driver} in the csi-driver-config setting.
+      snapshot: The volumes of this virtual machine cannot be snapshotted.
     message:
       noSetting:
         prefix: You must configure the backup target
@@ -1738,6 +1757,17 @@ harvester:
       allowWorkloadDisruption: "Allow Workload Disruption"
       disableTLS: "Disable TLS"
       matchSELinuxLevelOnMigration: "Match SELinux Level On Migration"
+    thirdPartyBackupConfig:
+      parseError: "Failed to parse configuration: {error}"
+      memoryRequest: Memory Request
+      memoryLimit: Memory Limit
+      ephemeralRequest: Ephemeral Storage Request
+      ephemeralLimit: Ephemeral Storage Limit
+      cacheSize: Cache Size
+      cacheSizeHint: Must be less than the ephemeral storage limit.
+      maxConcurrentJobs: Maximum Concurrent Jobs
+      maxConcurrentJobsHint: Set to 0 for no limit.
+      noCache: Disable Cache
 
   cloudTemplate:
     label: Cloud Configuration Templates
@@ -2636,6 +2666,7 @@ advancedSettings:
     'harv-rancher-cluster': 'Configure Rancher cluster integration settings for guest cluster management.'
     'harv-max-hotplug-ratio': 'The ratio for kubevirt to limit the maximum CPU and memory that can be hotplugged to a VM. The value could be an integer between 1 and 20, default to 4.'
     'harv-kubevirt-migration': 'Configure cluster-wide KubeVirt live migration parameters.'
+    'harv-third-party-backup-config': 'Configure the resources and concurrency of Restic and Kopia virtual machine backup jobs.'
     'harv-instance-manager-resources': 'Configure resource percentage reservations for Longhorn instance manager V1 and V2. Valid instance manager CPU range between 0 - 40.'
     'harv-cluster-pod-security-standard': 'Enforce Kubernetes Pod Security Standards (PSS) at the cluster level.'
     'harv-maintenance-mode-drain-timeout': 'Maintenance mode drain timeout in minutes. Use 0 to disable the timeout.'
