@@ -63,7 +63,6 @@ async function remove() {
     :show="modal.show"
     :title="t('promptRemove.title')"
     size="small"
-    class="delete-ignore-rule"
     data-testid="component-health-delete-rule-modal"
     @close="close"
     @primary-action="remove"
@@ -83,7 +82,6 @@ async function remove() {
       <RcButton
         variant="primary"
         size="large"
-        class="delete-ignore-rule__confirm"
         :disabled="removing"
         :aria-busy="removing"
         data-testid="component-health-delete-rule-confirm"
@@ -94,17 +92,3 @@ async function remove() {
     </template>
   </RcModal>
 </template>
-
-<style lang="scss" scoped>
-  .delete-ignore-rule {
-    &__confirm.rc-button.variant-primary:not(:disabled) {
-      background-color: var(--error);
-      color: var(--error-text);
-
-      &:hover, &:focus {
-        background-color: var(--error-hover-bg);
-        color: var(--error-hover-text);
-      }
-    }
-  }
-</style>

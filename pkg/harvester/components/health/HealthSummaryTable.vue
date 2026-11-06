@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { HCI } from '../../types';
 import { useStore } from 'vuex';
 import { useI18n } from '@shell/composables/useI18n';
@@ -13,8 +13,8 @@ import DeleteIgnoreRuleModal from './DeleteIgnoreRuleModal.vue';
 import IgnoreRuleModal from './IgnoreRuleModal.vue';
 import { allSettled } from '../../utils/promise';
 import {
-  COMPONENT_HEALTH_SEVERITIES, HEALTH_SUMMARY_SEVERITY_RANK, NODE_LABEL, activeAffectedResourceNames, affectedResourceKind,
-  allAffectedResourceNames, componentOf, healthSummarySeverity, severityColor
+  COMPONENT_HEALTH_SEVERITIES, HEALTH_SUMMARY_SEVERITY_RANK, activeAffectedResourceNames, affectedResourceKind,
+  affectedResourceLabel, allAffectedResourceNames, componentOf, healthSummarySeverity, severityColor
 } from '../../utils/component-health';
 
 const store = useStore();
@@ -48,6 +48,7 @@ const headers = [
     labelKey: 'harvester.dashboard.sections.healthSummary.errorCount',
     value:    'errorCount',
     sort:     'errorCount',
+    search:   false,
     width:    120,
   },
   {
@@ -56,18 +57,8 @@ const headers = [
     labelKey: 'harvester.dashboard.sections.healthSummary.warningCount',
     value:    'warningCount',
     sort:     'warningCount',
+    search:   false,
     width:    120,
-  },
-  {
-    align:         'right',
-    name:          'lastUpdatedAt',
-    labelKey:      'harvester.dashboard.sections.healthSummary.lastUpdatedAt',
-    value:         'lastUpdatedAt',
-    sort:          'lastUpdatedAt:desc',
-    formatter:     'LiveDate',
-    formatterOpts: { addSuffix: true },
-    search:        false,
-    width:         140,
   },
 ];
 
@@ -79,14 +70,13 @@ const {
 } = useModal();
 
 const showIgnored = ref(false);
-const filterText = computed(() => (table.value?.searchQuery || '').trim().toLowerCase());
+const filterText = computed(() => table.value?.searchQuery || '');
 
 const checks = computed(() => {
   const result = [];
 
   (componentHealths.value || []).forEach((componentHealth) => {
     const component = componentOf(componentHealth);
-    const node = componentHealth?.metadata?.labels?.[NODE_LABEL] || '';
     const statusChecks = componentHealth?.status?.checks || {};
     const lastUpdatedAt = componentHealth?.status?.lastUpdatedAt;
 
@@ -95,7 +85,6 @@ const checks = computed(() => {
         id:                  `${ componentHealth.id }/${ checkName }`,
         component,
         componentHealthName: componentHealth.metadata?.name,
-        node,
         checkName,
         ignored:             !!check.ignored,
         severity:            check.severity,
@@ -117,10 +106,11 @@ const shownChecks = computed(() => checks.value.filter((check) => showIgnored.va
   filterText: [
     check.component,
     check.severity,
-    check.node,
     check.checkName,
     check.message,
+    check.affectedResources?.apiVersion,
     affectedResourceKind(check),
+    affectedResourceLabel(check, store),
     ...(showIgnored.value ? allAffectedResourceNames(check) : activeAffectedResourceNames(check)),
   ].join(' ').toLowerCase(),
 })));
@@ -131,25 +121,19 @@ const hasIgnored = computed(() => {
 
 const rows = computed(() => {
   const result = [];
-  // split as the table splits what it filters by
-  const filterWords = filterText.value.split(/\s*[, ]\s*/);
 
   (healthSummaries.value || []).forEach((healthSummary) => {
     const components = healthSummary?.status?.components || {};
-    const lastUpdatedAt = healthSummary?.status?.lastUpdatedAt;
 
     Object.entries(components).forEach(([component, counts]) => {
       const componentChecks = shownChecks.value.filter((check) => check.component === component);
-      const matchingChecks = componentChecks.filter((check) => filterWords.every((word) => check.filterText.includes(word)));
       const row = {
         id:               `${ healthSummary.id }/${ component }`,
         component,
         errorCount:       counts?.errorCount || 0,
         warningCount:     counts?.warningCount || 0,
-        lastUpdatedAt,
         checksFilterText: componentChecks.map((check) => check.filterText).join(' '),
-        // a row the filter found by its own columns keeps all its checks
-        checks:           matchingChecks.length ? matchingChecks : componentChecks,
+        checks:           componentChecks,
       };
 
       row.severity = healthSummarySeverity(row);
@@ -181,12 +165,14 @@ onMounted(async() => {
   loading.value = false;
 });
 
-// a closed row would hide what the filter found
-watch(filterText, (text) => {
-  if (text) {
-    table.value.filteredRows.filter((row) => !table.value.isExpanded(row)).forEach((row) => table.value.toggleExpand(row));
-  }
-});
+// the table has these from shell 3.0.15, in the props of its #header-right slot, so they can go with that bump
+function expandAll() {
+  table.value.expanded = Object.fromEntries(rows.value.map((row) => [row.id, true]));
+}
+
+function collapseAll() {
+  table.value.expanded = {};
+}
 </script>
 
 <template>
@@ -206,12 +192,37 @@ watch(filterText, (text) => {
     default-sort-by="severity"
   >
     <template #header-left>
-      <Checkbox
+      <div
         v-if="hasIgnored"
-        v-model:value="showIgnored"
-        type="checkbox"
-        :label="t('harvester.dashboard.sections.componentHealth.showIgnored')"
-      />
+        class="show-ignored"
+      >
+        <Checkbox
+          v-model:value="showIgnored"
+          type="checkbox"
+          :label="t('harvester.dashboard.sections.componentHealth.showIgnored')"
+        />
+      </div>
+    </template>
+    <template #header-right>
+      <div
+        v-if="rows.length"
+        class="expand-actions"
+      >
+        <RcButton
+          variant="link"
+          size="small"
+          @click="expandAll"
+        >
+          {{ t('harvester.dashboard.sections.healthSummary.expandAll') }}
+        </RcButton>
+        <RcButton
+          variant="link"
+          size="small"
+          @click="collapseAll"
+        >
+          {{ t('harvester.dashboard.sections.healthSummary.collapseAll') }}
+        </RcButton>
+      </div>
     </template>
     <template #cell:severity="{row}">
       <BadgeState
@@ -238,6 +249,7 @@ watch(filterText, (text) => {
             :rows="row.checks"
             :ignore-rules="ignoreRules"
             :show-ignored="showIgnored"
+            :filter-text="filterText"
             @open-rule="openRuleModal"
             @delete-rule="openDeleteModal"
           />
@@ -259,6 +271,19 @@ watch(filterText, (text) => {
 </template>
 
 <style lang="scss" scoped>
+  // the filter box in the same row is taller, this lines up with it
+  .show-ignored {
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+
+  .expand-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   // a button is taller than the table's rows
   .component-name {
     --rc-button-padding: 0;

@@ -27,6 +27,7 @@ import HarvesterUpgrade from '../components/HarvesterUpgrade';
 import HealthSummaryTable from '../components/health/HealthSummaryTable';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
 import { UNIT_SUFFIX } from '../utils/unit';
+import { totalErrorCount } from '../utils/component-health';
 
 dayjs.extend(utc);
 dayjs.extend(minMax);
@@ -245,6 +246,12 @@ export default {
 
       return this.$store.getters['harvester-common/getFeatureEnabled']('componentHealth') &&
         !!this.$store.getters[`${ inStore }/schemaFor`](HCI.HEALTH_SUMMARY);
+    },
+
+    componentErrorCount() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+
+      return totalErrorCount(this.$store.getters[`${ inStore }/all`](HCI.HEALTH_SUMMARY));
     },
 
     accessibleResources() {
@@ -836,6 +843,7 @@ export default {
           name="components"
           :label="t('harvester.dashboard.sections.componentHealth.label')"
           :weight="95"
+          :badge="componentErrorCount"
         >
           <HealthSummaryTable />
         </Tab>

@@ -1,5 +1,4 @@
 export const COMPONENT_LABEL = 'health.harvesterhci.io/component';
-export const NODE_LABEL = 'health.harvesterhci.io/node';
 export const IGNORE_RULE_SOURCE_LABEL = 'health.harvesterhci.io/source';
 
 export const IGNORE_DURATION_DAYS = {
@@ -8,21 +7,20 @@ export const IGNORE_DURATION_DAYS = {
   forever: 0,
 };
 
-export const AFFECTED_RESOURCES_TRUNCATE_COUNT = 5;
+export const AFFECTED_RESOURCES_TRUNCATE_COUNT = 3;
 export const MESSAGE_TRUNCATE_LENGTH = 100;
 
 export const SEVERITY_COLORS = {
-  Critical: 'bg-error',
-  Error:    'bg-error',
-  Warning:  'bg-warning',
-  Info:     'bg-info',
-  Healthy:  'bg-success',
+  Error:   'bg-error',
+  Warning: 'bg-warning',
+  Info:    'bg-info',
+  Healthy: 'bg-success',
 };
 
 export const HEALTH_SUMMARY_SEVERITY_RANK = {
-  Critical: 0,
-  Warning:  1,
-  Healthy:  2,
+  Error:   0,
+  Warning: 1,
+  Healthy: 2,
 };
 
 export const COMPONENT_HEALTH_SEVERITIES = ['Error', 'Warning', 'Info'];
@@ -33,7 +31,7 @@ export function severityColor(severity) {
 
 export function healthSummarySeverity(row) {
   if (row.errorCount > 0) {
-    return 'Critical';
+    return 'Error';
   }
 
   if (row.warningCount > 0) {
@@ -41,6 +39,13 @@ export function healthSummarySeverity(row) {
   }
 
   return 'Healthy';
+}
+
+// the summaries already leave out what is ignored
+export function totalErrorCount(healthSummaries) {
+  return (healthSummaries || []).reduce((total, summary) => {
+    return Object.values(summary?.status?.components || {}).reduce((sum, counts) => sum + (counts?.errorCount || 0), total);
+  }, 0);
 }
 
 export function componentOf(componentHealth) {
@@ -65,11 +70,14 @@ export function resourceIgnoredBy(row, name) {
 }
 
 export function affectedResourceKind(row) {
-  const { apiVersion, kind } = row?.affectedResources || {};
+  return row?.affectedResources?.kind || '';
+}
 
-  if (!kind) {
-    return '';
-  }
+// what the UI calls that kind, in the singular or plural of how many there are
+export function affectedResourceLabel(row, store) {
+  const { apiVersion = '', kind = '' } = row?.affectedResources || {};
+  const group = apiVersion.includes('/') ? `${ apiVersion.split('/')[0] }.` : '';
+  const schema = store.getters['harvester/schemaFor'](`${ group }${ kind.toLowerCase() }`);
 
-  return apiVersion ? `${ apiVersion }, ${ kind }` : kind;
+  return schema ? store.getters['type-map/labelFor'](schema, row.affectedCount) : kind;
 }

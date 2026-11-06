@@ -518,18 +518,17 @@ harvester:
         severity: Severity
         errorCount: Errors
         warningCount: Warnings
-        lastUpdatedAt: Last Updated
+        expandAll: Expand All
+        collapseAll: Collapse All
       componentHealth:
         label: Components
         component: Component
-        node: Node
         check: Check
         severity: Severity
         message: Message
         affectedCount: Affected Resources
         lastUpdatedAt: Last Updated
         noAffectedResources: No affected resources
-        moreAffectedResources: '+{count} more'
         noIssues: No issues detected
         showIgnored: Show ignored
         ignore:

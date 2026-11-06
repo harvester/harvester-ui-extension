@@ -1,15 +1,16 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useStore } from 'vuex';
 import SortableTable from '@shell/components/SortableTable';
 import { BadgeState } from '@components/BadgeState';
+import { RcCounterBadge, RcTag } from '@components/Pill';
 import { RcButton } from '@components/RcButton';
 import { useI18n } from '@shell/composables/useI18n';
 import { _CREATE, _EDIT, _VIEW } from '@shell/config/query-params';
 import { HCI } from '../../types';
 import {
   AFFECTED_RESOURCES_TRUNCATE_COUNT, MESSAGE_TRUNCATE_LENGTH,
-  activeAffectedResourceNames, affectedResourceKind, allAffectedResourceNames, resourceIgnoredBy, severityColor
+  activeAffectedResourceNames, affectedResourceLabel, allAffectedResourceNames, resourceIgnoredBy, severityColor
 } from '../../utils/component-health';
 
 const props = defineProps({
@@ -25,6 +26,11 @@ const props = defineProps({
     type:    Boolean,
     default: false,
   },
+  // what is typed in the filter box of the table this one sits in
+  filterText: {
+    type:    String,
+    default: '',
+  },
 });
 
 const emit = defineEmits(['open-rule', 'delete-rule']);
@@ -32,30 +38,28 @@ const emit = defineEmits(['open-rule', 'delete-rule']);
 const store = useStore();
 const { t } = useI18n(store);
 
-const allHeaders = [
+const headers = [
   {
     name:     'severity',
     labelKey: 'harvester.dashboard.sections.componentHealth.severity',
     value:    'severityRank',
     sort:     'severityRank',
+    search:   false,
     width:    110,
-  },
-  {
-    name:     'node',
-    labelKey: 'harvester.dashboard.sections.componentHealth.node',
-    value:    'node',
-    sort:     'node',
   },
   {
     name:     'checkName',
     labelKey: 'harvester.dashboard.sections.componentHealth.check',
     value:    'checkName',
     sort:     'checkName',
+    // all that a row shows, so the filter also finds a resource hidden behind "more"
+    search:   'filterText',
   },
   {
     name:          'message',
     labelKey:      'harvester.dashboard.sections.componentHealth.message',
     value:         'message',
+    search:        false,
     canBeVariable: true,
   },
   {
@@ -63,7 +67,8 @@ const allHeaders = [
     labelKey:      'harvester.dashboard.sections.componentHealth.affectedCount',
     value:         'affectedCount',
     sort:          'affectedCount',
-    width:         260,
+    search:        false,
+    width:         340,
     canBeVariable: true,
   },
   {
@@ -74,11 +79,19 @@ const allHeaders = [
     sort:          'lastUpdatedAt:desc',
     formatter:     'LiveDate',
     formatterOpts: { addSuffix: true },
+    search:        false,
     width:         140,
   },
 ];
 
-const headers = computed(() => allHeaders.filter((header) => header.name !== 'node' || props.rows.some((row) => row.node)));
+const table = ref(null);
+
+// this table has no filter box of its own, but it filters its rows the same way
+watch([table, () => props.filterText], ([checksTable, text]) => {
+  if (checksTable) {
+    checksTable.searchQuery = text;
+  }
+});
 
 const canCreateRule = computed(() => {
   const schema = store.getters['harvester/schemaFor'](HCI.HEALTH_IGNORE_RULE);
@@ -154,6 +167,10 @@ function visibleAffectedResourceNames(row) {
 function remainingAffectedResourcesCount(row) {
   return Math.max(affectedResourceNames(row).length - AFFECTED_RESOURCES_TRUNCATE_COUNT, 0);
 }
+
+function isResourceIgnored(row, name) {
+  return row.ignored || !!resourceIgnoredBy(row, name);
+}
 </script>
 
 <template>
@@ -165,6 +182,7 @@ function remainingAffectedResourcesCount(row) {
   </div>
   <SortableTable
     v-else
+    ref="table"
     :rows="rowsWithActions"
     :headers="headers"
     key-field="id"
@@ -181,19 +199,15 @@ function remainingAffectedResourcesCount(row) {
       />
     </template>
     <template #cell:checkName="{row, value}">
-      {{ value }}
-      <span
-        v-if="row.ignored"
-        class="text-muted"
-      >
-        ({{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }})
+      <span :class="{ 'text-muted': row.ignored }">
+        {{ value }}
+        <template v-if="row.ignored">
+          ({{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }})
+        </template>
       </span>
     </template>
-    <template #cell:node="{value}">
-      {{ value || '-' }}
-    </template>
     <template #cell:message="{row, value}">
-      <span>
+      <span :class="{ 'text-muted': row.ignored }">
         {{ displayedMessage(row, value) }}
         <RcButton
           v-if="isMessageTruncated(value)"
@@ -203,24 +217,38 @@ function remainingAffectedResourcesCount(row) {
           :aria-expanded="expandedMessageIds.includes(row.id)"
           @click="toggleId(expandedMessageIds, row.id)"
         >
-          {{ expandedMessageIds.includes(row.id) ? t('harvester.generic.hideMore') : t('harvester.generic.showMore') }}
+          {{ expandedMessageIds.includes(row.id) ? t('generic.showLess') : t('generic.showMore') }}
         </RcButton>
       </span>
     </template>
     <template #cell:affectedCount="{row, value}">
-      <div v-if="affectedResourceNames(row).length">
-        <div class="text-muted">
-          {{ affectedResourceKind(row) }} ({{ value }})
+      <div
+        v-if="affectedResourceNames(row).length"
+        class="affected-resources"
+      >
+        <div class="affected-title">
+          <span class="text-label">{{ affectedResourceLabel(row, store) }}</span>
+          <RcCounterBadge
+            :count="value || affectedResourceNames(row).length"
+            type="inactive"
+          />
+          <span class="api-version text-muted">{{ row.affectedResources.apiVersion }}</span>
         </div>
-        <div
-          v-for="name in visibleAffectedResourceNames(row)"
-          :key="name"
-          :class="{ 'text-muted': resourceIgnoredBy(row, name) }"
-        >
-          {{ name }}
-          <span v-if="resourceIgnoredBy(row, name)">
-            ({{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }})
-          </span>
+        <div class="affected-names">
+          <RcTag
+            v-for="name in visibleAffectedResourceNames(row)"
+            :key="name"
+            class="affected-name"
+            :class="{ ignored: isResourceIgnored(row, name) }"
+            type="inactive"
+            :disabled="isResourceIgnored(row, name)"
+          >
+            <span class="name">{{ name }}</span>
+            <!-- when all of the check is ignored its name says so -->
+            <span v-if="!row.ignored && isResourceIgnored(row, name)">
+              ({{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }})
+            </span>
+          </RcTag>
         </div>
         <RcButton
           v-if="remainingAffectedResourcesCount(row)"
@@ -230,7 +258,7 @@ function remainingAffectedResourcesCount(row) {
           :aria-expanded="expandedResourceIds.includes(row.id)"
           @click="toggleId(expandedResourceIds, row.id)"
         >
-          {{ expandedResourceIds.includes(row.id) ? t('harvester.generic.hideMore') : t('harvester.dashboard.sections.componentHealth.moreAffectedResources', { count: remainingAffectedResourcesCount(row) }) }}
+          {{ expandedResourceIds.includes(row.id) ? t('generic.showLess') : t('generic.plusMore', { n: remainingAffectedResourcesCount(row) }) }}
         </RcButton>
       </div>
       <span v-else>
@@ -244,5 +272,49 @@ function remainingAffectedResourcesCount(row) {
   // these sit next to text, so they line up with it
   .compact-link {
     --rc-button-padding: 0;
+  }
+
+  .affected-resources {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 4px 0;
+  }
+
+  .affected-title {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    margin-bottom: 4px;
+  }
+
+  .api-version {
+    font-size: 12px;
+  }
+
+  .affected-names {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .affected-name {
+    max-width: 100%;
+    font-size: 12px;
+
+    // a long name wraps, so none is ever cut off
+    .name {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+
+    // the ones that count are filled, the ignored ones are only outlined
+    &.rc-tag.ignored {
+      background: transparent;
+      border-style: dashed;
+      border-color: var(--rc-disabled-text-color);
+    }
   }
 </style>

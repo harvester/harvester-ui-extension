@@ -1,11 +1,14 @@
 import { mount as vtuMount, flushPromises } from '@vue/test-utils';
 import { createStore } from 'vuex';
+import { BadgeState } from '@components/BadgeState';
 import { Checkbox } from '@components/Form/Checkbox';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { RadioGroup } from '@components/Form/Radio';
+import { RcCounterBadge, RcTag } from '@components/Pill';
 import { RcModal } from '@components/RcModal';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { HCI } from '../../../types';
+import { affectedResourceLabel, totalErrorCount } from '../../../utils/component-health';
 import HealthSummaryTable from '../HealthSummaryTable.vue';
 import ComponentChecksTable from '../ComponentChecksTable.vue';
 import DeleteIgnoreRuleModal from '../DeleteIgnoreRuleModal.vue';
@@ -40,6 +43,7 @@ const opts = (props = {}) => {
       'prefs/get':           () => () => false,
       currentProduct:        () => ({ inStore: 'harvester' }),
       'harvester/schemaFor': () => (type) => (props.noSchemaFor === type ? null : { collectionMethods: props.collectionMethods || ['GET', 'POST'] }),
+      'type-map/labelFor':   () => (schema, count) => `label of ${ count }`,
     },
     actions: {
       'growl/success':     jest.fn(),
@@ -62,25 +66,27 @@ const toggleExpand = jest.fn();
 
 // renders the summary rows with every sub-row open, and the checks of each sub-row
 const summaryTable = {
-  props: ['rows'],
+  props: ['rows', 'headers'],
   data() {
-    return { searchQuery: '' };
-  },
-  computed: {
-    filteredRows() {
-      return this.rows.filter((row) => row.checksFilterText.includes(this.searchQuery));
-    }
+    return { searchQuery: '', expanded: {} };
   },
   methods:  { toggleExpand, isExpanded: () => false },
   template: `<div>
     <slot name="header-left" />
+    <slot name="header-right" />
     <div class="summary">{{ rows.map(r => r.id + ":" + r.severityRank).join(",") }}</div>
     <div v-for="row in rows" :key="row.id" class="name"><slot name="cell:component" :row="row" /></div>
     <div v-for="row in rows" :key="row.id" :class="'sub-' + row.component"><slot name="sub-row" :row="row" :fullColspan="1" /></div>
   </div>`,
 };
 
-const checksTable = { props: ['rows'], template: '<div class="checks">{{ rows.map(r => r.id + ":" + r.severityRank).join(",") }}</div>' };
+const checksTable = {
+  props: ['rows', 'headers'],
+  data() {
+    return { searchQuery: '' };
+  },
+  template: '<div class="checks">{{ rows.map(r => r.id + ":" + r.severityRank).join(",") }}</div>',
+};
 
 const mountSummary = async(props) => {
   const base = opts(props);
@@ -235,36 +241,44 @@ describe('health components', () => {
 
     expect(w.findComponent(ComponentChecksTable).props('rows').map((r) => `${ r.id }:${ r.severityRank }`)).toStrictEqual(['h/a:2', 'h/b:0', 'h/c:1']);
   });
-  it('only shows the checks the table filter found', async() => {
+  it('gives what was typed in the outer table to the table of checks', async() => {
     const w = await mountSummary({
-      healthSummaries:  [summaryOf({ x: { errorCount: 1 }, y: { errorCount: 1, warningCount: 1 } })],
-      componentHealths: [
-        healthOf('h1', 'x', { a: { severity: 'Error' } }),
-        healthOf('h2', 'y', { b: { severity: 'Error', message: 'Disk is full' }, c: { severity: 'Warning', message: 'Disk is slow' } }),
-      ],
+      healthSummaries:  [summaryOf({ x: { errorCount: 1 } })],
+      componentHealths: [healthOf('h', 'x', { a: { severity: 'Error' } })],
     });
-    const filterBy = (searchQuery) => w.findComponent(summaryTable).setData({ searchQuery });
-    const rowsOf = (component) => w.findAllComponents(ComponentChecksTable).find((c) => c.element.closest(`.sub-${ component }`)).props('rows').map((r) => r.id);
 
-    await filterBy('  WARN ');
-    expect(rowsOf('y')).toStrictEqual(['h2/c']);
+    await w.findComponent(summaryTable).setData({ searchQuery: 'warn' });
 
-    await filterBy('disk, full');
-    expect(rowsOf('y')).toStrictEqual(['h2/b']);
-
-    await filterBy('');
-    expect(rowsOf('y')).toStrictEqual(['h2/b', 'h2/c']);
+    expect(w.findComponent(ComponentChecksTable).props('filterText')).toBe('warn');
   });
-  it('keeps all the checks of a row the table filter found by its own columns', async() => {
+  it('lets the table of checks filter its own rows', async() => {
+    const w = mountChecks({ rows: [CHECK], filterText: 'warn' });
+    const table = w.findComponent(checksTable);
+
+    await flushPromises();
+
+    expect(table.vm.searchQuery).toBe('warn');
+
+    await w.setProps({ filterText: 'error' });
+
+    expect(table.vm.searchQuery).toBe('error');
+    expect(table.props('headers').filter((header) => header.search !== false).map((header) => header.search)).toStrictEqual(['filterText']);
+  });
+  it('calls a row with errors Error, and only its errors match that word', async() => {
     const w = await mountSummary({
       healthSummaries:  [summaryOf({ x: { errorCount: 1 } })],
       componentHealths: [healthOf('h', 'x', { a: { severity: 'Error' }, b: { severity: 'Warning' } })],
     });
+    const checks = w.findComponent(ComponentChecksTable).props('rows');
 
-    await w.findComponent(summaryTable).setData({ searchQuery: 'critical' });
+    expect(w.findComponent(summaryTable).props('rows')[0].severity).toBe('Error');
+    expect(checks.map((r) => r.filterText.includes('error'))).toStrictEqual([true, false]);
+  });
+  it('does not search the count columns', async() => {
+    const w = await mountSummary({ healthSummaries: [summaryOf({ x: {} })] });
+    const { headers } = w.findComponent(summaryTable).props();
 
-    expect(w.findComponent(ComponentChecksTable).props('rows').map((r) => r.id)).toStrictEqual(['h/a', 'h/b']);
-    expect(w.findComponent(summaryTable).props('rows')[0].severity).toBe('Critical');
+    expect(headers.filter((header) => header.search !== false).map((header) => header.name)).toStrictEqual(['severity', 'component']);
   });
   it('gives the table filter what a sub-row shows', async() => {
     const w = await mountSummary({
@@ -273,37 +287,53 @@ describe('health components', () => {
         a: {
           severity:          'Warning',
           message:           'Some Message',
-          affectedResources: { kind: 'VirtualMachine', names: { 'vm-shown': {}, 'vm-hidden': { ignored: true } } },
+          affectedResources: {
+            apiVersion: 'kubevirt.io/v1', kind: 'VirtualMachine', names: { 'vm-shown': {}, 'vm-hidden': { ignored: true } }
+          },
         }
       })],
     });
     const filterText = () => w.findComponent(summaryTable).props('rows')[0].checksFilterText;
 
-    ['x', 'warning', 'a', 'some message', 'virtualmachine', 'vm-shown'].forEach((text) => expect(filterText()).toContain(text));
+    ['x', 'warning', 'a', 'some message', 'kubevirt.io/v1', 'virtualmachine', 'label of', 'vm-shown'].forEach((text) => expect(filterText()).toContain(text));
     expect(filterText()).not.toContain('vm-hidden');
 
     await w.findComponent(Checkbox).vm.$emit('update:value', true);
 
     expect(filterText()).toContain('vm-hidden');
   });
-  it('opens the rows the table filter found', async() => {
+  it('leaves the rows as they are when filtering', async() => {
     toggleExpand.mockClear();
 
     const w = await mountSummary({
       healthSummaries:  [summaryOf({ x: { errorCount: 1 }, y: { warningCount: 1 } })],
       componentHealths: [healthOf('h1', 'x', { a: { severity: 'Error' } }), healthOf('h2', 'y', { b: { severity: 'Warning' } })],
     });
+    const table = w.findComponent(summaryTable);
+
+    await table.setData({ searchQuery: 'warning' });
+    await table.setData({ searchQuery: '' });
 
     expect(toggleExpand).not.toHaveBeenCalled();
+    expect(table.vm.expanded).toStrictEqual({});
+  });
+  it('expands and collapses all the rows', async() => {
+    const w = await mountSummary({ healthSummaries: [summaryOf({ x: {}, y: {} })] });
+    const table = w.findComponent(summaryTable);
+    const [expand, collapse] = w.findAll('.expand-actions button');
 
-    await w.findComponent(summaryTable).setData({ searchQuery: 'warning' });
+    await expand.trigger('click');
 
-    expect(toggleExpand.mock.calls.map(([row]) => row.component)).toStrictEqual(['y']);
+    expect(table.vm.expanded).toStrictEqual({ 's/x': true, 's/y': true });
 
-    toggleExpand.mockClear();
-    await w.findComponent(summaryTable).setData({ searchQuery: '' });
+    await collapse.trigger('click');
 
-    expect(toggleExpand).not.toHaveBeenCalled();
+    expect(table.vm.expanded).toStrictEqual({});
+  });
+  it('only offers to expand and collapse when there are rows', async() => {
+    const w = await mountSummary({});
+
+    expect(w.find('.expand-actions').exists()).toBe(false);
   });
   it('only offers the ignored checks when there are some', async() => {
     const w = await mountSummary({
@@ -333,9 +363,100 @@ describe('health components', () => {
 
     expect(w.text()).not.toContain(message);
 
+    expect(w.text()).toContain('generic.showMore');
+
     await w.find('button.variant-link').trigger('click');
 
     expect(w.text()).toContain(message);
+    expect(w.text()).toContain('generic.showLess');
+  });
+  it('shows the resources as chips, under what the UI calls them and their full count', () => {
+    const table = { props: ['rows'], template: '<div><slot name="cell:affectedCount" :row="rows[0]" :value="rows[0].affectedCount" /></div>' };
+    const row = {
+      ...CHECK,
+      affectedCount:     7,
+      affectedResources: {
+        apiVersion: 'longhorn.io/v1beta2', kind: 'Volume', names: { one: { ignored: true, ignoredBy: 'r' }, two: {} }
+      }
+    };
+    const w = mountChecks({ rows: [row] }, { SortableTable: table });
+
+    expect(w.find('.affected-title .text-label').text()).toBe('label of 7');
+    expect(w.find('.affected-title .api-version').text()).toBe('longhorn.io/v1beta2');
+    expect(w.findComponent(RcCounterBadge).props('count')).toBe(7);
+    expect(w.findAllComponents(RcTag).map((tag) => tag.text())).toStrictEqual(['two']);
+  });
+  it('tells the ignored resources apart, and all of them when the check is ignored', () => {
+    const table = { props: ['rows'], template: '<div><slot name="cell:severity" :row="rows[0]" /><slot name="cell:affectedCount" :row="rows[0]" :value="2" /></div>' };
+    const row = {
+      ...CHECK, severity: 'Error', affectedResources: { kind: 'Volume', names: { one: { ignored: true, ignoredBy: 'r' }, two: {} } }
+    };
+    const wholeRow = {
+      ...row, ignored: true, affectedResources: { kind: 'Volume', names: { one: {}, two: {} } }
+    };
+    const tags = (w) => w.findAllComponents(RcTag).map((tag) => ({
+      ignored: tag.classes().includes('ignored'), disabled: tag.props('disabled'), says: tag.text().includes('ignore.ignored')
+    }));
+    const partly = mountChecks({ rows: [row], showIgnored: true }, { SortableTable: table });
+    const whole = mountChecks({ rows: [wholeRow], showIgnored: true }, { SortableTable: table });
+
+    expect(tags(partly)).toStrictEqual([
+      {
+        ignored: true, disabled: true, says: true
+      },
+      {
+        ignored: false, disabled: false, says: false
+      },
+    ]);
+    expect(partly.findComponent(BadgeState).props('color')).toBe('bg-error');
+    expect(tags(whole)).toStrictEqual([
+      {
+        ignored: true, disabled: true, says: false
+      },
+      {
+        ignored: true, disabled: true, says: false
+      },
+    ]);
+    expect(whole.findComponent(BadgeState).props('color')).toBe('bg-error');
+  });
+  it('keeps the resources past the first ones behind a link', async() => {
+    const table = { props: ['rows'], template: '<div><slot name="cell:affectedCount" :row="rows[0]" :value="rows[0].affectedCount" /></div>' };
+    const names = Object.fromEntries(['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((name) => [name, {}]));
+    const row = {
+      ...CHECK, affectedCount: 7, affectedResources: { kind: 'VirtualMachine', names }
+    };
+    const w = mountChecks({ rows: [row] }, { SortableTable: table });
+
+    expect(w.findAllComponents(RcTag)).toHaveLength(3);
+    expect(w.find('button.variant-link').text()).toContain('generic.plusMore');
+
+    await w.find('button.variant-link').trigger('click');
+
+    expect(w.findAllComponents(RcTag)).toHaveLength(7);
+    expect(w.find('button.variant-link').text()).toContain('generic.showLess');
+  });
+  it('adds up the errors of all the components, for the badge of the tab', () => {
+    const components = {
+      x: { errorCount: 2, warningCount: 5 }, y: { errorCount: 1 }, z: {}
+    };
+
+    expect(totalErrorCount([summaryOf(components)])).toBe(3);
+    expect(totalErrorCount([summaryOf({ x: { warningCount: 5 } })])).toBe(0);
+    expect(totalErrorCount([{ id: 'empty' }])).toBe(0);
+    expect(totalErrorCount(undefined)).toBe(0);
+  });
+  it('names the resources by their schema, or by their kind without one', () => {
+    const store = {
+      getters: {
+        'harvester/schemaFor': (id) => (['longhorn.io.volume', 'node'].includes(id) ? { id } : null),
+        'type-map/labelFor':   (schema, count) => `${ schema.id } ${ count }`,
+      }
+    };
+    const label = (apiVersion, kind) => affectedResourceLabel({ affectedCount: 6, affectedResources: { apiVersion, kind } }, store);
+
+    expect(label('longhorn.io/v1beta2', 'Volume')).toBe('longhorn.io.volume 6');
+    expect(label('v1', 'Node')).toBe('node 6');
+    expect(label('harvesterhci.io/v1beta1', 'Upgrade')).toBe('Upgrade');
   });
   it('tells when a component has no checks', () => {
     expect(mountChecks({ rows: [] }).text()).toContain('noIssues');
@@ -364,7 +485,7 @@ describe('health components', () => {
     const row = { ...CHECK, affectedResources: { kind: 'VirtualMachine', names: { one: { ignored: true, ignoredBy: 'r' }, two: {} } } };
     const textOf = (props) => mountChecks({ showIgnored: true, ...props }, { SortableTable: table }).text().replace(/\s+/g, ' ');
 
-    expect(textOf({ rows: [row] })).toContain('one (%harvester.dashboard.sections.componentHealth.ignore.ignored%) two');
+    expect(textOf({ rows: [row] })).toMatch(/one ?\(%harvester\.dashboard\.sections\.componentHealth\.ignore\.ignored%\) ?two/);
     expect(textOf({ rows: [row] })).not.toContain('a (%harvester');
     expect(textOf({ rows: [{ ...row, ignored: true }] })).toContain('a (%harvester.dashboard.sections.componentHealth.ignore.ignored%)');
   });
