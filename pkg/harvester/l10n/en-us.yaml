@@ -513,6 +513,47 @@ harvester:
         label: Events
       vmMetrics:
         label: Virtual Machine Metrics
+      healthSummary:
+        label: Health Summary
+        component: Component
+        severity: Severity
+        errorCount: Errors
+        warningCount: Warnings
+        lastUpdatedAt: Last Updated
+      componentHealth:
+        label: Component Health
+        filter: Filter
+        component: Component
+        node: Node
+        check: Check
+        severity: Severity
+        message: Message
+        affectedCount: Affected Resources
+        lastUpdatedAt: Last Updated
+        noAffectedResources: No affected resources
+        moreAffectedResources: '+{count} more'
+        noIssues: No issues detected
+        noMatchingChecks: No checks match the selected filters
+        showIgnored: Show ignored
+        actions: Actions
+        ignore:
+          action: Ignore
+          restore: Restore
+          ignored: Ignored
+          minSeverity: Hidden by the minimum severity setting
+          managedByAddon: Managed by the addon values
+          scope: Scope
+          scopeResources: Selected resources
+          scopeCheck: Entire check
+          resources: Resources
+          duration: Ignore for
+          days7: 7 days
+          days30: 30 days
+          forever: Forever
+          reason: Reason
+          reasonPlaceholder: Why is it ignored? (optional)
+          success: The check {name} is ignored
+          restored: The check is restored
 
     version: Version
   host:
