@@ -130,6 +130,21 @@ function dropEmptyNodeAffinityTerms(spec) {
 }
 
 /**
+ * Drop the core binding (`bridge`, `masquerade`) of interfaces that use a binding plugin, such as
+ * `managedtap` on overlay networks. The form adds `bridge: {}` next to the plugin binding it keeps
+ * from the spec, and the webhook removes it again on save, so it is not a real change.
+ * @param {Object} spec - VM spec, modified in place
+ */
+function dropCoreBindingOfPluginInterfaces(spec) {
+  (spec?.template?.spec?.domain?.devices?.interfaces || []).forEach((iface) => {
+    if (iface.binding) {
+      delete iface.bridge;
+      delete iface.masquerade;
+    }
+  });
+}
+
+/**
  * Whether the only spec change between two VMs is the multus networkName (NAD) of existing
  * networks, each moved to a NAD of the same type (see canLiveSwapNAD). KubeVirt
  * (LiveUpdateNADRef) applies such a change to a running VM via live migration, so no restart is
@@ -169,6 +184,8 @@ export function isNADOnlyChange(oldVM, newVM, canSwap) {
 
   dropEmptyNodeAffinityTerms(oldSpec);
   dropEmptyNodeAffinityTerms(newSpec);
+  dropCoreBindingOfPluginInterfaces(oldSpec);
+  dropCoreBindingOfPluginInterfaces(newSpec);
 
   return isEqual(oldSpec, newSpec);
 }

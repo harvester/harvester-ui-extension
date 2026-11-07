@@ -134,6 +134,23 @@ describe('isNADOnlyChange', () => {
     expect(isNADOnlyChange(vm('overlay-1'), vm('overlay-2'), canSwap)).toBe(true);
   });
 
+  it('should ignore the bridge binding the form adds next to the managedtap binding of an overlay NIC', () => {
+    const iface = {
+      binding: { name: 'managedtap' }, macAddress: '86:19:7e:5c:95:ba', model: 'virtio', name: 'nic-1'
+    };
+    const oldVM = vm('overlay-1', { domain: { devices: { interfaces: [iface] } } });
+    const newVM = vm('overlay-2', { domain: { devices: { interfaces: [{ ...iface, bridge: {} }] } } });
+
+    expect(isNADOnlyChange(oldVM, newVM, canSwap)).toBe(true);
+  });
+
+  it('should be false when the binding of an interface changes as well', () => {
+    const oldVM = vm('overlay-1', { domain: { devices: { interfaces: [{ name: 'nic-1', binding: { name: 'managedtap' } }] } } });
+    const newVM = vm('overlay-2', { domain: { devices: { interfaces: [{ name: 'nic-1', bridge: {} }] } } });
+
+    expect(isNADOnlyChange(oldVM, newVM, canSwap)).toBe(false);
+  });
+
   it('should be false when there is no change', () => {
     expect(isNADOnlyChange(vm('vlan-100'), vm('vlan-100'), canSwap)).toBe(false);
   });
