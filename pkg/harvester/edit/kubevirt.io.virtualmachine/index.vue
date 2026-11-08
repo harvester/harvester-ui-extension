@@ -1007,7 +1007,6 @@ export default {
           v-model:value="filesystemRows"
           :mode="isCreate ? mode : 'view'"
           :namespace="value.metadata.namespace"
-          :can-live-update-n-a-d-ref="value.canLiveUpdateNADRef"
         />
       </Tab>
 
@@ -1203,7 +1202,6 @@ export default {
           v-model:value="sysprep"
           :mode="mode"
           :namespace="value.metadata.namespace"
-          :can-live-update-n-a-d-ref="value.canLiveUpdateNADRef"
         />
       </Tab>
     </Tabbed>
