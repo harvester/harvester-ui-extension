@@ -1,5 +1,7 @@
 <script>
 import { STEVE } from '@shell/config/types';
+import { stringify } from '@shell/utils/error';
+import Banner from '@components/Banner/Banner.vue';
 import { RcButton } from '@components/RcButton';
 import { RcIcon } from '@components/RcIcon';
 import { RcModal } from '@components/RcModal';
@@ -12,7 +14,7 @@ export default {
   name: 'NovncConsoleCustomKeys',
 
   components: {
-    RcButton, RcIcon, RcModal, RcTag, LabeledInput, NovncKeyRecorder
+    Banner, RcButton, RcIcon, RcModal, RcTag, LabeledInput, NovncKeyRecorder
   },
 
   props: {
@@ -29,6 +31,7 @@ export default {
       keys:   [],
       name:   '',
       saving: false,
+      error:  '',
     };
   },
 
@@ -49,6 +52,14 @@ export default {
 
     canAdd() {
       return !!this.keys.length && !this.isDuplicate && !this.saving;
+    },
+  },
+
+  watch: {
+    show(show) {
+      if (!show) {
+        this.error = '';
+      }
     },
   },
 
@@ -77,16 +88,18 @@ export default {
     // Every change is saved straight away, so closing the modal can never lose one.
     async save(shortcuts) {
       this.saving = true;
+      this.error = '';
 
       try {
         await writeShortcuts(this.preference, shortcuts.map(({ name, keys }) => ({ name, keys })));
 
         return true;
       } catch (err) {
-        this.$store.dispatch('growl/fromError', {
-          title: this.t('harvester.virtualMachine.detail.console.customKeys.saveError'),
-          err,
-        }, { root: true });
+        // The console page has no growls, so the dialog says it itself.
+        const title = this.t('harvester.virtualMachine.detail.console.customKeys.saveError');
+        const reason = stringify(err);
+
+        this.error = reason ? `${ title }: ${ reason }` : title;
 
         return false;
       } finally {
@@ -105,6 +118,15 @@ export default {
     data-testid="vnc-custom-keys-modal"
     @close="$emit('close')"
   >
+    <Banner
+      v-if="error"
+      color="error"
+      role="alert"
+      data-testid="vnc-custom-keys-error"
+    >
+      {{ error }}
+    </Banner>
+
     <p class="custom-keys__intro">
       {{ t('harvester.virtualMachine.detail.console.customKeys.description') }}
     </p>

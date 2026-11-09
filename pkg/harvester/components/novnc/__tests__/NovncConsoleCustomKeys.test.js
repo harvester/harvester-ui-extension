@@ -16,19 +16,16 @@ const mountKeys = (saved = []) => {
     data: { [SHORTCUTS_PREFERENCE]: JSON.stringify(saved) },
     save: jest.fn().mockResolvedValue(),
   });
-  const dispatch = jest.fn();
 
   const wrapper = shallowMount(NovncConsoleCustomKeys, {
     props:  { show: true },
     global: {
-      mocks: { $store: { getters: { 'management/all': () => [preference] }, dispatch } },
-      stubs: { RcModal: { template: '<div><slot /></div>' } },
+      mocks: { $store: { getters: { 'management/all': () => [preference] } } },
+      stubs: { RcModal: { template: '<div><slot /></div>' }, Banner: { template: '<div><slot /></div>' } },
     },
   });
 
-  return {
-    wrapper, preference, dispatch
-  };
+  return { wrapper, preference };
 };
 
 const listed = (wrapper) => wrapper.findAll('[data-testid="vnc-custom-shortcut"]');
@@ -65,15 +62,19 @@ describe('component: NovncConsoleCustomKeys', () => {
     expect(savedKeys(preference)).toStrictEqual([ALT_T]);
   });
 
-  it('should keep the shortcut when removing it cannot be saved', async() => {
-    const { wrapper, preference, dispatch } = mountKeys([CTRL_F2, ALT_T]);
+  it('should keep the shortcut when removing it cannot be saved, and say so in the dialog', async() => {
+    const { wrapper, preference } = mountKeys([CTRL_F2, ALT_T]);
 
     preference.save.mockRejectedValue(new Error('forbidden'));
     await removeShortcut(wrapper, 0);
 
     expect(savedKeys(preference)).toStrictEqual([CTRL_F2, ALT_T]);
     expect(listed(wrapper)).toHaveLength(2);
-    expect(dispatch).toHaveBeenCalledWith('growl/fromError', expect.anything(), { root: true });
+    expect(wrapper.find('[data-testid="vnc-custom-keys-error"]').text()).toBe('%harvester.virtualMachine.detail.console.customKeys.saveError%: forbidden');
+
+    await wrapper.setProps({ show: false });
+
+    expect(wrapper.find('[data-testid="vnc-custom-keys-error"]').exists()).toBe(false);
   });
 
   it('should save a new shortcut straight away, with its name', async() => {
