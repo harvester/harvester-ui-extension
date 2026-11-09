@@ -179,7 +179,16 @@ export default {
     },
 
     async saveVMT(buttonCb) {
+      this.errors = [];
       this.parseVM();
+
+      this.validateCloudInit();
+
+      if (this.errors.length) {
+        buttonCb(false);
+
+        return;
+      }
 
       const templates = await this.$store.dispatch('harvester/findAll', { type: HCI.VM_TEMPLATE });
       const template = templates.find( (O) => O.metadata.name === this.templateValue.metadata.name);

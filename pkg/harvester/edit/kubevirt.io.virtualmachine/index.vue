@@ -381,6 +381,7 @@ export default {
 
       this.validateCPUMemory();
       this.validateWindowsSysprep();
+      this.validateCloudInit();
 
       // block create VM flow if has validation errors
       if (this.errors.length) {
