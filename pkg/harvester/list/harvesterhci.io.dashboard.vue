@@ -843,7 +843,8 @@ export default {
           name="components"
           :label="t('harvester.dashboard.sections.componentHealth.label')"
           :weight="95"
-          :badge="componentErrorCount"
+          :display-alert-icon="componentErrorCount > 0"
+          :error-icon-tooltip="t('harvester.dashboard.sections.componentHealth.errors', { count: componentErrorCount })"
         >
           <HealthSummaryTable />
         </Tab>

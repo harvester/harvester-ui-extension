@@ -69,6 +69,28 @@ export function resourceIgnoredBy(row, name) {
   return detail?.ignored ? detail.ignoredBy : '';
 }
 
+export function ignoredResourceCount(row) {
+  return allAffectedResourceNames(row).length - activeAffectedResourceNames(row).length;
+}
+
+// what "Show ignored" brings back: the checks ignored as a whole, and the ignored resources of the other checks
+export function ignoredCounts(checks) {
+  return (checks || []).reduce((counts, check) => {
+    if (check.ignored) {
+      counts.checks += 1;
+    } else {
+      counts.resources += ignoredResourceCount(check);
+    }
+
+    return counts;
+  }, { checks: 0, resources: 0 });
+}
+
+// the UI keeps one rule per check under this name, so Kubernetes refuses a second one for the same check
+export function ignoreRuleName(componentHealthName, checkName) {
+  return `${ componentHealthName }.${ checkName.toLowerCase() }`;
+}
+
 export function affectedResourceKind(row) {
   return row?.affectedResources?.kind || '';
 }

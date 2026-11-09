@@ -9,8 +9,8 @@ import { useI18n } from '@shell/composables/useI18n';
 import { _CREATE, _EDIT, _VIEW } from '@shell/config/query-params';
 import { HCI } from '../../types';
 import {
-  AFFECTED_RESOURCES_TRUNCATE_COUNT, MESSAGE_TRUNCATE_LENGTH,
-  activeAffectedResourceNames, affectedResourceLabel, allAffectedResourceNames, resourceIgnoredBy, severityColor
+  AFFECTED_RESOURCES_TRUNCATE_COUNT, MESSAGE_TRUNCATE_LENGTH, activeAffectedResourceNames, affectedResourceLabel,
+  allAffectedResourceNames, ignoreRuleName, ignoredResourceCount, resourceIgnoredBy, severityColor
 } from '../../utils/component-health';
 
 const props = defineProps({
@@ -31,9 +31,14 @@ const props = defineProps({
     type:    String,
     default: '',
   },
+  // the checks could not be loaded, so having none does not mean there are no issues
+  loadFailed: {
+    type:    Boolean,
+    default: false,
+  },
 });
 
-const emit = defineEmits(['open-rule', 'delete-rule']);
+const emit = defineEmits(['open-rule']);
 
 const store = useStore();
 const { t } = useI18n(store);
@@ -71,17 +76,6 @@ const headers = [
     width:         340,
     canBeVariable: true,
   },
-  {
-    align:         'right',
-    name:          'lastUpdatedAt',
-    labelKey:      'harvester.dashboard.sections.componentHealth.lastUpdatedAt',
-    value:         'lastUpdatedAt',
-    sort:          'lastUpdatedAt:desc',
-    formatter:     'LiveDate',
-    formatterOpts: { addSuffix: true },
-    search:        false,
-    width:         140,
-  },
 ];
 
 const table = ref(null);
@@ -99,8 +93,10 @@ const canCreateRule = computed(() => {
   return !!schema?.collectionMethods?.find((method) => method.toLowerCase() === 'post');
 });
 
+// only the rule the UI made for the check, others on it are left as they are
 function actionsOf(row) {
-  const rule = props.ignoreRules.find(({ spec }) => spec?.componentHealth === row.componentHealthName && spec?.checkKey === row.checkName);
+  const name = ignoreRuleName(row.componentHealthName, row.checkName);
+  const rule = props.ignoreRules.find(({ metadata }) => metadata?.name === name);
   const action = (key, icon, invoke) => ({
     action:  key,
     label:   t(`harvester.dashboard.sections.componentHealth.ignore.${ key }`),
@@ -123,7 +119,7 @@ function actionsOf(row) {
   }
 
   if (rule.canDelete) {
-    actions.push({ divider: true }, action('delete', 'icon-trash', () => emit('delete-rule', { row, rule })));
+    actions.push({ divider: true }, action('delete', 'icon-trash', () => rule.promptRemove()));
   }
 
   return actions;
@@ -131,6 +127,9 @@ function actionsOf(row) {
 
 // the table's action menu reads them from the row, as it does on a resource
 const rowsWithActions = computed(() => props.rows.map((row) => ({ ...row, availableActions: actionsOf(row) })));
+
+// a menu that could only say there is nothing to do is left out
+const hasActions = computed(() => rowsWithActions.value.some((row) => row.availableActions.length));
 
 const expandedMessageIds = ref([]);
 const expandedResourceIds = ref([]);
@@ -171,6 +170,11 @@ function remainingAffectedResourcesCount(row) {
 function isResourceIgnored(row, name) {
   return row.ignored || !!resourceIgnoredBy(row, name);
 }
+
+// the ignored resources that are left out of the list
+function hiddenIgnoredCount(row) {
+  return props.showIgnored ? 0 : ignoredResourceCount(row);
+}
 </script>
 
 <template>
@@ -178,7 +182,7 @@ function isResourceIgnored(row, name) {
     v-if="!rows.length"
     class="text-muted"
   >
-    {{ t('harvester.dashboard.sections.componentHealth.noIssues') }}
+    {{ t(`harvester.dashboard.sections.componentHealth.${ loadFailed ? 'checksNotLoaded' : 'noIssues' }`) }}
   </div>
   <SortableTable
     v-else
@@ -188,6 +192,7 @@ function isResourceIgnored(row, name) {
     key-field="id"
     :search="false"
     :table-actions="false"
+    :row-actions="hasActions"
     :paging="true"
     :rows-per-page="10"
     default-sort-by="severity"
@@ -229,7 +234,7 @@ function isResourceIgnored(row, name) {
         <div class="affected-title">
           <span class="text-label">{{ affectedResourceLabel(row, store) }}</span>
           <RcCounterBadge
-            :count="value || affectedResourceNames(row).length"
+            :count="value || allAffectedResourceNames(row).length"
             type="inactive"
           />
           <span class="api-version text-muted">{{ row.affectedResources.apiVersion }}</span>
@@ -260,6 +265,12 @@ function isResourceIgnored(row, name) {
         >
           {{ expandedResourceIds.includes(row.id) ? t('generic.showLess') : t('generic.plusMore', { n: remainingAffectedResourcesCount(row) }) }}
         </RcButton>
+        <span
+          v-if="hiddenIgnoredCount(row)"
+          class="hidden-ignored text-muted"
+        >
+          {{ t('harvester.dashboard.sections.componentHealth.ignore.plusIgnored', { n: hiddenIgnoredCount(row) }) }}
+        </span>
       </div>
       <span v-else>
         {{ t('harvester.dashboard.sections.componentHealth.noAffectedResources') }}
@@ -291,6 +302,11 @@ function isResourceIgnored(row, name) {
   }
 
   .api-version {
+    font-size: 12px;
+  }
+
+  // the same size as the "+ N more" link above it
+  .hidden-ignored {
     font-size: 12px;
   }
 

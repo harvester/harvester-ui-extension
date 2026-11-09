@@ -4,26 +4,31 @@ import { HCI } from '../../types';
 import { useStore } from 'vuex';
 import { useI18n } from '@shell/composables/useI18n';
 import SortableTable from '@shell/components/SortableTable';
+import { exceptionToErrorsArray } from '@shell/utils/error';
+import Banner from '@components/Banner/Banner.vue';
 import { BadgeState } from '@components/BadgeState';
 import { Checkbox } from '@components/Form/Checkbox';
 import { RcButton } from '@components/RcButton';
 import { useModal } from '@components/RcModal';
 import ComponentChecksTable from './ComponentChecksTable.vue';
-import DeleteIgnoreRuleModal from './DeleteIgnoreRuleModal.vue';
 import IgnoreRuleModal from './IgnoreRuleModal.vue';
-import { allSettled } from '../../utils/promise';
 import {
   COMPONENT_HEALTH_SEVERITIES, HEALTH_SUMMARY_SEVERITY_RANK, activeAffectedResourceNames, affectedResourceKind,
-  affectedResourceLabel, allAffectedResourceNames, componentOf, healthSummarySeverity, severityColor
+  affectedResourceLabel, allAffectedResourceNames, componentOf, healthSummarySeverity, ignoredCounts, severityColor
 } from '../../utils/component-health';
 
 const store = useStore();
 const { t } = useI18n(store);
 const table = ref(null);
 const loading = ref(true);
-const healthSummaries = ref([]);
-const componentHealths = ref([]);
-const ignoreRules = ref([]);
+const lists = {
+  healthSummaries:  ref([]),
+  componentHealths: ref([]),
+  ignoreRules:      ref([]),
+};
+const { healthSummaries, componentHealths, ignoreRules } = lists;
+// the lists that could not be loaded, with why
+const loadErrors = ref({});
 
 const headers = [
   {
@@ -65,9 +70,6 @@ const headers = [
 const {
   open: openRuleModal, isOpen: ruleModalOpen, payload: ruleToOpen, modal: ruleModal
 } = useModal();
-const {
-  open: openDeleteModal, isOpen: deleteModalOpen, payload: ruleToDelete, modal: deleteModal
-} = useModal();
 
 const showIgnored = ref(false);
 const filterText = computed(() => table.value?.searchQuery || '');
@@ -78,7 +80,6 @@ const checks = computed(() => {
   (componentHealths.value || []).forEach((componentHealth) => {
     const component = componentOf(componentHealth);
     const statusChecks = componentHealth?.status?.checks || {};
-    const lastUpdatedAt = componentHealth?.status?.lastUpdatedAt;
 
     Object.entries(statusChecks).forEach(([checkName, check]) => {
       result.push({
@@ -93,7 +94,6 @@ const checks = computed(() => {
         message:             check.message,
         affectedCount:       check.affectedCount,
         affectedResources:   check.affectedResources,
-        lastUpdatedAt,
       });
     });
   });
@@ -115,8 +115,17 @@ const shownChecks = computed(() => checks.value.filter((check) => showIgnored.va
   ].join(' ').toLowerCase(),
 })));
 
-const hasIgnored = computed(() => {
-  return checks.value.some((check) => check.ignored || allAffectedResourceNames(check).length !== activeAffectedResourceNames(check).length);
+const ignored = computed(() => ignoredCounts(checks.value));
+const hasIgnored = computed(() => ignored.value.checks + ignored.value.resources > 0);
+
+// says what turning it on brings back, the same whether it is on or off
+const showIgnoredLabel = computed(() => {
+  const counts = [
+    ignored.value.checks && t('harvester.dashboard.sections.componentHealth.ignoredChecks', { count: ignored.value.checks }),
+    ignored.value.resources && t('harvester.dashboard.sections.componentHealth.ignoredResources', { count: ignored.value.resources }),
+  ].filter(Boolean).join(', ');
+
+  return t('harvester.dashboard.sections.componentHealth.showIgnored', { counts });
 });
 
 const rows = computed(() => {
@@ -148,20 +157,24 @@ const rows = computed(() => {
 });
 
 onMounted(async() => {
-  const lists = {
-    healthSummaries:  store.dispatch('harvester/findAll', { type: HCI.HEALTH_SUMMARY }),
-    componentHealths: store.dispatch('harvester/findAll', { type: HCI.COMPONENT_HEALTH }),
+  const types = {
+    healthSummaries:  HCI.HEALTH_SUMMARY,
+    componentHealths: HCI.COMPONENT_HEALTH,
   };
 
   if (store.getters['harvester/schemaFor'](HCI.HEALTH_IGNORE_RULE)) {
-    lists.ignoreRules = store.dispatch('harvester/findAll', { type: HCI.HEALTH_IGNORE_RULE });
+    types.ignoreRules = HCI.HEALTH_IGNORE_RULE;
   }
 
-  const res = await allSettled(lists);
+  // a list that fails does not stop the others from showing
+  await Promise.all(Object.entries(types).map(async([key, type]) => {
+    try {
+      lists[key].value = await store.dispatch('harvester/findAll', { type });
+    } catch (err) {
+      loadErrors.value[key] = exceptionToErrorsArray(err).join(', ');
+    }
+  }));
 
-  healthSummaries.value = res.healthSummaries;
-  componentHealths.value = res.componentHealths;
-  ignoreRules.value = res.ignoreRules || [];
   loading.value = false;
 });
 
@@ -176,6 +189,12 @@ function collapseAll() {
 </script>
 
 <template>
+  <Banner
+    v-for="(error, key) in loadErrors"
+    :key="key"
+    color="error"
+    :label="t(`harvester.dashboard.sections.componentHealth.loadFailed.${ key }`, { error })"
+  />
   <SortableTable
     ref="table"
     :rows="rows"
@@ -199,7 +218,7 @@ function collapseAll() {
         <Checkbox
           v-model:value="showIgnored"
           type="checkbox"
-          :label="t('harvester.dashboard.sections.componentHealth.showIgnored')"
+          :label="showIgnoredLabel"
         />
       </div>
     </template>
@@ -250,8 +269,8 @@ function collapseAll() {
             :ignore-rules="ignoreRules"
             :show-ignored="showIgnored"
             :filter-text="filterText"
+            :load-failed="!!loadErrors.componentHealths"
             @open-rule="openRuleModal"
-            @delete-rule="openDeleteModal"
           />
         </td>
       </tr>
@@ -262,11 +281,6 @@ function collapseAll() {
     v-if="ruleModalOpen"
     v-bind="ruleToOpen"
     :modal="ruleModal"
-  />
-  <DeleteIgnoreRuleModal
-    v-if="deleteModalOpen"
-    v-bind="ruleToDelete"
-    :modal="deleteModal"
   />
 </template>
 

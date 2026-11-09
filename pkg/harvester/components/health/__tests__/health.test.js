@@ -1,5 +1,6 @@
 import { mount as vtuMount, flushPromises } from '@vue/test-utils';
 import { createStore } from 'vuex';
+import Banner from '@components/Banner/Banner.vue';
 import { BadgeState } from '@components/BadgeState';
 import { Checkbox } from '@components/Form/Checkbox';
 import { LabeledInput } from '@components/Form/LabeledInput';
@@ -8,10 +9,9 @@ import { RcCounterBadge, RcTag } from '@components/Pill';
 import { RcModal } from '@components/RcModal';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { HCI } from '../../../types';
-import { affectedResourceLabel, totalErrorCount } from '../../../utils/component-health';
+import { affectedResourceLabel, ignoreRuleName, ignoredCounts, totalErrorCount } from '../../../utils/component-health';
 import HealthSummaryTable from '../HealthSummaryTable.vue';
 import ComponentChecksTable from '../ComponentChecksTable.vue';
-import DeleteIgnoreRuleModal from '../DeleteIgnoreRuleModal.vue';
 import IgnoreRuleModal from '../IgnoreRuleModal.vue';
 
 jest.mock('focus-trap', () => ({
@@ -81,7 +81,7 @@ const summaryTable = {
 };
 
 const checksTable = {
-  props: ['rows', 'headers'],
+  props: ['rows', 'headers', 'rowActions'],
   data() {
     return { searchQuery: '' };
   },
@@ -128,14 +128,21 @@ const CHECK = {
 const IN_A_WEEK = new Date(Date.now() + (7 * 24 * 3600 * 1000)).toISOString();
 const LAST_WEEK = new Date(Date.now() - (7 * 24 * 3600 * 1000)).toISOString();
 
-const ruleOf = (spec = {}, extra = {}) => ({
-  spec: {
+// named the way the UI names the rule of a check, unless `extra` says otherwise
+const ruleOf = (spec = {}, extra = {}) => {
+  const fullSpec = {
     componentHealth: 'h', checkKey: 'a', ...spec
-  },
-  canUpdate: true,
-  canDelete: true,
-  ...extra,
-});
+  };
+
+  return {
+    metadata:     { name: ignoreRuleName(fullSpec.componentHealth, fullSpec.checkKey) },
+    spec:         fullSpec,
+    canUpdate:    true,
+    canDelete:    true,
+    promptRemove: jest.fn(),
+    ...extra,
+  };
+};
 
 const actionsOf = (props = {}, storeProps = {}) => {
   const w = mountChecks({ rows: [CHECK], ...props }, {}, storeProps);
@@ -167,25 +174,11 @@ const mountRuleModal = ({ rule, mode, save = () => {} } = {}) => {
   return {
     w,
     onClose,
-    confirm: () => w.find('[data-testid="component-health-ignore-confirm"]'),
-  };
-};
-
-const mountDeleteModal = (remove = () => {}) => {
-  const onClose = jest.fn();
-  const rule = ruleOf({}, { remove: jest.fn(remove) });
-  const w = vtuMount(DeleteIgnoreRuleModal, {
-    ...opts(),
-    props: {
-      row: CHECK, rule, modal: { show: true, onClose }
-    },
-  });
-
-  return {
-    w,
-    rule,
-    onClose,
-    confirm: () => w.find('[data-testid="component-health-delete-rule-confirm"]'),
+    confirm:       () => w.find('[data-testid="component-health-ignore-confirm"]'),
+    duration:      () => w.findAllComponents(RadioGroup).find((group) => group.props('name') === 'ignore-duration'),
+    currentExpiry: () => w.find('[data-testid="component-health-ignore-current-expiry"]'),
+    newExpiry:     () => w.find('[data-testid="component-health-ignore-new-expiry"]'),
+    warning:       () => w.findAllComponents(Banner).find((banner) => banner.props('color') === 'warning'),
   };
 };
 
@@ -359,7 +352,7 @@ describe('health components', () => {
   it('expands a long message', async() => {
     const message = 'x'.repeat(150);
     const table = { props: ['rows'], template: '<div><slot name="cell:message" :row="rows[0]" :value="rows[0].message" /></div>' };
-    const w = mountChecks({ rows: [{ id: 'a', message }] }, { SortableTable: table });
+    const w = mountChecks({ rows: [{ ...CHECK, message }] }, { SortableTable: table });
 
     expect(w.text()).not.toContain(message);
 
@@ -385,6 +378,35 @@ describe('health components', () => {
     expect(w.find('.affected-title .api-version').text()).toBe('longhorn.io/v1beta2');
     expect(w.findComponent(RcCounterBadge).props('count')).toBe(7);
     expect(w.findAllComponents(RcTag).map((tag) => tag.text())).toStrictEqual(['two']);
+  });
+  it('keeps the full count and says how many ignored resources it leaves out', () => {
+    const table = { props: ['rows'], template: '<div><slot name="cell:affectedCount" :row="rows[0]" :value="rows[0].affectedCount" /></div>' };
+    const row = {
+      ...CHECK, affectedCount: 2, affectedResources: { kind: 'Volume', names: { one: { ignored: true, ignoredBy: 'r' }, two: {} } }
+    };
+    const hidden = mountChecks({ rows: [row] }, { SortableTable: table });
+    const shown = mountChecks({ rows: [row], showIgnored: true }, { SortableTable: table });
+
+    expect(hidden.findComponent(RcCounterBadge).props('count')).toBe(2);
+    expect(hidden.find('.hidden-ignored').text()).toContain('ignore.plusIgnored');
+    expect(shown.findComponent(RcCounterBadge).props('count')).toBe(2);
+    expect(shown.find('.hidden-ignored').exists()).toBe(false);
+  });
+  it('counts what "Show ignored" brings back, each thing once', () => {
+    const check = (ignored, names) => ({ ignored, affectedResources: { names } });
+
+    expect(ignoredCounts([
+      check(true, { a: { ignored: true }, b: { ignored: true } }),
+      check(false, { c: { ignored: true }, d: {} }),
+      check(false, {
+        e: { ignored: true }, f: { ignored: true }, g: {}
+      }),
+      check(false, { h: {} }),
+    ])).toStrictEqual({ checks: 1, resources: 3 });
+    expect(ignoredCounts(undefined)).toStrictEqual({ checks: 0, resources: 0 });
+  });
+  it('names the rule of a check after it', () => {
+    expect(ignoreRuleName('harvester-controller-vmimage', 'ImageRetryLimitExceeded')).toBe('harvester-controller-vmimage.imageretrylimitexceeded');
   });
   it('tells the ignored resources apart, and all of them when the check is ignored', () => {
     const table = { props: ['rows'], template: '<div><slot name="cell:severity" :row="rows[0]" /><slot name="cell:affectedCount" :row="rows[0]" :value="2" /></div>' };
@@ -435,7 +457,7 @@ describe('health components', () => {
     expect(w.findAllComponents(RcTag)).toHaveLength(7);
     expect(w.find('button.variant-link').text()).toContain('generic.showLess');
   });
-  it('adds up the errors of all the components, for the badge of the tab', () => {
+  it('adds up the errors of all the components, for the alert on the tab', () => {
     const components = {
       x: { errorCount: 2, warningCount: 5 }, y: { errorCount: 1 }, z: {}
     };
@@ -458,17 +480,30 @@ describe('health components', () => {
     expect(label('v1', 'Node')).toBe('node 6');
     expect(label('harvesterhci.io/v1beta1', 'Upgrade')).toBe('Upgrade');
   });
-  it('tells when a component has no checks', () => {
+  it('tells when a component has no checks, unless they could not be loaded', () => {
     expect(mountChecks({ rows: [] }).text()).toContain('noIssues');
+    expect(mountChecks({ rows: [], loadFailed: true }).text()).toContain('checksNotLoaded');
   });
-  it('still shows the checks when the rules can not be loaded', async() => {
+  it('still shows the checks when the rules can not be loaded, and says so', async() => {
     const w = await mountSummary({
       healthSummaries:  [summaryOf({ x: { errorCount: 1 } })],
       componentHealths: [healthOf('h', 'x', { a: { severity: 'Error' } })],
       failing:          'ignoreRules',
     });
+    const checks = w.findComponent(ComponentChecksTable);
 
-    expect(w.findComponent(ComponentChecksTable).props('rows').map((r) => r.id)).toStrictEqual(['h/a']);
+    expect(checks.props('rows').map((r) => r.id)).toStrictEqual(['h/a']);
+    expect(checks.props('loadFailed')).toBe(false);
+    expect(w.findAllComponents(Banner).map((banner) => banner.props('label'))).toStrictEqual(['%harvester.dashboard.sections.componentHealth.loadFailed.ignoreRules%']);
+  });
+  it('does not call a component without issues when its checks can not be loaded', async() => {
+    const w = await mountSummary({
+      healthSummaries: [summaryOf({ x: { errorCount: 1 } })],
+      failing:         'componentHealths',
+    });
+
+    expect(w.findComponent(ComponentChecksTable).props('loadFailed')).toBe(true);
+    expect(w.findAllComponents(Banner).map((banner) => banner.props('label'))).toStrictEqual(['%harvester.dashboard.sections.componentHealth.loadFailed.componentHealths%']);
   });
   it('does not ask for the rules without their schema', async() => {
     const onFindAll = jest.fn();
@@ -491,8 +526,9 @@ describe('health components', () => {
   });
 
   describe('the actions of a check', () => {
-    it('offers to create a rule when the check has none', () => {
-      const { w, keys, invoke } = actionsOf({ ignoreRules: [ruleOf({ checkKey: 'b' }), ruleOf({ componentHealth: 'other' })] });
+    it('offers to create a rule when the check has none from the UI', () => {
+      const elsewhere = ruleOf({}, { metadata: { name: 'ignore-x7k2p' } });
+      const { w, keys, invoke } = actionsOf({ ignoreRules: [ruleOf({ checkKey: 'b' }), ruleOf({ componentHealth: 'other' }), elsewhere] });
 
       expect(keys).toStrictEqual(['create']);
 
@@ -502,9 +538,10 @@ describe('health components', () => {
         row: CHECK, rule: undefined, mode: 'create'
       }]]);
     });
-    it('offers to view, edit and delete the rule of the check', () => {
+    it('offers to view, edit and delete the rule of the check, and only that one', () => {
       const rule = ruleOf();
-      const { w, keys, invoke } = actionsOf({ ignoreRules: [ruleOf({ checkKey: 'b' }), rule] });
+      const elsewhere = ruleOf({}, { metadata: { name: 'ignore-x7k2p' } });
+      const { w, keys, invoke } = actionsOf({ ignoreRules: [elsewhere, ruleOf({ checkKey: 'b' }), rule] });
 
       expect(keys).toStrictEqual(['view', 'edit', '-', 'delete']);
 
@@ -520,7 +557,8 @@ describe('health components', () => {
           row: CHECK, rule, mode: 'edit'
         }],
       ]);
-      expect(w.emitted('delete-rule')).toStrictEqual([[{ row: CHECK, rule }]]);
+      expect(rule.promptRemove).toHaveBeenCalledTimes(1);
+      expect(elsewhere.promptRemove).not.toHaveBeenCalled();
     });
     it('only offers what the user is allowed to do', () => {
       const keysFor = (extra) => actionsOf({ ignoreRules: [ruleOf({}, extra)] }).keys;
@@ -531,27 +569,12 @@ describe('health components', () => {
       expect(actionsOf({}, { collectionMethods: ['GET'] }).keys).toStrictEqual([]);
       expect(actionsOf({}, { noSchemaFor: HCI.HEALTH_IGNORE_RULE }).keys).toStrictEqual([]);
     });
-    it('opens the delete modal apart from the others', async() => {
-      const w = await mountSummary({
-        healthSummaries:  [summaryOf({ x: { errorCount: 1 } })],
-        componentHealths: [healthOf('h', 'x', { a: { severity: 'Error' } })],
-      });
-      const checks = w.findComponent(ComponentChecksTable);
+    it('leaves out the menu when no check has anything in it', () => {
+      const rowActions = (props, storeProps) => actionsOf(props, storeProps).w.findComponent(checksTable).props('rowActions');
 
-      await checks.vm.$emit('delete-rule', { row: CHECK, rule: ruleOf() });
-      await flushPromises();
-
-      expect(w.findComponent(DeleteIgnoreRuleModal).exists()).toBe(true);
-      expect(w.findComponent(IgnoreRuleModal).exists()).toBe(false);
-
-      await w.findComponent(RcModal).vm.$emit('close');
-      await checks.vm.$emit('open-rule', {
-        row: CHECK, rule: ruleOf(), mode: 'view'
-      });
-      await flushPromises();
-
-      expect(w.findComponent(DeleteIgnoreRuleModal).exists()).toBe(false);
-      expect(w.findComponent(IgnoreRuleModal).props('mode')).toBe('view');
+      expect(rowActions({}, { collectionMethods: ['GET'] })).toBe(false);
+      expect(rowActions({ ignoreRules: [ruleOf()] }, { collectionMethods: ['GET'] })).toBe(true);
+      expect(rowActions({})).toBe(true);
     });
   });
 
@@ -602,6 +625,29 @@ describe('health components', () => {
       });
       expect(saveRule).toHaveBeenCalledTimes(1);
       expect(onClose).toHaveBeenCalledTimes(1);
+    });
+    it('names the rule after its check, so a second one for it is refused', async() => {
+      const { confirm } = mountRuleModal();
+
+      await confirm().trigger('click');
+      await flushPromises();
+
+      expect(createRule.mock.calls[0][1].metadata).toStrictEqual({ name: 'h.a', labels: { 'health.harvesterhci.io/source': 'user' } });
+    });
+    it('says when the rule will expire, from 7 days on', async() => {
+      const {
+        confirm, duration, currentExpiry, newExpiry
+      } = mountRuleModal();
+
+      expect(currentExpiry().exists()).toBe(false);
+      expect(duration().props('value')).toBe('days7');
+      expect(newExpiry().text()).toContain('ignore.willExpireOn');
+
+      await duration().vm.$emit('update:value', 'forever');
+      await flushPromises();
+
+      expect(newExpiry().text()).toContain('ignore.willNeverExpire');
+      expect(confirm().attributes('disabled')).toBeUndefined();
     });
     it('ignores the entire check forever without listing its resources', async() => {
       const { w, confirm } = mountRuleModal();
@@ -670,45 +716,73 @@ describe('health components', () => {
   });
 
   describe('editing a rule', () => {
-    it('starts from what the rule has', () => {
+    it('starts from what the rule has, with no new duration chosen', () => {
       const rule = ruleOf({
         resources: ['two'], expiresAt: IN_A_WEEK, reason: 'known issue'
       });
-      const { w } = mountRuleModal({ rule, mode: 'edit' });
-      const [scope, duration] = w.findAllComponents(RadioGroup);
+      const {
+        w, duration, currentExpiry, newExpiry
+      } = mountRuleModal({ rule, mode: 'edit' });
+      const [scope] = w.findAllComponents(RadioGroup);
 
       expect(scope.props('value')).toBe('resources');
       expect(w.findComponent(LabeledSelect).props('value')).toStrictEqual(['two']);
-      expect(duration.props('value')).toBe('keep');
-      expect(duration.props('options')[0].label).toContain('ignore.until');
+      expect(currentExpiry().text()).toContain('ignore.expiresOn');
+      expect(duration().props('value')).toBeNull();
+      expect(duration().props('options').map((option) => option.value)).toStrictEqual(['days7', 'days30', 'forever']);
+      expect(newExpiry().exists()).toBe(false);
       expect(w.findComponent(LabeledInput).props('value')).toBe('known issue');
+    });
+    it('can not save until something changes', async() => {
+      const { w, confirm, duration } = mountRuleModal({ rule: ruleOf(), mode: 'edit' });
+      const reason = (value) => w.findComponent(LabeledInput).vm.$emit('update:value', value);
+
+      expect(confirm().attributes('disabled')).toBeDefined();
+
+      await reason('known issue');
+      await flushPromises();
+
+      expect(confirm().attributes('disabled')).toBeUndefined();
+
+      await reason('');
+      await duration().vm.$emit('update:value', 'forever');
+      await flushPromises();
+
+      expect(confirm().attributes('disabled')).toBeDefined();
+
+      await duration().vm.$emit('update:value', 'days7');
+      await flushPromises();
+
+      expect(confirm().attributes('disabled')).toBeUndefined();
     });
     it('saves on a copy of the rule, with the expiry it has', async() => {
       const rule = ruleOf({
         resources: ['two'], expiresAt: IN_A_WEEK, reason: 'known issue'
       });
-      const { onClose, confirm } = mountRuleModal({ rule, mode: 'edit' });
+      const { w, onClose, confirm } = mountRuleModal({ rule, mode: 'edit' });
 
+      await w.findComponent(LabeledInput).vm.$emit('update:value', 'still known');
+      await flushPromises();
       await confirm().trigger('click');
       await flushPromises();
 
       expect(createRule).not.toHaveBeenCalled();
       expect(cloneRule.mock.calls[0][1]).toStrictEqual({ resource: rule });
-      expect(editedRule.spec).toStrictEqual(rule.spec);
+      expect(editedRule.spec).toStrictEqual({ ...rule.spec, reason: 'still known' });
       expect(saveRule).toHaveBeenCalledTimes(1);
       expect(onClose).toHaveBeenCalledTimes(1);
     });
     it('takes the resources, the expiry and the reason off the rule', async() => {
-      const { w, confirm } = mountRuleModal({
+      const { w, confirm, duration } = mountRuleModal({
         rule: ruleOf({
           resources: ['two'], expiresAt: IN_A_WEEK, reason: 'known issue'
         }),
         mode: 'edit'
       });
-      const [scope, duration] = w.findAllComponents(RadioGroup);
+      const [scope] = w.findAllComponents(RadioGroup);
 
       await scope.vm.$emit('update:value', 'check');
-      await duration.vm.$emit('update:value', 'forever');
+      await duration().vm.$emit('update:value', 'forever');
       await w.findComponent(LabeledInput).vm.$emit('update:value', '');
       await flushPromises();
       await confirm().trigger('click');
@@ -716,25 +790,55 @@ describe('health components', () => {
 
       expect(editedRule.spec).toStrictEqual({ componentHealth: 'h', checkKey: 'a' });
     });
-    it('sets a new expiry when another duration is chosen', async() => {
-      const { w, confirm } = mountRuleModal({ rule: ruleOf({ expiresAt: LAST_WEEK }), mode: 'edit' });
-      const duration = w.findAllComponents(RadioGroup)[1];
+    it('renews an expired rule with the duration chosen', async() => {
+      const {
+        confirm, duration, currentExpiry, newExpiry
+      } = mountRuleModal({ rule: ruleOf({ expiresAt: LAST_WEEK }), mode: 'edit' });
 
-      expect(duration.props('options')[0].label).toContain('ignore.expiredOn');
+      expect(currentExpiry().text()).toContain('ignore.expiredOn');
 
-      await duration.vm.$emit('update:value', 'days30');
+      await duration().vm.$emit('update:value', 'days30');
       await flushPromises();
+
+      expect(newExpiry().text()).toContain('ignore.willExpireOn');
+
       await confirm().trigger('click');
       await flushPromises();
 
       expect(new Date(editedRule.spec.expiresAt).getTime()).toBeGreaterThan(new Date(IN_A_WEEK).getTime());
     });
+    it('warns that an expired rule stays expired when only something else changes', async() => {
+      const { w, duration, warning } = mountRuleModal({ rule: ruleOf({ expiresAt: LAST_WEEK }), mode: 'edit' });
+
+      expect(warning()).toBeUndefined();
+
+      await w.findComponent(LabeledInput).vm.$emit('update:value', 'known issue');
+      await flushPromises();
+
+      expect(warning().props('label')).toContain('ignore.staysExpired');
+
+      await duration().vm.$emit('update:value', 'days7');
+      await flushPromises();
+
+      expect(warning()).toBeUndefined();
+    });
+    it('does not warn about a rule that has not expired', async() => {
+      const { w, warning } = mountRuleModal({ rule: ruleOf({ expiresAt: IN_A_WEEK }), mode: 'edit' });
+
+      await w.findComponent(LabeledInput).vm.$emit('update:value', 'known issue');
+      await flushPromises();
+
+      expect(warning()).toBeUndefined();
+    });
     it('opens a rule without resources on the entire check, and selects them all when asked', async() => {
-      const { w, confirm } = mountRuleModal({ rule: ruleOf(), mode: 'edit' });
-      const [scope, duration] = w.findAllComponents(RadioGroup);
+      const {
+        w, confirm, duration, currentExpiry
+      } = mountRuleModal({ rule: ruleOf(), mode: 'edit' });
+      const [scope] = w.findAllComponents(RadioGroup);
 
       expect(scope.props('value')).toBe('check');
-      expect(duration.props('value')).toBe('forever');
+      expect(currentExpiry().text()).toContain('ignore.neverExpires');
+      expect(duration().props('value')).toBeNull();
       expect(w.findComponent(LabeledSelect).exists()).toBe(false);
 
       await scope.vm.$emit('update:value', 'resources');
@@ -754,6 +858,8 @@ describe('health components', () => {
       expect(select.props('options')).toStrictEqual(['one', 'two', 'gone']);
       expect(select.props('value')).toStrictEqual(['two', 'gone']);
 
+      await w.findComponent(LabeledInput).vm.$emit('update:value', 'known issue');
+      await flushPromises();
       await confirm().trigger('click');
       await flushPromises();
 
@@ -763,7 +869,9 @@ describe('health components', () => {
 
   describe('viewing a rule', () => {
     it('shows what the rule has without letting it change', async() => {
-      const { w, onClose, confirm } = mountRuleModal({
+      const {
+        w, onClose, confirm, duration, currentExpiry
+      } = mountRuleModal({
         rule: ruleOf({
           resources: ['two'], expiresAt: IN_A_WEEK, reason: 'known issue'
         }),
@@ -773,6 +881,8 @@ describe('health components', () => {
       [...w.findAllComponents(RadioGroup), w.findComponent(LabeledSelect), w.findComponent(LabeledInput)].forEach((field) => {
         expect(field.props('mode')).toBe('view');
       });
+      expect(currentExpiry().text()).toContain('ignore.expiresOn');
+      expect(duration()).toBeUndefined();
       expect(w.findComponent(LabeledInput).props('value')).toBe('known issue');
       expect(confirm().exists()).toBe(false);
       expect(w.find('[data-testid="rc-modal-cancel"]').exists()).toBe(false);
@@ -782,62 +892,6 @@ describe('health components', () => {
       expect(onClose).toHaveBeenCalledTimes(1);
       expect(cloneRule).not.toHaveBeenCalled();
       expect(saveRule).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('deleting a rule', () => {
-    it('deletes the rule once confirmed', async() => {
-      const {
-        w, rule, onClose, confirm
-      } = mountDeleteModal();
-
-      expect(w.text()).toContain('a');
-      expect(rule.remove).not.toHaveBeenCalled();
-
-      await confirm().trigger('click');
-      await flushPromises();
-
-      expect(rule.remove).toHaveBeenCalledTimes(1);
-      expect(onClose).toHaveBeenCalledTimes(1);
-    });
-    it('keeps the rule when cancelled', async() => {
-      const { w, rule, onClose } = mountDeleteModal();
-
-      await w.find('[data-testid="rc-modal-cancel"]').trigger('click');
-
-      expect(rule.remove).not.toHaveBeenCalled();
-      expect(onClose).toHaveBeenCalledTimes(1);
-    });
-    it('stays open and shows the error when deleting fails', async() => {
-      const { w, onClose, confirm } = mountDeleteModal(() => Promise.reject(new Error('forbidden')));
-
-      await confirm().trigger('click');
-      await flushPromises();
-
-      expect(w.text()).toContain('forbidden');
-      expect(onClose).not.toHaveBeenCalled();
-      expect(confirm().attributes('disabled')).toBeUndefined();
-    });
-    it('does not close while the rule is deleted', async() => {
-      let finishDeleting;
-
-      const { w, onClose, confirm } = mountDeleteModal(() => new Promise((resolve) => {
-        finishDeleting = resolve;
-      }));
-
-      await confirm().trigger('click');
-      await flushPromises();
-
-      expect(confirm().attributes('disabled')).toBeDefined();
-
-      await w.findComponent(RcModal).vm.$emit('close');
-
-      expect(onClose).not.toHaveBeenCalled();
-
-      finishDeleting();
-      await flushPromises();
-
-      expect(onClose).toHaveBeenCalledTimes(1);
     });
   });
 });
