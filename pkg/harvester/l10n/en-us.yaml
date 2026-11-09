@@ -1758,7 +1758,6 @@ harvester:
       disableTLS: "Disable TLS"
       matchSELinuxLevelOnMigration: "Match SELinux Level On Migration"
     thirdPartyBackupConfig:
-      parseError: "Failed to parse configuration: {error}"
       memoryRequest: Memory Request
       memoryLimit: Memory Limit
       ephemeralRequest: Ephemeral Storage Request

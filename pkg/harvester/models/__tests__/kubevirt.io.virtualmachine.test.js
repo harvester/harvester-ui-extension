@@ -89,7 +89,8 @@ const pvc = (name, encrypted, ns = 'ns1') => ({
 function backupVm({
   actions = { backup: '/backup', snapshot: '/snapshot' }, volumes = [{}], target = 's3', csi = {}
 } = {}) {
-  const settings = {
+  // target null: a user who can't read backup-target or csi-driver-config
+  const settings = target === null ? {} : {
     'backup-target':     { value: JSON.stringify({ type: target }) },
     'csi-driver-config': { value: JSON.stringify(csi) },
   };
@@ -121,9 +122,26 @@ describe('class VirtVm', () => {
       [{ backup: '/b' }, false, true],
       [{}, true, false],
     ])('with actions %j and the feature %s returns %s', (actions, enabled, expected) => {
-      const { vm } = createVm({ root: { 'harvester-common/getFeatureEnabled': () => enabled } });
+      const { vm } = createVm({ root: { 'harvester-common/getFeatureEnabled': () => enabled, 'harvester/byId': () => undefined } });
 
       vm.actions = actions;
+
+      expect(vm.canTakeBackup).toBe(expected);
+    });
+
+    it.each([
+      ['an NFS target', 'nfs', false],
+      ['an S3 target', 's3', true],
+      ['a target the user cannot read', undefined, true],
+    ])('with only the snapshot action and %s returns %s', (_, target, expected) => {
+      const { vm } = createVm({
+        root: {
+          'harvester-common/getFeatureEnabled': () => true,
+          'harvester/byId':                     () => (target ? { value: JSON.stringify({ type: target }) } : undefined),
+        },
+      });
+
+      vm.actions = { snapshot: '/s' };
 
       expect(vm.canTakeBackup).toBe(expected);
     });
@@ -181,6 +199,15 @@ describe('class VirtVm', () => {
 
       expect(reasons.restic).toBe(`harvester.backup.typeUnavailable.${ reason }`);
       expect(reasons.kopia).toBe(`harvester.backup.typeUnavailable.${ reason }`);
+    });
+
+    it('should leave the target check to the webhook when the user cannot read it', () => {
+      const reasons = backupVm({
+        actions: { snapshot: '/s' }, target: null, volumes: [{ isCreatedForDataVolume: true }]
+      });
+
+      expect(reasons.restic).toBeUndefined();
+      expect(reasons.kopia).toBeUndefined();
     });
 
     it('should leave a driver check to the webhook when the CSI config is unreadable', () => {
