@@ -830,6 +830,8 @@ harvester:
       tpmPersistentState: TPM Persistent State
       efiEnabled: Booting in EFI mode
       efiPersistentState: EFI Persistent State
+      persistentStateStorageClassHint: Before enabling this option, ensure that a compatible CSI driver provides a StorageClass named vmstate-persistence. This StorageClass keeps TPM and EFI state across VM restarts.
+      persistentStateStorageClassDocs: Learn how to configure vmstate-persistence
       secureBoot: Secure Boot
     usbTip: Provides an absolute pointer device which often helps with getting a consistent mouse cursor position in VNC.
     sshTitle: Add Public SSH Key
