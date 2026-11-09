@@ -12,9 +12,10 @@ const consoleRef = {
 
 const CHECKBOX = { name: 'Checkbox' };
 
-const mountWrapper = ({ preferences = [] } = {}) => {
+const mountWrapper = ({ preferences = [], storage = {} } = {}) => {
   // The console settings are saved there, so one test's would load in the next.
   window.localStorage.clear();
+  Object.entries(storage).forEach(([key, value]) => window.localStorage.setItem(key, JSON.stringify(value)));
   consoleRef.ctrlAltDelete.mockClear();
   consoleRef.focus.mockClear();
 
@@ -195,6 +196,35 @@ describe('component: NovncConsoleWrapper', () => {
     wrapper.vm.ctrlAltDelete();
 
     expect(wrapper.vm.confirmAction).toBeNull();
+  });
+
+  describe('view settings', () => {
+    it('should not take what the previous console saved on its first open as a choice', () => {
+      const wrapper = mountWrapper({
+        storage: {
+          'harvester-vnc-console-settings': {
+            viewMode: 'none', zoomPercent: 100, viewOnly: false, qualityLevel: 6, compressionLevel: 2
+          }
+        }
+      });
+
+      expect(wrapper.vm.settings.viewMode).toBe('scale');
+    });
+
+    it('should save only what the user changes, and load it next time', async() => {
+      const wrapper = mountWrapper();
+
+      await wrapper.vm.$nextTick();
+      expect(window.localStorage).toHaveLength(0);
+
+      wrapper.vm.updateSettings({
+        ...wrapper.vm.settings, viewMode: 'none', zoomPercent: 150
+      });
+
+      const reopened = mountWrapper({ storage: { 'harvester-vnc-console-view': JSON.parse(window.localStorage.getItem('harvester-vnc-console-view')) } });
+
+      expect(reopened.vm.settings).toMatchObject({ viewMode: 'none', zoomPercent: 150 });
+    });
   });
 
   describe('in full screen', () => {

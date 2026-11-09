@@ -18,7 +18,9 @@ import NovncViewOptions, { VIEW_MODE } from './NovncViewOptions';
 import { baseKey, readShortcuts } from './shortcuts';
 import { normalizeZoom } from './ZoomableRFB';
 
-const CONSOLE_SETTINGS_KEY = 'harvester-vnc-console-settings';
+// The previous console saved its defaults under 'harvester-vnc-console-settings' the first time it opened,
+// so they can't tell a choice from a default. This one keeps its own key and saves only what the user changes.
+const CONSOLE_SETTINGS_KEY = 'harvester-vnc-console-view';
 
 export const CONFIRM_ACTION = {
   CTRL_ALT_DEL: 'ctrlAltDel',
@@ -315,13 +317,6 @@ export default {
         this.startedAt = Date.now();
       }
     },
-
-    settings: {
-      deep: true,
-      handler(neu) {
-        window.localStorage.setItem(CONSOLE_SETTINGS_KEY, JSON.stringify(neu));
-      }
-    },
   },
 
   mounted() {
@@ -429,13 +424,19 @@ export default {
       }
     },
 
+    saveSettings() {
+      window.localStorage.setItem(CONSOLE_SETTINGS_KEY, JSON.stringify(this.settings));
+    },
+
     updateSettings(settings) {
       this.settings = settings;
+      this.saveSettings();
     },
 
     // Back to sending input, the keyboard should reach the VM without clicking the screen first.
     setViewOnly(viewOnly) {
       this.settings = { ...this.settings, viewOnly };
+      this.saveSettings();
 
       if (!viewOnly) {
         this.focusConsole();
@@ -444,6 +445,7 @@ export default {
 
     resetSettings() {
       this.settings = { ...DEFAULT_SETTINGS };
+      this.saveSettings();
     },
 
     onStatusChanged(info) {
