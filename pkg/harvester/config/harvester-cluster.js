@@ -10,8 +10,7 @@ import {
   LOGGING,
   STORAGE_CLASS,
   SECRET,
-  NETWORK_POLICY,
-  BRAND
+  NETWORK_POLICY
 } from '@shell/config/types';
 import { HCI, VOLUME_SNAPSHOT } from '../types';
 import {
@@ -58,9 +57,12 @@ import {
 } from './table-headers';
 import { ADD_ONS } from './harvester-map';
 import { registerAddonSideNav } from '../utils/dynamic-nav';
+import { setStandalonePrime } from '../utils/l10n-globals';
 import { setVendor } from '@shell/config/private-label';
+import { CONFIGURABLE_TABLES } from '@shell/store/features';
+import { tableViewsOffFeature } from '../utils/table-views';
 import { SETTING } from '@shell/config/settings';
-import { setFavIcon } from '@shell/utils/favicon';
+import { primeBrandUpdater } from '../utils/prime-brand';
 
 const TEMPLATE = HCI.VM_VERSION;
 const MONITORING_GROUP = 'Monitoring & Logging::Monitoring';
@@ -103,8 +105,6 @@ export function init($plugin, store) {
   } = $plugin.DSL(store, PRODUCT_NAME);
 
   const isSingleVirtualCluster = process.env.rancherEnv === PRODUCT_NAME;
-  // The brand Harvester reported before Prime switched it to SUSE, to put back if the flavor changes.
-  let harvesterBrand;
 
   if (isSingleVirtualCluster) {
     const home = {
@@ -119,32 +119,14 @@ export function init($plugin, store) {
       (_state, getters) => JSON.stringify([
         !!getters['harvester-common/isHarvesterPrime'],
         getters['prefs/theme'] === 'dark',
-        getters['harvester-common/privateLabel'],
-        getters['management/byId'](MANAGEMENT.SETTING, SETTING.BRAND)?.value
+        getters['harvester-common/privateLabel']
       ]),
       (value) => {
         const [isHarvesterPrime, isDark, privateLabel] = JSON.parse(value);
         const primeLogo = isDark ? require('../assets/images/dark/suse-virtualization.svg') : require('../assets/images/suse-virtualization.svg');
 
+        setStandalonePrime(isHarvesterPrime);
         setVendor(privateLabel || '');
-
-        // Prime runs with Rancher Prime's SUSE brand, so the shell loads the whole SUSE palette (as it does
-        // inside Rancher) instead of the default one with a green primary. Standalone Harvester reports
-        // ui-brand=harvester, which has no stylesheet; the setting is only switched in this browser.
-        const brandSetting = store.getters['management/byId'](MANAGEMENT.SETTING, SETTING.BRAND);
-
-        // Only Harvester's own brand is replaced; a server brand such as rgs or federal keeps its look.
-        if (brandSetting) {
-          if (isHarvesterPrime && (!brandSetting.value || brandSetting.value === PRODUCT_NAME)) {
-            harvesterBrand = brandSetting.value;
-            brandSetting.value = BRAND.SUSE;
-            setFavIcon(store);
-          } else if (!isHarvesterPrime && harvesterBrand !== undefined && brandSetting.value === BRAND.SUSE) {
-            brandSetting.value = harvesterBrand;
-            harvesterBrand = undefined;
-            setFavIcon(store);
-          }
-        }
 
         const primeLabelKey = privateLabel ? 'harvester.branding.primeLabel' : 'harvester.branding.primeEmptyLabel';
 
@@ -158,6 +140,30 @@ export function init($plugin, store) {
           supportCustomLogo: !isHarvesterPrime
         });
       },
+      { immediate: true }
+    );
+
+    // Keep the shell's table views off: they drop the filters the lists put in the table header
+    store.watch(
+      (_state, getters) => getters['management/byId'](MANAGEMENT.FEATURE, CONFIGURABLE_TABLES),
+      (feature) => {
+        if (!feature) {
+          store.dispatch('management/load', { data: tableViewsOffFeature() });
+        }
+      },
+      { immediate: true }
+    );
+
+    const updateBrand = primeBrandUpdater();
+
+    // The value is read too: a change event from the server is loaded into the same setting object
+    store.watch(
+      (_state, getters) => {
+        const brandSetting = getters['management/byId'](MANAGEMENT.SETTING, SETTING.BRAND);
+
+        return [!!getters['harvester-common/isHarvesterPrime'], brandSetting, brandSetting?.value];
+      },
+      ([isHarvesterPrime, brandSetting]) => updateBrand(brandSetting, isHarvesterPrime),
       { immediate: true }
     );
   }
@@ -704,16 +710,24 @@ export function init($plugin, store) {
 
   basicType(
     [
-      TEMPLATE,
-      HCI.SSH,
-      HCI.CLOUD_TEMPLATE,
-      HCI.STORAGE,
       HCI.SR_IOV,
       HCI.PCI_DEVICE,
       HCI.SR_IOVGPU_DEVICE,
       HCI.VGPU_DEVICE,
       HCI.MIG_CONFIGURATION,
       HCI.USB_DEVICE,
+    ],
+    'hardwareDevices'
+  );
+
+  weightGroup('hardwareDevices', 488, true);
+
+  basicType(
+    [
+      TEMPLATE,
+      HCI.SSH,
+      HCI.CLOUD_TEMPLATE,
+      HCI.STORAGE,
       HCI.ADD_ONS,
       HCI.SECRET,
       HCI.SETTING
@@ -1111,7 +1125,7 @@ export function init($plugin, store) {
 
   virtualType({
     label:      'PCI Devices',
-    group:      'advanced',
+    group:      'hardwareDevices',
     weight:     14,
     name:       HCI.PCI_DEVICE,
     namespaced: false,
@@ -1147,7 +1161,7 @@ export function init($plugin, store) {
   virtualType({
     ifHaveType: HCI.SR_IOV,
     labelKey:   'harvester.sriov.label',
-    group:      'advanced',
+    group:      'hardwareDevices',
     weight:     15,
     name:       HCI.SR_IOV,
     namespaced: false,
@@ -1167,7 +1181,7 @@ export function init($plugin, store) {
   virtualType({
     ifHaveType: HCI.SR_IOVGPU_DEVICE,
     labelKey:   'harvester.sriovgpu.label',
-    group:      'advanced',
+    group:      'hardwareDevices',
     weight:     13,
     name:       HCI.SR_IOVGPU_DEVICE,
     namespaced: false,
@@ -1186,7 +1200,7 @@ export function init($plugin, store) {
 
   virtualType({
     labelKey:   'harvester.vgpu.label',
-    group:      'advanced',
+    group:      'hardwareDevices',
     weight:     12,
     name:       HCI.VGPU_DEVICE,
     namespaced: false,
@@ -1214,7 +1228,7 @@ export function init($plugin, store) {
 
   virtualType({
     labelKey:   'harvester.migconfiguration.label',
-    group:      'advanced',
+    group:      'hardwareDevices',
     weight:     12,
     name:       HCI.MIG_CONFIGURATION,
     namespaced: false,
@@ -1234,7 +1248,7 @@ export function init($plugin, store) {
 
   virtualType({
     labelKey:   'harvester.usb.label',
-    group:      'advanced',
+    group:      'hardwareDevices',
     weight:     11,
     name:       HCI.USB_DEVICE,
     namespaced: false,

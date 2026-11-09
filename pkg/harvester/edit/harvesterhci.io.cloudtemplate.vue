@@ -59,8 +59,8 @@ export default {
   },
 
   methods: {
-    update() {
-      this.value.data = { cloudInit: this.config };
+    update(config) {
+      this.value.data = { cloudInit: config };
     },
 
     updateBeforeSave() {
@@ -119,7 +119,7 @@ export default {
             :mode="mode"
             class="yaml-editor"
             :editor-mode="mode === 'view' ? 'VIEW_CODE' : 'EDIT_CODE'"
-            @onChanges="update"
+            @update:value="update"
           />
         </div>
       </Tab>
@@ -133,9 +133,7 @@ export default {
   :deep() .yaml-editor{
     flex: 1;
     min-height: $yaml-height;
-    & .code-mirror .CodeMirror {
-      position: initial;
-      height: auto;
+    & .code-mirror .cm-editor {
       min-height: $yaml-height;
     }
   }

@@ -39,7 +39,8 @@ module.exports = {
     '^.+\\.svg$':    '<rootDir>/svgTransform.js',
   },
   transformIgnorePatterns: [
-    // @rancher/shell is shipped untranspiled, the other packages are ESM-only
-    '/node_modules/(?!(@rancher/shell|color|color-string|color-convert|color-name|vee-validate|@vee-validate|clipboard-polyfill|intl-messageformat|@formatjs)/)',
+    // @rancher/shell is shipped untranspiled, the other packages are ESM-only. @replit/codemirror-vim-core is
+    // required by the CommonJS build of @replit/codemirror-vim, which the shell's YamlEditor imports
+    '/node_modules/(?!(@rancher/shell|color|color-string|color-convert|color-name|vee-validate|@vee-validate|clipboard-polyfill|intl-messageformat|@formatjs|@replit/codemirror-vim-core)/)',
   ],
 };

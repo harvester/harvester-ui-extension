@@ -289,7 +289,7 @@ $yaml-height: 350px;
     flex: 1;
     min-height: $yaml-height;
 
-    & .code-mirror .CodeMirror {
+    & .code-mirror .cm-editor {
       min-height: $yaml-height;
     }
   }

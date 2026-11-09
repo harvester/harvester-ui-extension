@@ -333,7 +333,7 @@ $xml-height: 350px;
     min-height: $xml-height;
     font-family: monospace;
 
-    & .code-mirror .CodeMirror {
+    & .code-mirror .cm-editor {
       min-height: $xml-height;
     }
   }

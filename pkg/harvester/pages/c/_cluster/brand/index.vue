@@ -210,7 +210,8 @@ export default {
             <FileSelector
               :byte-limit="20000"
               :read-as-data-url="true"
-              class="role-secondary"
+              variant="secondary"
+              size="large"
               :label="t('branding.logos.uploadLight')"
               :mode="mode"
               @error="setError"
@@ -233,7 +234,8 @@ export default {
             <FileSelector
               :byte-limit="20000"
               :read-as-data-url="true"
-              class="role-secondary"
+              variant="secondary"
+              size="large"
               :label="t('branding.logos.uploadDark')"
               :mode="mode"
               @error="setError"
@@ -274,7 +276,8 @@ export default {
             <FileSelector
               :byte-limit="20000"
               :read-as-data-url="true"
-              class="role-secondary"
+              variant="secondary"
+              size="large"
               :label="t('branding.favicon.upload')"
               :mode="mode"
               @error="setError"
