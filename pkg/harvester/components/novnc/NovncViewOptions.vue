@@ -231,6 +231,12 @@ export default {
       display: flex;
       align-items: center;
       gap: 8px;
+
+      // Between the zoom buttons the slider takes the room that is left. In the other sections, which
+      // are columns, the same rule would set its height and squash it to the track.
+      .view-options__slider {
+        flex: 1;
+      }
     }
 
     &__divider {
@@ -246,7 +252,6 @@ export default {
     }
 
     &__slider {
-      flex: 1;
       width: 100%;
       height: 20px;
       margin: 0;
