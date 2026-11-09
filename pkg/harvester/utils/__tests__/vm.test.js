@@ -1,5 +1,7 @@
 import { reactive } from 'vue';
-import { getLatestMigration, liveSwapNADType, canLiveSwapNAD, isNADOnlyChange } from '../vm';
+import {
+  getLatestMigration, liveSwapNADType, canLiveSwapNAD, isNADOnlyChange, isVMSpecChanged
+} from '../vm';
 
 const migration = (namespace, timestamp, vmiName = 'vm1') => ({
   metadata: { namespace, creationTimestamp: timestamp },
@@ -212,6 +214,48 @@ describe('isNADOnlyChange', () => {
 
     expect(oldVM.spec.template.spec.networks[1].multus.networkName).toBe('vlan-100');
     expect(newVM.spec.template.spec.networks[1].multus.networkName).toBe('vlan-200');
+    expect(newVM.spec.template.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution).toStrictEqual([]);
+  });
+});
+
+describe('isVMSpecChanged', () => {
+  const vm = (templateSpec = {}) => ({ spec: { runStrategy: 'Always', template: { spec: { domain: { cpu: { cores: 1 } }, ...templateSpec } } } });
+  const emptyAffinity = {
+    affinity: {
+      nodeAffinity: {
+        preferredDuringSchedulingIgnoredDuringExecution: [],
+        requiredDuringSchedulingIgnoredDuringExecution:  { nodeSelectorTerms: [] },
+      }
+    }
+  };
+
+  it('ignores the empty node affinity terms added by the form', () => {
+    expect(isVMSpecChanged(vm(), vm(emptyAffinity))).toBe(false);
+  });
+
+  it('keeps other affinity settings', () => {
+    const podAffinity = { affinity: { ...emptyAffinity.affinity, podAffinity: { preferredDuringSchedulingIgnoredDuringExecution: [{ weight: 1 }] } } };
+
+    expect(isVMSpecChanged(vm(), vm(podAffinity))).toBe(true);
+  });
+
+  it('detects a real node selector term', () => {
+    const required = { affinity: { nodeAffinity: { requiredDuringSchedulingIgnoredDuringExecution: { nodeSelectorTerms: [{ matchExpressions: [{ key: 'a', operator: 'Exists' }] }] } } } };
+
+    expect(isVMSpecChanged(vm(), vm(required))).toBe(true);
+  });
+
+  it('detects other spec changes', () => {
+    const changed = vm(emptyAffinity);
+
+    changed.spec.template.spec.domain.cpu.cores = 2;
+    expect(isVMSpecChanged(vm(), changed)).toBe(true);
+  });
+
+  it('does not modify the VMs', () => {
+    const newVM = vm(emptyAffinity);
+
+    isVMSpecChanged(vm(), newVM);
     expect(newVM.spec.template.spec.affinity.nodeAffinity.preferredDuringSchedulingIgnoredDuringExecution).toStrictEqual([]);
   });
 });

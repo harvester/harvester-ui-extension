@@ -127,6 +127,27 @@ function dropEmptyNodeAffinityTerms(spec) {
   if (!Object.keys(nodeAffinity).length) {
     delete affinity.nodeAffinity;
   }
+
+  if (!Object.keys(affinity).length) {
+    delete spec.template.spec.affinity;
+  }
+}
+
+/**
+ * Whether the spec of two VMs differs, ignoring the empty node affinity terms that the Node
+ * Scheduling form adds on load (see dropEmptyNodeAffinityTerms). Saving a VM without changes, or
+ * changing a field and changing it back, is then not a spec change.
+ * @param {Object} oldVM
+ * @param {Object} newVM
+ */
+export function isVMSpecChanged(oldVM, newVM) {
+  const oldSpec = clone(oldVM?.spec || {});
+  const newSpec = clone(newVM?.spec || {});
+
+  dropEmptyNodeAffinityTerms(oldSpec);
+  dropEmptyNodeAffinityTerms(newSpec);
+
+  return !isEqual(oldSpec, newSpec);
 }
 
 /**
