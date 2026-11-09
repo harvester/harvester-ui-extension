@@ -35,12 +35,22 @@ export const SSH_EXISTING_TYPE = {
   EXISTING_ONLY_CLOUD:      'EXISTING_CLOUD',
 };
 
-export const CLOUD_CONFIG_HEADER = /^\s*#cloud-config(\s|$)/;
+// Cloud-init and Cloudbase-Init run user data starting with one of these as a script, MIME or another format, not as cloud-config.
+const OTHER_USER_DATA_FORMATS = [
+  '#!', '#include', '#cloud-boothook', '#part-handler', '#cloud-config-archive', '#cloud-config-jsonp', '## template:',
+  '#ps1', 'rem cmd', '<script>', '<powershell>', 'content-type:', 'mime-version:'
+];
+
+export function isCloudConfig(userScript) {
+  const start = (userScript || '').trimStart().toLowerCase();
+
+  return !OTHER_USER_DATA_FORMATS.some((format) => start.startsWith(format));
+}
 
 export default {
   methods: {
     hasCloudConfigComment(userScript) {
-      if (typeof userScript === 'string' && CLOUD_CONFIG_HEADER.test(userScript)) {
+      if (typeof userScript === 'string' && /^\s*#cloud-config(\s|$)/.test(userScript)) {
         return true;
       }
 
