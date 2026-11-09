@@ -51,7 +51,7 @@ export default {
     },
 
     canAdd() {
-      return !!this.keys.length && !this.isDuplicate && !this.saving;
+      return !!this.keys.length && !this.isDuplicate;
     },
   },
 
@@ -69,20 +69,38 @@ export default {
       this.name = '';
     },
 
+    // The buttons stay enabled while a change saves: disabling the one that was pressed would drop the
+    // keyboard's focus to the page.
     async add() {
-      if (!this.canAdd) {
+      if (!this.canAdd || this.saving) {
         return;
       }
 
       const added = await this.save([...this.shortcuts, { name: this.name.trim(), keys: this.keys }]);
 
+      // Add shortcut turns disabled with the form empty, so the recorder takes the focus for the next one.
       if (added) {
         this.clear();
+        this.$nextTick(() => this.$refs.recorder?.$el?.focus());
       }
     },
 
-    remove(index) {
-      this.save(this.shortcuts.filter((_, i) => i !== index));
+    async remove(index) {
+      if (this.saving) {
+        return;
+      }
+
+      const removed = await this.save(this.shortcuts.filter((_, i) => i !== index));
+
+      // The row may be gone with the button that had the focus: the delete button now in its place, or
+      // the last one, takes it, and the recorder once the list is empty.
+      if (removed) {
+        this.$nextTick(() => {
+          const buttons = this.$refs.list?.querySelectorAll('button') || [];
+
+          (buttons[index] || buttons[buttons.length - 1] || this.$refs.recorder?.$el)?.focus();
+        });
+      }
     },
 
     // Every change is saved straight away, so closing the modal can never lose one.
@@ -142,6 +160,7 @@ export default {
           class="custom-keys__label"
         >{{ t('harvester.virtualMachine.detail.console.customKeys.combination') }}</span>
         <NovncKeyRecorder
+          ref="recorder"
           v-model:value="keys"
           aria-labelledby="vnc-key-combination-label"
         />
@@ -187,7 +206,10 @@ export default {
       <h3 class="custom-keys__heading">
         {{ t('harvester.virtualMachine.detail.console.customKeys.saved', { count: shortcuts.length }) }}
       </h3>
-      <ul class="custom-keys__list">
+      <ul
+        ref="list"
+        class="custom-keys__list"
+      >
         <li
           v-for="(shortcut, index) in shortcuts"
           :key="index"
@@ -207,7 +229,6 @@ export default {
           <RcButton
             variant="tertiary"
             :aria-label="t('harvester.virtualMachine.detail.console.customKeys.delete', { name: shortcut.name || shortcut.labels.join('+') }, true)"
-            :disabled="saving"
             @click="remove(index)"
           >
             <RcIcon

@@ -1,5 +1,5 @@
 import { reactive } from 'vue';
-import { flushPromises, shallowMount } from '@vue/test-utils';
+import { flushPromises, mount, shallowMount } from '@vue/test-utils';
 import { RcButton } from '@components/RcButton';
 import NovncConsoleCustomKeys from '../NovncConsoleCustomKeys.vue';
 import { SHORTCUTS_PREFERENCE, SHORTCUT_NAMES_PREFERENCE } from '../shortcuts';
@@ -10,18 +10,22 @@ const CTRL_F2 = [key('Control', 'ControlLeft'), key('F2', 'F2')];
 const CTRL_SPACE = [key('Control', 'ControlLeft'), key(' ', 'Space')];
 const ALT_T = [key('Alt', 'AltLeft'), key('t', 'KeyT')];
 
-const mountKeys = (saved = []) => {
+// `rendered` mounts the buttons and the recorder for real, in the document, so the focus can be checked.
+const mountKeys = (saved = [], { rendered = false } = {}) => {
   // Reactive like the store's, so the list follows what is saved.
   const preference = reactive({
     data: { [SHORTCUTS_PREFERENCE]: JSON.stringify(saved) },
     save: jest.fn().mockResolvedValue(),
   });
 
-  const wrapper = shallowMount(NovncConsoleCustomKeys, {
-    props:  { show: true },
-    global: {
+  const wrapper = (rendered ? mount : shallowMount)(NovncConsoleCustomKeys, {
+    props:    { show: true },
+    attachTo: rendered ? document.body : undefined,
+    global:   {
       mocks: { $store: { getters: { 'management/all': () => [preference] } } },
-      stubs: { RcModal: { template: '<div><slot /></div>' }, Banner: { template: '<div><slot /></div>' } },
+      stubs: {
+        RcModal: { template: '<div><slot /></div>' }, Banner: { template: '<div><slot /></div>' }, LabeledInput: true
+      },
     },
   });
 
@@ -75,6 +79,46 @@ describe('component: NovncConsoleCustomKeys', () => {
     await wrapper.setProps({ show: false });
 
     expect(wrapper.find('[data-testid="vnc-custom-keys-error"]').exists()).toBe(false);
+  });
+
+  it('should not start a second save while one is running', async() => {
+    const { wrapper, preference } = mountKeys([CTRL_F2, ALT_T]);
+
+    wrapper.vm.remove(0);
+    wrapper.vm.remove(1);
+    await flushPromises();
+
+    expect(preference.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('should keep the focus on a delete button after a removal, and hand it to the recorder once the list is empty', async() => {
+    const { wrapper } = mountKeys([CTRL_F2, ALT_T], { rendered: true });
+    const deleteButtons = () => wrapper.findAll('[data-testid="vnc-custom-shortcut"] button');
+
+    deleteButtons()[1].element.focus();
+    await deleteButtons()[1].trigger('click');
+    await flushPromises();
+    expect(document.activeElement).toBe(deleteButtons()[0].element);
+
+    await deleteButtons()[0].trigger('click');
+    await flushPromises();
+    expect(document.activeElement).toBe(wrapper.find('[data-testid="vnc-key-recorder"]').element);
+
+    wrapper.unmount();
+  });
+
+  it('should give the recorder the focus after a shortcut is added', async() => {
+    const { wrapper } = mountKeys([CTRL_F2], { rendered: true });
+
+    wrapper.vm.keys = ALT_T;
+    await wrapper.vm.$nextTick();
+    wrapper.find('[data-testid="vnc-add-shortcut"]').element.focus();
+    await wrapper.find('[data-testid="vnc-add-shortcut"]').trigger('click');
+    await flushPromises();
+
+    expect(document.activeElement).toBe(wrapper.find('[data-testid="vnc-key-recorder"]').element);
+
+    wrapper.unmount();
   });
 
   it('should save a new shortcut straight away, with its name', async() => {
