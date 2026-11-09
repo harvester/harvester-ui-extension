@@ -443,8 +443,9 @@ export default {
       }
     },
 
+    // View only belongs to the toolbar, not the View panel, so the panel's reset leaves it as it is.
     resetSettings() {
-      this.settings = { ...DEFAULT_SETTINGS };
+      this.settings = { ...DEFAULT_SETTINGS, viewOnly: this.settings.viewOnly };
       this.saveSettings();
     },
 

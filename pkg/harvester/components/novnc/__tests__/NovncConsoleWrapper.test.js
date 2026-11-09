@@ -225,6 +225,17 @@ describe('component: NovncConsoleWrapper', () => {
 
       expect(reopened.vm.settings).toMatchObject({ viewMode: 'none', zoomPercent: 150 });
     });
+
+    it('should keep view only on when the View panel resets its settings', () => {
+      const wrapper = mountWrapper();
+
+      wrapper.vm.setViewOnly(true);
+      wrapper.vm.updateSettings({ ...wrapper.vm.settings, zoomPercent: 150 });
+      wrapper.vm.resetSettings();
+
+      expect(wrapper.vm.settings).toMatchObject({ viewOnly: true, zoomPercent: 100 });
+      expect(wrapper.vm.rfbSettings.viewOnly).toBe(true);
+    });
   });
 
   describe('in full screen', () => {
