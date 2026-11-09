@@ -1,4 +1,5 @@
 <script>
+import { h, inject } from 'vue';
 import {
   RcDropdown, RcDropdownGroup, RcDropdownItem, RcDropdownItemCheckbox, RcDropdownSeparator, RcDropdownTrigger
 } from '@components/RcDropdown';
@@ -21,11 +22,32 @@ export const CTRL_KEYS = [
   { key: 'KeyY', label: 'Y' },
 ];
 
+// RcDropdown collects its items when the menu opens, and the arrow keys walk that list. Holding a modifier
+// swaps the keys below it while the menu is open, so, as RcDropdown does for its submenus, the items are
+// collected again on each key press and the arrows reach the keys shown now.
+export const ShortcutMenuBody = {
+  name: 'ShortcutMenuBody',
+
+  setup(_props, { slots }) {
+    const dropdown = inject('dropdownContext', null);
+
+    const collectItems = (event) => {
+      const menu = event.currentTarget.closest('[dropdown-menu-collection]');
+
+      if (dropdown?.dropdownItems && menu) {
+        dropdown.dropdownItems.value = [...menu.querySelectorAll('[dropdown-menu-item]')];
+      }
+    };
+
+    return () => h('div', { class: 'shortcut-menu', onKeydownCapture: collectItems }, slots.default?.());
+  },
+};
+
 export default {
   name: 'NovncShortcutKeysMenu',
 
   components: {
-    RcDropdown, RcDropdownGroup, RcDropdownItem, RcDropdownItemCheckbox, RcDropdownSeparator, RcDropdownTrigger, RcIcon
+    RcDropdown, RcDropdownGroup, RcDropdownItem, RcDropdownItemCheckbox, RcDropdownSeparator, RcDropdownTrigger, RcIcon, ShortcutMenuBody
   },
 
   props: {
@@ -171,7 +193,7 @@ export default {
     </rc-dropdown-trigger>
 
     <template #dropdownCollection>
-      <div class="shortcut-menu">
+      <shortcut-menu-body>
         <p
           v-if="!canSend && blockedReason"
           class="shortcut-menu__blocked"
@@ -273,7 +295,7 @@ export default {
             {{ t('harvester.virtualMachine.detail.console.shortcutMenu.manage') }}
           </rc-dropdown-item>
         </template>
-      </div>
+      </shortcut-menu-body>
     </template>
   </rc-dropdown>
 </template>

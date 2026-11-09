@@ -1,5 +1,6 @@
-import { shallowMount } from '@vue/test-utils';
-import NovncShortcutKeysMenu from '../NovncShortcutKeysMenu.vue';
+import { ref } from 'vue';
+import { mount, shallowMount } from '@vue/test-utils';
+import NovncShortcutKeysMenu, { ShortcutMenuBody } from '../NovncShortcutKeysMenu.vue';
 import {
   keyLabel, normalizeShortcut, readShortcuts, shortcutLabels, writeShortcuts, SHORTCUTS_PREFERENCE, SHORTCUT_NAMES_PREFERENCE
 } from '../shortcuts';
@@ -90,6 +91,22 @@ describe('component: NovncShortcutKeysMenu', () => {
       ['Open terminal', 'Ctrl+Alt+T'],
       ['Esc', 'Esc'],
     ]);
+  });
+
+  it('should give the arrow keys the items shown after a modifier swapped them', async() => {
+    const dropdownItems = ref([]);
+    const keys = ref(['PrintScreen']);
+    const wrapper = mount({
+      components: { ShortcutMenuBody },
+      setup:      () => ({ keys }),
+      template:   '<div dropdown-menu-collection><shortcut-menu-body><div v-for="key in keys" :key="key" dropdown-menu-item>{{ key }}</div></shortcut-menu-body></div>',
+    }, { global: { provide: { dropdownContext: { dropdownItems } } } });
+
+    keys.value = ['KeyN', 'KeyT'];
+    await wrapper.vm.$nextTick();
+    await wrapper.find('[dropdown-menu-item]').trigger('keydown', { key: 'ArrowDown' });
+
+    expect(dropdownItems.value.map((item) => item.textContent)).toStrictEqual(['KeyN', 'KeyT']);
   });
 });
 
