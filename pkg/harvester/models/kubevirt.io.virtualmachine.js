@@ -1400,9 +1400,16 @@ export default class VirtVm extends HarvesterResource {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('thirdPartyVMBackup');
   }
 
-  // The backend drops the backup action on Longhorn v2 and CDI volumes, which Restic and Kopia can still protect
+  // The backend drops the backup action on Longhorn v2 and CDI volumes, which Restic and Kopia can still protect on S3
   get canTakeBackup() {
-    return !!this.actions?.backup || (this.thirdPartyBackupFeatureEnabled && !!this.actions?.snapshot);
+    return !!this.actions?.backup || (this.thirdPartyBackupFeatureEnabled && !!this.actions?.snapshot && !this.isBackupTargetNotS3);
+  }
+
+  // Only users who can read backup-target know its type, for everyone else the webhook decides
+  get isBackupTargetNotS3() {
+    const type = getBackupTargetType(this.$rootGetters['harvester/byId'](HCI.SETTING, 'backup-target'));
+
+    return !!type && type !== 's3';
   }
 
   async fetchBackupTypeRequirements() {
@@ -1454,7 +1461,7 @@ export default class VirtVm extends HarvesterResource {
   }
 
   get dataMoverBackupUnavailableReason() {
-    if (getBackupTargetType(this.$rootGetters['harvester/byId'](HCI.SETTING, 'backup-target')) !== 's3') {
+    if (this.isBackupTargetNotS3) {
       return this.t('harvester.backup.typeUnavailable.requiresS3');
     }
 
