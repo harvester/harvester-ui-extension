@@ -75,6 +75,11 @@ export default {
       return this.thirdPartyBackupEnabled ? this.actionResource.backupTypeOptions : [];
     },
 
+    // Shown outside the select too: its disabled options can't be reached by keyboard
+    unavailableBackupTypeOptions() {
+      return this.backupTypeOptions.filter((option) => option.disabled);
+    },
+
     isLoading() {
       return this.thirdPartyBackupEnabled && this.$fetchState.pending;
     },
@@ -211,19 +216,21 @@ export default {
           :options="backupTypeOptions"
           :searchable="false"
           required
+        />
+        <Banner
+          v-if="unavailableBackupTypeOptions.length"
+          color="info"
+          data-testid="backup-type-unavailable"
         >
-          <template #option="option">
-            <div :data-testid="`backup-type-option-${ option.value }`">
-              {{ option.label }}
-              <div
-                v-if="option.unavailableReason"
-                class="backup-type-reason"
-              >
-                {{ option.unavailableReason }}
-              </div>
-            </div>
-          </template>
-        </LabeledSelect>
+          <ul class="mb-0">
+            <li
+              v-for="option in unavailableBackupTypeOptions"
+              :key="option.value"
+            >
+              {{ option.label }}: {{ option.unavailableReason }}
+            </li>
+          </ul>
+        </Banner>
         <LabeledSelect
           v-if="fsFreezeDeadlineEnabled"
           v-model:value="fsFreezeDeadline"
@@ -279,10 +286,5 @@ export default {
   display: flex;
   justify-content: flex-end;
   width: 100%;
-}
-
-.backup-type-reason {
-  font-size: 12px;
-  white-space: normal;
 }
 </style>

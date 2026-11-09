@@ -115,6 +115,16 @@ describe('component: HarvesterBackupModal', () => {
     expect(wrapper.emitted('close')).toBeUndefined();
   });
 
+  it('should list the reasons of unavailable types next to the select', async() => {
+    const { wrapper } = mountModal();
+
+    await HarvesterBackupModal.fetch.call(wrapper.vm);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('[data-testid="backup-type-unavailable"]').exists()).toBe(true);
+    expect(wrapper.findAll('li').map((li) => li.text())).toStrictEqual(['Native: native reason']);
+  });
+
   it('should explain why when no type is available and hide the form', async() => {
     const disabled = Object.values(OPTIONS).map((option) => ({
       ...option, disabled: true, unavailableReason: `${ option.value } reason`

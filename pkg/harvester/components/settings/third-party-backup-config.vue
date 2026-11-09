@@ -1,5 +1,4 @@
 <script>
-import { Banner } from '@components/Banner';
 import { Checkbox } from '@components/Form/Checkbox';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { RcSection } from '@components/RcSection';
@@ -8,10 +7,19 @@ import { BACKUP_TYPE } from '../../config/types';
 const ENGINES = [BACKUP_TYPE.RESTIC, BACKUP_TYPE.KOPIA];
 const QUANTITY_FIELDS = ['memoryRequest', 'memoryLimit', 'ephemeralRequest', 'ephemeralLimit', 'cacheSize'];
 
+// The webhook only stores JSON objects, so a value that doesn't parse falls back to the default like the other settings forms
+function parseJSON(string) {
+  try {
+    return JSON.parse(string || '{}');
+  } catch (e) {
+    return {};
+  }
+}
+
 // The backend fills omitted fields from the default, so show those values instead of empty inputs
 function parseConfig(value, defaultValue) {
-  const defaults = JSON.parse(defaultValue || '{}');
-  const current = JSON.parse(value || '{}');
+  const defaults = parseJSON(defaultValue);
+  const current = parseJSON(value);
 
   return Object.fromEntries(ENGINES.map((engine) => [engine, { ...defaults[engine], ...current[engine] }]));
 }
@@ -20,7 +28,6 @@ export default {
   name: 'ThirdPartyBackupConfig',
 
   components: {
-    Banner,
     Checkbox,
     LabeledInput,
     RcSection,
@@ -45,21 +52,11 @@ export default {
   },
 
   data() {
-    let config = Object.fromEntries(ENGINES.map((engine) => [engine, {}]));
-    let parseError = null;
-
-    try {
-      config = parseConfig(this.value?.value, this.value?.default);
-    } catch (e) {
-      parseError = this.t('harvester.setting.thirdPartyBackupConfig.parseError', { error: e.message });
-    }
-
     return {
       ENGINES,
       QUANTITY_FIELDS,
       RESTIC: BACKUP_TYPE.RESTIC,
-      config,
-      parseError,
+      config: parseConfig(this.value?.value, this.value?.default),
     };
   },
 
@@ -75,7 +72,6 @@ export default {
     },
 
     useDefault() {
-      this.parseError = null;
       this.config = parseConfig('', this.value?.default);
       this.updateValue();
     },
@@ -91,13 +87,6 @@ export default {
 
 <template>
   <div data-testid="third-party-backup-config">
-    <Banner
-      v-if="parseError"
-      color="error"
-    >
-      {{ parseError }}
-    </Banner>
-
     <RcSection
       v-for="engine in ENGINES"
       :key="engine"

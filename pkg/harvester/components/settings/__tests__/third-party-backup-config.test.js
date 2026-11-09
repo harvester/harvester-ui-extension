@@ -53,10 +53,9 @@ describe('component: third-party-backup-config', () => {
     expect(JSON.parse(setting.value)).toStrictEqual(JSON.parse(DEFAULT));
   });
 
-  it('should report a value that is not JSON', () => {
+  it('should show the default values when the setting is not JSON', () => {
     const { wrapper } = mountConfig('{not json');
 
-    expect(wrapper.vm.parseError).toBe('harvester.setting.thirdPartyBackupConfig.parseError');
-    expect(wrapper.find('banner-stub').exists()).toBe(true);
+    expect(wrapper.vm.config).toStrictEqual(JSON.parse(DEFAULT));
   });
 });
