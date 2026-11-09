@@ -106,6 +106,23 @@ export default {
       this.$emit('update:value', [...this.pending, recordKey(event, this.pending)]);
       this.stop();
     },
+
+    // Modifiers released before any other key are the combination themselves, such as the Windows key on
+    // its own. It waits for the last one, so Ctrl+Shift can be let go one key at a time.
+    onKeyup(event) {
+      if (!this.recording || !this.pending.length || !MODIFIER_KEYS.includes(event.key)) {
+        return;
+      }
+
+      if (event.ctrlKey || event.altKey || event.shiftKey || event.metaKey) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      this.$emit('update:value', [...this.pending]);
+      this.stop();
+    },
   },
 };
 </script>
@@ -121,6 +138,7 @@ export default {
     data-testid="vnc-key-recorder"
     @click="start"
     @keydown="onKeydown"
+    @keyup="onKeyup"
     @blur="stop"
   >
     <span
