@@ -2,6 +2,8 @@ import YAML from 'yaml';
 import jsyaml from 'js-yaml';
 import isEqual from 'lodash/isEqual';
 import isEmpty from 'lodash/isEmpty';
+import isNil from 'lodash/isNil';
+import isPlainObject from 'lodash/isPlainObject';
 import difference from 'lodash/difference';
 import { sortBy } from '@shell/utils/sort';
 import { set } from '@shell/utils/object';
@@ -23,7 +25,7 @@ import {
 import { HCI_SETTING } from '../../config/settings';
 import { HCI } from '../../types';
 import { parseVolumeClaimTemplates, EMPTY_IMAGE } from '../../utils/vm';
-import impl, { QGA_JSON, USB_TABLET } from './impl';
+import impl, { isCloudConfig, QGA_JSON, USB_TABLET } from './impl';
 import { GIBIBYTE } from '../../utils/unit';
 import { VOLUME_MODE, ACCESS_MODE, FILESYSTEM_SOURCE_TYPE } from '@pkg/harvester/config/types';
 
@@ -157,6 +159,8 @@ export default {
       installUSBTablet:              true,
       networkScript:                 '',
       userScript:                    '',
+      // The cloud-init the form loaded, so editing a VM never blocks saving it unchanged.
+      savedCloudInit:                {},
       imageId:                       '',
       diskRows:                      [],
       networkRows:                   [],
@@ -434,6 +438,7 @@ export default {
       this['accessCredentials'] = accessCredentials;
       this['userScript'] = userData;
       this['networkScript'] = networkData;
+      this['savedCloudInit'] = { userScript: userData, networkScript: networkData };
 
       this['sshKey'] = sshKey;
       this['osType'] = osType;
@@ -1283,6 +1288,11 @@ export default {
      * @param config
      */
     getUserData(config) {
+      // Scripts, MIME and the other formats are saved as typed: only cloud-config gets the SSH keys, the guest agent and the header.
+      if (!isCloudConfig(this.userScript)) {
+        return this.userScript;
+      }
+
       try {
         // https://github.com/eemeli/yaml/issues/136
         let userDataDoc = this.userScript ? YAML.parseDocument(this.userScript) : YAML.parseDocument({});
@@ -1473,6 +1483,30 @@ export default {
 
     updateNetworkData(value) {
       this.networkScript = value;
+    },
+
+    validateCloudInit() {
+      const isYamlMapping = (text) => {
+        try {
+          const doc = jsyaml.load(text);
+
+          return isNil(doc) || isPlainObject(doc);
+        } catch (e) {
+          return false;
+        }
+      };
+
+      // Editing only checks what changed, so a VM can still be saved with the cloud-init it already has.
+      const isChanged = (key) => !this.isEdit || this[key] !== this.savedCloudInit[key];
+
+      // Scripts, MIME and the other formats are valid without being YAML. Anything else is saved as cloud-config.
+      if (this.userScript && isChanged('userScript') && isCloudConfig(this.userScript) && !isYamlMapping(this.userScript)) {
+        this.errors.push(this.t('harvester.virtualMachine.cloudConfig.user.invalidYaml'));
+      }
+
+      if (this.networkScript && isChanged('networkScript') && !isYamlMapping(this.networkScript)) {
+        this.errors.push(this.t('harvester.virtualMachine.cloudConfig.network.invalidYaml'));
+      }
     },
 
     mergeSSHAuthorizedKeys(yaml) {
