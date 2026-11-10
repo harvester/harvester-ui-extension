@@ -156,7 +156,9 @@ const actionsOf = (props = {}, storeProps = {}) => {
   };
 };
 
-const mountRuleModal = ({ rule, mode, save = () => {} } = {}) => {
+const mountRuleModal = ({
+  rule, mode, save = () => {}, row = CHECK
+} = {}) => {
   createRule.mockClear();
   cloneRule.mockClear();
   saveRule.mockReset().mockImplementation(save);
@@ -167,7 +169,7 @@ const mountRuleModal = ({ rule, mode, save = () => {} } = {}) => {
   const w = vtuMount(IgnoreRuleModal, {
     ...opts(),
     props: {
-      row: CHECK, rule, mode, modal: { show: true, onClose }
+      row, rule, mode, modal: { show: true, onClose }
     },
   });
 
@@ -408,6 +410,10 @@ describe('health components', () => {
   it('names the rule of a check after it', () => {
     expect(ignoreRuleName('harvester-controller-vmimage', 'ImageRetryLimitExceeded')).toBe('harvester-controller-vmimage.imageretrylimitexceeded');
   });
+  it('turns what a name can not have in a check into hyphens', () => {
+    expect(ignoreRuleName('harvester-controller-schedulevmbackup', 'Proactive Schedule Suspend')).toBe('harvester-controller-schedulevmbackup.proactive-schedule-suspend');
+    expect(ignoreRuleName('h', ' Reach_Max  Failure! ')).toBe('h.reach-max-failure');
+  });
   it('tells the ignored resources apart, and all of them when the check is ignored', () => {
     const table = { props: ['rows'], template: '<div><slot name="cell:severity" :row="rows[0]" /><slot name="cell:affectedCount" :row="rows[0]" :value="2" /></div>' };
     const row = {
@@ -633,6 +639,15 @@ describe('health components', () => {
       await flushPromises();
 
       expect(createRule.mock.calls[0][1].metadata).toStrictEqual({ name: 'h.a', labels: { 'health.harvesterhci.io/source': 'user' } });
+    });
+    it('gives a check with spaces a valid name, and keeps the check as it is', async() => {
+      const { confirm } = mountRuleModal({ row: { ...CHECK, checkName: 'Proactive Schedule Suspend' } });
+
+      await confirm().trigger('click');
+      await flushPromises();
+
+      expect(createRule.mock.calls[0][1].metadata.name).toBe('h.proactive-schedule-suspend');
+      expect(newRule.spec.checkKey).toBe('Proactive Schedule Suspend');
     });
     it('says when the rule will expire, from 7 days on', async() => {
       const {
