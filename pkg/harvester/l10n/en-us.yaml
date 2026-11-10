@@ -669,8 +669,8 @@ harvester:
         shmemEnabled: Shared Memory Enabled
         defrag: Defragmentation
       status:
-        anon: Anonymous Hugepages (bytes)
-        size: Default Hugepage Size (bytes)
+        anon: Anonymous Hugepages (kB)
+        size: Default Hugepage Size (kB)
         total: Total Hugepages
         free: Free Hugepages
         rsvd: Reserved Hugepages

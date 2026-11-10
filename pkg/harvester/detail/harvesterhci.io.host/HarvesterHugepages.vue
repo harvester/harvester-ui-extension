@@ -45,13 +45,13 @@ export default {
         <div class="col span-6">
           <LabelValue
             :name="t('harvester.host.hugepages.status.anon')"
-            :value="hugepages.status.meminfo.anonHugePages"
+            :value="hugepages.status.meminfo.anonHugePages / 1024"
           />
         </div>
         <div class="col span-6">
           <LabelValue
             :name="t('harvester.host.hugepages.status.size')"
-            :value="hugepages.status.meminfo.hugepageSize"
+            :value="hugepages.status.meminfo.hugepageSize / 1024"
           />
         </div>
       </div>
