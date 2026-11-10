@@ -37,7 +37,7 @@
     "d3-color": "3.1.0",
     "**/diff2html/diff": "5.2.2",
     "ejs": "3.1.10",
-    "follow-redirects": "1.16.0",
+    "follow-redirects": "1.16.2",
     "glob": "7.2.3",
     "glob-parent": "6.0.2",
     "json5": "2.2.3",
