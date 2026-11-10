@@ -663,6 +663,9 @@ harvester:
         stableNodeDups: Stable Node Dups
     hugepages:
       meminfo: Meminfo
+      static:
+        title: Static Hugepages <a href="{url}" target="_blank"><i class="icon icon-info" /></a>
+        nrHugepages: Number of Persistent Hugepages
       transparent:
         title: Transparent Hugepages <a href="{url}" target="_blank"><i class="icon icon-info" /></a>
         enabled: Enabled
