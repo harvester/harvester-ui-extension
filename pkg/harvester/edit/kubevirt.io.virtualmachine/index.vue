@@ -20,6 +20,7 @@ import { clear } from '@shell/utils/array';
 import { saferDump } from '@shell/utils/create-yaml';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
+import { INTERNAL_STORAGE_CLASS } from '../../config/types';
 import { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
@@ -40,6 +41,7 @@ import Reserved from './VirtualMachineReserved';
 import Filesystem from './VirtualMachineFilesystem';
 import { Banner } from '@components/Banner';
 import MessageLink from '@shell/components/MessageLink';
+import { STORAGE_CLASS } from '@shell/config/types';
 
 export default {
   name: 'HarvesterEditVM',
@@ -116,6 +118,12 @@ export default {
 
   computed: {
     ...mapGetters({ t: 'i18n/t' }),
+
+    hasVMStateStorageClass() {
+      const storageClasses = this.$store.getters[`${ this.inStore }/all`](STORAGE_CLASS) || [];
+
+      return storageClasses.some((storageClass) => storageClass.metadata?.name === INTERNAL_STORAGE_CLASS.VMSTATE_PERSISTENCE);
+    },
 
     // VM display name is stored as an annotation; bind a dedicated input to it
     // so we don't have to mutate metadata.name (which would break the k8s PUT).
@@ -810,7 +818,7 @@ export default {
             class="check"
             type="checkbox"
             :label="t('harvester.virtualMachine.systemOptions.tpmPersistentState')"
-            tooltip-key="harvester.virtualMachine.systemOptions.persistentStateStorageClassHint"
+            :tooltip-key="hasVMStateStorageClass ? '' : 'harvester.virtualMachine.systemOptions.persistentStateStorageClassHint'"
             :mode="mode"
           />
 
@@ -828,7 +836,7 @@ export default {
             class="check"
             type="checkbox"
             :label="t('harvester.virtualMachine.systemOptions.efiPersistentState')"
-            tooltip-key="harvester.virtualMachine.systemOptions.persistentStateStorageClassHint"
+            :tooltip-key="hasVMStateStorageClass ? '' : 'harvester.virtualMachine.systemOptions.persistentStateStorageClassHint'"
             :mode="mode"
           />
 

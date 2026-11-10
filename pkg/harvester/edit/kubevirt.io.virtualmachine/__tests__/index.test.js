@@ -1,3 +1,4 @@
+import { STORAGE_CLASS } from '@shell/config/types';
 import VM_MIXIN from '@pkg/harvester/mixins/harvester-vm';
 import HarvesterEditVM from '../index.vue';
 
@@ -20,6 +21,17 @@ function saveWith(userScript) {
 }
 
 describe('page: kubevirt.io.virtualmachine edit', () => {
+  it('shows the persistent state storage hint only when vmstate-persistence is missing', () => {
+    const hasVMStateStorageClass = HarvesterEditVM.computed.hasVMStateStorageClass;
+    const storageClasses = (storageClassNames) => ({
+      inStore: 'harvester',
+      $store:  { getters: { 'harvester/all': (type) => type === STORAGE_CLASS ? storageClassNames.map((name) => ({ metadata: { name } })) : [] } },
+    });
+
+    expect(hasVMStateStorageClass.call(storageClasses([]))).toBe(false);
+    expect(hasVMStateStorageClass.call(storageClasses(['vmstate-persistence']))).toBe(true);
+  });
+
   it('should stop the save when the cloud config is invalid', () => {
     const { form, buttonCb } = saveWith('#cloud-config\nsome words\n');
 
