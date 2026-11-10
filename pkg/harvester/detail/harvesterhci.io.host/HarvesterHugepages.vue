@@ -2,6 +2,7 @@
 import LabelValue from '@shell/components/LabelValue';
 import { HCI } from '../../types';
 import { DOC } from '../../config/doc-links';
+import { MEBIBYTE } from '../../utils/unit';
 
 export default {
   name:       'HarvesterHugepages',
@@ -18,6 +19,12 @@ export default {
     docsTransparentHugepagesLink() {
       return DOC.TRANSPARENT_HUGEPAGES;
     },
+    docsStaticHugepagesLink() {
+      return DOC.STATIC_HUGEPAGES;
+    },
+    isStaticHugepagesFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('staticHugepages');
+    },
   },
 
   async fetch() {
@@ -31,7 +38,10 @@ export default {
   },
 
   data() {
-    return { hugepages: {} };
+    return {
+      hugepages: {},
+      MEBIBYTE,
+    };
   },
 };
 </script>
@@ -110,6 +120,28 @@ export default {
             <LabelValue
               :name="t('harvester.host.hugepages.transparent.defrag')"
               :value="hugepages.spec.transparent.defrag"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="isStaticHugepagesFeatureEnabled"
+      >
+        <hr class="divider" />
+        <h3>
+          <t
+            k="harvester.host.hugepages.static.title"
+            :raw="true"
+            :url="docsStaticHugepagesLink"
+          />
+        </h3>
+
+        <div class="row mb-20">
+          <div class="col span-12">
+            <LabelValue
+              :name="t('harvester.host.hugepages.static.hugepages', { total: `${(hugepages.spec.static?.hugepages || 0) * 2}${ MEBIBYTE }` })"
+              :value="hugepages.spec.static?.hugepages || 0"
             />
           </div>
         </div>
