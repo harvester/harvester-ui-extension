@@ -87,5 +87,6 @@ export const HCI = {
 };
 
 export const VOLUME_SNAPSHOT = 'snapshot.storage.k8s.io.volumesnapshot';
+export const DATA_VOLUME = 'cdi.kubevirt.io.datavolume';
 export const CSI_DRIVER = 'storage.k8s.io.csidriver';
 export const VOLUME_SNAPSHOT_CLASS = 'snapshot.storage.k8s.io.volumesnapshotclass';
