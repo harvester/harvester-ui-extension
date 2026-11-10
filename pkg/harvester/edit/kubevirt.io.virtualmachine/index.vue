@@ -20,8 +20,6 @@ import { clear } from '@shell/utils/array';
 import { saferDump } from '@shell/utils/create-yaml';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
-import { DOC } from '../../config/doc-links';
-import { docLink } from '../../utils/feature-flags';
 import { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
@@ -118,17 +116,6 @@ export default {
 
   computed: {
     ...mapGetters({ t: 'i18n/t' }),
-
-    persistentStateStorageClassDocLink() {
-      const version = this.$store.getters['harvester-common/getServerVersion']();
-
-      return docLink(DOC.VM_STATE_STORAGE_CLASS, version);
-    },
-
-    showPersistentStateStorageHint() {
-      return (this.value.tpmPersistentStateFeatureEnabled && this.tpmEnabled) ||
-        (this.value.efiPersistentStateFeatureEnabled && this.efiEnabled);
-    },
 
     // VM display name is stored as an annotation; bind a dedicated input to it
     // so we don't have to mutate metadata.name (which would break the k8s PUT).
@@ -853,19 +840,6 @@ export default {
             :label="t('harvester.virtualMachine.systemOptions.secureBoot')"
             :mode="mode"
           />
-        </div>
-
-        <div
-          v-if="showPersistentStateStorageHint"
-          class="persistent-state-storage-hint mb-20"
-        >
-          <a
-            :href="persistentStateStorageClassDocLink"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassDocs') }}
-          </a>
         </div>
 
         <Banner
