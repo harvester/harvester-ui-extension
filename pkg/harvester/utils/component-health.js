@@ -86,9 +86,12 @@ export function ignoredCounts(checks) {
   }, { checks: 0, resources: 0 });
 }
 
-// the UI keeps one rule per check under this name, so Kubernetes refuses a second one for the same check
+// the UI keeps one rule per check under this name, so Kubernetes refuses a second one for the same check.
+// Some checks are named after a condition reason with spaces, like "Proactive Schedule Suspend", which a name can't have
 export function ignoreRuleName(componentHealthName, checkName) {
-  return `${ componentHealthName }.${ checkName.toLowerCase() }`;
+  const check = checkName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+  return `${ componentHealthName }.${ check }`;
 }
 
 export function affectedResourceKind(row) {
