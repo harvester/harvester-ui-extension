@@ -141,10 +141,6 @@ export default {
 
     filterCategorySettings() {
       return this.settings.filter((s) => {
-        if (!this.getFeatureEnabled(s.featureFlag)) {
-          return false;
-        }
-
         if (this.category !== 'advanced') {
           return (CATEGORY[this.category] || []).find((item) => item === s.id);
         } else if (this.category === 'advanced') {
@@ -153,10 +149,6 @@ export default {
           return !allCategory.some((category) => (CATEGORY[category] || []).find((item) => item === s.id));
         }
       }) || [];
-    },
-
-    getFeatureEnabled(id) {
-      return id ? this.$store.getters['harvester-common/getFeatureEnabled'](id) : true;
     },
 
     getSettingOption(id) {

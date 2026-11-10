@@ -7,7 +7,7 @@ import { allHash } from '@shell/utils/promise';
 import Tabbed from '@shell/components/Tabbed/index.vue';
 import Tab from '@shell/components/Tabbed/Tab.vue';
 import Settings from '@pkg/harvester/components/SettingList.vue';
-import { HCI_ALLOWED_SETTINGS, HCI_SINGLE_CLUSTER_ALLOWED_SETTING, HCI_SETTING } from '../config/settings';
+import { HCI_SETTING } from '../config/settings';
 import { HCI } from '../types';
 
 export default {
@@ -29,47 +29,19 @@ export default {
       hash.settings = this.$store.dispatch('management/findAll', { type: MANAGEMENT.SETTING });
     }
 
-    const rows = await allHash(hash);
+    await allHash(hash);
 
-    let allRows = [];
-
-    allRows.push(...rows.harvesterSettings);
-
-    if (isSingleProduct) {
-      allRows = [...rows.settings, ...allRows];
-    }
-
-    // Map settings from array to object keyed by id
-    const settingsMap = allRows.reduce((res, s) => {
-      res[s.id] = s;
-
-      return res;
-    }, {});
-
-    const initSettings = [];
-    let SETTINGS = HCI_ALLOWED_SETTINGS;
-
-    if (this.isStandaloneHarvester) {
-      SETTINGS = {
-        ...SETTINGS,
-        ...HCI_SINGLE_CLUSTER_ALLOWED_SETTING,
-      };
-    }
-
-    Object.keys(SETTINGS).forEach((setting) => {
-      if (!settingsMap[setting]) {
-        return;
-      }
-      const realSetting = SETTINGS[setting]?.alias || setting;
+    const initSettings = this.$store.getters[`${ inStore }/visibleSettings`].map(({ id, config, data }) => {
       const s = {
-        ...SETTINGS[setting],
-        id:   realSetting,
-        data: settingsMap[setting],
+        ...config,
+        id: config.alias || id,
+        data,
       };
 
       s.hide = s.canHide = (s.kind === 'json' || s.kind === 'multiline' || s.customFormatter === 'json' || s.data.customFormatter === 'json');
       s.hasActions = s.id === HCI_SETTING.SERVER_VERSION ? true : !s.readOnly;
-      initSettings.push(s);
+
+      return s;
     });
 
     this.initSettings = initSettings.sort((a, b) => {
@@ -90,7 +62,6 @@ export default {
 
   computed: {
     ...mapGetters({ t: 'i18n/t' }),
-    ...mapGetters(['isStandaloneHarvester']),
 
     settings() {
       return this.initSettings.map((setting) => {
