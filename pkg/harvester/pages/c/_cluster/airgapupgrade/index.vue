@@ -11,6 +11,7 @@ import { HCI } from '../../../../types';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../../../config/harvester';
 import ImagePercentageBar from '@shell/components/formatter/ImagePercentageBar';
 import { Banner } from '@components/Banner';
+import { STORAGE_CLASS } from '@shell/config/types';
 import isEmpty from 'lodash/isEmpty';
 
 const IMAGE_METHOD = {
@@ -31,7 +32,12 @@ export default {
   inheritAttrs: false,
 
   async fetch() {
-    await this.$store.dispatch('harvester/findAll', { type: HCI.IMAGE });
+    const [, storageClasses] = await Promise.all([
+      this.$store.dispatch('harvester/findAll', { type: HCI.IMAGE }),
+      this.$store.dispatch('harvester/findAll', { type: STORAGE_CLASS })
+    ]);
+
+    this.storageClassName = storageClasses.find((storageClass) => storageClass.isDefault)?.name || '';
 
     const value = await this.$store.dispatch('harvester/create', {
       type:     HCI.UPGRADE,
@@ -65,6 +71,7 @@ export default {
       uploadResult:                 null,
       imageValue:                   null,
       enableLogging:                true,
+      storageClassName:             '',
       IMAGE_METHOD,
       skipSingleReplicaDetachedVol: false,
       errors:                       [],
@@ -120,6 +127,31 @@ export default {
 
     canEnableLogging() {
       return this.$store.getters['harvester/schemaFor'](HCI.UPGRADE_LOG);
+    },
+
+    storageClasses() {
+      return this.$store.getters['harvester/all'](STORAGE_CLASS) || [];
+    },
+
+    defaultStorageClassName() {
+      return this.storageClasses.find((storageClass) => storageClass.isDefault)?.name || '';
+    },
+
+    storageClassOptions() {
+      const t = this.$store.getters['i18n/t'];
+
+      return this.storageClasses.map((storageClass) => ({
+        label: storageClass.isDefault ? `${ storageClass.name } (${ t('generic.default') })` : storageClass.name,
+        value: storageClass.name,
+      }));
+    },
+
+    canSubmitUpgrade() {
+      return this.enableUpgrade && (!this.repositoryStorageClassEnabled || !!this.storageClassName);
+    },
+
+    repositoryStorageClassEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('repositoryStorageClass');
     },
 
     uploadProgress() {
@@ -250,8 +282,17 @@ export default {
         if (this.canEnableLogging) {
           this.value.spec.logEnabled = this.enableLogging;
         }
+        if (this.storageClassName) {
+          this.value.metadata.annotations = {
+            ...this.value.metadata.annotations,
+            [HCI_ANNOTATIONS.UPGRADE_STORAGE_CLASS]: this.storageClassName
+          };
+        }
         if (this.skipSingleReplicaDetachedVolFeatureEnabled) {
-          this.value.metadata.annotations = { [HCI_ANNOTATIONS.SKIP_SINGLE_REPLICA_DETACHED_VOL]: JSON.stringify(this.skipSingleReplicaDetachedVol) };
+          this.value.metadata.annotations = {
+            ...this.value.metadata.annotations,
+            [HCI_ANNOTATIONS.SKIP_SINGLE_REPLICA_DETACHED_VOL]: JSON.stringify(this.skipSingleReplicaDetachedVol)
+          };
         }
         await this.value.save();
         this.value.notifyGeneratedName?.();
@@ -412,7 +453,7 @@ export default {
       :errors="errors"
       :can-yaml="false"
       finish-button-mode="upgrade"
-      :validation-passed="enableUpgrade"
+      :validation-passed="canSubmitUpgrade"
       :cancel-event="true"
       @finish="save"
       @cancel="done"
@@ -453,6 +494,21 @@ export default {
         v-if="showUpgradeOptions"
         class="mt-10 mb-10"
       >
+        <div v-if="repositoryStorageClassEnabled">
+          <p
+            v-if="defaultStorageClassName"
+            class="text-muted mb-10"
+          >
+            {{ t('harvester.upgradePage.repositoryStorageClassDescription', { name: defaultStorageClassName }) }}
+          </p>
+          <LabeledSelect
+            v-model:value="storageClassName"
+            class="mb-20"
+            :label="t('harvester.upgradePage.repositoryStorageClass')"
+            :options="storageClassOptions"
+            required
+          />
+        </div>
         <Checkbox
           v-if="canEnableLogging"
           v-model:value="enableLogging"
