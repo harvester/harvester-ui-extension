@@ -86,13 +86,15 @@ const pvc = (name, encrypted, ns = 'ns1') => ({
   isEncrypted: encrypted,
 });
 
+const LONGHORN_CSI = { 'driver.longhorn.io': { volumeSnapshotClassName: 'longhorn-snapshot', backupVolumeSnapshotClassName: 'longhorn' } };
+
 function backupVm({
   actions = { backup: '/backup', snapshot: '/snapshot' }, volumes = [{}], target = 's3', csi = {}
 } = {}) {
   // target null: a user who can't read backup-target or csi-driver-config
   const settings = target === null ? {} : {
     'backup-target':     { value: JSON.stringify({ type: target }) },
-    'csi-driver-config': { value: JSON.stringify(csi) },
+    'csi-driver-config': { value: JSON.stringify(csi), default: JSON.stringify(LONGHORN_CSI) },
   };
   const pvcs = volumes.map((volume, i) => ({
     id: `ns1/disk-${ i }`, name: `disk-${ i }`, isBlockVolume: true, ...volume
@@ -145,6 +147,22 @@ describe('class VirtVm', () => {
 
       expect(vm.canTakeBackup).toBe(expected);
     });
+
+    it.each([
+      ['a Longhorn v1 volume', { isLonghornV1: true, isBlockVolume: true }, false],
+      ['a Filesystem volume', { isBlockVolume: false }, false],
+      ['a CDI Block volume', { isCreatedForDataVolume: true, isBlockVolume: true }, true],
+    ])('with only the snapshot action, a target the user cannot read and %s returns %s', (_, volume, expected) => {
+      const { vm } = createVm({
+        pvcs:   [{ id: 'ns1/disk-0', ...volume }],
+        claims: ['disk-0'],
+        root:   { 'harvester-common/getFeatureEnabled': () => true, 'harvester/byId': () => undefined },
+      });
+
+      vm.actions = { snapshot: '/s' };
+
+      expect(vm.canTakeBackup).toBe(expected);
+    });
   });
 
   describe('backupTypeOptions', () => {
@@ -164,6 +182,15 @@ describe('class VirtVm', () => {
 
       expect(reasons.backup).toBe('harvester.backup.typeUnavailable.noBackupSnapshotClass');
       expect(reasons.kopia).toBeUndefined();
+    });
+
+    it.each([
+      ['only other drivers', LVM_CSI],
+      ['no drivers', {}],
+    ])('should keep the default Longhorn entry when the configured value has %s', (_, csi) => {
+      const reasons = backupVm({ csi, volumes: [{ isLonghornV1: true, volumeProvider: 'driver.longhorn.io' }] });
+
+      expect(reasons.backup).toBeUndefined();
     });
 
     it('should offer only Restic and Kopia on Longhorn v2, where the backend drops the backup action', () => {

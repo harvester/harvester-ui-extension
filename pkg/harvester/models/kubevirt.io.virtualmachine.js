@@ -1370,9 +1370,10 @@ export default class VirtVm extends HarvesterResource {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('thirdPartyVMBackup');
   }
 
-  // The backend drops the backup action on Longhorn v2 and CDI volumes, which Restic and Kopia can still protect on S3
+  // The backend drops the backup action on Longhorn v2 and CDI volumes, which Restic and Kopia can still protect on S3.
+  // Without it, offer the menu only on VMs whose volumes Restic and Kopia support, as the snapshot action isn't gated on a target
   get canTakeBackup() {
-    return !!this.actions?.backup || (this.thirdPartyBackupFeatureEnabled && !!this.actions?.snapshot && !this.isBackupTargetNotS3);
+    return !!this.actions?.backup || (this.thirdPartyBackupFeatureEnabled && !!this.actions?.snapshot && !this.dataMoverBackupUnavailableReason);
   }
 
   // Only users who can read backup-target know its type, for everyone else the webhook decides
@@ -1460,8 +1461,9 @@ export default class VirtVm extends HarvesterResource {
     const setting = this.$rootGetters['harvester/byId'](HCI.SETTING, 'csi-driver-config');
     let config;
 
+    // Like the backend's LoadCSIDriverConfig: value adds drivers, the default's entries win
     try {
-      config = JSON.parse(setting?.value || setting?.default);
+      config = { ...JSON.parse(setting?.value || '{}'), ...JSON.parse(setting?.default) };
     } catch (e) {
       return undefined;
     }

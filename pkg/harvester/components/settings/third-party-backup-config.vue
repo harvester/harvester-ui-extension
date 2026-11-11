@@ -2,6 +2,7 @@
 import { Checkbox } from '@components/Form/Checkbox';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { RcSection } from '@components/RcSection';
+import UnitInput from '@shell/components/form/UnitInput';
 import { BACKUP_TYPE } from '../../config/types';
 
 const ENGINES = [BACKUP_TYPE.RESTIC, BACKUP_TYPE.KOPIA];
@@ -31,6 +32,7 @@ export default {
     Checkbox,
     LabeledInput,
     RcSection,
+    UnitInput,
   },
 
   props: {
@@ -99,14 +101,19 @@ export default {
       type="secondary"
     >
       <div class="engine-fields">
-        <LabeledInput
+        <UnitInput
           v-for="field in QUANTITY_FIELDS"
           :key="field"
           v-model:value="config[engine][field]"
           :data-testid="`${ engine }-${ field }`"
           :disabled="field === 'cacheSize' && !!config[engine].noCache"
+          :increment="1024"
+          :input-exponent="2"
           :label="t(`harvester.setting.thirdPartyBackupConfig.${ field }`)"
+          min="1"
           :mode="mode"
+          :output-modifier="true"
+          :positive="true"
           :sub-label="field === 'cacheSize' ? t('harvester.setting.thirdPartyBackupConfig.cacheSizeHint') : ''"
         />
         <LabeledInput

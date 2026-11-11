@@ -1,4 +1,5 @@
 import { shallowMount } from '@vue/test-utils';
+import UnitInput from '@shell/components/form/UnitInput';
 import ThirdPartyBackupConfig from '../third-party-backup-config.vue';
 
 const JOB = {
@@ -51,6 +52,18 @@ describe('component: third-party-backup-config', () => {
 
     expect(wrapper.vm.config).toStrictEqual(JSON.parse(DEFAULT));
     expect(JSON.parse(setting.value)).toStrictEqual(JSON.parse(DEFAULT));
+  });
+
+  it('should take every size in MiB so a bare number is not saved as bytes', () => {
+    const { wrapper } = mountConfig('');
+    const inputs = wrapper.findAllComponents(UnitInput);
+
+    expect(inputs).toHaveLength(10);
+    inputs.forEach((input) => {
+      expect(input.props()).toMatchObject({
+        increment: 1024, inputExponent: 2, outputModifier: true
+      });
+    });
   });
 
   it('should show the default values when the setting is not JSON', () => {
