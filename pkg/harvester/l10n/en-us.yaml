@@ -1274,6 +1274,8 @@ harvester:
     currentVersion: CURRENT VERSION
     versionLabel: AVAILABLE COMPATIBLE VERSIONS
     enableLogging: Enable Logging
+    repositoryStorageClass: Upgrade Storage Class
+    repositoryStorageClassDescription: The default StorageClass is selected. You can choose a different one.
     skipSingleReplicaDetachedVol: Skip checking single-replica detached volumes
     upgradeNode: Upgrading Node
     upgradeSysService: Upgrading System Service

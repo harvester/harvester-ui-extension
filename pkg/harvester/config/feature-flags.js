@@ -86,6 +86,7 @@ const FEATURE_FLAGS = {
     'maintenanceModeConditions',
     'maintenanceModeDrainTimeoutSetting',
     'componentHealth',
+    'repositoryStorageClass',
   ],
 };
 

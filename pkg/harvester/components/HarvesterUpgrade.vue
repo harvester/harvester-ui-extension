@@ -6,6 +6,7 @@ import ModalWithCard from '@shell/components/ModalWithCard';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { Banner } from '@components/Banner';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
+import { STORAGE_CLASS } from '@shell/config/types';
 import { HCI } from '../types';
 import UpgradeInfo from './UpgradeInfo';
 
@@ -20,12 +21,14 @@ export default {
     const inStore = this.$store.getters['currentProduct'].inStore;
 
     const res = await allHash({
-      upgradeVersion: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.SETTING }),
-      versions:       this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VERSION }),
-      upgrade:        this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.UPGRADE }),
+      upgradeVersion:  this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.SETTING }),
+      versions:        this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VERSION }),
+      upgrade:         this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.UPGRADE }),
+      storageClasses:  this.$store.dispatch(`${ inStore }/findAll`, { type: STORAGE_CLASS }),
     });
 
     this.upgrade = res.upgrade;
+    this.storageClassName = res.storageClasses.find((storageClass) => storageClass.isDefault)?.name || '';
   },
 
   data() {
@@ -35,6 +38,7 @@ export default {
       errors:                       '',
       selectMode:                   true,
       version:                      '',
+      storageClassName:             '',
       enableLogging:                true,
       skipSingleReplicaDetachedVol: false,
       readyReleaseNote:             false,
@@ -59,6 +63,10 @@ export default {
       return this.versionOptions.length > 0 && !this.isUpgradeInProgress;
     },
 
+    canSubmitUpgrade() {
+      return this.readyReleaseNote && (!this.repositoryStorageClassEnabled || !!this.storageClassName);
+    },
+
     versionOptions() {
       const versions = this.$store.getters['harvester/all'](HCI.VERSION) || [];
 
@@ -73,6 +81,29 @@ export default {
 
     canEnableLogging() {
       return this.$store.getters['harvester/schemaFor'](HCI.UPGRADE_LOG);
+    },
+
+    storageClasses() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+
+      return this.$store.getters[`${ inStore }/all`](STORAGE_CLASS) || [];
+    },
+
+    defaultStorageClassName() {
+      return this.storageClasses.find((storageClass) => storageClass.isDefault)?.name || '';
+    },
+
+    storageClassOptions() {
+      const t = this.$store.getters['i18n/t'];
+
+      return this.storageClasses.map((storageClass) => ({
+        label: storageClass.isDefault ? `${ storageClass.name } (${ t('generic.default') })` : storageClass.name,
+        value: storageClass.name,
+      }));
+    },
+
+    repositoryStorageClassEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('repositoryStorageClass');
     },
 
     skipSingleReplicaDetachedVolFeatureEnabled() {
@@ -122,6 +153,13 @@ export default {
 
       if (this.canEnableLogging) {
         upgradeValue.spec.logEnabled = this.enableLogging;
+      }
+
+      if (this.storageClassName) {
+        upgradeValue.metadata.annotations = {
+          ...upgradeValue.metadata.annotations,
+          [HCI_ANNOTATIONS.UPGRADE_STORAGE_CLASS]: this.storageClassName
+        };
       }
 
       const proxyResource = await this.$store.dispatch('harvester/create', upgradeValue);
@@ -204,6 +242,22 @@ export default {
             :clearable="true"
           />
 
+          <div v-if="repositoryStorageClassEnabled">
+            <p
+              v-if="defaultStorageClassName"
+              class="text-muted mb-10"
+            >
+              {{ t('harvester.upgradePage.repositoryStorageClassDescription', { name: defaultStorageClassName }) }}
+            </p>
+            <LabeledSelect
+              v-model:value="storageClassName"
+              class="mb-10"
+              :label="t('harvester.upgradePage.repositoryStorageClass')"
+              :options="storageClassOptions"
+              required
+            />
+          </div>
+
           <div
             v-if="canEnableLogging"
             class="mb-5"
@@ -263,7 +317,7 @@ export default {
             <t k="generic.close" />
           </button>
           <button
-            :disabled="!readyReleaseNote"
+            :disabled="!canSubmitUpgrade"
             class="btn role-tertiary bg-primary"
             @click.prevent="handleUpgrade"
           >
