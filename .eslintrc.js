@@ -239,6 +239,18 @@ module.exports = {
         'no-unreachable-loop':                  'off',
         'computed-property-spacing':            'off'
       }
+    },
+    {
+      files: [
+        'cypress/**/*.ts',
+        'cypress.config.ts'
+      ],
+      parser:  '@typescript-eslint/parser',
+      plugins: ['cypress'],
+      env:     {
+        'cypress/globals': true,
+        mocha:             true
+      }
     }
   ]
 };

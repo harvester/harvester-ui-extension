@@ -72,3 +72,11 @@ jspm_packages/
 # System Files
 .DS_Store
 Thumbs.db
+
+# Cypress results
+/cypress/accessibility
+/cypress/downloads
+/cypress/reports
+/cypress/screenshots
+/cypress/videos
+/browser-logs
