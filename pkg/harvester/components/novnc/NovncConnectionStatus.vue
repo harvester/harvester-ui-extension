@@ -1,4 +1,5 @@
 <script>
+import { RcButton } from '@components/RcButton';
 import { RcDropdown, RcDropdownItem, RcDropdownSeparator, RcDropdownTrigger } from '@components/RcDropdown';
 import { RcIcon } from '@components/RcIcon';
 import RcStatusIndicator from '@components/Pill/RcStatusIndicator';
@@ -15,7 +16,7 @@ export default {
   name: 'NovncConnectionStatus',
 
   components: {
-    RcDropdown, RcDropdownItem, RcDropdownSeparator, RcDropdownTrigger, RcIcon, RcStatusIndicator
+    RcButton, RcDropdown, RcDropdownItem, RcDropdownSeparator, RcDropdownTrigger, RcIcon, RcStatusIndicator
   },
 
   props: {
@@ -152,18 +153,21 @@ export default {
         class="connection-status__divider"
         aria-hidden="true"
       />
-      <button
-        type="button"
+      <rc-button
+        variant="ghost"
+        size="small"
         class="connection-status__reconnect"
         data-testid="vnc-connection-reconnect"
         @click="$emit('reconnect')"
       >
-        <rc-icon
-          type="refresh"
-          size="inherit"
-        />
+        <template #before>
+          <rc-icon
+            type="refresh"
+            size="inherit"
+          />
+        </template>
         {{ t('harvester.action.reconnect') }}
-      </button>
+      </rc-button>
     </span>
   </div>
 </template>
@@ -200,20 +204,10 @@ export default {
       background: var(--error);
     }
 
+    // An RcButton keeps to its own small height, so its focus ring stays inside the pill.
     &__reconnect {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 0;
-      border: 0;
-      background: transparent;
+      --rc-button-padding: 0;
       color: var(--error);
-      font-size: 12px;
-      cursor: pointer;
-
-      &:focus-visible {
-        @include focus-outline;
-      }
     }
 
     &__description {
