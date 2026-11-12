@@ -513,6 +513,58 @@ harvester:
         label: Events
       vmMetrics:
         label: Virtual Machine Metrics
+      healthSummary:
+        component: Component
+        severity: Severity
+        errorCount: Errors
+        warningCount: Warnings
+        expandAll: Expand All
+        collapseAll: Collapse All
+      componentHealth:
+        label: Components
+        errors: '{count, plural, =1 {1 error} other {# errors}}'
+        component: Component
+        check: Check
+        severity: Severity
+        message: Message
+        affectedCount: Affected Resources
+        noAffectedResources: No affected resources
+        noIssues: No issues detected
+        checksNotLoaded: Unable to load the checks
+        showIgnored: 'Show ignored ({counts})'
+        ignoredChecks: '{count, plural, =1 {1 check} other {# checks}}'
+        ignoredResources: '{count, plural, =1 {1 resource} other {# resources}}'
+        loadFailed:
+          healthSummaries: 'Unable to load the health summary: {error}'
+          componentHealths: 'Unable to load the checks: {error}'
+          ignoreRules: 'Unable to load the ignore rules: {error}'
+        ignore:
+          create: Create Ignore Rule
+          view: View Ignore Rule
+          edit: Edit Ignore Rule
+          delete: Delete Ignore Rule
+          ignored: Ignored
+          plusIgnored: '+ {n} ignored'
+          scope: Scope
+          scopeResources: Selected resources
+          scopeCheck: Entire check
+          resources: Resources
+          duration: Ignore for
+          days7: 7 days
+          days30: 30 days
+          forever: Forever
+          expiresOn: 'Expires on {date}'
+          expiredOn: 'Expired on {date}'
+          neverExpires: Never expires
+          willExpireOn: 'Will expire on {date}'
+          willNeverExpire: Will never expire
+          staysExpired: 'This rule expired on {date} and stays expired unless you choose how long to ignore for.'
+          reason: Reason
+          reasonPlaceholder: Why is it ignored? (optional)
+          created: The ignore rule of {name} is created
+          updated: The ignore rule of {name} is updated
+          attemptingToDelete: You are attempting to delete the ignore rule of
+          reportedAgain: What it ignores will be reported again.
 
     version: Version
   host:
@@ -887,10 +939,12 @@ harvester:
         label: User Data Template
         title: "User Data:"
         tip: "You can specify user data to configure an instance or run a configuration script during launch. If you launch more than one instance at a time, the user data is available to all the instances in that reservation. <a href='https://cloudinit.readthedocs.io/en/latest/topics/examples.html' target='_blank'>Learn more</a>"
+        invalidYaml: 'Invalid User Data YAML syntax'
       network:
         label: Network Data Template
         title: "Network Data:"
         tip: "The network-data configuration allows you to customize the instance's networking interfaces by assigning subnet configuration, virtual device creation (bonds, bridges, VLANs) routes and DNS configuration. <a href='https://cloudinit.readthedocs.io/en/latest/reference/network-config-format-v1.html' target='_blank'>Learn more</a>"
+        invalidYaml: 'Invalid Network Data YAML syntax'
     sysprep:
       title: Windows Unattended & Sysprep Configuration
       description: "Configure Windows automated installation using autounattend.xml. The configuration will be stored in a Kubernetes Secret and mounted as a CD-ROM during installation. <a href='https://docs.microsoft.com/en-us/windows-hardware/manufacture/desktop/automate-windows-setup' target='_blank'>Learn more</a>"

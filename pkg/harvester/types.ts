@@ -37,6 +37,9 @@ export const HCI = {
   NETWORK_ATTACHMENT:   'harvesterhci.io.networkattachmentdefinition',
   CLUSTER:              'harvesterhci.io.management.cluster',
   DASHBOARD:            'harvesterhci.io.dashboard',
+  COMPONENT_HEALTH:     'health.harvesterhci.io.componenthealth',
+  HEALTH_SUMMARY:       'health.harvesterhci.io.healthsummary',
+  HEALTH_IGNORE_RULE:   'health.harvesterhci.io.healthignorerule',
   BLOCK_DEVICE:         'harvesterhci.io.blockdevice',
   CLOUD_TEMPLATE:       'harvesterhci.io.cloudtemplate',
   HOST:                 'harvesterhci.io.host',
@@ -84,5 +87,6 @@ export const HCI = {
 };
 
 export const VOLUME_SNAPSHOT = 'snapshot.storage.k8s.io.volumesnapshot';
+export const DATA_VOLUME = 'cdi.kubevirt.io.datavolume';
 export const CSI_DRIVER = 'storage.k8s.io.csidriver';
 export const VOLUME_SNAPSHOT_CLASS = 'snapshot.storage.k8s.io.volumesnapshotclass';

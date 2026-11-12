@@ -22,9 +22,7 @@ import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
 import CreateEditView from '@shell/mixins/create-edit-view';
-import {
-  parseVolumeClaimTemplates, isNADOnlyChange, canLiveSwapNAD, isVMSpecChanged
-} from '@pkg/utils/vm';
+import { parseVolumeClaimTemplates, isNADOnlyChange, canLiveSwapNAD, isVMSpecChanged } from '@pkg/utils/vm';
 import VM_MIXIN from '../../mixins/harvester-vm';
 import { NETWORK_ATTACHMENT } from '@shell/config/types';
 import { HCI } from '../../types';
@@ -384,6 +382,7 @@ export default {
 
       this.validateCPUMemory();
       this.validateWindowsSysprep();
+      this.validateCloudInit();
 
       // block create VM flow if has validation errors
       if (this.errors.length) {
