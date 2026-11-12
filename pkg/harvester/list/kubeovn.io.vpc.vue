@@ -139,7 +139,8 @@ export default {
   },
   methods: {
     groupLabel(group) {
-      return `${ this.t('harvester.vpc.label') }: ${ group.key }`;
+      // Kube-OVN sets a subnet's VPC (ovn-cluster when none is given), so an empty one is a subnet it hasn't processed
+      return `${ this.t('harvester.vpc.label') }: ${ group.key || this.t('generic.none') }`;
     },
 
     slotName(vpc) {
@@ -226,7 +227,10 @@ export default {
               {{ groupLabel(group) }}
             </span>
           </div>
-          <div class="right">
+          <div
+            v-if="group.key"
+            class="right"
+          >
             <router-link
               v-if="isSubnetCreatable"
               class="btn btn-sm role-secondary mr-5"
