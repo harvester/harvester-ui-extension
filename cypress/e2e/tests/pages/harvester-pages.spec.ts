@@ -1,6 +1,6 @@
 import HarvesterDashboardPagePo from '@/cypress/e2e/po/pages/harvester-dashboard.po';
 import HarvesterListPagePo from '@/cypress/e2e/po/pages/harvester-list-page.po';
-import { recorded } from '@/cypress/support/recorded';
+import { recorded, settledRowCount } from '@/cypress/support/recorded';
 
 const LIST_PAGES = [
   { resource: 'harvesterhci.io.volume', title: 'Volumes' },
@@ -26,7 +26,7 @@ describe('Harvester pages', { tags: ['@navigation'] }, () => {
       page.waitForPage();
       page.title().should('contain', title);
       page.rows().should('have.length.greaterThan', 0);
-      recorded(`${ resource }Rows`, () => page.rows().its('length')).then((rows) => {
+      recorded(`${ resource }Rows`, () => settledRowCount(() => page.rows())).then((rows) => {
         page.rows().should('have.length', rows);
       });
     });

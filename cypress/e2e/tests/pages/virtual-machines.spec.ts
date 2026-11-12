@@ -1,5 +1,5 @@
 import { VirtualMachinesListPagePo, VirtualMachineDetailPagePo, VirtualMachineCreatePagePo } from '@/cypress/e2e/po/pages/virtual-machines.po';
-import { recorded, recordedVms } from '@/cypress/support/recorded';
+import { recorded, recordedVms, settledRowCount } from '@/cypress/support/recorded';
 
 describe('Virtual machines', { tags: ['@virtualMachines'] }, () => {
   describe('List', () => {
@@ -13,7 +13,7 @@ describe('Virtual machines', { tags: ['@virtualMachines'] }, () => {
     it('shows every VM with its state', () => {
       list.title().should('contain', 'Virtual Machines');
       list.rows().should('have.length.greaterThan', 0);
-      recorded('vmListRows', () => list.rows().its('length')).then((rows) => {
+      recorded('vmListRows', () => settledRowCount(() => list.rows())).then((rows) => {
         list.rows().should('have.length', rows);
       });
       recordedVms().then(({ running, stopped }) => {

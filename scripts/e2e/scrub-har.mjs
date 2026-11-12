@@ -16,8 +16,7 @@
  * - drops personal preferences (saved views, dashboards) and the install's id
  * - redacts Secret data, password/token-like fields and settings, cloud-init passwords, PEM blocks,
  *   SSH keys, e-mail addresses and Rancher import URLs, maps every IP address to documentation
- *   ranges and internal host names to example.com, and removes last-applied-configuration annotations
- *   and managedFields
+ *   ranges and internal host names to example.com, and removes last-applied annotations and managedFields
  * - SCRUB_RENAME="from:to,..." renames resources whose names give away people or internal systems,
  *   everywhere they appear (names, ids, links, references)
  * - fails if anything that looks sensitive is still there; SCRUB_CHECK adds comma-separated strings
@@ -189,8 +188,9 @@ function scrubValue(value, key) {
     }
   }
 
+  // kubectl's last-applied-configuration and operators' copies of it (Longhorn, the logging operator)
   if (out.metadata?.annotations) {
-    delete out.metadata.annotations['kubectl.kubernetes.io/last-applied-configuration'];
+    Object.keys(out.metadata.annotations).filter((name) => name.includes('last-applied')).forEach((name) => delete out.metadata.annotations[name]);
   }
   // Server-side apply bookkeeping: nothing the UI shows, and bulky
   if (out.metadata?.managedFields) {
@@ -202,12 +202,17 @@ function scrubValue(value, key) {
 
 // Last response per method + URL
 const latest = new Map();
+const redirects = [];
 
 for (const e of har.log.entries) {
   const url = new URL(e.request.url);
   const mime = (e.response.content?.mimeType || '').split(';')[0];
 
   if (!API_PATH.test(url.pathname) || DROP_PATH.test(url.pathname + url.search)) {
+    continue;
+  }
+  if (e.response.status >= 300 && e.response.status < 400 && e.response.redirectURL) {
+    redirects.push({ e, url });
     continue;
   }
   if (!['application/json', 'text/plain'].includes(mime) || typeof e.response.content?.text !== 'string') {
@@ -218,6 +223,19 @@ for (const e of har.log.entries) {
   }
 
   latest.set(`${ e.request.method } ${ url.pathname }${ url.search }`, { e, url, mime });
+}
+
+// The replay can't redirect (e.g. Rancher's `.../management.cattle.io.settings/` to the URL without the
+// slash), so a redirect gets the response of where it pointed
+for (const { e, url } of redirects) {
+  const target = new URL(e.response.redirectURL, url);
+  const answer = latest.get(`${ e.request.method } ${ target.pathname }${ target.search }`);
+
+  if (answer) {
+    latest.set(`${ e.request.method } ${ url.pathname }${ url.search }`, { ...answer, url });
+  } else {
+    console.warn(`No recording for where ${ url.pathname }${ url.search } redirects to`); // eslint-disable-line no-console
+  }
 }
 
 // Lists of cluster ids in a query (the cluster menu asks for the pinned clusters) keep only the kept
@@ -352,7 +370,7 @@ const LEAKS = {
   'rancher token':      (text) => /token-[a-z0-9]{5}:[a-z0-9]{40,}/.test(text),
   jwt:                  (text) => /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/.test(text),
   'session cookie':     (text) => /R_SESS/.test(text),
-  'last-applied':       (text) => text.includes('last-applied-configuration'),
+  'last-applied':       (text) => text.includes('last-applied'),
   ...Object.fromEntries(extraChecks.map((s, i) => [`SCRUB_CHECK value #${ i + 1 }`, (text) => text.includes(s)])),
 };
 const found = Object.entries(LEAKS).map(([name, test]) => {

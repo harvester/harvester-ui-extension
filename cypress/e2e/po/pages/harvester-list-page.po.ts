@@ -30,7 +30,10 @@ export default class HarvesterListPagePo extends BaseListPagePo {
     return this.list().resourceTable().sortableTable();
   }
 
+  /**
+   * The resource rows, without the "There are no rows to show" row an empty or still loading list has
+   */
   rows() {
-    return this.sortableTable().rowElements();
+    return this.sortableTable().rowElements().filter(':not(.no-rows):not(.no-results)');
   }
 }

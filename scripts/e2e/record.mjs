@@ -148,7 +148,7 @@ async function startDevServer(mode) {
   if (await portInUse(8005)) {
     throw new Error('port 8005 is in use: stop the other dev server first');
   }
-  proxy = await startRecordingProxy(mode.target, PROXY_PORT, { hideUiPlugins: mode.name === 'rancher' });
+  proxy = await startRecordingProxy(mode.target, PROXY_PORT, { asExtension: mode.name === 'rancher' });
 
   const log = path.join(tmp, `dev-server-${ mode.name }.log`);
   const fd = fs.openSync(log, 'a');

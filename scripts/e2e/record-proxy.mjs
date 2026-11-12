@@ -16,12 +16,32 @@ const WRITES_LET_THROUGH = /^\/v3-public\/localProviders\/local\?action=login|^\
 const KEPT_TYPES = ['application/json', 'text/plain'];
 
 /**
+ * Lock Rancher features off, in a features list or a single feature
+ */
+const featuresOff = (ids) => (text) => {
+  try {
+    const body = JSON.parse(text);
+
+    (Array.isArray(body.data) ? body.data : [body]).filter((f) => ids.includes(f.id)).forEach((f) => {
+      f.spec = { ...f.spec, value: false };
+      f.status = { ...f.status, lockedValue: false };
+    });
+
+    return JSON.stringify(body);
+  } catch {
+    return text;
+  }
+};
+
+/**
  * @param {URL} target the Harvester or Rancher
- * @param {object} options `hideUiPlugins` answers /v1/uiplugins with no extensions, so a Rancher's
- * installed Harvester extension doesn't load next to the one the dev server builds
+ * @param {object} options `asExtension` makes the dev server's Harvester behave as the extension does in
+ * a real Rancher: /v1/uiplugins answers no extensions, so the Rancher's installed Harvester doesn't load
+ * next to the one the dev server builds, and configurable tables are off, as a real Rancher keeps them
+ * off an extension's tables but takes one built into the dev server for its own
  * @returns {Promise<{ entries: object[], close: () => void }>}
  */
-export async function startRecordingProxy(target, port, { hideUiPlugins = false } = {}) {
+export async function startRecordingProxy(target, port, { asExtension = false } = {}) {
   const entries = [];
   const targetPort = Number(target.port || 443);
   const origin = `${ target.protocol }//${ target.host }`;
@@ -39,13 +59,14 @@ export async function startRecordingProxy(target, port, { hideUiPlugins = false 
     return out;
   };
 
-  const record = (req, startedDateTime, status, statusText, mimeType, text) => {
-    if (KEPT_TYPES.includes(mimeType)) {
+  // Redirects are kept too: the replay can't redirect, so scrub-har.mjs answers them with their target
+  const record = (req, startedDateTime, status, statusText, mimeType, text, location = '') => {
+    if (KEPT_TYPES.includes(mimeType) || location) {
       entries.push({
         startedDateTime,
         request:  { method: req.method, url: `https://${ req.headers['x-api-host'] || '127.0.0.1:8005' }${ req.url }` },
         response: {
-          status, statusText, content: { mimeType, text }
+          status, statusText, redirectURL: location, content: { mimeType, text }
         }
       });
     }
@@ -57,22 +78,43 @@ export async function startRecordingProxy(target, port, { hideUiPlugins = false 
     record(req, new Date().toISOString(), status, '', 'application/json', text);
   };
 
+  const lockFeaturesOff = featuresOff(['ui-configurable-tables']);
+  const rewrite = (req) => (asExtension && /^\/v1\/management\.cattle\.io\.features(\/|\?|$)/.test(req.url) ? lockFeaturesOff : undefined);
+
   const forward = (req, res, retried = false) => {
     const startedDateTime = new Date().toISOString();
+    const change = req.method === 'GET' ? rewrite(req) : undefined;
     const upstream = https.request({
       hostname: target.hostname, port: targetPort, method: req.method, path: req.url, headers: forwardedHeaders(req.headers), agent
     }, (upRes) => {
       const mimeType = (upRes.headers['content-type'] || '').split(';')[0];
       const chunks = [];
 
-      res.writeHead(upRes.statusCode, upRes.statusMessage, upRes.headers);
+      if (!change) {
+        res.writeHead(upRes.statusCode, upRes.statusMessage, upRes.headers);
+      }
       upRes.on('data', (chunk) => {
         chunks.push(chunk);
-        res.write(chunk);
+        if (!change) {
+          res.write(chunk);
+        }
       });
       upRes.on('end', () => {
+        if (change) {
+          const text = change(Buffer.concat(chunks).toString('utf8'));
+          const headers = { ...upRes.headers, 'content-length': Buffer.byteLength(text) };
+
+          delete headers['transfer-encoding'];
+          res.writeHead(upRes.statusCode, upRes.statusMessage, headers);
+          res.end(text);
+          record(req, startedDateTime, upRes.statusCode, upRes.statusMessage || '', mimeType, text);
+
+          return;
+        }
         res.end();
-        record(req, startedDateTime, upRes.statusCode, upRes.statusMessage || '', mimeType, Buffer.concat(chunks).toString('utf8'));
+        const location = upRes.statusCode >= 300 && upRes.statusCode < 400 ? upRes.headers.location : '';
+
+        record(req, startedDateTime, upRes.statusCode, upRes.statusMessage || '', mimeType, Buffer.concat(chunks).toString('utf8'), location);
       });
     });
 
@@ -95,7 +137,7 @@ export async function startRecordingProxy(target, port, { hideUiPlugins = false 
   };
 
   const server = http.createServer((req, res) => {
-    if (hideUiPlugins && req.method === 'GET' && req.url.split('?')[0] === '/v1/uiplugins') {
+    if (asExtension && req.method === 'GET' && req.url.split('?')[0] === '/v1/uiplugins') {
       return answer(req, res, 200, JSON.stringify({ entries: {} }));
     }
 

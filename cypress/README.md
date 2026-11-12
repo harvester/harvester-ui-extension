@@ -37,7 +37,7 @@ RANCHER_URL=https://<rancher> RANCHER_PASSWORD=<admin password> HARVESTER_CLUSTE
 
 Set both groups to record both modes in one go. `HARVESTER_USERNAME` and `RANCHER_USERNAME` default to `admin`. For each mode, `yarn e2e:record` (`scripts/e2e/record.mjs`):
 
-1. starts the dev server against the backend, through a read-only proxy that keeps the API responses (`scripts/e2e/record-proxy.mjs`). The UI's writes, such as saving preferences, are answered by the proxy and never reach the backend. In the rancher mode it also hides the Rancher's installed extensions, so the Harvester extension being tested is the one the dev server builds
+1. starts the dev server against the backend, through a read-only proxy that keeps the API responses (`scripts/e2e/record-proxy.mjs`). The UI's writes, such as saving preferences, are answered by the proxy and never reach the backend. In the rancher mode it also makes the dev server's Harvester behave as the extension does in a real Rancher: it hides the Rancher's installed extensions, so the Harvester being tested is the one the dev server builds, and turns configurable tables off, which a real Rancher keeps off an extension's tables but would put on one built into the dev server
 2. runs every spec against it, logged in, saving the values the specs check into `recordings/<mode>.json`
 3. cleans the responses up into `recordings/<mode>.har` with `scripts/e2e/scrub-har.mjs`
 

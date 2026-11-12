@@ -13,7 +13,7 @@
     }
   },
   "harvesterhci.io.volumeRows": 21,
-  "harvesterhci.io.virtualmachineimageRows": 1,
+  "harvesterhci.io.virtualmachineimageRows": 4,
   "harvesterhci.io.hostRows": 1,
   "vmListRows": 12
 }

@@ -54,6 +54,23 @@ export function recorded<T>(key: string, observe: () => Cypress.Chainable<T>): C
 }
 
 /**
+ * How many rows a list shows once the number stops changing: a live list can still be filling in when its
+ * first rows appear. Only used while recording, so the fixed waits never slow a replay down
+ */
+export function settledRowCount<T extends { length: number }>(rows: () => Cypress.Chainable<T>): Cypress.Chainable<number> {
+  const check = (last: number, stableFor: number): Cypress.Chainable<number> => {
+    if (stableFor >= 3) {
+      return cy.wrap(last);
+    }
+
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    return cy.wait(1000, { log: false }).then(() => rows().its('length').then((length: number) => check(length, length === last ? stableFor + 1 : 0)));
+  };
+
+  return rows().its('length').then((length: number) => check(length, 0));
+}
+
+/**
  * The VMs the specs open: a running one whose name is not part of another VM's name, and a stopped one
  */
 export function recordedVms(): Cypress.Chainable<RecordedVms> {
