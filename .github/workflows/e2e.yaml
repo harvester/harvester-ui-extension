@@ -1,7 +1,7 @@
 name: E2E
 
-# Runs the Cypress suite against the dev server replaying a recorded Harvester (cypress/README.md),
-# so no Harvester cluster is needed.
+# Runs the Cypress suite against the dev server replaying a recorded backend (cypress/README.md), so
+# no Harvester or Rancher is needed: standalone replays Harvester's own UI, rancher the extension in Rancher.
 on:
   pull_request:
     branches:
@@ -17,12 +17,15 @@ permissions:
 
 jobs:
   e2e:
-    name: ${{ matrix.suite }}
+    name: ${{ matrix.mode }} ${{ matrix.suite }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
+        mode:
+          - standalone
+          - rancher
         suite:
           - pages
           - accessibility
@@ -32,10 +35,10 @@ jobs:
       - name: Setup env
         uses: ./.github/actions/setup
 
-      - name: Start the dev server with the recorded Harvester
+      - name: Start the dev server with the recording
         shell: bash
         run: |
-          yarn dev:recorded > dev-server.log 2>&1 &
+          yarn dev:recorded${{ matrix.mode == 'rancher' && ':rancher' || '' }} > dev-server.log 2>&1 &
           # The dev server holds requests until the first build is done
           timeout 600 bash -c 'until curl -skf -o /dev/null https://127.0.0.1:8005/; do sleep 5; done'
 
@@ -43,8 +46,14 @@ jobs:
         shell: bash
         env:
           TEST_A11Y: ${{ matrix.suite == 'accessibility' && 'true' || '' }}
+          TEST_HARVESTER_MODE: ${{ matrix.mode }}
           TEST_SKIP: setup
         run: yarn cy:run
+
+      - name: List requests missing from the recording
+        if: always()
+        shell: bash
+        run: node scripts/e2e/replay-misses.mjs dev-server.log >> "$GITHUB_STEP_SUMMARY"
 
       - name: Summarise accessibility
         if: always() && matrix.suite == 'accessibility'
@@ -55,7 +64,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: ${{ matrix.suite }}
+          name: ${{ matrix.mode }}-${{ matrix.suite }}
           path: |
             cypress/accessibility
             cypress/reports
