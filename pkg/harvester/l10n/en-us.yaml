@@ -1131,7 +1131,7 @@ harvester:
             button: Send Ctrl+Alt+Del
           softReboot:
             title: 'Soft reboot {name}?'
-            message: The guest operating system is asked to shut down and restart. The console disconnects while the VM restarts and reconnects when it is back.
+            message: The guest operating system is asked to shut down and restart. Unsaved work in the VM will be lost.
             button: Soft reboot
         takeOver:
           label: Take over
