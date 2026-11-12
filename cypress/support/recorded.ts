@@ -138,3 +138,36 @@ export function logoutOfRecordedHarvester() {
     });
   });
 }
+
+let apiRequestsInFlight = 0;
+
+/**
+ * Count the page's API requests that haven't been answered yet (recording only)
+ */
+export function trackApiRequests() {
+  apiRequestsInFlight = 0;
+  cy.intercept({ url: /\/(v1|v3|k8s|api|apis)\// }, (req) => {
+    apiRequestsInFlight++;
+    req.on('after:response', () => {
+      apiRequestsInFlight--;
+    });
+  });
+}
+
+/**
+ * Wait until the page has made no API request for 3 s, or 30 s at most. A page asks for some things late
+ * (tabs, secondary lists), after the test is done with it: a replay is fast enough to get there, so the
+ * recording needs them too. Never fails the test
+ */
+export function waitForApiIdle() {
+  const check = (quietFor: number, left: number): Cypress.Chainable<null> => {
+    if (quietFor >= 3 || left <= 0) {
+      return cy.wrap(null, { log: false });
+    }
+
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    return cy.wait(1000, { log: false }).then(() => check(apiRequestsInFlight > 0 ? 0 : quietFor + 1, left - 1));
+  };
+
+  check(0, 30);
+}
