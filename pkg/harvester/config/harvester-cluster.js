@@ -710,16 +710,24 @@ export function init($plugin, store) {
 
   basicType(
     [
-      TEMPLATE,
-      HCI.SSH,
-      HCI.CLOUD_TEMPLATE,
-      HCI.STORAGE,
       HCI.SR_IOV,
       HCI.PCI_DEVICE,
       HCI.SR_IOVGPU_DEVICE,
       HCI.VGPU_DEVICE,
       HCI.MIG_CONFIGURATION,
       HCI.USB_DEVICE,
+    ],
+    'hardwareDevices'
+  );
+
+  weightGroup('hardwareDevices', 488, true);
+
+  basicType(
+    [
+      TEMPLATE,
+      HCI.SSH,
+      HCI.CLOUD_TEMPLATE,
+      HCI.STORAGE,
       HCI.ADD_ONS,
       HCI.SECRET,
       HCI.SETTING
@@ -1117,7 +1125,7 @@ export function init($plugin, store) {
 
   virtualType({
     label:      'PCI Devices',
-    group:      'advanced',
+    group:      'hardwareDevices',
     weight:     14,
     name:       HCI.PCI_DEVICE,
     namespaced: false,
@@ -1153,7 +1161,7 @@ export function init($plugin, store) {
   virtualType({
     ifHaveType: HCI.SR_IOV,
     labelKey:   'harvester.sriov.label',
-    group:      'advanced',
+    group:      'hardwareDevices',
     weight:     15,
     name:       HCI.SR_IOV,
     namespaced: false,
@@ -1173,7 +1181,7 @@ export function init($plugin, store) {
   virtualType({
     ifHaveType: HCI.SR_IOVGPU_DEVICE,
     labelKey:   'harvester.sriovgpu.label',
-    group:      'advanced',
+    group:      'hardwareDevices',
     weight:     13,
     name:       HCI.SR_IOVGPU_DEVICE,
     namespaced: false,
@@ -1192,7 +1200,7 @@ export function init($plugin, store) {
 
   virtualType({
     labelKey:   'harvester.vgpu.label',
-    group:      'advanced',
+    group:      'hardwareDevices',
     weight:     12,
     name:       HCI.VGPU_DEVICE,
     namespaced: false,
@@ -1220,7 +1228,7 @@ export function init($plugin, store) {
 
   virtualType({
     labelKey:   'harvester.migconfiguration.label',
-    group:      'advanced',
+    group:      'hardwareDevices',
     weight:     12,
     name:       HCI.MIG_CONFIGURATION,
     namespaced: false,
@@ -1240,7 +1248,7 @@ export function init($plugin, store) {
 
   virtualType({
     labelKey:   'harvester.usb.label',
-    group:      'advanced',
+    group:      'hardwareDevices',
     weight:     11,
     name:       HCI.USB_DEVICE,
     namespaced: false,
