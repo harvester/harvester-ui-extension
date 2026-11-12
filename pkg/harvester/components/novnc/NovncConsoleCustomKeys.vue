@@ -76,12 +76,21 @@ export default {
         return;
       }
 
-      const added = await this.save([...this.shortcuts, { name: this.name.trim(), keys: this.keys }]);
+      const { name, keys } = this;
+      const shortcuts = [...this.shortcuts, { name: name.trim(), keys }];
 
-      // Add shortcut turns disabled with the form empty, so the recorder takes the focus for the next one.
-      if (added) {
-        this.clear();
-        this.$nextTick(() => this.$refs.recorder?.$el?.focus());
+      // The list shows the new shortcut while it saves, and a form still holding it would say it is already
+      // saved, so the form empties now. Add shortcut turns disabled with it, so the recorder takes the focus.
+      this.clear();
+      this.$refs.recorder?.$el?.focus();
+
+      const added = await this.save(shortcuts);
+
+      // A failed save takes the shortcut out of the list again, so it goes back in the form, unless the next
+      // one was started meanwhile.
+      if (!added && !this.keys.length && !this.name) {
+        this.keys = keys;
+        this.name = name;
       }
     },
 

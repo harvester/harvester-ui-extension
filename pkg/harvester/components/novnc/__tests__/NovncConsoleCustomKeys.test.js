@@ -121,6 +121,32 @@ describe('component: NovncConsoleCustomKeys', () => {
     wrapper.unmount();
   });
 
+  it('should empty the form as soon as a shortcut is added, so it does not say it is already saved while it saves', async() => {
+    const { wrapper, preference } = mountKeys([CTRL_F2]);
+
+    preference.save.mockReturnValue(new Promise(() => {}));
+    wrapper.vm.keys = ALT_T;
+    wrapper.vm.add();
+    await wrapper.vm.$nextTick();
+
+    expect(listed(wrapper)).toHaveLength(2);
+    expect(wrapper.vm.keys).toStrictEqual([]);
+    expect(wrapper.find('.custom-keys__error').exists()).toBe(false);
+  });
+
+  it('should put the shortcut back in the form when it cannot be saved', async() => {
+    const { wrapper, preference } = mountKeys([CTRL_F2]);
+
+    preference.save.mockRejectedValue(new Error('forbidden'));
+    wrapper.vm.keys = ALT_T;
+    wrapper.vm.name = 'Task manager';
+    await wrapper.vm.add();
+
+    expect(listed(wrapper)).toHaveLength(1);
+    expect(wrapper.vm.keys).toStrictEqual(ALT_T);
+    expect(wrapper.vm.name).toBe('Task manager');
+  });
+
   it('should save a new shortcut straight away, with its name', async() => {
     const { wrapper, preference } = mountKeys([CTRL_F2]);
 
