@@ -1275,7 +1275,9 @@ harvester:
     versionLabel: AVAILABLE COMPATIBLE VERSIONS
     enableLogging: Enable Logging
     repositoryStorageClass: Upgrade Storage Class
-    repositoryStorageClassDescription: The default StorageClass is selected. You can choose a different one.
+    repositoryStorageClassTooltip: Select the StorageClass for the temporary upgrade repository volume that stores the ISO during the upgrade.
+    repositoryStorageClassPlaceholder: Select a StorageClass
+    repositoryStorageClassNoOptions: No StorageClasses are available.
     skipSingleReplicaDetachedVol: Skip checking single-replica detached volumes
     upgradeNode: Upgrading Node
     upgradeSysService: Upgrading System Service

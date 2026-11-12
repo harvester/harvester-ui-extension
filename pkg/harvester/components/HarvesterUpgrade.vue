@@ -9,12 +9,13 @@ import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations
 import { STORAGE_CLASS } from '@shell/config/types';
 import { HCI } from '../types';
 import UpgradeInfo from './UpgradeInfo';
+import UpgradeRepositoryStorageClass from './UpgradeRepositoryStorageClass';
 
 export default {
   name: 'HarvesterUpgrade',
 
   components: {
-    Checkbox, ModalWithCard, LabeledSelect, Banner, UpgradeInfo
+    Checkbox, ModalWithCard, LabeledSelect, Banner, UpgradeInfo, UpgradeRepositoryStorageClass
   },
 
   async fetch() {
@@ -89,19 +90,6 @@ export default {
       return this.$store.getters[`${ inStore }/all`](STORAGE_CLASS) || [];
     },
 
-    defaultStorageClassName() {
-      return this.storageClasses.find((storageClass) => storageClass.isDefault)?.name || '';
-    },
-
-    storageClassOptions() {
-      const t = this.$store.getters['i18n/t'];
-
-      return this.storageClasses.map((storageClass) => ({
-        label: storageClass.isDefault ? `${ storageClass.name } (${ t('generic.default') })` : storageClass.name,
-        value: storageClass.name,
-      }));
-    },
-
     repositoryStorageClassEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('repositoryStorageClass');
     },
@@ -155,7 +143,7 @@ export default {
         upgradeValue.spec.logEnabled = this.enableLogging;
       }
 
-      if (this.storageClassName) {
+      if (this.repositoryStorageClassEnabled && this.storageClassName) {
         upgradeValue.metadata.annotations = {
           ...upgradeValue.metadata.annotations,
           [HCI_ANNOTATIONS.UPGRADE_STORAGE_CLASS]: this.storageClassName
@@ -242,21 +230,12 @@ export default {
             :clearable="true"
           />
 
-          <div v-if="repositoryStorageClassEnabled">
-            <p
-              v-if="defaultStorageClassName"
-              class="text-muted mb-10"
-            >
-              {{ t('harvester.upgradePage.repositoryStorageClassDescription', { name: defaultStorageClassName }) }}
-            </p>
-            <LabeledSelect
-              v-model:value="storageClassName"
-              class="mb-10"
-              :label="t('harvester.upgradePage.repositoryStorageClass')"
-              :options="storageClassOptions"
-              required
-            />
-          </div>
+          <UpgradeRepositoryStorageClass
+            v-if="repositoryStorageClassEnabled"
+            v-model="storageClassName"
+            class="mb-10"
+            :storage-classes="storageClasses"
+          />
 
           <div
             v-if="canEnableLogging"
