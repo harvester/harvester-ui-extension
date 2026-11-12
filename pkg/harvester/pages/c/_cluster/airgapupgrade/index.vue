@@ -12,6 +12,7 @@ import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../../../config/harvester'
 import ImagePercentageBar from '@shell/components/formatter/ImagePercentageBar';
 import { Banner } from '@components/Banner';
 import { STORAGE_CLASS } from '@shell/config/types';
+import UpgradeRepositoryStorageClass from '../../../../components/UpgradeRepositoryStorageClass';
 import isEmpty from 'lodash/isEmpty';
 
 const IMAGE_METHOD = {
@@ -26,7 +27,7 @@ const UPLOAD = 'upload';
 export default {
   name:       'HarvesterAirgapUpgrade',
   components: {
-    Checkbox, CruResource, LabeledSelect, LabeledInput, RadioGroup, UpgradeInfo, ImagePercentageBar, Banner
+    Checkbox, CruResource, LabeledSelect, LabeledInput, RadioGroup, UpgradeInfo, UpgradeRepositoryStorageClass, ImagePercentageBar, Banner
   },
 
   inheritAttrs: false,
@@ -133,21 +134,8 @@ export default {
       return this.$store.getters['harvester/all'](STORAGE_CLASS) || [];
     },
 
-    defaultStorageClassName() {
-      return this.storageClasses.find((storageClass) => storageClass.isDefault)?.name || '';
-    },
-
-    storageClassOptions() {
-      const t = this.$store.getters['i18n/t'];
-
-      return this.storageClasses.map((storageClass) => ({
-        label: storageClass.isDefault ? `${ storageClass.name } (${ t('generic.default') })` : storageClass.name,
-        value: storageClass.name,
-      }));
-    },
-
     canSubmitUpgrade() {
-      return this.enableUpgrade && (!this.repositoryStorageClassEnabled || !!this.storageClassName);
+      return this.enableUpgrade && (!this.repositoryStorageClassEnabled || !this.createNewImage || !!this.storageClassName);
     },
 
     repositoryStorageClassEnabled() {
@@ -261,7 +249,7 @@ export default {
             }
 
             this.imageValue.spec.sourceType = DOWNLOAD;
-            this.imageValue.spec.targetStorageClassName = 'longhorn-static';
+            this.imageValue.spec.targetStorageClassName = this.repositoryStorageClassEnabled ? this.storageClassName : 'longhorn-static';
 
             res = await this.imageValue.save();
             res.notifyGeneratedName?.();
@@ -282,7 +270,7 @@ export default {
         if (this.canEnableLogging) {
           this.value.spec.logEnabled = this.enableLogging;
         }
-        if (this.storageClassName) {
+        if (this.repositoryStorageClassEnabled && this.storageClassName) {
           this.value.metadata.annotations = {
             ...this.value.metadata.annotations,
             [HCI_ANNOTATIONS.UPGRADE_STORAGE_CLASS]: this.storageClassName
@@ -329,7 +317,7 @@ export default {
       this.imageValue.spec.url = '';
 
       try {
-        this.imageValue.spec.targetStorageClassName = 'longhorn-static';
+        this.imageValue.spec.targetStorageClassName = this.repositoryStorageClassEnabled ? this.storageClassName : 'longhorn-static';
 
         const res = await this.imageValue.save();
 
@@ -494,21 +482,6 @@ export default {
         v-if="showUpgradeOptions"
         class="mt-10 mb-10"
       >
-        <div v-if="repositoryStorageClassEnabled">
-          <p
-            v-if="defaultStorageClassName"
-            class="text-muted mb-10"
-          >
-            {{ t('harvester.upgradePage.repositoryStorageClassDescription', { name: defaultStorageClassName }) }}
-          </p>
-          <LabeledSelect
-            v-model:value="storageClassName"
-            class="mb-20"
-            :label="t('harvester.upgradePage.repositoryStorageClass')"
-            :options="storageClassOptions"
-            required
-          />
-        </div>
         <Checkbox
           v-if="canEnableLogging"
           v-model:value="enableLogging"
@@ -535,6 +508,13 @@ export default {
           class="mb-20"
           label-key="harvester.fields.name"
           required
+        />
+
+        <UpgradeRepositoryStorageClass
+          v-if="repositoryStorageClassEnabled"
+          v-model="storageClassName"
+          class="mb-20"
+          :storage-classes="storageClasses"
         />
 
         <LabeledInput

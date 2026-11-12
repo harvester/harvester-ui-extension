@@ -1,14 +1,14 @@
-import { STORAGE_CLASS } from '@shell/config/types';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import HarvesterUpgrade from '../HarvesterUpgrade.vue';
 
 const save = jest.fn().mockResolvedValue();
 const upgrade = { notifyGeneratedName: jest.fn(), save };
 
-function createForm(storageClassName = '') {
+function createForm(storageClassName = '', repositoryStorageClassEnabled = true) {
   return {
     version:                                    'v1.10.0',
     storageClassName,
+    repositoryStorageClassEnabled,
     canEnableLogging:                           false,
     enableLogging:                              true,
     skipSingleReplicaDetachedVolFeatureEnabled: false,
@@ -20,24 +20,8 @@ function createForm(storageClassName = '') {
 }
 
 describe('component: HarvesterUpgrade', () => {
-  it('lists every StorageClass and identifies the default', () => {
-    const storageClasses = [{ name: 'fast', isDefault: true }, { name: 'slow' }];
-    const form = {
-      storageClasses,
-      $store: {
-        getters: {
-          'i18n/t':        (key) => key,
-          currentProduct:    { inStore: 'harvester' },
-          'harvester/all': (type) => type === STORAGE_CLASS ? storageClasses : []
-        }
-      }
-    };
-
-    expect(HarvesterUpgrade.computed.defaultStorageClassName.call(form)).toBe('fast');
-    expect(HarvesterUpgrade.computed.storageClassOptions.call(form)).toStrictEqual([
-      { label: 'fast (generic.default)', value: 'fast' },
-      { label: 'slow', value: 'slow' },
-    ]);
+  it('uses the shared Upgrade Repository StorageClass selector', () => {
+    expect(HarvesterUpgrade.components.UpgradeRepositoryStorageClass).toBeDefined();
   });
 
   it('blocks the upgrade when no StorageClass is selected', () => {
@@ -61,11 +45,18 @@ describe('component: HarvesterUpgrade', () => {
     }));
   });
 
-  it('omits the repository StorageClass when left blank', async() => {
-    const form = createForm();
+  it('omits the repository StorageClass when the feature is disabled', async() => {
+    const form = createForm('fast', false);
 
     await HarvesterUpgrade.methods.handleUpgrade.call(form);
 
-    expect(form.$store.dispatch).toHaveBeenCalledWith('harvester/create', expect.objectContaining({ spec: { version: 'v1.10.0' } }));
+    expect(form.$store.dispatch).toHaveBeenCalledWith('harvester/create', {
+      type:     'harvesterhci.io.upgrade',
+      metadata: {
+        generateName: 'hvst-upgrade-',
+        namespace:    'harvester-system'
+      },
+      spec: { version: 'v1.10.0' }
+    });
   });
 });
