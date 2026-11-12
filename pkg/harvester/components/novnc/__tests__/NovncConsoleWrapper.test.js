@@ -211,7 +211,32 @@ describe('component: NovncConsoleWrapper', () => {
       expect(wrapper.vm.settings.viewMode).toBe('scale');
     });
 
-    it('should save only what the user changes, and load it next time', async() => {
+    it('should carry view only over from the previous console, which saved it on only when the user turned it on', () => {
+      const wrapper = mountWrapper({
+        storage: {
+          'harvester-vnc-console-settings': {
+            viewMode: 'none', zoomPercent: 150, viewOnly: true, qualityLevel: 9, compressionLevel: 0
+          }
+        }
+      });
+
+      expect(wrapper.vm.settings).toMatchObject({
+        viewOnly: true, viewMode: 'scale', zoomPercent: 100
+      });
+    });
+
+    it('should take view only from its own settings once it has saved them', () => {
+      const wrapper = mountWrapper({
+        storage: {
+          'harvester-vnc-console-settings': { viewOnly: true },
+          'harvester-vnc-console-view':     { viewOnly: false },
+        }
+      });
+
+      expect(wrapper.vm.settings.viewOnly).toBe(false);
+    });
+
+    it('should save the settings only once the user changes one, and load them next time', async() => {
       const wrapper = mountWrapper();
 
       await wrapper.vm.$nextTick();

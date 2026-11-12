@@ -18,9 +18,11 @@ import NovncViewOptions, { VIEW_MODE } from './NovncViewOptions';
 import { baseKey, readShortcuts } from './shortcuts';
 import { normalizeZoom } from './ZoomableRFB';
 
-// The previous console saved its defaults under 'harvester-vnc-console-settings' the first time it opened,
-// so they can't tell a choice from a default. This one keeps its own key and saves only what the user changes.
+// The previous console saved its defaults under its key the first time it opened, so they can't tell a
+// choice from a default. This one keeps its own key and writes it only once the user changes a setting.
 const CONSOLE_SETTINGS_KEY = 'harvester-vnc-console-view';
+// Only View only is taken from the previous console: it was off unless the user turned it on.
+const PREVIOUS_SETTINGS_KEY = 'harvester-vnc-console-settings';
 
 export const CONFIRM_ACTION = {
   CTRL_ALT_DEL: 'ctrlAltDel',
@@ -410,12 +412,13 @@ export default {
 
     loadSettings() {
       try {
-        const saved = JSON.parse(window.localStorage.getItem(CONSOLE_SETTINGS_KEY) || '{}');
+        const saved = JSON.parse(window.localStorage.getItem(CONSOLE_SETTINGS_KEY) || 'null');
+        const previous = saved ? null : JSON.parse(window.localStorage.getItem(PREVIOUS_SETTINGS_KEY) || 'null');
 
         this.settings = {
           viewMode:         Object.values(VIEW_MODE).includes(saved?.viewMode) ? saved.viewMode : DEFAULT_SETTINGS.viewMode,
           zoomPercent:      normalizeZoom(saved?.zoomPercent ?? DEFAULT_SETTINGS.zoomPercent),
-          viewOnly:         saved?.viewOnly === true,
+          viewOnly:         (saved || previous)?.viewOnly === true,
           qualityLevel:     saved?.qualityLevel ?? DEFAULT_SETTINGS.qualityLevel,
           compressionLevel: saved?.compressionLevel ?? DEFAULT_SETTINGS.compressionLevel,
         };
