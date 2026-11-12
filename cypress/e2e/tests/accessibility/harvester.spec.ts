@@ -1,6 +1,7 @@
 import HarvesterDashboardPagePo from '@/cypress/e2e/po/pages/harvester-dashboard.po';
 import HarvesterListPagePo from '@/cypress/e2e/po/pages/harvester-list-page.po';
 import { VirtualMachinesListPagePo, VirtualMachineDetailPagePo, VirtualMachineCreatePagePo } from '@/cypress/e2e/po/pages/virtual-machines.po';
+import { recordedVms } from '@/cypress/support/recorded';
 
 // Only runs with TEST_A11Y=true, which loads the accessibility plugin of @rancher/cypress. Violations
 // are recorded in cypress/accessibility/, they never fail a test.
@@ -29,13 +30,15 @@ describe('Harvester a11y testing', { tags: ['@accessibility'], viewportWidth: 19
   });
 
   it('Virtual machine detail', () => {
-    const detail = new VirtualMachineDetailPagePo('default', 'andy');
+    recordedVms().then(({ running }) => {
+      const detail = new VirtualMachineDetailPagePo(running.namespace, running.name);
 
-    detail.goTo();
-    detail.waitForPage();
-    detail.name().should('have.text', 'andy');
-    cy.injectAxe();
-    cy.checkPageAccessibility();
+      detail.goTo();
+      detail.waitForPage();
+      detail.name().should('have.text', running.name);
+      cy.injectAxe();
+      cy.checkPageAccessibility();
+    });
   });
 
   it('Virtual machine create', () => {

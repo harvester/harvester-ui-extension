@@ -1,0 +1,19 @@
+{
+  "harvesterVersion": "v1.10.0-rc1",
+  "recordedAt": "2026-11-12",
+  "clusterId": "local",
+  "vms": {
+    "running": {
+      "namespace": "default",
+      "name": "pr12013-lvm-cdi"
+    },
+    "stopped": {
+      "namespace": "default",
+      "name": "andytest-01"
+    }
+  },
+  "harvesterhci.io.volumeRows": 21,
+  "harvesterhci.io.virtualmachineimageRows": 1,
+  "harvesterhci.io.hostRows": 1,
+  "vmListRows": 12
+}

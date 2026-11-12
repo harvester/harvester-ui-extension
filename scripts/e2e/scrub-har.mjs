@@ -10,10 +10,14 @@
  *   response per method + URL, so replay does not depend on the order pages are visited in
  * - drops request headers, cookies and bodies, and every response header except content-type
  * - rewrites the recording host to https://harvester.invalid (the shell maps it back to the dev server)
- * - keeps Secrets, ConfigMaps, Pods and ServiceAccounts only from namespaces that hold a VM
+ * - keeps Secrets, ConfigMaps, Pods and ServiceAccounts only from namespaces that hold a VM, and with
+ *   SCRUB_CLUSTERS="local,c-abcde" only those clusters in Rancher's cluster lists, and only system
+ *   namespaces in Rancher's own namespace list and counts
+ * - drops personal preferences (saved views, dashboards) and the install's id
  * - redacts Secret data, password/token-like fields and settings, cloud-init passwords, PEM blocks,
  *   SSH keys, e-mail addresses and Rancher import URLs, maps every IP address to documentation
  *   ranges and internal host names to example.com, and removes last-applied-configuration annotations
+ *   and managedFields
  * - SCRUB_RENAME="from:to,..." renames resources whose names give away people or internal systems,
  *   everywhere they appear (names, ids, links, references)
  * - fails if anything that looks sensitive is still there; SCRUB_CHECK adds comma-separated strings
@@ -24,8 +28,9 @@ import fs from 'node:fs';
 const BASE = 'https://harvester.invalid';
 const LANDING = `${ BASE }/dashboard/harvester/c/local/harvesterhci.io.dashboard`;
 const API_PATH = /^\/(v1|v1-public|v3|v3-public|k8s|meta|api|apis|rancherversion|version)(\/|\?|$)/;
-const DROP_PATH = /^\/v3\/tokens|^\/v1\/ext\.cattle\.io\.tokens|generateKubeconfig|^\/v3-public\/localProviders/;
+const DROP_PATH = /^\/v3\/tokens|^\/v1\/ext\.cattle\.io\.tokens|generateKubeconfig|^\/v3-public\/localProviders|^\/v1-public\/login/;
 const NAMESPACED_TRIM = ['secret', 'configmap', 'pod', 'serviceaccount'];
+const CLUSTER_TRIM = ['management.cattle.io.cluster', 'provisioning.cattle.io.cluster', 'harvesterhci.io.management.cluster'];
 const PUBLIC_SUSE_HOSTS = ['registry.suse.com', 'www.suse.com', 'documentation.suse.com', 'scc.suse.com', 'docs.harvesterhci.io'];
 const REDACTED = 'REDACTED';
 const REDACTED_B64 = Buffer.from(REDACTED).toString('base64');
@@ -33,11 +38,22 @@ const DUMMY_SSH_KEY = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHRlc3Qta2V5LWZvci1lM
 
 const SENSITIVE_KEY = /pass(word|wd)|private.?key|access.?key|secret.?key|api.?key|^(token|secret|credentials?)$|_(token|secret)$/i;
 const SENSITIVE_ENV_NAME = /pass(word|wd)|secret|token|private.?key|access.?key|api.?key/i;
-const SENSITIVE_SETTINGS = ['cluster-registration-url'];
+// Settings replaced in the recording: secrets and ids of the recorded install, and Rancher's dynamic
+// content, which would otherwise make every replay call the recorded install's content endpoint
+const SETTING_OVERRIDES = {
+  'cluster-registration-url': '', 'install-uuid': '', 'ui-content-enabled': 'false', 'ui-content-endpoint': ''
+};
+
+// Preferences that are personal content rather than how pages behave
+const PREFERENCE_DROP = ['custom-dashboards', 'configurable-views-saved', 'table-views', 'resource-table-views', 'last-namespace'];
+const ZERO_UUID = '00000000-0000-0000-0000-000000000000';
 
 const [input, output] = process.argv.slice(2);
 const extraChecks = (process.env.SCRUB_CHECK || '').split(',').filter(Boolean);
 const renames = (process.env.SCRUB_RENAME || '').split(',').filter(Boolean).map((pair) => pair.split(':'));
+const keepClusters = (process.env.SCRUB_CLUSTERS || '').split(',').filter(Boolean);
+// Rancher's own namespaces name whatever else runs there: keep the system ones and the kept clusters'
+const keepRancherNamespace = (ns) => /^(default|local|kube-|cattle-|fleet-)/.test(ns) || keepClusters.some((c) => ns === c || ns.startsWith(`${ c }-`));
 
 if (!input || !output) {
   console.error('usage: [SCRUB_RENAME="from:to"] [SCRUB_CHECK="a,b"] scrub-har.mjs <recorded.har> <fixture.har>'); // eslint-disable-line no-console
@@ -95,7 +111,7 @@ const scrubString = (s) => rename(s)
   .replace(/((?:^|\\n|\n)\s*-?\s*(?:password|passwd|plain_text_passwd|hashed_passwd)\s*:\s*)[^\\\n"]+/gi, `$1${ REDACTED }`)
   .replace(/https?:\/\/[^\s"\\]+\/v3\/import\/[a-z0-9]+(_[a-z0-9-]+)?\.yaml/g, `https://rancher.example.com/v3/import/${ REDACTED }.yaml`)
   .replace(IPV4, mapIp)
-  .replace(/\b[a-z0-9.-]+\.suse\.(com|de|cz|cloud)\b/gi, mapHost)
+  .replace(/\b[a-z0-9.-]+\.(suse\.(com|de|cz|cloud)|ui\.rancher\.space)\b/gi, mapHost)
   .replace(/[a-z0-9._%+-]+@[a-z0-9-]+(\.[a-z0-9-]+)+/gi, (m) => (m.endsWith('@example.com') ? m : 'user@example.com'));
 
 const typeOf = (obj) => (obj?.type || obj?.kind || '').toString().toLowerCase();
@@ -135,16 +151,16 @@ function scrubValue(value, key) {
   if (/setting$/.test(typeOf(value)) || /\.settings?$/.test(typeOf(value))) {
     const id = value.id || value.metadata?.name;
 
-    for (const field of ['value', 'default']) {
-      if (typeof out[field] !== 'string' || !out[field]) {
-        continue;
+    if (id in SETTING_OVERRIDES) {
+      out.value = SETTING_OVERRIDES[id];
+      // steve repeats the value in the printer columns
+      if (Array.isArray(out.metadata?.fields)) {
+        out.metadata.fields = out.metadata.fields.map((f, i) => (i === 0 ? f : SETTING_OVERRIDES[id]));
       }
-      if (SENSITIVE_SETTINGS.includes(id)) {
-        out[field] = '';
-        // steve repeats the value in the printer columns
-        if (Array.isArray(out.metadata?.fields)) {
-          out.metadata.fields = out.metadata.fields.map((f, i) => (i === 0 ? f : ''));
-        }
+    }
+
+    for (const field of ['value', 'default']) {
+      if (typeof out[field] !== 'string' || !out[field] || id in SETTING_OVERRIDES) {
         continue;
       }
       try {
@@ -157,8 +173,28 @@ function scrubValue(value, key) {
     }
   }
 
+  if (typeOf(value) === 'userpreference' && out.data && typeof out.data === 'object') {
+    PREFERENCE_DROP.forEach((pref) => delete out.data[pref]);
+    if (keepClusters.length) {
+      if (out.data.cluster && !keepClusters.includes(out.data.cluster)) {
+        out.data.cluster = 'local';
+      }
+      for (const pref of ['recent-clusters', 'pinned-clusters', 'ns-by-cluster']) {
+        try {
+          const parsed = JSON.parse(out.data[pref]);
+
+          out.data[pref] = JSON.stringify(Array.isArray(parsed) ? parsed.filter((id) => keepClusters.includes(id)) : Object.fromEntries(Object.entries(parsed).filter(([id]) => keepClusters.includes(id))));
+        } catch {}
+      }
+    }
+  }
+
   if (out.metadata?.annotations) {
     delete out.metadata.annotations['kubectl.kubernetes.io/last-applied-configuration'];
+  }
+  // Server-side apply bookkeeping: nothing the UI shows, and bulky
+  if (out.metadata?.managedFields) {
+    delete out.metadata.managedFields;
   }
 
   return out;
@@ -182,6 +218,23 @@ for (const e of har.log.entries) {
   }
 
   latest.set(`${ e.request.method } ${ url.pathname }${ url.search }`, { e, url, mime });
+}
+
+// Lists of cluster ids in a query (the cluster menu asks for the pinned clusters) keep only the kept
+// clusters, as the trimmed preferences make the replayed UI ask
+const keptClusterIds = (search) => (keepClusters.length ? search.replace(/,id=%22(c-[a-z0-9-]+)%22/g, (match, id) => (keepClusters.includes(id) ? match : '')) : search);
+
+// The install's id is in its settings and in the cluster agents' environment
+for (const { e, url } of latest.values()) {
+  if (/management\.cattle\.io\.settings$/.test(url.pathname)) {
+    try {
+      const uuid = JSON.parse(e.response.content.text).data?.find((setting) => setting.id === 'install-uuid')?.value;
+
+      if (uuid) {
+        renames.push([uuid, ZERO_UUID]);
+      }
+    } catch {}
+  }
 }
 
 // Namespaces that hold a VM: the only ones whose Secrets, ConfigMaps, Pods and ServiceAccounts we keep
@@ -214,6 +267,31 @@ for (const { e, url, mime } of latest.values()) {
           body.count = body.data.length;
         }
       }
+      if (keepClusters.length && body?.type === 'collection' && Array.isArray(body.data) && CLUSTER_TRIM.includes(body.resourceType)) {
+        const before = body.data.length;
+
+        body.data = body.data.filter((item) => keepClusters.includes(item.id) || keepClusters.includes(item.status?.clusterName));
+        trimmed += before - body.data.length;
+        if (typeof body.count === 'number') {
+          body.count = body.data.length;
+        }
+      }
+      if (keepClusters.length && url.pathname === '/v1/namespaces' && Array.isArray(body?.data)) {
+        const before = body.data.length;
+
+        body.data = body.data.filter((ns) => keepRancherNamespace(ns.id));
+        // steve's relationships of fleet-default and the like name every cluster's Fleet bundles
+        body.data.forEach((ns) => delete ns.metadata?.relationships);
+        trimmed += before - body.data.length;
+        if (typeof body.count === 'number') {
+          body.count = body.data.length;
+        }
+      }
+      if (keepClusters.length && url.pathname === '/v1/counts' && Array.isArray(body?.data)) {
+        body.data.forEach((count) => Object.values(count.counts || {}).forEach((type) => {
+          Object.keys(type.namespaces || {}).filter((ns) => !keepRancherNamespace(ns)).forEach((ns) => delete type.namespaces[ns]);
+        }));
+      }
       body = scrubValue(body);
       text = JSON.stringify(body);
     } catch {
@@ -228,7 +306,7 @@ for (const { e, url, mime } of latest.values()) {
     startedDateTime: e.startedDateTime,
     time:            0,
     request:         {
-      method: e.request.method, url: `${ BASE }${ scrubString(url.pathname + url.search) }`, httpVersion: 'HTTP/1.1', headers: [], queryString: [], cookies: [], headersSize: -1, bodySize: -1
+      method: e.request.method, url: `${ BASE }${ scrubString(url.pathname + keptClusterIds(url.search)) }`, httpVersion: 'HTTP/1.1', headers: [], queryString: [], cookies: [], headersSize: -1, bodySize: -1
     },
     response: {
       status:      e.response.status,
@@ -264,23 +342,27 @@ const fixture = {
 };
 const json = JSON.stringify(fixture, null, 1);
 
-// Last line of defence: refuse to write anything that still looks sensitive
-const leaks = {
-  'recording host':     json.includes(new URL(recordHost).host),
-  'private key':        /PRIVATE KEY-----(?![\\n]{0,4}REDACTED)/.test(json),
-  'IP address':         (json.match(IPV4) || []).some((ip) => !KEEP_IP.test(ip)),
-  'rancher import URL': /\/v3\/import\/(?!REDACTED)[a-z0-9]{20,}/.test(json),
-  'suse host':          /\b[a-z0-9-]+\.[a-z0-9.-]*suse\.(com|de|cz|cloud)\b/i.test(json.replace(/registry\.suse\.com|www\.suse\.com|documentation\.suse\.com|scc\.suse\.com/g, '')),
-  'rancher token':      /token-[a-z0-9]{5}:[a-z0-9]{40,}/.test(json),
-  jwt:                  /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/.test(json),
-  'session cookie':     /R_SESS/.test(json),
-  'last-applied':       json.includes('last-applied-configuration'),
-  ...Object.fromEntries(extraChecks.map((s, i) => [`SCRUB_CHECK value #${ i + 1 }`, json.includes(s)])),
+// Last line of defence: refuse to write anything that still looks sensitive, and say where it is
+const LEAKS = {
+  'recording host':     (text) => recordHost !== BASE && text.includes(new URL(recordHost).host),
+  'private key':        (text) => /PRIVATE KEY-----(?![\\n]{0,4}REDACTED)/.test(text),
+  'IP address':         (text) => (text.match(IPV4) || []).some((ip) => !KEEP_IP.test(ip)),
+  'rancher import URL': (text) => /\/v3\/import\/(?!REDACTED)[a-z0-9]{20,}/.test(text),
+  'internal host':      (text) => /\b[a-z0-9-]+\.[a-z0-9.-]*(suse\.(com|de|cz|cloud)|ui\.rancher\.space)\b/i.test(text.replace(/registry\.suse\.com|www\.suse\.com|documentation\.suse\.com|scc\.suse\.com/g, '')),
+  'rancher token':      (text) => /token-[a-z0-9]{5}:[a-z0-9]{40,}/.test(text),
+  jwt:                  (text) => /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/.test(text),
+  'session cookie':     (text) => /R_SESS/.test(text),
+  'last-applied':       (text) => text.includes('last-applied-configuration'),
+  ...Object.fromEntries(extraChecks.map((s, i) => [`SCRUB_CHECK value #${ i + 1 }`, (text) => text.includes(s)])),
 };
-const found = Object.entries(leaks).filter(([, hit]) => hit).map(([name]) => name);
+const found = Object.entries(LEAKS).map(([name, test]) => {
+  const where = entries.filter((e) => test(`${ e.request.url } ${ e.response.content.text }`)).map((e) => `${ e.request.method } ${ e.request.url.replace(BASE, '') }`);
+
+  return where.length ? `${ name } (${ where.slice(0, 3).join(', ') })` : undefined;
+}).filter(Boolean);
 
 if (found.length) {
-  console.error(`Refusing to write ${ output }, still contains: ${ found.join(', ') }`); // eslint-disable-line no-console
+  console.error(`Refusing to write ${ output }, still contains: ${ found.join('; ') }`); // eslint-disable-line no-console
   process.exit(1);
 }
 

@@ -1,8 +1,8 @@
 import PagePo from '@rancher/cypress/e2e/po/pages/page.po';
-import { harvesterPath, HARVESTER_CLUSTER } from '@/cypress/e2e/po/pages/harvester-list-page.po';
+import { harvesterPath, harvesterCluster } from '@/cypress/e2e/po/pages/harvester-list-page.po';
 
 export default class HarvesterDashboardPagePo extends PagePo {
-  constructor(clusterId = HARVESTER_CLUSTER) {
+  constructor(clusterId = harvesterCluster()) {
     super(harvesterPath('harvesterhci.io.dashboard', clusterId));
   }
 

@@ -1,6 +1,6 @@
 import { VirtualMachinesListPagePo, VirtualMachineDetailPagePo, VirtualMachineCreatePagePo } from '@/cypress/e2e/po/pages/virtual-machines.po';
+import { recorded, recordedVms } from '@/cypress/support/recorded';
 
-// Data comes from cypress/recordings/harvester.har: 12 VMs, and `default/andy` is the one whose detail page was recorded
 describe('Virtual machines', { tags: ['@virtualMachines'] }, () => {
   describe('List', () => {
     const list = new VirtualMachinesListPagePo();
@@ -12,37 +12,53 @@ describe('Virtual machines', { tags: ['@virtualMachines'] }, () => {
 
     it('shows every VM with its state', () => {
       list.title().should('contain', 'Virtual Machines');
-      list.rows().should('have.length', 12);
-      list.state('vm123').should('contain.text', 'Running');
-      list.state('forklift-vm-small').should('contain.text', 'Off');
+      list.rows().should('have.length.greaterThan', 0);
+      recorded('vmListRows', () => list.rows().its('length')).then((rows) => {
+        list.rows().should('have.length', rows);
+      });
+      recordedVms().then(({ running, stopped }) => {
+        list.state(running.name).should('contain.text', 'Running');
+
+        if (stopped) {
+          list.state(stopped.name).should('contain.text', 'Off');
+        }
+      });
     });
 
     it('filters the VMs by name', () => {
-      list.sortableTable().filter('forklift-vm');
-      list.rows().should('have.length', 5);
+      recordedVms().then(({ running }) => {
+        list.sortableTable().filter(running.name);
+        list.vmRow(running.name).should('have.length', 1);
+        list.rows().should(($rows) => {
+          $rows.each((_, row) => {
+            expect(row.innerText).to.contain(running.name);
+          });
+        });
+      });
     });
 
     it('opens the detail page of a VM', () => {
-      const detail = new VirtualMachineDetailPagePo('default', 'andy');
+      recordedVms().then(({ running }) => {
+        const detail = new VirtualMachineDetailPagePo(running.namespace, running.name);
 
-      list.goToVm('andy');
-      detail.waitForPage();
-      detail.name().should('have.text', 'andy');
+        list.goToVm(running.name);
+        detail.waitForPage();
+        detail.name().should('have.text', running.name);
+      });
     });
   });
 
   describe('Detail', () => {
-    const detail = new VirtualMachineDetailPagePo('default', 'andy');
-
-    beforeEach(() => {
-      detail.goTo();
-      detail.waitForPage();
-    });
-
     it('shows the name, state and tabs of a running VM', () => {
-      detail.name().should('have.text', 'andy');
-      detail.state().should('contain.text', 'Running');
-      detail.tabs().tabNames().should('include.members', ['Basics', 'Volumes', 'Networks', 'Events']);
+      recordedVms().then(({ running }) => {
+        const detail = new VirtualMachineDetailPagePo(running.namespace, running.name);
+
+        detail.goTo();
+        detail.waitForPage();
+        detail.name().should('have.text', running.name);
+        detail.state().should('contain.text', 'Running');
+        detail.tabs().tabNames().should('include.members', ['Basics', 'Volumes', 'Networks', 'Events']);
+      });
     });
   });
 

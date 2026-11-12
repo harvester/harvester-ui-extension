@@ -3,12 +3,12 @@ import { BaseDetailPagePo } from '@rancher/cypress/e2e/po/pages/base/base-detail
 import TabbedPo from '@rancher/cypress/e2e/po/components/tabbed.po';
 import NameNsDescription from '@rancher/cypress/e2e/po/components/name-ns-description.po';
 import LabeledInputPo from '@rancher/cypress/e2e/po/components/labeled-input.po';
-import HarvesterListPagePo, { harvesterPath, HARVESTER_CLUSTER } from '@/cypress/e2e/po/pages/harvester-list-page.po';
+import HarvesterListPagePo, { harvesterPath, harvesterCluster } from '@/cypress/e2e/po/pages/harvester-list-page.po';
 
 const VM = 'kubevirt.io.virtualmachine';
 
 export class VirtualMachinesListPagePo extends HarvesterListPagePo {
-  constructor(clusterId = HARVESTER_CLUSTER) {
+  constructor(clusterId = harvesterCluster()) {
     super(VM, clusterId);
   }
 
@@ -29,7 +29,7 @@ export class VirtualMachinesListPagePo extends HarvesterListPagePo {
 }
 
 export class VirtualMachineDetailPagePo extends BaseDetailPagePo {
-  constructor(namespace: string, name: string, clusterId = HARVESTER_CLUSTER) {
+  constructor(namespace: string, name: string, clusterId = harvesterCluster()) {
     super(harvesterPath(`${ VM }/${ namespace }/${ name }`, clusterId));
   }
 
@@ -47,7 +47,7 @@ export class VirtualMachineDetailPagePo extends BaseDetailPagePo {
 }
 
 export class VirtualMachineCreatePagePo extends PagePo {
-  constructor(clusterId = HARVESTER_CLUSTER) {
+  constructor(clusterId = harvesterCluster()) {
     super(harvesterPath(`${ VM }/create`, clusterId));
   }
 

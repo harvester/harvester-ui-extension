@@ -1,19 +1,24 @@
 import { BaseListPagePo } from '@rancher/cypress/e2e/po/pages/base/base-list-page.po';
 
-export const HARVESTER_CLUSTER = 'local';
+/**
+ * The Harvester cluster the specs run on: `local` standalone, its cluster id in Rancher
+ */
+export function harvesterCluster(): string {
+  return Cypress.env('harvesterCluster');
+}
 
 /**
- * Path of a page in the standalone Harvester UI, e.g. /harvester/c/local/harvesterhci.io.volume
+ * Path of a Harvester page, e.g. /harvester/c/local/harvesterhci.io.volume
  */
-export function harvesterPath(path: string, clusterId = HARVESTER_CLUSTER): string {
+export function harvesterPath(path: string, clusterId = harvesterCluster()): string {
   return `/harvester/c/${ clusterId }/${ path }`;
 }
 
 /**
- * A resource list page of the standalone Harvester UI
+ * A resource list page of Harvester
  */
 export default class HarvesterListPagePo extends BaseListPagePo {
-  constructor(resource: string, clusterId = HARVESTER_CLUSTER) {
+  constructor(resource: string, clusterId = harvesterCluster()) {
     super(harvesterPath(resource, clusterId));
   }
 
