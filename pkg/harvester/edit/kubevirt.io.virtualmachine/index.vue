@@ -125,6 +125,10 @@ export default {
       return storageClasses.some((storageClass) => storageClass.metadata?.name === INTERNAL_STORAGE_CLASS.VMSTATE_PERSISTENCE);
     },
 
+    showPersistentStateStorageBanner() {
+      return this.mode !== 'view' && !this.hasVMStateStorageClass;
+    },
+
     // VM display name is stored as an annotation; bind a dedicated input to it
     // so we don't have to mutate metadata.name (which would break the k8s PUT).
     displayName: {
@@ -253,6 +257,21 @@ export default {
   },
 
   watch: {
+    hasVMStateStorageClass: {
+      handler() {
+        this.clearPersistentStateWithoutStorageClass();
+      },
+      immediate: true,
+    },
+
+    tpmPersistentStateEnabled() {
+      this.clearPersistentStateWithoutStorageClass();
+    },
+
+    efiPersistentStateEnabled() {
+      this.clearPersistentStateWithoutStorageClass();
+    },
+
     templateId: {
       async handler(id, old) {
         if (!id) {
@@ -375,6 +394,13 @@ export default {
   },
 
   methods: {
+    clearPersistentStateWithoutStorageClass() {
+      if (this.mode === 'create' && !this.hasVMStateStorageClass) {
+        this.tpmPersistentStateEnabled = false;
+        this.efiPersistentStateEnabled = false;
+      }
+    },
+
     cancelAction() {
       const { fromPage = HCI.VM } = this.$route?.query; // default back to VM list page
       const cancelOverride = {
@@ -815,10 +841,10 @@ export default {
           <Checkbox
             v-if="value.tpmPersistentStateFeatureEnabled && tpmEnabled"
             v-model:value="tpmPersistentStateEnabled"
+            :disabled="!hasVMStateStorageClass"
             class="check"
             type="checkbox"
             :label="t('harvester.virtualMachine.systemOptions.tpmPersistentState')"
-            :tooltip-key="hasVMStateStorageClass ? '' : 'harvester.virtualMachine.systemOptions.persistentStateStorageClassHint'"
             :mode="mode"
           />
 
@@ -833,10 +859,10 @@ export default {
           <Checkbox
             v-if="value.efiPersistentStateFeatureEnabled && efiEnabled"
             v-model:value="efiPersistentStateEnabled"
+            :disabled="!hasVMStateStorageClass"
             class="check"
             type="checkbox"
             :label="t('harvester.virtualMachine.systemOptions.efiPersistentState')"
-            :tooltip-key="hasVMStateStorageClass ? '' : 'harvester.virtualMachine.systemOptions.persistentStateStorageClassHint'"
             :mode="mode"
           />
 
@@ -849,6 +875,13 @@ export default {
             :mode="mode"
           />
         </div>
+
+        <Banner
+          v-if="showPersistentStateStorageBanner"
+          color="info"
+        >
+          <t k="harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable" />
+        </Banner>
 
         <Banner
           v-if="showCpuPinningBanner"

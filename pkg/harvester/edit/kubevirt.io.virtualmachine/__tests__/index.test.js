@@ -32,6 +32,53 @@ describe('page: kubevirt.io.virtualmachine edit', () => {
     expect(hasVMStateStorageClass.call(storageClasses(['vmstate-persistence']))).toBe(true);
   });
 
+  it('shows the persistent state storage banner outside view mode when vmstate-persistence is missing', () => {
+    const showPersistentStateStorageBanner = HarvesterEditVM.computed.showPersistentStateStorageBanner;
+
+    expect(showPersistentStateStorageBanner.call({ hasVMStateStorageClass: false, mode: 'create' })).toBe(true);
+    expect(showPersistentStateStorageBanner.call({ hasVMStateStorageClass: false, mode: 'edit' })).toBe(true);
+    expect(showPersistentStateStorageBanner.call({ hasVMStateStorageClass: true, mode: 'create' })).toBe(false);
+    expect(showPersistentStateStorageBanner.call({ hasVMStateStorageClass: false, mode: 'view' })).toBe(false);
+  });
+
+  it('clears persistent state selections only for create mode without vmstate-persistence', () => {
+    const clearPersistentState = HarvesterEditVM.methods.clearPersistentStateWithoutStorageClass;
+
+    const createForm = {
+      efiPersistentStateEnabled: true,
+      mode:                      'create',
+      tpmPersistentStateEnabled: true,
+    };
+
+    clearPersistentState.call(createForm);
+
+    expect(createForm.tpmPersistentStateEnabled).toBe(false);
+    expect(createForm.efiPersistentStateEnabled).toBe(false);
+
+    const editForm = {
+      efiPersistentStateEnabled: true,
+      mode:                      'edit',
+      tpmPersistentStateEnabled: true,
+    };
+
+    clearPersistentState.call(editForm);
+
+    expect(editForm.tpmPersistentStateEnabled).toBe(true);
+    expect(editForm.efiPersistentStateEnabled).toBe(true);
+
+    const storageClassForm = {
+      efiPersistentStateEnabled: true,
+      hasVMStateStorageClass:      true,
+      mode:                        'create',
+      tpmPersistentStateEnabled:   true,
+    };
+
+    clearPersistentState.call(storageClassForm);
+
+    expect(storageClassForm.tpmPersistentStateEnabled).toBe(true);
+    expect(storageClassForm.efiPersistentStateEnabled).toBe(true);
+  });
+
   it('should stop the save when the cloud config is invalid', () => {
     const { form, buttonCb } = saveWith('#cloud-config\nsome words\n');
 
