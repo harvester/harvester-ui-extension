@@ -51,7 +51,7 @@ if (!pages.size) {
 
     lines.push(`| ${ page } | ${ counts.join(' | ') } | ${ ids } |`);
   }
-  lines.push('', 'Counts are rules per impact; the number after each rule is how many elements fail it. The full report, with screenshots, is in the `accessibility` artifact.');
+  lines.push('', 'Counts are rules per impact; the number after each rule is how many elements fail it. The full report, with screenshots, is in the artifact this job uploaded.');
 }
 
 console.log(lines.join('\n')); // eslint-disable-line no-console
