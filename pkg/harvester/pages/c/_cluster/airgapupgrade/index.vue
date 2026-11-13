@@ -12,7 +12,7 @@ import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../../../config/harvester'
 import ImagePercentageBar from '@shell/components/formatter/ImagePercentageBar';
 import { Banner } from '@components/Banner';
 import { STORAGE_CLASS } from '@shell/config/types';
-import UpgradeRepositoryStorageClass from '../../../../components/UpgradeRepositoryStorageClass';
+import UpgradeRepositoryStorageClass, { getUpgradeRepositoryStorageClassDefault } from '../../../../components/UpgradeRepositoryStorageClass';
 import isEmpty from 'lodash/isEmpty';
 
 const IMAGE_METHOD = {
@@ -38,7 +38,7 @@ export default {
       this.$store.dispatch('harvester/findAll', { type: STORAGE_CLASS })
     ]);
 
-    this.storageClassName = storageClasses.find((storageClass) => storageClass.isDefault)?.name || '';
+    this.storageClassName = getUpgradeRepositoryStorageClassDefault(storageClasses);
 
     const value = await this.$store.dispatch('harvester/create', {
       type:     HCI.UPGRADE,
@@ -185,7 +185,7 @@ export default {
     },
 
     disableUploadButton() {
-      return this.sourceType === UPLOAD && this.isUploading;
+      return this.sourceType === UPLOAD && (this.isUploading || (this.repositoryStorageClassEnabled && !this.storageClassName));
     },
   },
 
@@ -269,12 +269,6 @@ export default {
         // enable logging or skip single replica detection if checked
         if (this.canEnableLogging) {
           this.value.spec.logEnabled = this.enableLogging;
-        }
-        if (this.repositoryStorageClassEnabled && this.storageClassName) {
-          this.value.metadata.annotations = {
-            ...this.value.metadata.annotations,
-            [HCI_ANNOTATIONS.UPGRADE_STORAGE_CLASS]: this.storageClassName
-          };
         }
         if (this.skipSingleReplicaDetachedVolFeatureEnabled) {
           this.value.metadata.annotations = {
@@ -512,8 +506,9 @@ export default {
 
         <UpgradeRepositoryStorageClass
           v-if="repositoryStorageClassEnabled"
-          v-model="storageClassName"
+          v-model:value="storageClassName"
           class="mb-20"
+          :disabled="uploadImageId !== ''"
           :storage-classes="storageClasses"
         />
 

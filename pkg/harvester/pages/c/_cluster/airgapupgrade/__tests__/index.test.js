@@ -47,12 +47,46 @@ describe('page: HarvesterAirgapUpgrade', () => {
     expect(HarvesterAirgapUpgrade.components.UpgradeRepositoryStorageClass).toBeDefined();
   });
 
+  it('leaves the default empty when it is unavailable for upgrade repositories', async() => {
+    const form = {
+      storageClassName: 'previous',
+      initImageValue:   jest.fn(),
+      $store:           {
+        dispatch: jest.fn()
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([
+            {
+              name: 'lvm-local', isDefault: true, provisioner: 'lvm.driver.harvesterhci.io'
+            },
+            { name: 'fast' }
+          ])
+          .mockResolvedValueOnce({})
+      }
+    };
+
+    await HarvesterAirgapUpgrade.fetch.call(form);
+
+    expect(form.storageClassName).toBe('');
+  });
+
+  it('prevents file upload until an upgrade StorageClass is selected', () => {
+    const disableUploadButton = HarvesterAirgapUpgrade.computed.disableUploadButton;
+
+    expect(disableUploadButton.call({
+      sourceType:                    'upload',
+      isUploading:                   false,
+      repositoryStorageClassEnabled: true,
+      storageClassName:              ''
+    })).toBe(true);
+  });
+
   it('saves an uploaded upgrade image on the selected StorageClass', async() => {
     const form = createForm();
 
     await HarvesterAirgapUpgrade.methods.uploadFile.call(form, { name: 'upgrade.iso' });
 
     expect(form.imageValue.spec.targetStorageClassName).toBe('fast');
+    expect(form.uploadImageId).toBe('harvester-system/upgrade-image');
   });
 
   it('saves a downloaded upgrade image on the selected StorageClass', async() => {
@@ -83,12 +117,8 @@ describe('page: HarvesterAirgapUpgrade', () => {
     expect(form.imageValue.spec.targetStorageClassName).toBe('existing-class');
   });
 
-  it('omits the Upgrade StorageClass annotation when the feature is disabled', async() => {
-    const form = createForm({
-      imageSource:                   'exist',
-      imageId:                       'harvester-system/existing-image',
-      repositoryStorageClassEnabled: false,
-    });
+  it('does not add an Upgrade StorageClass annotation when the image selects the class', async() => {
+    const form = createForm({ uploadImageId: 'harvester-system/upgrade-image' });
 
     await HarvesterAirgapUpgrade.methods.save.call(form, jest.fn());
 
