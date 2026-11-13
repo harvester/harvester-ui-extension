@@ -55,8 +55,11 @@ const resourceOptions = computed(() => [...new Set([...allAffectedResourceNames(
 const chosenScope = ref(props.rule && !ruleResources.length ? 'check' : null);
 const scope = computed({
   get: () => chosenScope.value || (resourceOptions.value.length ? 'resources' : 'check'),
+  // the shell's RadioGroup still takes the arrow keys once it is clicked, even when disabled
   set: (value) => {
-    chosenScope.value = value;
+    if (!locked.value && !isView.value) {
+      chosenScope.value = value;
+    }
   },
 });
 // null selects every resource, the ones that are not selected are kept visible
@@ -210,6 +213,36 @@ async function save() {
         />
       </div>
     </div>
+    <!-- first, as an expired rule's other fields wait for it -->
+    <div>
+      <RcHeading :size="4">
+        {{ t('harvester.dashboard.sections.componentHealth.ignore.duration') }}
+      </RcHeading>
+      <p
+        v-if="rule"
+        class="current-expiry mb-10"
+        data-testid="component-health-ignore-current-expiry"
+      >
+        {{ currentExpiry }}
+      </p>
+      <template v-if="!isView">
+        <RadioGroup
+          v-model:value="duration"
+          name="ignore-duration"
+          :aria-label="t('harvester.dashboard.sections.componentHealth.ignore.duration')"
+          :mode="mode"
+          :options="durationOptions"
+          :row="true"
+        />
+        <p
+          v-if="duration"
+          class="new-expiry text-muted"
+          data-testid="component-health-ignore-new-expiry"
+        >
+          {{ newExpiry }}
+        </p>
+      </template>
+    </div>
     <div v-if="resourceOptions.length">
       <RcHeading :size="4">
         {{ t('harvester.dashboard.sections.componentHealth.ignore.scope') }}
@@ -239,35 +272,6 @@ async function save() {
           @update:value="selected = $event"
         />
       </div>
-    </div>
-    <div>
-      <RcHeading :size="4">
-        {{ t('harvester.dashboard.sections.componentHealth.ignore.duration') }}
-      </RcHeading>
-      <p
-        v-if="rule"
-        class="current-expiry mb-10"
-        data-testid="component-health-ignore-current-expiry"
-      >
-        {{ currentExpiry }}
-      </p>
-      <template v-if="!isView">
-        <RadioGroup
-          v-model:value="duration"
-          name="ignore-duration"
-          :aria-label="t('harvester.dashboard.sections.componentHealth.ignore.duration')"
-          :mode="mode"
-          :options="durationOptions"
-          :row="true"
-        />
-        <p
-          v-if="duration"
-          class="new-expiry text-muted"
-          data-testid="component-health-ignore-new-expiry"
-        >
-          {{ newExpiry }}
-        </p>
-      </template>
     </div>
     <LabeledInput
       v-model:value="reason"

@@ -178,6 +178,7 @@ const mountRuleModal = ({
     onClose,
     confirm:       () => w.find('[data-testid="component-health-ignore-confirm"]'),
     duration:      () => w.findAllComponents(RadioGroup).find((group) => group.props('name') === 'ignore-duration'),
+    scopeGroup:    () => w.findAllComponents(RadioGroup).find((group) => group.props('name') === 'ignore-scope'),
     currentExpiry: () => w.find('[data-testid="component-health-ignore-current-expiry"]'),
     newExpiry:     () => w.find('[data-testid="component-health-ignore-new-expiry"]'),
     warning:       () => w.findAllComponents(Banner).find((banner) => banner.props('color') === 'warning'),
@@ -713,8 +714,9 @@ describe('health components', () => {
       expect(confirm().attributes('disabled')).toBeUndefined();
     });
     it('ignores the entire check forever without listing its resources', async() => {
-      const { w, confirm } = mountRuleModal();
-      const [scope, duration] = w.findAllComponents(RadioGroup);
+      const { confirm, scopeGroup, duration: durationGroup } = mountRuleModal();
+      const scope = scopeGroup();
+      const duration = durationGroup();
 
       await scope.vm.$emit('update:value', 'check');
       await duration.vm.$emit('update:value', 'forever');
@@ -784,9 +786,9 @@ describe('health components', () => {
         resources: ['two'], expiresAt: IN_A_WEEK, reason: 'known issue'
       });
       const {
-        w, duration, currentExpiry, newExpiry
+        w, duration, currentExpiry, newExpiry, scopeGroup
       } = mountRuleModal({ rule, mode: 'edit' });
-      const [scope] = w.findAllComponents(RadioGroup);
+      const scope = scopeGroup();
 
       expect(scope.props('value')).toBe('resources');
       expect(w.findComponent(LabeledSelect).props('value')).toStrictEqual(['two']);
@@ -842,7 +844,7 @@ describe('health components', () => {
         }),
         mode: 'edit'
       });
-      const [scope] = w.findAllComponents(RadioGroup);
+      const scope = w.findAllComponents(RadioGroup).find((group) => group.props('name') === 'ignore-scope');
 
       await scope.vm.$emit('update:value', 'check');
       await duration().vm.$emit('update:value', 'forever');
@@ -872,7 +874,7 @@ describe('health components', () => {
     });
     it('opens an expired rule with a warning on top, and only its expiration can change until a new one is set', async() => {
       const {
-        w, confirm, duration, warning
+        w, confirm, duration, warning, scopeGroup
       } = mountRuleModal({ rule: ruleOf({ expiresAt: LAST_WEEK, resources: ['one'] }), mode: 'edit' });
       const locked = () => ({
         scope:      w.findAllComponents(RadioGroup).find((group) => group.props('name') === 'ignore-scope').props('disabled'),
@@ -887,6 +889,13 @@ describe('health components', () => {
       expect(locked()).toStrictEqual({
         scope: true, resources: true, reason: true, expiration: false, save: true
       });
+      expect(w.findAllComponents(RadioGroup).map((group) => group.props('name'))).toStrictEqual(['ignore-duration', 'ignore-scope']);
+
+      // what the shell's RadioGroup sends for a click and the Up key, although it is disabled
+      await scopeGroup().vm.$emit('update:value', 'check');
+      await flushPromises();
+
+      expect(scopeGroup().props('value')).toBe('resources');
 
       await duration().vm.$emit('update:value', 'days7');
       await flushPromises();
@@ -895,6 +904,11 @@ describe('health components', () => {
         scope: false, resources: false, reason: false, expiration: false, save: false
       });
       expect(warning().props('label')).toContain('ignore.expiredBanner');
+
+      await scopeGroup().vm.$emit('update:value', 'check');
+      await flushPromises();
+
+      expect(scopeGroup().props('value')).toBe('check');
     });
     it('neither warns nor locks a rule that has not expired, or an expired one that is only viewed', async() => {
       const { w, warning } = mountRuleModal({ rule: ruleOf({ expiresAt: IN_A_WEEK }), mode: 'edit' });
@@ -908,9 +922,9 @@ describe('health components', () => {
     });
     it('opens a rule without resources on the entire check, and selects them all when asked', async() => {
       const {
-        w, confirm, duration, currentExpiry
+        w, confirm, duration, currentExpiry, scopeGroup
       } = mountRuleModal({ rule: ruleOf(), mode: 'edit' });
-      const [scope] = w.findAllComponents(RadioGroup);
+      const scope = scopeGroup();
 
       expect(scope.props('value')).toBe('check');
       expect(currentExpiry().text()).toContain('ignore.neverExpires');
@@ -946,13 +960,18 @@ describe('health components', () => {
   describe('viewing a rule', () => {
     it('shows what the rule has without letting it change', async() => {
       const {
-        w, onClose, confirm, duration, currentExpiry
+        w, onClose, confirm, duration, currentExpiry, scopeGroup
       } = mountRuleModal({
         rule: ruleOf({
           resources: ['two'], expiresAt: IN_A_WEEK, reason: 'known issue'
         }),
         mode: 'view'
       });
+
+      await scopeGroup().vm.$emit('update:value', 'check');
+      await flushPromises();
+
+      expect(scopeGroup().props('value')).toBe('resources');
 
       [...w.findAllComponents(RadioGroup), w.findComponent(LabeledSelect), w.findComponent(LabeledInput)].forEach((field) => {
         expect(field.props('mode')).toBe('view');
