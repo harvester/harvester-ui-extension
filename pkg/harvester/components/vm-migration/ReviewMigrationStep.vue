@@ -265,9 +265,13 @@ const startMigrationAction = async() => {
           namespace:  NS,
         },
       },
-      targetNamespace: targetNamespace.value,
-      vms:             vms.value.map((vm) => ({ id: vm.id, name: vm.name || vm.id })),
-      warm:            false,
+      targetNamespace:          targetNamespace.value,
+      vms:                      vms.value.map((vm) => ({ id: vm.id, name: vm.name || vm.id })),
+      warm:                     false,
+      // Remove each VM's conversion pod once it migrates successfully. The pod
+      // keeps the VM's disk in use, so deleting the VM would otherwise hang.
+      // Failed VMs keep their pod for troubleshooting.
+      deleteGuestConversionPod: true,
     },
   });
 
