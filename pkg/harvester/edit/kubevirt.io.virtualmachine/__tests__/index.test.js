@@ -34,4 +34,61 @@ describe('page: kubevirt.io.virtualmachine edit', () => {
     expect(form.errors).toStrictEqual([]);
     expect(form.saveSingle).toHaveBeenCalledWith(buttonCb);
   });
+
+  describe('restart prompt', () => {
+    function vmWith({
+      sockets = 1, maxSockets = 4, guest = '2Gi', maxGuest = '8Gi', machine = 'q35'
+    } = {}) {
+      return {
+        metadata: { annotations: {} },
+        spec:     {
+          template: {
+            spec: {
+              domain: {
+                machine: { type: machine },
+                cpu:     {
+                  sockets, cores: 1, threads: 1, maxSockets
+                },
+                memory:    { guest, maxGuest },
+                resources: { limits: { cpu: `${ maxSockets }`, memory: maxGuest } },
+              }
+            }
+          }
+        }
+      };
+    }
+
+    function shouldPrompt(oldVM, newVM) {
+      const form = { ...HarvesterEditVM.methods };
+
+      return form._shouldPromptRestart(oldVM, newVM);
+    }
+
+    it('should not prompt when only hot-pluggable CPU and memory grow', () => {
+      expect(shouldPrompt(vmWith(), vmWith({ sockets: 2, guest: '4Gi' }))).toBe(false);
+    });
+
+    it('should prompt when the maximums change', () => {
+      expect(shouldPrompt(vmWith(), vmWith({ sockets: 2, maxSockets: 8 }))).toBe(true);
+      expect(shouldPrompt(vmWith(), vmWith({ guest: '4Gi', maxGuest: '16Gi' }))).toBe(true);
+    });
+
+    it('should prompt when CPU or memory is lowered', () => {
+      expect(shouldPrompt(vmWith({ sockets: 2 }), vmWith({ sockets: 1 }))).toBe(true);
+      expect(shouldPrompt(vmWith({ guest: '4Gi' }), vmWith({ guest: '2Gi' }))).toBe(true);
+    });
+
+    it('should prompt when another field changes', () => {
+      expect(shouldPrompt(vmWith(), vmWith({ sockets: 2, machine: 'pc' }))).toBe(true);
+    });
+
+    it('should prompt for a CPU change without hotplug', () => {
+      const oldVM = vmWith({ maxSockets: null, maxGuest: null });
+      const newVM = vmWith({
+        sockets: 2, maxSockets: null, maxGuest: null
+      });
+
+      expect(shouldPrompt(oldVM, newVM)).toBe(true);
+    });
+  });
 });

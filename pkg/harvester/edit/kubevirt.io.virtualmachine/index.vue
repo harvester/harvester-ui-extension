@@ -23,6 +23,7 @@ import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations
 import { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
+import { parseSi } from '@shell/utils/units';
 import VM_MIXIN from '../../mixins/harvester-vm';
 import { HCI } from '../../types';
 import RestartVMDialog from '../../dialog/RestartVMDialog';
@@ -529,8 +530,35 @@ export default {
       return true;
     },
 
+    // With CPU and memory hotplug, KubeVirt applies more sockets or guest memory live,
+    // as long as the maximums stay the same. Drop those fields from both specs so that
+    // only changes needing a restart are compared. Lowering a value still needs one.
+    _specsWithoutHotplugChanges(oldSpec, newSpec) {
+      const oldCopy = clone(oldSpec);
+      const newCopy = clone(newSpec);
+
+      const oldDomain = oldCopy?.template?.spec?.domain || {};
+      const newDomain = newCopy?.template?.spec?.domain || {};
+
+      if (oldDomain.cpu?.maxSockets && Number(oldDomain.cpu.maxSockets) === Number(newDomain.cpu?.maxSockets) && Number(newDomain.cpu?.sockets || 0) >= Number(oldDomain.cpu?.sockets || 0)) {
+        delete oldDomain.cpu.sockets;
+        delete newDomain.cpu.sockets;
+      }
+
+      const oldMemory = oldDomain.memory || {};
+      const newMemory = newDomain.memory || {};
+
+      if (oldMemory.maxGuest && parseSi(oldMemory.maxGuest) === parseSi(newMemory.maxGuest) && parseSi(newMemory.guest) >= parseSi(oldMemory.guest)) {
+        delete oldMemory.guest;
+        delete newMemory.guest;
+      }
+
+      return [oldCopy, newCopy];
+    },
+
     _shouldPromptRestart(oldVM, newVM) {
-      const specChanged = !isEqual(oldVM?.spec, newVM?.spec);
+      const [oldSpec, newSpec] = this._specsWithoutHotplugChanges(oldVM?.spec, newVM?.spec);
+      const specChanged = !isEqual(oldSpec, newSpec);
 
       // check if the disk defined in annotations has changed, ignoring storage size
       const oldDisks = parseVolumeClaimTemplates(oldVM);
@@ -771,6 +799,7 @@ export default {
           :memory="memory"
           :max-memory="maxMemory"
           :mode="mode"
+          :is-vm-running="isEdit && !value.isOff"
           :enable-hot-plug="cpuMemoryHotplugEnabled"
           @updateCpuMemory="updateCpuMemory"
         />
