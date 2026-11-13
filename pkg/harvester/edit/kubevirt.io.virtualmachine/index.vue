@@ -22,8 +22,9 @@ import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
 import CreateEditView from '@shell/mixins/create-edit-view';
-import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
+import { parseVolumeClaimTemplates, isNADOnlyChange, canLiveSwapNAD, isVMSpecChanged } from '@pkg/utils/vm';
 import VM_MIXIN from '../../mixins/harvester-vm';
+import { NETWORK_ATTACHMENT } from '@shell/config/types';
 import { HCI } from '../../types';
 import RestartVMDialog from '../../dialog/RestartVMDialog';
 import PciDevices from './VirtualMachinePciDevices/index';
@@ -530,14 +531,28 @@ export default {
     },
 
     _shouldPromptRestart(oldVM, newVM) {
-      const specChanged = !isEqual(oldVM?.spec, newVM?.spec);
+      const specChanged = isVMSpecChanged(oldVM, newVM);
 
       // check if the disk defined in annotations has changed, ignoring storage size
       const oldDisks = parseVolumeClaimTemplates(oldVM);
       const newDisks = parseVolumeClaimTemplates(newVM);
       const diskChanged = !this._compareDisksIgnoreStorage(oldDisks, newDisks);
 
-      return specChanged || diskChanged;
+      if (diskChanged) return true;
+
+      // A running VM that can be live-migrated picks up NAD-only changes via KubeVirt LiveUpdateNADRef
+      if (specChanged && this._isLiveNetworkChange(oldVM, newVM)) return false;
+
+      return specChanged;
+    },
+
+    _isLiveNetworkChange(oldVM, newVM) {
+      if (!this.value.canLiveUpdateNADRef) return false;
+
+      const nads = this.$store.getters['harvester/all'](NETWORK_ATTACHMENT);
+      const namespace = this.value.metadata?.namespace;
+
+      return isNADOnlyChange(oldVM, newVM, (oldNAD, newNAD) => canLiveSwapNAD(nads, oldNAD, newNAD, namespace));
     },
 
     restartVM() {
@@ -894,6 +909,8 @@ export default {
           v-model:network-boot-first="networkBootFirst"
           :mode="mode"
           :is-single="isSingle"
+          :namespace="value.metadata.namespace"
+          :can-live-update-n-a-d-ref="value.canLiveUpdateNADRef"
         />
       </Tab>
 
