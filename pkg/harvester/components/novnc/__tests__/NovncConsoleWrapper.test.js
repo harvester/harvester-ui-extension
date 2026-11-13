@@ -10,7 +10,12 @@ const consoleRef = {
   focus:         jest.fn(),
 };
 
-const mountWrapper = () => {
+const CHECKBOX = { name: 'Checkbox' };
+
+const mountWrapper = ({ preferences = [], storage = {} } = {}) => {
+  // The console settings are saved there, so one test's would load in the next.
+  window.localStorage.clear();
+  Object.entries(storage).forEach(([key, value]) => window.localStorage.setItem(key, JSON.stringify(value)));
   consoleRef.ctrlAltDelete.mockClear();
   consoleRef.focus.mockClear();
 
@@ -24,7 +29,7 @@ const mountWrapper = () => {
       mocks: {
         $store: {
           getters: {
-            'management/all':                     () => [],
+            'management/all':                     () => preferences,
             'harvester-common/getFeatureEnabled': () => true,
           },
         },
@@ -84,6 +89,106 @@ describe('component: NovncConsoleWrapper', () => {
     expect(doSoftReboot).toHaveBeenCalledTimes(1);
   });
 
+  it('should keep the shortcut menu open to use while keys cannot be sent, and say why', () => {
+    const wrapper = mountWrapper();
+
+    wrapper.vm.onStatusChanged({ status: 'reconnecting' });
+
+    expect(wrapper.vm.shortcutMenuProps.canSend).toBe(false);
+    expect(wrapper.vm.sendBlockedReason).toBe('%harvester.virtualMachine.detail.console.shortcutMenu.blockedDisconnected%');
+    // Without a user preference there is nothing to manage either, so only then is it disabled.
+    expect(wrapper.vm.shortcutMenuProps.disabled).toBe(true);
+  });
+
+  it('should keep the shortcut menu enabled while disconnected when there are shortcuts to manage', () => {
+    const wrapper = mountWrapper({ preferences: [{ data: {} }] });
+
+    wrapper.vm.onStatusChanged({ status: 'reconnecting' });
+
+    expect(wrapper.vm.shortcutMenuProps.canSend).toBe(false);
+    expect(wrapper.vm.shortcutMenuProps.disabled).toBe(false);
+  });
+
+  it('should disable the shortcut menu, managing shortcuts included, while view only is on', () => {
+    const wrapper = mountWrapper({ preferences: [{ data: {} }] });
+
+    expect(wrapper.vm.shortcutMenuProps.disabled).toBe(false);
+
+    wrapper.vm.setViewOnly(true);
+
+    expect(wrapper.vm.shortcutMenuProps.disabled).toBe(true);
+  });
+
+  it('should disable Ctrl+Alt+Del and Soft reboot while view only is on', async() => {
+    const wrapper = mountWrapper();
+    const doSoftReboot = jest.fn();
+    const button = (id) => wrapper.find(`[data-testid="${ id }"]`);
+
+    wrapper.vm.vmResource = { doSoftReboot, actions: { softreboot: 'url' } };
+    await wrapper.vm.$nextTick();
+
+    expect(button('vnc-soft-reboot').attributes('disabled')).toBe('false');
+    expect(button('vnc-ctrl-alt-del').attributes('disabled')).toBe('false');
+
+    wrapper.vm.setViewOnly(true);
+    await wrapper.vm.$nextTick();
+
+    expect(button('vnc-soft-reboot').attributes('disabled')).toBe('true');
+    expect(button('vnc-ctrl-alt-del').attributes('disabled')).toBe('true');
+
+    wrapper.vm.softReboot();
+    wrapper.vm.ctrlAltDelete();
+
+    expect(wrapper.vm.confirmAction).toBeNull();
+    expect(doSoftReboot).not.toHaveBeenCalled();
+  });
+
+  it('should say so under the console while view only is on', async() => {
+    const wrapper = mountWrapper();
+    const hint = () => wrapper.find('.console-area__hint').text();
+
+    expect(hint()).toBe('%harvester.virtualMachine.detail.console.hint%');
+
+    wrapper.vm.setViewOnly(true);
+    await wrapper.vm.$nextTick();
+
+    expect(hint()).toBe('%harvester.virtualMachine.detail.console.hintViewOnly%');
+  });
+
+  it('should not send keys while view only is on', () => {
+    const wrapper = mountWrapper();
+
+    wrapper.vm.setViewOnly(true);
+
+    expect(wrapper.vm.canSendKeys).toBe(false);
+  });
+
+  it('should switch view only with the checkbox, and not repeat it in the connection status', async() => {
+    const wrapper = mountWrapper();
+    const checkbox = () => wrapper.findComponent(CHECKBOX);
+
+    expect(checkbox().props('value')).toBe(false);
+
+    checkbox().vm.$emit('update:value', true);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.settings.viewOnly).toBe(true);
+    expect(checkbox().props('value')).toBe(true);
+    expect(wrapper.vm.statusLabel).toBe('%harvester.virtualMachine.detail.console.status.connected%');
+  });
+
+  it('should give the console the keyboard when view only is turned off, not when it is turned on', async() => {
+    const wrapper = mountWrapper();
+
+    wrapper.vm.setViewOnly(true);
+    await wrapper.vm.$nextTick();
+    expect(consoleRef.focus).not.toHaveBeenCalled();
+
+    wrapper.vm.setViewOnly(false);
+    await wrapper.vm.$nextTick();
+    expect(consoleRef.focus).toHaveBeenCalledTimes(1);
+  });
+
   it('should not ask to send Ctrl+Alt+Del while keys cannot be sent', () => {
     const wrapper = mountWrapper();
 
@@ -93,16 +198,124 @@ describe('component: NovncConsoleWrapper', () => {
     expect(wrapper.vm.confirmAction).toBeNull();
   });
 
-  it('should put the whole page in full screen, so that dialogs rendered outside the console show', async() => {
-    const wrapper = mountWrapper();
-    const requestFullscreen = jest.fn().mockResolvedValue();
+  describe('view settings', () => {
+    it('should not take what the previous console saved on its first open as a choice', () => {
+      const wrapper = mountWrapper({
+        storage: {
+          'harvester-vnc-console-settings': {
+            viewMode: 'none', zoomPercent: 100, viewOnly: false, qualityLevel: 6, compressionLevel: 2
+          }
+        }
+      });
 
-    document.documentElement.requestFullscreen = requestFullscreen;
+      expect(wrapper.vm.settings.viewMode).toBe('scale');
+    });
 
-    await wrapper.vm.toggleFullscreen();
+    it('should carry view only over from the previous console, which saved it on only when the user turned it on', () => {
+      const wrapper = mountWrapper({
+        storage: {
+          'harvester-vnc-console-settings': {
+            viewMode: 'none', zoomPercent: 150, viewOnly: true, qualityLevel: 9, compressionLevel: 0
+          }
+        }
+      });
 
-    expect(requestFullscreen).toHaveBeenCalledTimes(1);
+      expect(wrapper.vm.settings).toMatchObject({
+        viewOnly: true, viewMode: 'scale', zoomPercent: 100
+      });
+    });
 
-    delete document.documentElement.requestFullscreen;
+    it('should take view only from its own settings once it has saved them', () => {
+      const wrapper = mountWrapper({
+        storage: {
+          'harvester-vnc-console-settings': { viewOnly: true },
+          'harvester-vnc-console-view':     { viewOnly: false },
+        }
+      });
+
+      expect(wrapper.vm.settings.viewOnly).toBe(false);
+    });
+
+    it('should save the settings only once the user changes one, and load them next time', async() => {
+      const wrapper = mountWrapper();
+
+      await wrapper.vm.$nextTick();
+      expect(window.localStorage).toHaveLength(0);
+
+      wrapper.vm.updateSettings({
+        ...wrapper.vm.settings, viewMode: 'none', zoomPercent: 150
+      });
+
+      const reopened = mountWrapper({ storage: { 'harvester-vnc-console-view': JSON.parse(window.localStorage.getItem('harvester-vnc-console-view')) } });
+
+      expect(reopened.vm.settings).toMatchObject({ viewMode: 'none', zoomPercent: 150 });
+    });
+
+    it('should keep view only on when the View panel resets its settings', () => {
+      const wrapper = mountWrapper();
+
+      wrapper.vm.setViewOnly(true);
+      wrapper.vm.updateSettings({ ...wrapper.vm.settings, zoomPercent: 150 });
+      wrapper.vm.resetSettings();
+
+      expect(wrapper.vm.settings).toMatchObject({ viewOnly: true, zoomPercent: 100 });
+      expect(wrapper.vm.rfbSettings.viewOnly).toBe(true);
+    });
+  });
+
+  describe('in full screen', () => {
+    it('should fill the window whatever the saved view mode, and go back to it afterwards', () => {
+      const wrapper = mountWrapper();
+
+      wrapper.vm.updateSettings({ ...wrapper.vm.settings, viewMode: 'none' });
+      expect(wrapper.vm.rfbSettings).toMatchObject({ scaleViewport: false, edgeToEdge: false });
+
+      wrapper.vm.isFullscreen = true;
+      expect(wrapper.vm.rfbSettings).toMatchObject({ scaleViewport: true, edgeToEdge: true });
+
+      wrapper.vm.isFullscreen = false;
+      expect(wrapper.vm.rfbSettings).toMatchObject({ scaleViewport: false, edgeToEdge: false });
+    });
+
+    it('should leave the view only checkbox out of the bar, and keep view only as it was', async() => {
+      const wrapper = mountWrapper();
+
+      wrapper.vm.setViewOnly(true);
+      wrapper.vm.isFullscreen = true;
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.findComponent(CHECKBOX).exists()).toBe(false);
+      expect(wrapper.vm.rfbSettings.viewOnly).toBe(true);
+      expect(wrapper.vm.shortcutMenuProps.disabled).toBe(true);
+
+      wrapper.vm.isFullscreen = false;
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.findComponent(CHECKBOX).props('value')).toBe(true);
+    });
+
+    it('should leave Ctrl+Alt+Del out of the bar', async() => {
+      const wrapper = mountWrapper();
+
+      wrapper.vm.isFullscreen = true;
+      await wrapper.vm.$nextTick();
+
+      expect(wrapper.find('[data-testid="vnc-fullscreen-bar"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="vnc-ctrl-alt-del"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="vnc-fullscreen-ctrl-alt-del"]').exists()).toBe(false);
+    });
+
+    it('should put the whole page in full screen, so that dialogs rendered outside the console show', async() => {
+      const wrapper = mountWrapper();
+      const requestFullscreen = jest.fn().mockResolvedValue();
+
+      document.documentElement.requestFullscreen = requestFullscreen;
+
+      await wrapper.vm.toggleFullscreen();
+
+      expect(requestFullscreen).toHaveBeenCalledTimes(1);
+
+      delete document.documentElement.requestFullscreen;
+    });
   });
 });

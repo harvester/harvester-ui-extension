@@ -1,5 +1,8 @@
 <script>
-import ModalWithCard from '@shell/components/ModalWithCard';
+import { RcButton } from '@components/RcButton';
+import { RcIcon } from '@components/RcIcon';
+import { RcModal } from '@components/RcModal';
+import NovncStatusCard from './NovncStatusCard';
 import ZoomableRFB from './ZoomableRFB';
 
 export const CONSOLE_STATUS = {
@@ -20,6 +23,8 @@ export const CONSOLE_FAILURE = {
 const MAXIMUM_RETRY_TIMES = 10;
 const BASE_RECONNECT_DELAY = 1000;
 const MAXIMUM_RECONNECT_DELAY = 30000;
+// A VM that just started can refuse VNC for a moment; refusals this soon are retried, not reported.
+const STARTUP_GRACE = 60000;
 
 const clampLevel = (value, fallback) => {
   const level = Number.parseInt(value, 10);
@@ -34,7 +39,9 @@ const clampLevel = (value, fallback) => {
 export default {
   name: 'NovncConsole',
 
-  components: { ModalWithCard },
+  components: {
+    RcButton, RcIcon, RcModal, NovncStatusCard
+  },
 
   props: {
     url: {
@@ -57,6 +64,17 @@ export default {
     vmRunning: {
       type:    Boolean,
       default: true
+    },
+
+    vmName: {
+      type:    String,
+      default: ''
+    },
+
+    // When the VM was seen starting to run on this page (ms), or 0.
+    startedAt: {
+      type:    Number,
+      default: 0
     },
   },
 
@@ -93,16 +111,17 @@ export default {
       return this.status === CONSOLE_STATUS.FAILED || (this.status === CONSOLE_STATUS.DISCONNECTED && this.failure === CONSOLE_FAILURE.DROPPED);
     },
 
+    // Only another session holding the console is something taking over can fix.
     canTakeOver() {
-      return this.preserveSession && !this.isClosed;
+      return this.preserveSession && !this.isClosed && this.failure === CONSOLE_FAILURE.IN_USE;
     },
 
     failureTitle() {
       return this.t(`harvester.virtualMachine.detail.console.failure.${ this.failure || CONSOLE_FAILURE.ERROR }`);
     },
 
-    showReconnecting() {
-      return this.status === CONSOLE_STATUS.RECONNECTING;
+    showConnecting() {
+      return this.status === CONSOLE_STATUS.CONNECTING || this.status === CONSOLE_STATUS.RECONNECTING;
     },
   },
 
@@ -169,6 +188,8 @@ export default {
         return;
       }
 
+      // noVNC paints its own grey behind the framebuffer; let the console area show through.
+      rfb.background = 'transparent';
       rfb.addEventListener('connect', this.onConnect);
       rfb.addEventListener('disconnect', this.onDisconnect);
       rfb.addEventListener('securityfailure', this.onSecurityFailure);
@@ -186,6 +207,13 @@ export default {
       this.isClosed = false;
       this.retryTimes = 0;
       this.statusDetail = '';
+      this.connect();
+    },
+
+    // Skip the wait before the next retry, still counting it as one, so a held console keeps
+    // being retried instead of turning into the in-use failure.
+    retryNow() {
+      this.clearReconnectTimer();
       this.connect();
     },
 
@@ -262,12 +290,18 @@ export default {
         // Retries use preserveSession, so they fail while another session owns the
         // console. Keep retrying so the console is picked up once it is released,
         // instead of kicking the other session back out.
-        this.statusDetail = this.t('harvester.virtualMachine.detail.console.status.inUse');
+        this.statusDetail = this.isStartingUp() ? '' : this.t('harvester.virtualMachine.detail.console.status.inUse');
+        this.scheduleReconnect();
+      } else if (this.isStartingUp()) {
         this.scheduleReconnect();
       } else {
         this.clearReconnectTimer();
         this.fail(this.preserveSession && this.vmRunning ? CONSOLE_FAILURE.IN_USE : CONSOLE_FAILURE.UNAVAILABLE);
       }
+    },
+
+    isStartingUp() {
+      return !!this.startedAt && Date.now() - this.startedAt < STARTUP_GRACE;
     },
 
     // The browser cannot see why a WebSocket handshake failed. With preserveSession and a
@@ -369,7 +403,9 @@ export default {
 
       const settings = this.settings || {};
 
+      // View only shows the screen but sends no mouse or keyboard input.
       rfb.viewOnly = !!settings.viewOnly;
+      rfb.edgeToEdge = !!settings.edgeToEdge;
       rfb.scaleViewport = !!settings.scaleViewport;
       rfb.resizeSession = !!settings.resizeSession;
       rfb.clipViewport = !!settings.clipViewport;
@@ -393,108 +429,120 @@ export default {
 </script>
 
 <template>
-  <div class="novnc-console">
+  <div
+    class="novnc-console"
+    :class="{ 'is-live': status === 'connected' }"
+  >
     <div
       ref="view"
       class="novnc-screen"
-      :class="{ 'is-focused': focused }"
+      :class="{ 'is-focused': focused, 'is-edge-to-edge': settings.edgeToEdge }"
     />
 
     <div
-      v-if="showError || showReconnecting"
+      v-if="showError || showConnecting"
       class="novnc-overlay"
+      data-testid="vnc-overlay"
     >
-      <div
+      <NovncStatusCard
         v-if="showError"
-        class="novnc-overlay__card text-center"
+        :title="failureTitle"
+        :detail="statusDetail"
       >
-        <h3>
-          {{ failureTitle }}
-        </h3>
-        <p
-          v-if="statusDetail"
-          class="mt-10"
-        >
-          {{ statusDetail }}
-        </p>
-        <button
-          class="btn role-primary mt-20"
+        <RcButton
+          variant="primary"
+          data-testid="vnc-overlay-reconnect"
           @click="reconnect"
         >
           {{ t('harvester.action.reconnect') }}
-        </button>
-        <button
+        </RcButton>
+        <RcButton
           v-if="canTakeOver"
-          class="btn role-secondary mt-20 ml-10"
+          variant="secondary"
+          data-testid="vnc-take-over"
           @click="takeOver"
         >
           {{ t('harvester.virtualMachine.detail.console.takeOver.label') }}
-        </button>
-      </div>
+        </RcButton>
+      </NovncStatusCard>
 
       <div
         v-else
-        class="text-center"
+        class="novnc-overlay__connecting"
       >
-        <h2>
-          {{ t('vncConsole.reconnecting.message') }}：{{ retryTimes }} of {{ maximumRetryTimes }}
-        </h2>
-        <p
-          v-if="statusDetail"
-          class="mt-10"
-        >
-          {{ statusDetail }}
+        <span class="novnc-overlay__spinner">
+          <RcIcon
+            type="spinner"
+            size="inherit"
+            class="icon-spin"
+          />
+        </span>
+        <p class="novnc-overlay__connecting-label">
+          {{ t('harvester.virtualMachine.detail.console.overlay.connecting', { name: vmName }) }}
         </p>
+        <p
+          v-if="retryTimes > 0"
+          class="novnc-overlay__detail"
+        >
+          {{ t('harvester.virtualMachine.detail.console.overlay.attempt', { retryTimes, maximumRetryTimes }) }}
+          <template v-if="statusDetail">
+            {{ statusDetail }}
+          </template>
+        </p>
+        <RcButton
+          v-if="retryTimes > 0"
+          variant="secondary"
+          data-testid="vnc-reconnect-now"
+          @click="retryNow"
+        >
+          {{ t('harvester.virtualMachine.detail.console.overlay.reconnectNow') }}
+        </RcButton>
       </div>
     </div>
 
-    <ModalWithCard
-      v-if="showTakeOverModal"
-      name="takeOverConsole"
-      :width="480"
-      @finish="cancelTakeOver"
+    <RcModal
+      :show="showTakeOverModal"
+      size="small"
+      :title="t('harvester.virtualMachine.detail.console.takeOver.title')"
+      data-testid="vnc-take-over-modal"
+      @close="cancelTakeOver"
     >
-      <template #title>
-        {{ t('harvester.virtualMachine.detail.console.takeOver.title') }}
-      </template>
+      <p>{{ t('harvester.virtualMachine.detail.console.takeOver.confirm') }}</p>
 
-      <template #content>
-        <p>{{ t('harvester.virtualMachine.detail.console.takeOver.confirm') }}</p>
+      <template #primary-action>
+        <RcButton
+          variant="primary"
+          size="large"
+          data-testid="vnc-take-over-confirm"
+          @click="confirmTakeOver"
+        >
+          {{ t('harvester.virtualMachine.detail.console.takeOver.label') }}
+        </RcButton>
       </template>
-
-      <template #footer>
-        <div class="take-over-actions">
-          <button
-            class="btn role-secondary mr-10"
-            @click="cancelTakeOver"
-          >
-            {{ t('generic.cancel') }}
-          </button>
-          <button
-            class="btn role-primary"
-            @click="confirmTakeOver"
-          >
-            {{ t('harvester.virtualMachine.detail.console.takeOver.label') }}
-          </button>
-        </div>
-      </template>
-    </ModalWithCard>
+    </RcModal>
   </div>
 </template>
 
 <style lang="scss" scoped>
+  // Without a live picture the screen is black like a monitor, so the overlays read the same in
+  // every theme; once connected the framebuffer is the screen and the page shows around it.
   .novnc-console {
     position: relative;
     box-sizing: border-box;
     height: 100%;
-    padding: 8px;
     overflow: hidden;
+    background: #000;
+
+    &.is-live {
+      background: transparent;
+    }
   }
 
   .novnc-screen {
     height: 100%;
   }
 
+  // The overlay sits on the black screen, so its text is light whatever the theme.
   .novnc-overlay {
     position: absolute;
     top: 0;
@@ -506,35 +554,53 @@ export default {
     align-items: center;
     justify-content: center;
     overflow: auto;
-    background: rgba(0, 0, 0, 0.75);
-    // The overlay is always dark, so its text cannot follow the theme's text colours.
+    background: rgba(0, 0, 0, 0.6);
     color: #fff;
+    text-align: center;
 
-    h2,
-    h3 {
-      color: #fff;
-    }
-
-    p {
+    &__detail {
+      margin: 0;
       color: rgba(255, 255, 255, 0.8);
+      font-size: 13px;
+      line-height: 16px;
     }
 
-    &__card {
+    &__connecting {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
       max-width: 480px;
       padding: 0 20px;
     }
-  }
 
-  .take-over-actions {
-    display: flex;
-    justify-content: flex-end;
-    width: 100%;
+    // RcIcon has no 20px size, the one the design uses here, so it inherits it.
+    &__spinner {
+      display: flex;
+      font-size: 20px;
+    }
+
+    &__connecting-label {
+      margin: 0;
+      font-size: 16px;
+      line-height: 21px;
+    }
   }
 </style>
 
 <style lang="scss">
-  // noVNC sets an inline `outline: none` on its canvas, so mark keyboard focus with a ring instead.
+  // noVNC sets an inline `outline: none` on its canvas, so frame the screen with a ring instead:
+  // a thin border at rest and, while it holds the keyboard, a 2px ring set 2px off the screen so it
+  // never blends into a dark framebuffer edge (the SUSE light focus colour is a very dark green).
+  .novnc-screen canvas {
+    box-shadow: 0 0 0 1px var(--border);
+  }
+
   .novnc-screen.is-focused canvas {
-    box-shadow: 0 0 0 2px var(--primary);
+    box-shadow: 0 0 0 2px var(--body-bg), 0 0 0 4px var(--primary-keyboard-focus);
+  }
+
+  .novnc-screen.is-edge-to-edge canvas {
+    box-shadow: none;
   }
 </style>
