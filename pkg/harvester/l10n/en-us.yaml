@@ -1011,58 +1011,100 @@ harvester:
         from: Generated from
         down: No events in the past hour
       console:
-        down: This virtual machine is down. Please start it to access its console.
-        shortcutKeys: Shortcut Keys
-        customShortcutKeys: Custom Shortcut Keys
-        management: Management Shortcut Keys
-        record:
-          start: Record
-          recording: Recording
-          stop: Stop Recording
-          tips: Press the record button to capture your keyboard inputs.
-          send: Send
-          preferredKeys: Preferred Custom Shortcut Keys
-        settings:
-          label: Settings
-          viewMode:
-            label: Display
-            scale: Scale the display to fit the window
-            none: Manual zoom
-          zoom: Zoom
-          viewOnly: View only
-          quality: JPEG quality
-          compression: Compression level
+        notRunning:
+          title: This virtual machine is not running
+          detail: Start it to use its console.
+          startingTitle: This virtual machine is starting
+          startingDetail: The console connects once it is running.
+        shortcutKeys: Shortcut keys
+        softReboot: Soft reboot
+        view: View
+        shortcutMenu:
+          yourShortcuts: Your shortcuts
+          holdModifiers: Hold modifiers
+          holdHint: 'The next key you pick is sent as {combo}+key.'
+          keys: Keys
+          printScreen: Print Screen
+          functionKeys: Function keys
+          manage: Manage custom shortcuts…
+          blockedDisconnected: Keys can be sent once the console is connected.
+        hint: Clicking the console captures your keyboard. To send a shortcut, use the Shortcut keys menu.
+        hintViewOnly: '"View only" mode is on. In this mode, your mouse and keyboard are not sent to the VM.'
+        viewOnly: View only
+        connection:
+          menuLabel: Connection
+          description: Connected to {name}. If the screen stops updating, reconnecting usually fixes it.
+        customKeys:
+          title: Custom shortcuts
+          description: Save key combinations you send often. They appear at the top of the Shortcut keys menu.
+          new: New shortcut
+          combination: Key combination
+          reserved: Combinations your browser or OS reserves, like Ctrl+Alt+Del or Ctrl+W, can’t be recorded. Send them from the Shortcut keys menu instead, by holding Ctrl or Alt there.
+          duplicate: This key combination is already saved.
+          name: Name (optional)
+          clear: Clear
+          add: Add shortcut
+          saved: 'Saved shortcuts ({count})'
+          delete: 'Delete {name}'
+          done: Done
+          saveError: Unable to save the custom shortcuts
+          recorder:
+            empty: Click here, then press a key combination
+            recording: Press a key combination…
+            recordingStatus: Recording
+            again: Click to record again
+        viewOptions:
+          scaling: Scaling
+          automatic: Automatic
+          manual: Manual
+          automaticHelp: The screen scales to fit the window.
+          manualHelp: You set the zoom. Scroll to see parts of the screen that do not fit.
+          zoom: Zoom level
+          zoomIn: Zoom in
+          zoomOut: Zoom out
+          levelOf: '{value} of {max}'
+          qualityLevel:
+            label: JPEG quality
+            help: Higher quality looks sharper and uses more bandwidth.
+          compressionLevel:
+            label: Compression
+            help: Higher compression saves bandwidth but uses more CPU.
+          reset: Reset to defaults
         fullscreen:
-          enter: Full Screen
-          exit: Exit Full Screen
+          enter: Full screen
+          exit: Exit full screen
         ctrlAltDel: Ctrl+Alt+Del
         confirm:
           ctrlAltDel:
-            title: Send Ctrl+Alt+Del?
-            message: Windows opens its sign-in or security screen. Most Linux systems restart the virtual machine.
-            button: Send
+            title: 'Send Ctrl+Alt+Del to {name}?'
+            message: The key combination goes straight to the guest operating system. On many systems, including most Linux distributions, this restarts the VM immediately. Unsaved work in the VM will be lost.
+            button: Send Ctrl+Alt+Del
           softReboot:
-            title: Soft reboot this virtual machine?
-            message: The guest operating system is asked to restart. Unsaved work inside the virtual machine is lost.
-            button: Soft Reboot
+            title: 'Soft reboot {name}?'
+            message: The guest operating system is asked to shut down and restart. Unsaved work in the VM will be lost.
+            button: Soft reboot
         takeOver:
-          label: Take Over
+          label: Take over
           title: Take over this console?
           confirm: The other VNC session connected to this virtual machine will be disconnected.
+        overlay:
+          connecting: 'Connecting to {name}…'
+          attempt: 'Attempt {retryTimes} of {maximumRetryTimes}.'
+          reconnectNow: Reconnect now
         failure:
           inUse: This console is in use
           unavailable: Unable to connect
-          dropped: Disconnected
+          dropped: Connection lost
           error: Connection failed
         failureDetail:
           inUse: Another VNC session is connected to this virtual machine. Retry once it is released, or take over the console to disconnect the other session.
           unavailable: The console is not available. Check that the virtual machine is running, then retry.
-          dropped: The console connection was closed. Another VNC session may have opened this console.
+          dropped: The console stopped receiving data from the virtual machine. The VM itself may still be running, or another VNC session may have opened this console.
         status:
-          connecting: Connecting
+          connecting: Connecting…
           connected: Connected
-          connectedViewOnly: Connected (view only)
           disconnected: Disconnected
+          notRunning: Not running
           failed: Connection failed
           reconnecting: 'Reconnecting {retryTimes} of {maximumRetryTimes}'
           credentialsRequired: This console requires credentials that the dashboard cannot provide.
