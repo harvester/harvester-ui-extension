@@ -17,8 +17,8 @@ How it fits together:
 
 ```bash
 yarn dev:recorded              # or yarn dev:recorded:rancher. No login
-TEST_SKIP=setup yarn cy:run    # add TEST_HARVESTER_MODE=rancher for the rancher mode, or use yarn cy:open
-TEST_A11Y=true TEST_SKIP=setup yarn cy:run   # accessibility report in cypress/accessibility/
+yarn cy:run                    # add TEST_HARVESTER_MODE=rancher for the rancher mode, or use yarn cy:open
+TEST_A11Y=true yarn cy:run     # accessibility report in cypress/accessibility/
 ```
 
 The replay is also handy for UI work without a cluster. It is read-only: anything that is not in the recording returns 404.

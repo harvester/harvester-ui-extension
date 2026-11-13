@@ -47,7 +47,6 @@ jobs:
         env:
           TEST_A11Y: ${{ matrix.suite == 'accessibility' && 'true' || '' }}
           TEST_HARVESTER_MODE: ${{ matrix.mode }}
-          TEST_SKIP: setup
         run: yarn cy:run
 
       - name: List requests missing from the recording

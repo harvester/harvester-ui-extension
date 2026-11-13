@@ -1,3 +1,5 @@
+// Before @rancher/cypress's config, which reads the environment when it loads
+import './cypress/replay-env';
 import fs from 'fs';
 import baseConfig from '@rancher/cypress/base-config';
 import { extendConfig } from '@rancher/cypress/extend-config';
@@ -19,7 +21,7 @@ export default extendConfig({
     recording, harvesterMode, harvesterCluster
   },
   e2e: {
-    baseUrl:     (process.env.TEST_BASE_URL || 'https://127.0.0.1:8005').replace(/\/$/, ''),
+    baseUrl:     (process.env.TEST_BASE_URL as string).replace(/\/$/, ''),
     supportFile: './cypress/support/e2e.ts',
     // A recording visits every page any spec needs, the accessibility ones included
     ...(recording ? { specPattern: 'cypress/e2e/tests/**/*.spec.ts' } : {}),
