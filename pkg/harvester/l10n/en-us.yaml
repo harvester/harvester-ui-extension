@@ -830,6 +830,7 @@ harvester:
       tpmPersistentState: TPM Persistent State
       efiEnabled: Booting in EFI mode
       efiPersistentState: EFI Persistent State
+      persistentStateStorageClassUnavailable: Persistent TPM and EFI state require the vmstate-persistence StorageClass. Add a Longhorn disk or create this StorageClass before enabling persistent state.
       secureBoot: Secure Boot
     usbTip: Provides an absolute pointer device which often helps with getting a consistent mouse cursor position in VNC.
     sshTitle: Add Public SSH Key
