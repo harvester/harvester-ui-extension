@@ -13,6 +13,9 @@ const CATEGORY = {
     HCI_SETTING.SERVER_FLAVOR,
     'ui-source',
     'ui-index',
+    HCI_SETTING.AUTH_USER_SESSION_TTL_MINUTES,
+    HCI_SETTING.AUTH_USER_SESSION_IDLE_TTL_MINUTES,
+    'ui-performance/disableWebsocketNotification',
   ]
 };
 

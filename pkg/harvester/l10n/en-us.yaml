@@ -83,6 +83,10 @@ dialog:
     confirmName: "Type <b>{nameToMatch}</b> to delete the {type}:"
     protip: "Tip: Hold the {alternateLabel} key while clicking Delete to bypass the confirmation step."
 
+login:
+  # Replaces the shell's text, which names Rancher. Rancher itself keeps its text, since extensions are unloaded on logout
+  loggedOutSessionIdle: You've been logged out of {vendor} because your session has expired. Log in again to continue.
+
 harvester:
   branding:
     primeLabel: '{vendor}'
@@ -1751,6 +1755,10 @@ harvester:
         evaluation: Interval between consecutive evaluations
         retention: How long to retain metrics
         retentionSize: Maximum size of metrics
+    sessionTTL:
+      invalidIdle: The value must be a whole number of minutes, 1 or greater.
+      invalidTTL: The value must be a whole number of minutes, 0 or greater.
+      idleExceedsTTL: The value cannot be greater than auth-user-session-ttl-minutes ({ttl} minutes).
     clusterRegistrationUrl:
       url: URL
       insecureSkipTLSVerify: Insecure Skip TLS Verify
