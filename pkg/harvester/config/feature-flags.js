@@ -89,6 +89,9 @@ const FEATURE_FLAGS = {
     'repositoryStorageClass',
     'shutdownVMOnMigrationFailure',
   ],
+  'v1.11.0': [
+    'vmListPagination',
+  ],
 };
 
 const generateFeatureFlags = () => {

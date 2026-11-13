@@ -1,15 +1,20 @@
 <script>
 import { mapGetters } from 'vuex';
 import ResourceTable from '@shell/components/ResourceTable';
+import PaginatedResourceTable from '@shell/components/PaginatedResourceTable';
 import { STATE, AGE, NAME, NAMESPACE } from '@shell/config/table-headers';
 import {
   PVC, PV, NODE, POD, STORAGE_CLASS
 } from '@shell/config/types';
+import { FilterArgs, PaginationFilterField, PaginationParamFilter } from '@shell/types/store/pagination.types';
 
 import { allHash } from '@shell/utils/promise';
+import { uniq } from '@shell/utils/array';
 import Loading from '@shell/components/Loading';
 import { clone } from '@shell/utils/object';
 import { HCI } from '../types';
+import { HCI as HCI_ANNOTATIONS } from '../config/labels-annotations';
+import { VM_LIST_PAGINATION_CONTEXT } from '../config/harvester';
 import HarvesterVmState from '../formatters/HarvesterVmState';
 import ConsoleBar from '../components/VMConsoleBar';
 
@@ -63,13 +68,63 @@ export const VM_HEADERS = [
   }
 ];
 
+function paginationContext(store) {
+  return store.getters['harvester-common/getFeatureEnabled']('vmListPagination') ? VM_LIST_PAGINATION_CONTEXT : null;
+}
+
+function canPaginate(store) {
+  const context = paginationContext(store);
+  const inStore = store.getters['currentProduct']?.inStore;
+
+  return !!context && !!store.getters[`${ inStore }/paginationEnabled`]?.({ id: HCI.VM, context });
+}
+
+// The API indexes the printer columns of a CRD by position (`metadata.fields.N`), so look the position up by name
+function printerColumnField(schema, columnName) {
+  const column = schema?.attributes?.columns?.find((col) => col.name === columnName);
+
+  return column?.field?.replace('$.', '').replace('[', '.').replace(']', '');
+}
+
+// With server-side pagination the API sorts and searches, so only fields it indexes can be used.
+// CPU, memory, IP and node are computed by the VM model or come from other resources.
+function paginationHeaders(headers, schema) {
+  const statusField = printerColumnField(schema, 'Status');
+
+  return headers.map((header) => {
+    switch (header.name) {
+    case STATE.name:
+      return {
+        ...header, sort: statusField ? [statusField] : false, search: false
+      };
+    case NAME.name:
+      return {
+        ...header,
+        sort:   ['metadata.name'],
+        search: ['metadata.name', `metadata.annotations[${ HCI_ANNOTATIONS.VM_DISPLAY_NAME }]`],
+      };
+    case NAMESPACE.name:
+      return {
+        ...header, sort: ['metadata.namespace'], search: 'metadata.namespace'
+      };
+    case AGE.name:
+      return { ...header, search: false };
+    default:
+      return {
+        ...header, sort: false, search: false
+      };
+    }
+  });
+}
+
 export default {
   name:       'HarvesterListVM',
   components: {
     Loading,
     HarvesterVmState,
     ConsoleBar,
-    ResourceTable
+    ResourceTable,
+    PaginatedResourceTable
   },
 
   props: {
@@ -80,7 +135,12 @@ export default {
   },
 
   async fetch() {
-    const inStore = this.$store.getters['currentProduct'].inStore;
+    // PaginatedResourceTable fetches the VMs and calls fetchSecondaryResources / fetchPageSecondaryResources
+    if (this.canPaginate) {
+      return;
+    }
+
+    const inStore = this.inStore;
     const _hash = {
       vms:     this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VM, opt: { force: true } }),
       pod:     this.$store.dispatch(`${ inStore }/findAll`, { type: POD }),
@@ -96,9 +156,8 @@ export default {
       _hash.resourceQuotas = this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.RESOURCE_QUOTA });
     }
 
-    if (this.$store.getters[`${ inStore }/schemaFor`](NODE)) {
+    if (this.hasNode) {
       _hash.nodes = this.$store.dispatch(`${ inStore }/findAll`, { type: NODE });
-      this.hasNode = true;
     }
 
     const hash = await allHash(_hash);
@@ -108,7 +167,6 @@ export default {
 
   data() {
     return {
-      hasNode:                      false,
       allVMs:                       [],
       allVMIs:                      [],
       restartNotificationDisplayed: false,
@@ -118,6 +176,44 @@ export default {
 
   computed: {
     ...mapGetters({ actionCb: 'action-menu/performCallbackData' }),
+
+    inStore() {
+      return this.$store.getters['currentProduct'].inStore;
+    },
+
+    hasNode() {
+      return !!this.$store.getters[`${ this.inStore }/schemaFor`](NODE);
+    },
+
+    paginationContext() {
+      return paginationContext(this.$store);
+    },
+
+    canPaginate() {
+      return canPaginate(this.$store);
+    },
+
+    tableComponent() {
+      return this.canPaginate ? PaginatedResourceTable : ResourceTable;
+    },
+
+    tableProps() {
+      if (!this.canPaginate) {
+        return { rows: this.rows };
+      }
+
+      return {
+        context:                     this.paginationContext,
+        paginationHeaders:           paginationHeaders(this.headers, this.schema),
+        fetchSecondaryResources:     this.fetchSecondaryResources,
+        fetchPageSecondaryResources: this.fetchPageSecondaryResources,
+      };
+    },
+
+    // With pagination the store only holds the VMs of the current page
+    vms() {
+      return this.canPaginate ? this.$store.getters[`${ this.inStore }/all`](HCI.VM) : this.allVMs;
+    },
 
     headers() {
       const restoreCol = {
@@ -151,6 +247,11 @@ export default {
     },
 
     rows() {
+      // The paginated API lists VMs only, so VMIs without a VM aren't shown then
+      if (this.canPaginate) {
+        return this.vms;
+      }
+
       const vmIds = new Set(this.allVMs.map((VM) => VM.id));
       const matchVMIs = this.allVMIs.filter((VMI) => !vmIds.has(VMI.id));
 
@@ -169,14 +270,18 @@ export default {
     },
 
     vmRestartRequiredNames() {
-      return this.allVMs
+      return this.vms
         .filter((vm) => vm.isRestartRequired)
         .map((vm) => vm.metadata.name);
     }
   },
 
   async created() {
-    const inStore = this.$store.getters['currentProduct'].inStore;
+    if (this.canPaginate) {
+      return;
+    }
+
+    const inStore = this.inStore;
     const vmis = await this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VMI });
 
     await this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VMIM });
@@ -226,20 +331,86 @@ export default {
       const key = ENCRYPTED_VOLUME_TOOLTIP_KEYS[row.encryptedVolumeType];
 
       return key ? this.t(key) : '';
+    },
+
+    async fetchSecondaryResources() {
+      const inStore = this.inStore;
+      const hash = {
+        images:  this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.IMAGE }),
+        storage: this.$store.dispatch(`${ inStore }/findAll`, { type: STORAGE_CLASS }),
+      };
+
+      if (this.$store.getters[`${ inStore }/schemaFor`](HCI.RESOURCE_QUOTA)) {
+        hash.resourceQuotas = this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.RESOURCE_QUOTA });
+      }
+
+      if (this.hasNode) {
+        hash.nodes = this.$store.dispatch(`${ inStore }/findAll`, { type: NODE });
+      }
+
+      await allHash(hash);
+    },
+
+    // The VM model looks these up by id or owner, so the ones of the VMs on the page are enough
+    async fetchPageSecondaryResources({ force, page }) {
+      if (!page?.length) {
+        return;
+      }
+
+      const vmNames = uniq(page.map((vm) => vm.metadata.name));
+      const claimNames = uniq(page.flatMap((vm) => vm.persistentVolumeClaimName));
+
+      const [pvcs, restores] = await Promise.all([
+        this.findPageByField(PVC, 'metadata.name', claimNames, force),
+        this.findPageByField(HCI.RESTORE, this.printerColumnField(HCI.RESTORE, 'TARGET_NAME'), vmNames, force),
+        this.findPageByField(HCI.VMI, 'metadata.name', vmNames, force),
+        this.findPageByField(POD, `metadata.labels[${ HCI_ANNOTATIONS.VM_NAME }]`, vmNames, force),
+        this.findPageByField(HCI.VMIM, this.printerColumnField(HCI.VMIM, 'VMI'), vmNames, force),
+      ]);
+
+      await Promise.all([
+        this.findPageByField(PV, 'metadata.name', uniq(pvcs.map((pvc) => pvc.spec?.volumeName)), force),
+        this.findPageByField(HCI.BACKUP, 'metadata.name', uniq(restores.map((restore) => restore.spec?.virtualMachineBackupName)), force),
+      ]);
+    },
+
+    async findPageByField(type, field, values, force) {
+      const wanted = values.filter(Boolean);
+
+      if (!field || !wanted.length || !this.$store.getters[`${ this.inStore }/schemaFor`](type)) {
+        return [];
+      }
+
+      return this.$store.dispatch(`${ this.inStore }/findPage`, {
+        type,
+        opt: {
+          force,
+          pagination: new FilterArgs({ filters: PaginationParamFilter.createMultipleFields(wanted.map((value) => new PaginationFilterField({ field, value }))) }),
+        }
+      });
+    },
+
+    printerColumnField(type, columnName) {
+      return printerColumnField(this.$store.getters[`${ this.inStore }/schemaFor`](type), columnName);
     }
-  }
+  },
+
+  // With pagination the store never holds every VM, so the masthead's loading count would never finish
+  $loadingResources(route, store) {
+    return canPaginate(store) ? { loadResources: [] } : {};
+  },
 };
 </script>
 
 <template>
   <Loading v-if="$fetchState.pending" />
   <div v-else>
-    <ResourceTable
+    <component
+      :is="tableComponent"
       ref="resourceTable"
-      v-bind="$attrs"
+      v-bind="{ ...$attrs, ...tableProps }"
       :headers="headers"
       default-sort-by="age"
-      :rows="rows"
       :schema="schema"
       :groupable="true"
       key-field="_key"
@@ -279,7 +450,7 @@ export default {
           />
         </div>
       </template>
-    </ResourceTable>
+    </component>
   </div>
 </template>
 
