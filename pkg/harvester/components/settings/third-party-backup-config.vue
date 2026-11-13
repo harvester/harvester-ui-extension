@@ -1,0 +1,149 @@
+<script>
+import { Checkbox } from '@components/Form/Checkbox';
+import { LabeledInput } from '@components/Form/LabeledInput';
+import { RcSection } from '@components/RcSection';
+import UnitInput from '@shell/components/form/UnitInput';
+import { BACKUP_TYPE } from '../../config/types';
+
+const ENGINES = [BACKUP_TYPE.RESTIC, BACKUP_TYPE.KOPIA];
+const QUANTITY_FIELDS = ['memoryRequest', 'memoryLimit', 'ephemeralRequest', 'ephemeralLimit', 'cacheSize'];
+
+// The webhook only stores JSON objects, so a value that doesn't parse falls back to the default like the other settings forms
+function parseJSON(string) {
+  try {
+    return JSON.parse(string || '{}');
+  } catch (e) {
+    return {};
+  }
+}
+
+// The backend fills omitted fields from the default, so show those values instead of empty inputs
+function parseConfig(value, defaultValue) {
+  const defaults = parseJSON(defaultValue);
+  const current = parseJSON(value);
+
+  return Object.fromEntries(ENGINES.map((engine) => [engine, { ...defaults[engine], ...current[engine] }]));
+}
+
+export default {
+  name: 'ThirdPartyBackupConfig',
+
+  components: {
+    Checkbox,
+    LabeledInput,
+    RcSection,
+    UnitInput,
+  },
+
+  props: {
+    registerBeforeHook: {
+      type:     Function,
+      required: true
+    },
+    mode: {
+      type:    String,
+      default: 'edit'
+    },
+    value: {
+      type:    Object,
+      default: () => ({
+        value:   '',
+        default: '{}'
+      })
+    },
+  },
+
+  data() {
+    return {
+      ENGINES,
+      QUANTITY_FIELDS,
+      RESTIC: BACKUP_TYPE.RESTIC,
+      config: parseConfig(this.value?.value, this.value?.default),
+    };
+  },
+
+  created() {
+    this.registerBeforeHook?.(this.willSave, 'willSave');
+  },
+
+  methods: {
+    updateValue() {
+      if (this.value) {
+        this.value.value = JSON.stringify(this.config);
+      }
+    },
+
+    useDefault() {
+      this.config = parseConfig('', this.value?.default);
+      this.updateValue();
+    },
+
+    willSave() {
+      this.updateValue();
+
+      return Promise.resolve();
+    },
+  },
+};
+</script>
+
+<template>
+  <div data-testid="third-party-backup-config">
+    <RcSection
+      v-for="engine in ENGINES"
+      :key="engine"
+      background="secondary"
+      class="mb-20"
+      :data-testid="`${ engine }-section`"
+      :expandable="false"
+      mode="with-header"
+      :title="t(`harvester.backup.type.${ engine }`)"
+      type="secondary"
+    >
+      <div class="engine-fields">
+        <UnitInput
+          v-for="field in QUANTITY_FIELDS"
+          :key="field"
+          v-model:value="config[engine][field]"
+          :data-testid="`${ engine }-${ field }`"
+          :disabled="field === 'cacheSize' && !!config[engine].noCache"
+          :increment="1024"
+          :input-exponent="2"
+          :label="t(`harvester.setting.thirdPartyBackupConfig.${ field }`)"
+          min="1"
+          :mode="mode"
+          :output-modifier="true"
+          :positive="true"
+          :sub-label="field === 'cacheSize' ? t('harvester.setting.thirdPartyBackupConfig.cacheSizeHint') : ''"
+        />
+        <LabeledInput
+          v-model:value.number="config[engine].maxConcurrentJobs"
+          :data-testid="`${ engine }-maxConcurrentJobs`"
+          :label="t('harvester.setting.thirdPartyBackupConfig.maxConcurrentJobs')"
+          min="0"
+          :mode="mode"
+          :sub-label="t('harvester.setting.thirdPartyBackupConfig.maxConcurrentJobsHint')"
+          type="number"
+        />
+      </div>
+
+      <Checkbox
+        v-if="engine === RESTIC"
+        v-model:value="config[engine].noCache"
+        :data-testid="`${ engine }-noCache`"
+        :label="t('harvester.setting.thirdPartyBackupConfig.noCache')"
+        :mode="mode"
+      />
+    </RcSection>
+  </div>
+</template>
+
+<style lang="scss" scoped>
+.engine-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  // The hints under the last row overflow the height of their inputs
+  margin-bottom: 20px;
+}
+</style>

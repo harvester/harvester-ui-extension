@@ -2,7 +2,7 @@ import { load } from 'js-yaml';
 import { omitBy, pickBy } from 'lodash';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
 import { colorForState, stateSort } from '@shell/plugins/dashboard-store/resource-class';
-import { POD, NODE, PVC } from '@shell/config/types';
+import { POD, NODE, PV, PVC } from '@shell/config/types';
 import { findBy } from '@shell/utils/array';
 import { parseSi } from '@shell/utils/units';
 import { get, set } from '@shell/utils/object';
@@ -15,7 +15,7 @@ import { HCI } from '../types';
 import HarvesterResource from './harvester';
 import { getVmCPUMemoryValues } from '../utils/cpuMemory';
 import { sharedComputed } from '../utils/shared-computed';
-import { isBackupTargetSettingUnavailable } from '../utils/setting';
+import { getBackupTargetType, isBackupTargetSettingUnavailable } from '../utils/setting';
 
 export const OFF = 'Off';
 
@@ -201,7 +201,7 @@ export default class VirtVm extends HarvesterResource {
       },
       {
         action:  'backupVM',
-        enabled: !!this.actions?.backup && !this.isBackupTargetUnavailable,
+        enabled: this.canTakeBackup && !this.isBackupTargetUnavailable,
         icon:    'icon icon-backup',
         label:   this.t('harvester.action.backup')
       },
@@ -975,7 +975,7 @@ export default class VirtVm extends HarvesterResource {
       const backup = this.$getters['byId'](HCI.BACKUP, backupId);
 
       // Snapshots and backups are told apart by spec.type
-      res.fromSnapshot = !!backup && backup.spec?.type !== BACKUP_TYPE.BACKUP;
+      res.fromSnapshot = !!backup && backup.spec?.type === BACKUP_TYPE.SNAPSHOT;
     }
 
     return res;
@@ -1364,6 +1364,111 @@ export default class VirtVm extends HarvesterResource {
 
   get hotplugCdRomEnabled() {
     return this.$rootGetters['harvester-common/getFeatureEnabled']('hotplugCdRom');
+  }
+
+  get thirdPartyBackupFeatureEnabled() {
+    return this.$rootGetters['harvester-common/getFeatureEnabled']('thirdPartyVMBackup');
+  }
+
+  // The backend drops the backup action on Longhorn v2 and CDI volumes, which Restic and Kopia can still protect on S3.
+  // Without it, offer the menu only on VMs whose volumes Restic and Kopia support, as the snapshot action isn't gated on a target
+  get canTakeBackup() {
+    return !!this.actions?.backup || (this.thirdPartyBackupFeatureEnabled && !!this.actions?.snapshot && !this.dataMoverBackupUnavailableReason);
+  }
+
+  // Only users who can read backup-target know its type, for everyone else the webhook decides
+  get isBackupTargetNotS3() {
+    const type = getBackupTargetType(this.$rootGetters['harvester/byId'](HCI.SETTING, 'backup-target'));
+
+    return !!type && type !== 's3';
+  }
+
+  async fetchBackupTypeRequirements() {
+    const claimNames = this.spec.template.spec.volumes?.map((v) => v.persistentVolumeClaim?.claimName).filter((v) => !!v) || [];
+
+    // Each rule is enforced by the webhook too, so a resource this user can't read must not block the dialog
+    await Promise.allSettled([
+      ...claimNames.map((name) => this.$dispatch('find', { type: PVC, id: `${ this.metadata.namespace }/${ name }` })),
+      this.$dispatch('find', { type: HCI.SETTING, id: 'backup-target' }),
+      this.$dispatch('find', { type: HCI.SETTING, id: 'csi-driver-config' }),
+    ]);
+
+    await Promise.allSettled(
+      this.volumes.filter((pvc) => pvc.spec?.volumeName).map((pvc) => this.$dispatch('find', { type: PV, id: pvc.spec.volumeName }))
+    );
+  }
+
+  get backupTypeOptions() {
+    const nativeReason = this.nativeBackupUnavailableReason;
+    const dataMoverReason = this.dataMoverBackupUnavailableReason;
+
+    return [BACKUP_TYPE.BACKUP, BACKUP_TYPE.RESTIC, BACKUP_TYPE.KOPIA].map((value) => {
+      const unavailableReason = value === BACKUP_TYPE.BACKUP ? nativeReason : dataMoverReason;
+
+      return {
+        value,
+        label:    this.t(`harvester.backup.type.${ value }`),
+        disabled: !!unavailableReason,
+        unavailableReason,
+      };
+    });
+  }
+
+  get nativeBackupUnavailableReason() {
+    if (!this.actions?.backup) {
+      const longhornV2 = this.longhornV2Volumes[0];
+      const cdi = this.volumes.find((pvc) => pvc.isCreatedForDataVolume);
+
+      if (longhornV2) {
+        return this.t('harvester.backup.typeUnavailable.longhornV2', { volume: longhornV2.name });
+      }
+
+      return cdi ? this.t('harvester.backup.typeUnavailable.cdi', { volume: cdi.name }) : this.t('harvester.backup.typeUnavailable.native');
+    }
+
+    const driver = this.driverMissingSnapshotClass('backupVolumeSnapshotClassName');
+
+    return driver ? this.t('harvester.backup.typeUnavailable.noBackupSnapshotClass', { driver }) : undefined;
+  }
+
+  get dataMoverBackupUnavailableReason() {
+    if (this.isBackupTargetNotS3) {
+      return this.t('harvester.backup.typeUnavailable.requiresS3');
+    }
+
+    const filesystem = this.volumes.find((pvc) => !pvc.isBlockVolume);
+
+    if (filesystem) {
+      return this.t('harvester.backup.typeUnavailable.requiresBlock', { volume: filesystem.name });
+    }
+
+    const longhornV1 = this.volumes.find((pvc) => pvc.isLonghornV1);
+
+    if (longhornV1) {
+      return this.t('harvester.backup.typeUnavailable.longhornV1', { volume: longhornV1.name });
+    }
+
+    if (!this.actions?.snapshot) {
+      const driver = this.driverMissingSnapshotClass('volumeSnapshotClassName');
+
+      return driver ? this.t('harvester.backup.typeUnavailable.noSnapshotClass', { driver }) : this.t('harvester.backup.typeUnavailable.snapshot');
+    }
+
+    return undefined;
+  }
+
+  driverMissingSnapshotClass(classKey) {
+    const setting = this.$rootGetters['harvester/byId'](HCI.SETTING, 'csi-driver-config');
+    let config;
+
+    // Like the backend's LoadCSIDriverConfig: value adds drivers, the default's entries win
+    try {
+      config = { ...JSON.parse(setting?.value || '{}'), ...JSON.parse(setting?.default) };
+    } catch (e) {
+      return undefined;
+    }
+
+    return this.volumes.map((pvc) => pvc.volumeProvider).find((driver) => driver && !config[driver]?.[classKey]);
   }
 
   get isBackupTargetUnavailable() {

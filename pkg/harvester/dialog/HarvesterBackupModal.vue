@@ -3,10 +3,13 @@ import { exceptionToErrorsArray } from '@shell/utils/error';
 import { mapGetters } from 'vuex';
 import { Card } from '@components/Card';
 import { Banner } from '@components/Banner';
-import AsyncButton from '@shell/components/AsyncButton';
 import { LabeledInput } from '@components/Form/LabeledInput';
+import { RcButton } from '@components/RcButton';
+import { RcHeading } from '@components/RcHeading';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { DEFAULT_FS_FREEZE_DEADLINE, getFsFreezeDeadlineOptions } from '../utils/backup';
+import { BACKUP_TYPE } from '../config/types';
+import { HCI } from '../types';
 
 export default {
   name: 'HarvesterBackupModal',
@@ -14,11 +17,12 @@ export default {
   emits: ['close'],
 
   components: {
-    AsyncButton,
     Card,
     LabeledInput,
     LabeledSelect,
-    Banner
+    Banner,
+    RcButton,
+    RcHeading
   },
 
   props: {
@@ -28,11 +32,23 @@ export default {
     }
   },
 
+  async fetch() {
+    if (!this.thirdPartyBackupEnabled) {
+      return;
+    }
+
+    await this.actionResource.fetchBackupTypeRequirements();
+
+    this.backupType = this.backupTypeOptions.find((option) => !option.disabled)?.value;
+  },
+
   data() {
     return {
       backUpName:       '',
+      backupType:       BACKUP_TYPE.BACKUP,
       errors:           [],
-      fsFreezeDeadline: DEFAULT_FS_FREEZE_DEADLINE
+      fsFreezeDeadline: DEFAULT_FS_FREEZE_DEADLINE,
+      saving:           false
     };
   },
 
@@ -49,6 +65,31 @@ export default {
 
     fsFreezeDeadlineOptions() {
       return getFsFreezeDeadlineOptions(this.t);
+    },
+
+    thirdPartyBackupEnabled() {
+      return !!this.actionResource?.thirdPartyBackupFeatureEnabled;
+    },
+
+    backupTypeOptions() {
+      return this.thirdPartyBackupEnabled ? this.actionResource.backupTypeOptions : [];
+    },
+
+    // Shown outside the select too: its disabled options can't be reached by keyboard
+    unavailableBackupTypeOptions() {
+      return this.backupTypeOptions.filter((option) => option.disabled);
+    },
+
+    isLoading() {
+      return this.thirdPartyBackupEnabled && this.$fetchState.pending;
+    },
+
+    noBackupTypeAvailable() {
+      return this.thirdPartyBackupEnabled && !this.isLoading && !this.backupType;
+    },
+
+    canCreate() {
+      return !!this.backUpName && !this.isLoading && !this.noBackupTypeAvailable && !this.saving;
     }
   },
 
@@ -60,42 +101,69 @@ export default {
       this.$emit('close');
     },
 
-    async save(buttonCb) {
-      if (this.actionResource) {
-        try {
-          const res = await this.actionResource.doAction(
-            'backup',
-            { name: this.backUpName, fsFreezeDeadline: this.fsFreezeDeadline },
-            {},
-            false
-          );
+    backupCreated() {
+      this.$store.dispatch(
+        'growl/success',
+        {
+          title:   this.t('generic.notification.title.succeed'),
+          message: this.t('harvester.modal.backup.success', { backUpName: this.backUpName })
+        },
+        { root: true }
+      );
 
-          if (res._status === 200 || res._status === 204) {
-            this.$store.dispatch(
-              'growl/success',
-              {
-                title:   this.t('generic.notification.title.succeed'),
-                message: this.t('harvester.modal.backup.success', { backUpName: this.backUpName })
-              },
-              { root: true }
-            );
+      this.close();
+    },
 
-            this.close();
+    // No ownerReferences, like the backup action: deleting the VM must leave its backups and their remote data
+    async createDataMoverBackup() {
+      const backup = await this.$store.dispatch('harvester/create', {
+        metadata: {
+          name:      this.backUpName,
+          namespace: this.actionResource.metadata.namespace,
+        },
+        spec: {
+          fsFreezeDeadline: this.fsFreezeDeadline,
+          source:           {
+            apiGroup: 'kubevirt.io',
+            kind:     'VirtualMachine',
+            name:     this.actionResource.metadata.name
+          },
+          type: this.backupType
+        },
+        type: HCI.BACKUP
+      });
 
-            buttonCb(true);
-          } else {
-            const error = [res?.data] || exceptionToErrorsArray(res);
+      await backup.save();
+    },
 
-            this['errors'] = error;
-            buttonCb(false);
-          }
-        } catch (err) {
-          const error = err?.data || err;
-          const message = exceptionToErrorsArray(error);
+    async save() {
+      this.saving = true;
+      this.errors = [];
 
-          this['errors'] = message;
-          buttonCb(false);
+      try {
+        if (this.backupType !== BACKUP_TYPE.BACKUP) {
+          await this.createDataMoverBackup();
+          this.backupCreated();
+
+          return;
         }
+
+        const res = await this.actionResource.doAction(
+          'backup',
+          { name: this.backUpName, fsFreezeDeadline: this.fsFreezeDeadline },
+          {},
+          false
+        );
+
+        if (res._status === 200 || res._status === 204) {
+          this.backupCreated();
+        } else {
+          this.errors = [res?.data] || exceptionToErrorsArray(res);
+        }
+      } catch (err) {
+        this.errors = exceptionToErrorsArray(err?.data || err);
+      } finally {
+        this.saving = false;
       }
     }
   }
@@ -105,27 +173,73 @@ export default {
 <template>
   <Card :show-highlight-border="false">
     <template #title>
-      <h4
-        v-clean-html="t('harvester.modal.backup.addBackup')"
-        class="text-default-text"
-      />
+      <RcHeading :size="3">
+        {{ t('harvester.modal.backup.addBackup') }}
+      </RcHeading>
     </template>
 
     <template #body>
-      <LabeledInput
-        v-model:value="backUpName"
+      <Banner
+        v-if="noBackupTypeAvailable"
         class="mt-20"
-        :label="t('generic.name')"
-        required
-      />
-      <LabeledSelect
-        v-if="fsFreezeDeadlineEnabled"
-        v-model:value="fsFreezeDeadline"
-        class="mt-20"
-        :options="fsFreezeDeadlineOptions"
-        :label="t('harvester.modal.backup.fileSystemFreezeDeadline.label')"
-        required
-      />
+        color="warning"
+        data-testid="backup-no-type-available"
+      >
+        <div>
+          <p class="mb-5">
+            {{ t('harvester.modal.backup.noTypeAvailable') }}
+          </p>
+          <ul class="mb-0">
+            <li
+              v-for="option in backupTypeOptions"
+              :key="option.value"
+            >
+              {{ option.label }}: {{ option.unavailableReason }}
+            </li>
+          </ul>
+        </div>
+      </Banner>
+      <template v-else>
+        <LabeledInput
+          v-model:value="backUpName"
+          class="mt-20"
+          :label="t('generic.name')"
+          required
+        />
+        <LabeledSelect
+          v-if="thirdPartyBackupEnabled"
+          v-model:value="backupType"
+          class="mt-20"
+          data-testid="backup-type-select"
+          :label="t('harvester.fields.type')"
+          :loading="isLoading"
+          :options="backupTypeOptions"
+          :searchable="false"
+          required
+        />
+        <Banner
+          v-if="unavailableBackupTypeOptions.length"
+          color="info"
+          data-testid="backup-type-unavailable"
+        >
+          <ul class="mb-0">
+            <li
+              v-for="option in unavailableBackupTypeOptions"
+              :key="option.value"
+            >
+              {{ option.label }}: {{ option.unavailableReason }}
+            </li>
+          </ul>
+        </Banner>
+        <LabeledSelect
+          v-if="fsFreezeDeadlineEnabled"
+          v-model:value="fsFreezeDeadline"
+          class="mt-20"
+          :options="fsFreezeDeadlineOptions"
+          :label="t('harvester.modal.backup.fileSystemFreezeDeadline.label')"
+          required
+        />
+      </template>
       <Banner
         v-for="(err, i) in errors"
         :key="i"
@@ -137,18 +251,26 @@ export default {
     <template #actions>
       <div class="actions">
         <div class="buttons">
-          <button
-            class="btn role-secondary mr-10"
+          <RcButton
+            class="mr-10"
+            data-testid="backup-cancel"
+            size="large"
+            variant="secondary"
             @click="close"
           >
             {{ t('generic.cancel') }}
-          </button>
+          </RcButton>
 
-          <AsyncButton
-            mode="create"
-            :disabled="!backUpName"
+          <RcButton
+            :aria-busy="saving"
+            data-testid="backup-create"
+            :disabled="!canCreate"
+            size="large"
+            variant="primary"
             @click="save"
-          />
+          >
+            {{ t('generic.create') }}
+          </RcButton>
         </div>
       </div>
     </template>
