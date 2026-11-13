@@ -1274,6 +1274,10 @@ harvester:
     currentVersion: CURRENT VERSION
     versionLabel: AVAILABLE COMPATIBLE VERSIONS
     enableLogging: Enable Logging
+    repositoryStorageClass: Upgrade Storage Class
+    repositoryStorageClassTooltip: Select the StorageClass for the temporary upgrade repository volume that stores the ISO during the upgrade.
+    repositoryStorageClassPlaceholder: Select a StorageClass
+    repositoryStorageClassNoOptions: No StorageClasses are available.
     skipSingleReplicaDetachedVol: Skip checking single-replica detached volumes
     upgradeNode: Upgrading Node
     upgradeSysService: Upgrading System Service

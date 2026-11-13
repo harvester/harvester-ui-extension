@@ -11,6 +11,8 @@ import { HCI } from '../../../../types';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../../../config/harvester';
 import ImagePercentageBar from '@shell/components/formatter/ImagePercentageBar';
 import { Banner } from '@components/Banner';
+import { STORAGE_CLASS } from '@shell/config/types';
+import UpgradeRepositoryStorageClass, { getUpgradeRepositoryStorageClassDefault } from '../../../../components/UpgradeRepositoryStorageClass';
 import isEmpty from 'lodash/isEmpty';
 
 const IMAGE_METHOD = {
@@ -25,13 +27,18 @@ const UPLOAD = 'upload';
 export default {
   name:       'HarvesterAirgapUpgrade',
   components: {
-    Checkbox, CruResource, LabeledSelect, LabeledInput, RadioGroup, UpgradeInfo, ImagePercentageBar, Banner
+    Checkbox, CruResource, LabeledSelect, LabeledInput, RadioGroup, UpgradeInfo, UpgradeRepositoryStorageClass, ImagePercentageBar, Banner
   },
 
   inheritAttrs: false,
 
   async fetch() {
-    await this.$store.dispatch('harvester/findAll', { type: HCI.IMAGE });
+    const [, storageClasses] = await Promise.all([
+      this.$store.dispatch('harvester/findAll', { type: HCI.IMAGE }),
+      this.$store.dispatch('harvester/findAll', { type: STORAGE_CLASS })
+    ]);
+
+    this.storageClassName = getUpgradeRepositoryStorageClassDefault(storageClasses);
 
     const value = await this.$store.dispatch('harvester/create', {
       type:     HCI.UPGRADE,
@@ -65,6 +72,7 @@ export default {
       uploadResult:                 null,
       imageValue:                   null,
       enableLogging:                true,
+      storageClassName:             '',
       IMAGE_METHOD,
       skipSingleReplicaDetachedVol: false,
       errors:                       [],
@@ -122,6 +130,18 @@ export default {
       return this.$store.getters['harvester/schemaFor'](HCI.UPGRADE_LOG);
     },
 
+    storageClasses() {
+      return this.$store.getters['harvester/all'](STORAGE_CLASS) || [];
+    },
+
+    canSubmitUpgrade() {
+      return this.enableUpgrade && (!this.repositoryStorageClassEnabled || !this.createNewImage || !!this.storageClassName);
+    },
+
+    repositoryStorageClassEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('repositoryStorageClass');
+    },
+
     uploadProgress() {
       const image = this.$store.getters['harvester/byId'](HCI.IMAGE, this.imageValue.id);
 
@@ -165,7 +185,7 @@ export default {
     },
 
     disableUploadButton() {
-      return this.sourceType === UPLOAD && this.isUploading;
+      return this.sourceType === UPLOAD && (this.isUploading || (this.repositoryStorageClassEnabled && !this.storageClassName));
     },
   },
 
@@ -229,7 +249,7 @@ export default {
             }
 
             this.imageValue.spec.sourceType = DOWNLOAD;
-            this.imageValue.spec.targetStorageClassName = 'longhorn-static';
+            this.imageValue.spec.targetStorageClassName = this.repositoryStorageClassEnabled ? this.storageClassName : 'longhorn-static';
 
             res = await this.imageValue.save();
             res.notifyGeneratedName?.();
@@ -251,7 +271,10 @@ export default {
           this.value.spec.logEnabled = this.enableLogging;
         }
         if (this.skipSingleReplicaDetachedVolFeatureEnabled) {
-          this.value.metadata.annotations = { [HCI_ANNOTATIONS.SKIP_SINGLE_REPLICA_DETACHED_VOL]: JSON.stringify(this.skipSingleReplicaDetachedVol) };
+          this.value.metadata.annotations = {
+            ...this.value.metadata.annotations,
+            [HCI_ANNOTATIONS.SKIP_SINGLE_REPLICA_DETACHED_VOL]: JSON.stringify(this.skipSingleReplicaDetachedVol)
+          };
         }
         await this.value.save();
         this.value.notifyGeneratedName?.();
@@ -288,7 +311,7 @@ export default {
       this.imageValue.spec.url = '';
 
       try {
-        this.imageValue.spec.targetStorageClassName = 'longhorn-static';
+        this.imageValue.spec.targetStorageClassName = this.repositoryStorageClassEnabled ? this.storageClassName : 'longhorn-static';
 
         const res = await this.imageValue.save();
 
@@ -412,7 +435,7 @@ export default {
       :errors="errors"
       :can-yaml="false"
       finish-button-mode="upgrade"
-      :validation-passed="enableUpgrade"
+      :validation-passed="canSubmitUpgrade"
       :cancel-event="true"
       @finish="save"
       @cancel="done"
@@ -479,6 +502,14 @@ export default {
           class="mb-20"
           label-key="harvester.fields.name"
           required
+        />
+
+        <UpgradeRepositoryStorageClass
+          v-if="repositoryStorageClassEnabled"
+          v-model:value="storageClassName"
+          class="mb-20"
+          :disabled="uploadImageId !== ''"
+          :storage-classes="storageClasses"
         />
 
         <LabeledInput
