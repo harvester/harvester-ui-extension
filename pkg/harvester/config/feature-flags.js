@@ -87,6 +87,9 @@ const FEATURE_FLAGS = {
     'maintenanceModeDrainTimeoutSetting',
     'componentHealth',
   ],
+  'v1.11.0': [
+    'vmDeleteProtection',
+  ],
 };
 
 const generateFeatureFlags = () => {
