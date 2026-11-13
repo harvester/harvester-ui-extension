@@ -9,7 +9,7 @@ import { RcCounterBadge, RcTag } from '@components/Pill';
 import { RcModal } from '@components/RcModal';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { HCI } from '../../../types';
-import { affectedResourceLabel, ignoreRuleName, ignoredCounts, totalErrorCount } from '../../../utils/component-health';
+import { affectedResourceLabel, hasIgnored, ignoreRuleName, totalErrorCount } from '../../../utils/component-health';
 import HealthSummaryTable from '../HealthSummaryTable.vue';
 import ComponentChecksTable from '../ComponentChecksTable.vue';
 import IgnoreRuleModal from '../IgnoreRuleModal.vue';
@@ -290,12 +290,7 @@ describe('health components', () => {
     });
     const filterText = () => w.findComponent(summaryTable).props('rows')[0].checksFilterText;
 
-    ['x', 'warning', 'a', 'some message', 'kubevirt.io/v1', 'virtualmachine', 'label of', 'vm-shown'].forEach((text) => expect(filterText()).toContain(text));
-    expect(filterText()).not.toContain('vm-hidden');
-
-    await w.findComponent(Checkbox).vm.$emit('update:value', true);
-
-    expect(filterText()).toContain('vm-hidden');
+    ['x', 'warning', 'a', 'some message', 'kubevirt.io/v1', 'virtualmachine', 'label of', 'vm-shown', 'vm-hidden'].forEach((text) => expect(filterText()).toContain(text));
   });
   it('leaves the rows as they are when filtering', async() => {
     toggleExpand.mockClear();
@@ -338,7 +333,8 @@ describe('health components', () => {
     const shownRows = () => w.findComponent(ComponentChecksTable).props('rows').map((r) => r.id);
 
     expect(shownRows()).toStrictEqual(['h/b']);
-    expect(w.text()).toContain('showIgnored');
+    expect(w.findComponent(Checkbox).text()).toContain('showIgnored');
+    expect(w.findComponent(Checkbox).findComponent(RcCounterBadge).props('count')).toBe(1);
 
     await w.findComponent(Checkbox).vm.$emit('update:value', true);
 
@@ -348,8 +344,14 @@ describe('health components', () => {
       healthSummaries:  [summaryOf({ x: { warningCount: 1 } })],
       componentHealths: [healthOf('h', 'x', { b: { severity: 'Warning' } })],
     });
+    // its ignored resources have a link of their own in the row
+    const resourcesOnly = await mountSummary({
+      healthSummaries:  [summaryOf({ x: { warningCount: 1 } })],
+      componentHealths: [healthOf('h', 'x', { b: { severity: 'Warning', affectedResources: { names: { one: { ignored: true }, two: {} } } } })],
+    });
 
-    expect(clean.text()).not.toContain('showIgnored');
+    expect(clean.findComponent(Checkbox).exists()).toBe(false);
+    expect(resourcesOnly.findComponent(Checkbox).exists()).toBe(false);
   });
   it('expands a long message', async() => {
     const message = 'x'.repeat(150);
@@ -381,31 +383,67 @@ describe('health components', () => {
     expect(w.findComponent(RcCounterBadge).props('count')).toBe(7);
     expect(w.findAllComponents(RcTag).map((tag) => tag.text())).toStrictEqual(['two']);
   });
-  it('keeps the full count and says how many ignored resources it leaves out', () => {
+  it('keeps the full count and shows the ignored resources from their own link', async() => {
     const table = { props: ['rows'], template: '<div><slot name="cell:affectedCount" :row="rows[0]" :value="rows[0].affectedCount" /></div>' };
     const row = {
       ...CHECK, affectedCount: 2, affectedResources: { kind: 'Volume', names: { one: { ignored: true, ignoredBy: 'r' }, two: {} } }
     };
-    const hidden = mountChecks({ rows: [row] }, { SortableTable: table });
-    const shown = mountChecks({ rows: [row], showIgnored: true }, { SortableTable: table });
+    const w = mountChecks({ rows: [row] }, { SortableTable: table });
+    const link = () => w.find('.ignored-link');
 
-    expect(hidden.findComponent(RcCounterBadge).props('count')).toBe(2);
-    expect(hidden.find('.hidden-ignored').text()).toContain('ignore.plusIgnored');
-    expect(shown.findComponent(RcCounterBadge).props('count')).toBe(2);
-    expect(shown.find('.hidden-ignored').exists()).toBe(false);
+    expect(w.findComponent(RcCounterBadge).props('count')).toBe(2);
+    expect(w.findAllComponents(RcTag).map((tag) => tag.find('.name').text())).toStrictEqual(['two']);
+    expect(link().text()).toContain('ignore.plusIgnored');
+    expect(link().attributes('aria-expanded')).toBe('false');
+
+    await link().trigger('click');
+
+    expect(w.findAllComponents(RcTag).map((tag) => tag.find('.name').text())).toStrictEqual(['two', 'one']);
+    expect(link().text()).toContain('ignore.hideIgnored');
+    expect(link().attributes('aria-expanded')).toBe('true');
+
+    await link().trigger('click');
+
+    expect(w.findAllComponents(RcTag)).toHaveLength(1);
   });
-  it('counts what "Show ignored" brings back, each thing once', () => {
-    const check = (ignored, names) => ({ ignored, affectedResources: { names } });
+  it('puts the ignored link after the more link, and leaves it out when the whole check is ignored', () => {
+    const table = { props: ['rows'], template: '<div><slot name="cell:affectedCount" :row="rows[0]" :value="rows[0].affectedCount" /></div>' };
+    const names = Object.fromEntries(['a', 'b', 'c', 'd'].map((name) => [name, {}]));
+    const row = {
+      ...CHECK,
+      affectedCount:     6,
+      affectedResources: {
+        kind:  'Volume',
+        names: {
+          ...names, e: { ignored: true }, f: { ignored: true }
+        }
+      }
+    };
+    const links = (r) => mountChecks({ rows: [r] }, { SortableTable: table }).findAll('.affected-links button').map((button) => (button.classes('ignored-link') ? 'ignored' : 'more'));
 
-    expect(ignoredCounts([
-      check(true, { a: { ignored: true }, b: { ignored: true } }),
-      check(false, { c: { ignored: true }, d: {} }),
-      check(false, {
-        e: { ignored: true }, f: { ignored: true }, g: {}
-      }),
-      check(false, { h: {} }),
-    ])).toStrictEqual({ checks: 1, resources: 3 });
-    expect(ignoredCounts(undefined)).toStrictEqual({ checks: 0, resources: 0 });
+    expect(links(row)).toStrictEqual(['more', 'ignored']);
+    expect(links({ ...row, ignored: true })).toStrictEqual(['more']);
+  });
+  it('tells which checks have anything ignored', () => {
+    expect(hasIgnored({ ignored: true })).toBe(true);
+    expect(hasIgnored({ affectedResources: { names: { a: { ignored: true }, b: {} } } })).toBe(true);
+    expect(hasIgnored({ affectedResources: { names: { a: {} } } })).toBe(false);
+    expect(hasIgnored(undefined)).toBe(false);
+  });
+  it('marks the checks that have anything ignored, for their background', () => {
+    const table = { props: ['rows'], template: '<div><slot v-for="row in rows" name="cell:checkName" :row="row" :value="row.checkName" /></div>' };
+    const rows = [
+      {
+        ...CHECK, id: 'whole', ignored: true
+      },
+      {
+        ...CHECK, id: 'partly', affectedResources: { kind: 'Volume', names: { one: { ignored: true }, two: {} } }
+      },
+      { ...CHECK, id: 'clean' },
+    ];
+    const w = mountChecks({ rows }, { SortableTable: table });
+
+    expect(w.findAll('span').filter((span) => span.text().startsWith('a')).map((span) => span.classes().includes('has-ignored'))).toStrictEqual([true, true, false]);
   });
   it('names the rule of a check after it', () => {
     expect(ignoreRuleName('harvester-controller-vmimage', 'ImageRetryLimitExceeded')).toBe('harvester-controller-vmimage.imageretrylimitexceeded');
@@ -414,7 +452,7 @@ describe('health components', () => {
     expect(ignoreRuleName('harvester-controller-schedulevmbackup', 'Proactive Schedule Suspend')).toBe('harvester-controller-schedulevmbackup.proactive-schedule-suspend');
     expect(ignoreRuleName('h', ' Reach_Max  Failure! ')).toBe('h.reach-max-failure');
   });
-  it('tells the ignored resources apart, and all of them when the check is ignored', () => {
+  it('tells the ignored resources apart, and all of them when the check is ignored', async() => {
     const table = { props: ['rows'], template: '<div><slot name="cell:severity" :row="rows[0]" /><slot name="cell:affectedCount" :row="rows[0]" :value="2" /></div>' };
     const row = {
       ...CHECK, severity: 'Error', affectedResources: { kind: 'Volume', names: { one: { ignored: true, ignoredBy: 'r' }, two: {} } }
@@ -425,15 +463,17 @@ describe('health components', () => {
     const tags = (w) => w.findAllComponents(RcTag).map((tag) => ({
       ignored: tag.classes().includes('ignored'), disabled: tag.props('disabled'), says: tag.text().includes('ignore.ignored')
     }));
-    const partly = mountChecks({ rows: [row], showIgnored: true }, { SortableTable: table });
-    const whole = mountChecks({ rows: [wholeRow], showIgnored: true }, { SortableTable: table });
+    const partly = mountChecks({ rows: [row] }, { SortableTable: table });
+    const whole = mountChecks({ rows: [wholeRow] }, { SortableTable: table });
+
+    await partly.find('.ignored-link').trigger('click');
 
     expect(tags(partly)).toStrictEqual([
       {
-        ignored: true, disabled: true, says: true
+        ignored: false, disabled: false, says: false
       },
       {
-        ignored: false, disabled: false, says: false
+        ignored: true, disabled: true, says: true
       },
     ]);
     expect(partly.findComponent(BadgeState).props('color')).toBe('bg-error');
@@ -518,17 +558,25 @@ describe('health components', () => {
 
     expect(onFindAll.mock.calls.map(([type]) => type)).toStrictEqual([HCI.HEALTH_SUMMARY, HCI.COMPONENT_HEALTH]);
   });
-  it('marks a check and the resources that are ignored', () => {
+  it('marks a check and the resources that are ignored', async() => {
     const table = {
       props:    ['rows'],
       template: '<div><slot name="cell:checkName" :row="rows[0]" :value="rows[0].checkName" /><slot name="cell:affectedCount" :row="rows[0]" :value="2" /></div>',
     };
     const row = { ...CHECK, affectedResources: { kind: 'VirtualMachine', names: { one: { ignored: true, ignoredBy: 'r' }, two: {} } } };
-    const textOf = (props) => mountChecks({ showIgnored: true, ...props }, { SortableTable: table }).text().replace(/\s+/g, ' ');
+    const textOf = async(props) => {
+      const w = mountChecks(props, { SortableTable: table });
 
-    expect(textOf({ rows: [row] })).toMatch(/one ?\(%harvester\.dashboard\.sections\.componentHealth\.ignore\.ignored%\) ?two/);
-    expect(textOf({ rows: [row] })).not.toContain('a (%harvester');
-    expect(textOf({ rows: [{ ...row, ignored: true }] })).toContain('a (%harvester.dashboard.sections.componentHealth.ignore.ignored%)');
+      await w.find('.ignored-link').trigger('click');
+
+      return w.text().replace(/\s+/g, ' ');
+    };
+
+    const partlyText = await textOf({ rows: [row] });
+
+    expect(partlyText).toMatch(/two ?one ?\(%harvester\.dashboard\.sections\.componentHealth\.ignore\.ignored%\)/);
+    expect(partlyText).not.toContain('a (%harvester');
+    expect(mountChecks({ rows: [{ ...row, ignored: true }] }, { SortableTable: table }).text().replace(/\s+/g, ' ')).toContain('a (%harvester.dashboard.sections.componentHealth.ignore.ignored%)');
   });
 
   describe('the actions of a check', () => {
@@ -822,28 +870,41 @@ describe('health components', () => {
 
       expect(new Date(editedRule.spec.expiresAt).getTime()).toBeGreaterThan(new Date(IN_A_WEEK).getTime());
     });
-    it('warns that an expired rule stays expired when only something else changes', async() => {
-      const { w, duration, warning } = mountRuleModal({ rule: ruleOf({ expiresAt: LAST_WEEK }), mode: 'edit' });
+    it('opens an expired rule with a warning on top, and only its expiration can change until a new one is set', async() => {
+      const {
+        w, confirm, duration, warning
+      } = mountRuleModal({ rule: ruleOf({ expiresAt: LAST_WEEK, resources: ['one'] }), mode: 'edit' });
+      const locked = () => ({
+        scope:      w.findAllComponents(RadioGroup).find((group) => group.props('name') === 'ignore-scope').props('disabled'),
+        resources:  w.findComponent(LabeledSelect).props('disabled'),
+        reason:     w.findComponent(LabeledInput).props('disabled'),
+        expiration: duration().props('disabled'),
+        save:       confirm().attributes('disabled') !== undefined,
+      });
 
-      expect(warning()).toBeUndefined();
-
-      await w.findComponent(LabeledInput).vm.$emit('update:value', 'known issue');
-      await flushPromises();
-
-      expect(warning().props('label')).toContain('ignore.staysExpired');
+      expect(warning().props('label')).toContain('ignore.expiredBanner');
+      expect(w.find('[data-testid="rc-modal-body"]').element.firstElementChild.getAttribute('data-testid')).toBe('component-health-ignore-expired');
+      expect(locked()).toStrictEqual({
+        scope: true, resources: true, reason: true, expiration: false, save: true
+      });
 
       await duration().vm.$emit('update:value', 'days7');
       await flushPromises();
 
-      expect(warning()).toBeUndefined();
+      expect(locked()).toStrictEqual({
+        scope: false, resources: false, reason: false, expiration: false, save: false
+      });
+      expect(warning().props('label')).toContain('ignore.expiredBanner');
     });
-    it('does not warn about a rule that has not expired', async() => {
+    it('neither warns nor locks a rule that has not expired, or an expired one that is only viewed', async() => {
       const { w, warning } = mountRuleModal({ rule: ruleOf({ expiresAt: IN_A_WEEK }), mode: 'edit' });
 
-      await w.findComponent(LabeledInput).vm.$emit('update:value', 'known issue');
-      await flushPromises();
-
       expect(warning()).toBeUndefined();
+      expect(w.findComponent(LabeledInput).props('disabled')).toBe(false);
+
+      const viewed = mountRuleModal({ rule: ruleOf({ expiresAt: LAST_WEEK }), mode: 'view' });
+
+      expect(viewed.warning()).toBeUndefined();
     });
     it('opens a rule without resources on the entire check, and selects them all when asked', async() => {
       const {
