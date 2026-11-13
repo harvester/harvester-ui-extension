@@ -3,6 +3,7 @@ import { BaseDetailPagePo } from '@rancher/cypress/e2e/po/pages/base/base-detail
 import TabbedPo from '@rancher/cypress/e2e/po/components/tabbed.po';
 import NameNsDescription from '@rancher/cypress/e2e/po/components/name-ns-description.po';
 import LabeledInputPo from '@rancher/cypress/e2e/po/components/labeled-input.po';
+import LabeledSelectPo from '@rancher/cypress/e2e/po/components/labeled-select.po';
 import HarvesterListPagePo, { harvesterPath, harvesterCluster } from '@/cypress/e2e/po/pages/harvester-list-page.po';
 
 const VM = 'kubevirt.io.virtualmachine';
@@ -44,13 +45,16 @@ export class VirtualMachineDetailPagePo extends BaseDetailPagePo {
   tabs() {
     return new TabbedPo();
   }
+
+  tabPanel(name: string) {
+    return this.self().find(`[data-testid="tab-panel-${ name }"]`);
+  }
 }
 
-export class VirtualMachineCreatePagePo extends PagePo {
-  constructor(clusterId = harvesterCluster()) {
-    super(harvesterPath(`${ VM }/create`, clusterId));
-  }
-
+/**
+ * The VM form: VM create and edit, and VM template versions
+ */
+class VirtualMachineFormPagePo extends PagePo {
   nameNsDescription() {
     return new NameNsDescription(this.self());
   }
@@ -63,11 +67,71 @@ export class VirtualMachineCreatePagePo extends PagePo {
     return this.self().find(`[data-testid="tab-panel-${ name }"]`);
   }
 
+  form() {
+    return this.self().find('[data-testid="cru-form"]');
+  }
+
   cpu() {
-    return LabeledInputPo.byLabel(this.tabPanel('basics'), 'CPU');
+    return LabeledInputPo.byLabel(this.form(), 'CPU');
   }
 
   memory() {
-    return LabeledInputPo.byLabel(this.tabPanel('basics'), 'Memory');
+    return LabeledInputPo.byLabel(this.form(), 'Memory');
+  }
+
+  namespace() {
+    return this.self().find('[data-testid="name-ns-description-namespace"] .vs__selected');
+  }
+
+  /**
+   * The name inputs of a section's items, e.g. the volumes of `Volume`
+   */
+  nameInputs(section: string) {
+    return this.tabPanel(section).find('[data-testid$="-name"] input');
+  }
+
+  /**
+   * The image of the first volume of a new VM
+   */
+  image() {
+    return new LabeledSelectPo('[data-testid="input-hevi-image"] .labeled-select');
+  }
+
+  save() {
+    return this.self().find('[data-testid="form-save"]').click();
+  }
+}
+
+export class VirtualMachineCreatePagePo extends VirtualMachineFormPagePo {
+  constructor(clusterId = harvesterCluster()) {
+    super(harvesterPath(`${ VM }/create`, clusterId));
+  }
+}
+
+export class VirtualMachineEditPagePo extends VirtualMachineFormPagePo {
+  constructor(namespace: string, name: string, clusterId = harvesterCluster()) {
+    super(harvesterPath(`${ VM }/${ namespace }/${ name }`, clusterId));
+  }
+
+  goTo() {
+    return super.goTo('mode=edit');
+  }
+
+  waitForPage() {
+    return super.waitForPage('mode=edit');
+  }
+}
+
+export class TemplateVersionEditPagePo extends VirtualMachineFormPagePo {
+  constructor(namespace: string, name: string, clusterId = harvesterCluster()) {
+    super(harvesterPath(`harvesterhci.io.virtualmachinetemplateversion/${ namespace }/${ name }`, clusterId));
+  }
+
+  goTo() {
+    return super.goTo('mode=edit');
+  }
+
+  waitForPage() {
+    return super.waitForPage('mode=edit');
   }
 }

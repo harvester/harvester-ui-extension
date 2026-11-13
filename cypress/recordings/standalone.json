@@ -1,6 +1,6 @@
 {
   "harvesterVersion": "v1.10.0-rc1",
-  "recordedAt": "2026-11-12",
+  "recordedAt": "2026-11-13",
   "clusterId": "local",
   "vms": {
     "running": {
@@ -15,5 +15,31 @@
   "harvesterhci.io.volumeRows": 21,
   "harvesterhci.io.virtualmachineimageRows": 4,
   "harvesterhci.io.hostRows": 1,
+  "image": {
+    "id": "default/image-p7c4z",
+    "label": "default/ubuntu-24.04-server-cloudimg-amd64.img"
+  },
+  "runningVmSpec": {
+    "cores": 1,
+    "memoryGi": 0.5,
+    "disks": [
+      "rootdisk"
+    ],
+    "interfaces": [
+      "default"
+    ]
+  },
+  "templateVersion": {
+    "namespace": "forklift",
+    "name": "template-vm-kpn5f",
+    "cores": 2
+  },
+  "backups": [
+    {
+      "namespace": "default",
+      "name": "bk1"
+    }
+  ],
+  "snapshots": [],
   "vmListRows": 12
 }
