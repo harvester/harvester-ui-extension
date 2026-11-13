@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2018",
+    "module": "ES2020",
+    "moduleResolution": "Node",
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
+    "esModuleInterop": true,
+    "strict": true,
+    "noEmit": true,
+    "baseUrl": "..",
+    "types": [
+      "cypress",
+      "cypress-axe"
+    ],
+    "paths": {
+      "@/*": [
+        "*"
+      ]
+    }
+  },
+  "include": [
+    "./**/*.ts",
+    "../cypress.config.ts",
+    "../node_modules/@rancher/cypress/globals.d.ts",
+    "../node_modules/@rancher/cypress/support/commands/*.d.ts"
+  ]
+}
