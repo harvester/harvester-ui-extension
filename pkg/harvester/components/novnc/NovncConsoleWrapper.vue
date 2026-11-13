@@ -1,31 +1,36 @@
 <script>
 import { STEVE } from '@shell/config/types';
-import ModalWithCard from '@shell/components/ModalWithCard';
+import { RcButton } from '@components/RcButton';
+import { RcModal } from '@components/RcModal';
+import { Checkbox } from '@components/Form/Checkbox';
 import { escapeHtml } from '@shell/utils/string';
 import { allHash } from '@shell/utils/promise';
 import KeyTable from '@novnc/novnc/core/input/keysym';
 import * as KeyboardUtil from '@novnc/novnc/core/input/util';
 import { HCI } from '../../types';
-import NovncConsole from './NovncConsole';
-import NovncConsoleItem from './NovncConsoleItem';
+import NovncConsole, { CONSOLE_STATUS } from './NovncConsole';
 import NovncConsoleCustomKeys from './NovncConsoleCustomKeys';
+import NovncConnectionStatus, { CONNECTION_STATE } from './NovncConnectionStatus';
+import NovncIcon from './NovncIcon';
+import NovncShortcutKeysMenu from './NovncShortcutKeysMenu';
+import NovncStatusCard from './NovncStatusCard';
+import NovncViewOptions, { VIEW_MODE } from './NovncViewOptions';
+import { baseKey, readShortcuts } from './shortcuts';
 import { normalizeZoom } from './ZoomableRFB';
 
-const CONSOLE_SETTINGS_KEY = 'harvester-vnc-console-settings';
-const PREFERED_SHORTCUT_KEYS = 'prefered-shortcut-keys';
+// The previous console saved its defaults under its key the first time it opened, so they can't tell a
+// choice from a default. This one keeps its own key and writes it only once the user changes a setting.
+const CONSOLE_SETTINGS_KEY = 'harvester-vnc-console-view';
+// Only View only is taken from the previous console: it was off unless the user turned it on.
+const PREVIOUS_SETTINGS_KEY = 'harvester-vnc-console-settings';
 
 export const CONFIRM_ACTION = {
   CTRL_ALT_DEL: 'ctrlAltDel',
   SOFT_REBOOT:  'softReboot',
 };
 
-const VIEW_MODE = {
-  SCALE:  'scale',
-  NONE:   'none',
-};
-
 const DEFAULT_SETTINGS = {
-  viewMode:         VIEW_MODE.NONE,
+  viewMode:         VIEW_MODE.SCALE,
   zoomPercent:      100,
   viewOnly:         false,
   qualityLevel:     6,
@@ -127,15 +132,29 @@ const F_KEYS = {
 export default {
   name:       'NovncConsoleWrapper',
   components: {
-    ModalWithCard, NovncConsole, NovncConsoleItem, NovncConsoleCustomKeys
+    RcButton, RcModal, Checkbox, NovncConsole, NovncConsoleCustomKeys, NovncConnectionStatus, NovncIcon, NovncShortcutKeysMenu, NovncStatusCard, NovncViewOptions
   },
 
+  // A VM that is not running has no instance, so find it by the uid in the route instead.
   async fetch() {
-    const _hash = { vmResource: this.$store.dispatch('harvester/find', { type: HCI.VM, id: this.value.id }) };
+    if (this.value?.id) {
+      const hash = await allHash({ vmResource: this.$store.dispatch('harvester/find', { type: HCI.VM, id: this.value.id }) });
 
-    const hash = await allHash(_hash);
+      this.vmResource = hash.vmResource;
 
-    this.vmResource = hash.vmResource;
+      return;
+    }
+
+    const uid = this.$route?.params?.uid;
+
+    try {
+      const vms = uid ? await this.$store.dispatch('harvester/findAll', { type: HCI.VM }) : [];
+
+      this.vmResource = (vms || []).find((vm) => vm.metadata?.uid === uid) || {};
+    } catch (err) {
+      // Only the name is missing then; the not-running card still shows.
+      this.vmResource = {};
+    }
   },
 
   props: {
@@ -150,13 +169,13 @@ export default {
 
   data() {
     return {
-      keysRecord:        [],
       vmResource:        {},
       renderKeysModal:   false,
       settings:          { ...DEFAULT_SETTINGS },
       capabilities:      {},
       isFullscreen:      false,
       confirmAction:     null,
+      startedAt:         0,
       consoleStatus:     {
         status:            'connecting',
         retryTimes:        0,
@@ -176,35 +195,55 @@ export default {
       return !this.preference?.data;
     },
 
-    savedShortcutKeys() {
-      const preferedShortcutKeys = this.preference?.data?.[PREFERED_SHORTCUT_KEYS];
-
-      if (!preferedShortcutKeys) {
-        return [];
-      }
-
-      try {
-        return JSON.parse(preferedShortcutKeys);
-      } catch (err) {
-        return [];
-      }
-    },
-
     preferredShortcutKeys() {
-      return (this.savedShortcutKeys || []).map((item) => {
-        return {
-          label: item.map((K) => K.key.charAt(0).toUpperCase() + K.key.slice(1)).join('+'),
-          value: item
-        };
-      });
+      return readShortcuts(this.preference);
     },
 
+    isConnected() {
+      return this.consoleStatus.status === CONSOLE_STATUS.CONNECTED;
+    },
+
+    // A console that just went away can still report connected for a moment.
     canSendKeys() {
-      return this.consoleStatus.status === 'connected' && !this.settings.viewOnly;
+      return !this.isDown && this.isConnected && !this.settings.viewOnly;
     },
 
+    // Shared by the toolbar and the full screen bar.
+    shortcutMenuProps() {
+      return {
+        canSend:       this.canSendKeys,
+        blockedReason: this.sendBlockedReason,
+        canManage:     !this.hideCustomKeysBar,
+        disabled:      !!this.settings.viewOnly || (!this.canSendKeys && this.hideCustomKeysBar),
+        shortcuts:     this.preferredShortcutKeys,
+      };
+    },
+
+    sendBlockedReason() {
+      return this.canSendKeys ? '' : this.t('harvester.virtualMachine.detail.console.shortcutMenu.blockedDisconnected');
+    },
+
+    vmName() {
+      return this.value?.metadata?.name || this.vmResource?.metadata?.name || '';
+    },
+
+    vmNamespace() {
+      return this.value?.metadata?.namespace || this.vmResource?.metadata?.namespace || '';
+    },
+
+    // Without an instance there is no console to connect to, so the toolbar says so.
+    connectionStatus() {
+      return this.isDown ? CONNECTION_STATE.NOT_RUNNING : this.consoleStatus.status;
+    },
+
+    // VNC only exists while the instance runs. A starting instance (Pending, Scheduling) would refuse
+    // the first connection and leave "Unable to connect", so the console waits for Running instead.
     isDown() {
-      return this.isEmpty(this.value);
+      return this.isEmpty(this.value) || !this.vmRunning;
+    },
+
+    isStarting() {
+      return !this.isEmpty(this.value) && ['Pending', 'Scheduling', 'Scheduled'].includes(this.value?.status?.phase);
     },
 
     preserveSession() {
@@ -230,36 +269,16 @@ export default {
       };
     },
 
-    keymap() {
-      const out = {
-        ...SHORT_KEYS,
-        PrintScreen: FUNCTION_KEYS.PrintScreen,
-        ...F_KEYS,
-      };
-
-      out.AltLeft = { ...SHORT_KEYS.AltLeft, keys: { PrintScreen: FUNCTION_KEYS.PrintScreen, ...F_KEYS } };
-      out.ControlLeft = {
-        ...SHORT_KEYS.ControlLeft,
-        keys: {
-          AltLeft: {
-            ...SHORT_KEYS.AltLeft,
-            keys: { Delete: FUNCTION_KEYS.Delete }
-          },
-          ...NORMAL_KEYS,
-        },
-      };
-
-      return out;
-    },
-
     hasSoftRebootAction() {
       return !!this.vmResource?.actions?.softreboot;
     },
 
     rfbSettings() {
       return {
-        viewOnly:         this.settings.viewOnly,
-        scaleViewport:    this.settings.viewMode === VIEW_MODE.SCALE,
+        viewOnly:         !!this.settings.viewOnly,
+        // Full screen always fills the window; the saved mode is back on leaving it.
+        scaleViewport:    this.isFullscreen || this.settings.viewMode === VIEW_MODE.SCALE,
+        edgeToEdge:       this.isFullscreen,
         zoomPercent:      normalizeZoom(this.settings.zoomPercent),
         resizeSession:    false,
         clipViewport:     false,
@@ -269,22 +288,20 @@ export default {
       };
     },
 
-    viewModeOptions() {
-      return Object.values(VIEW_MODE).map((value) => ({
-        value,
-        label: this.t(`harvester.virtualMachine.detail.console.settings.viewMode.${ value }`)
-      }));
-    },
-
+    // The pill has one label per state it shows; retries are counted on the console overlay.
     statusLabel() {
-      const { status, retryTimes, maximumRetryTimes } = this.consoleStatus;
-
-      if (status === 'reconnecting') {
-        return this.t('harvester.virtualMachine.detail.console.status.reconnecting', { retryTimes, maximumRetryTimes });
+      if (this.isDown) {
+        return this.t('harvester.virtualMachine.detail.console.status.notRunning');
       }
 
-      if (status === 'connected' && this.settings.viewOnly) {
-        return this.t('harvester.virtualMachine.detail.console.status.connectedViewOnly');
+      const { status } = this.consoleStatus;
+
+      if (status === CONSOLE_STATUS.RECONNECTING) {
+        return this.t('harvester.virtualMachine.detail.console.status.connecting');
+      }
+
+      if (status === CONSOLE_STATUS.FAILED) {
+        return this.t('harvester.virtualMachine.detail.console.status.disconnected');
       }
 
       return this.t(`harvester.virtualMachine.detail.console.status.${ status }`);
@@ -292,10 +309,14 @@ export default {
   },
 
   watch: {
-    settings: {
-      deep: true,
-      handler(neu) {
-        window.localStorage.setItem(CONSOLE_SETTINGS_KEY, JSON.stringify(neu));
+    // The console unmounts without a last status, so start over as connecting for when it is back.
+    isDown(down, wasDown) {
+      if (down) {
+        this.consoleStatus = {
+          status: CONSOLE_STATUS.CONNECTING, retryTimes: 0, maximumRetryTimes: 0, desktopName: ''
+        };
+      } else if (wasDown) {
+        this.startedAt = Date.now();
       }
     },
   },
@@ -315,30 +336,24 @@ export default {
     },
 
     close() {
-      this.$refs.novncConsole.disconnect();
+      this.$refs.novncConsole?.disconnect();
     },
 
-    update({ key, pos }) {
-      this.keysRecord.splice(pos, this.keysRecord.length - pos, key);
-    },
-
-    // Send function key, e.g. ALT + F
-    sendKeys() {
+    // Press the keys in order, then release them in reverse, e.g. Ctrl+Alt+F2.
+    sendKeys(keys) {
       if (!this.canSendKeys || !this.$refs.novncConsole) {
         return;
       }
 
-      this.keysRecord.forEach((key) => {
+      keys.forEach((key) => {
         this.$refs.novncConsole.sendKey(this.allKeys[key].value, key, true);
       });
 
-      [...this.keysRecord].reverse().forEach((key) => {
+      [...keys].reverse().forEach((key) => {
         this.$refs.novncConsole.sendKey(this.allKeys[key].value, key, false);
       });
 
-      this.$refs.popover.hide();
-      this.keysRecord = [];
-      this.$refs.novncConsole.focus();
+      this.focusConsole();
     },
 
     sendCustomKeys(keys) {
@@ -346,7 +361,8 @@ export default {
         return;
       }
 
-      const keyList = [].concat(keys);
+      const combination = [].concat(keys);
+      const keyList = combination.map((K) => baseKey(K, combination));
 
       keyList.forEach((K) => {
         this.$refs.novncConsole.sendKey(KeyboardUtil.getKeysym(K), KeyboardUtil.getKeycode(K), true);
@@ -356,7 +372,29 @@ export default {
         this.$refs.novncConsole.sendKey(KeyboardUtil.getKeysym(K), KeyboardUtil.getKeycode(K), false);
       });
 
-      this.$refs.novncConsole.focus();
+      this.focusConsole();
+    },
+
+    // The shortcut menu hands focus back to its trigger as it closes, so take it on the next tick.
+    focusConsole() {
+      this.$nextTick(() => this.$refs.novncConsole?.focus());
+    },
+
+    // RcModal's focus trap returns focus to the opener in a timeout once the modal unmounts,
+    // so queue ours behind it.
+    focusConsoleAfterModal() {
+      this.$nextTick(() => setTimeout(() => this.$refs.novncConsole?.focus()));
+    },
+
+    // Closing the View panel from the keyboard (Esc) leaves the focus nowhere; give it back to the
+    // View button, as the menus do. A click elsewhere keeps the focus it moved.
+    onViewHide() {
+      const focused = document.activeElement;
+
+      // floating-vue hides the panel without removing it, so the focus is still in it at this point.
+      if (!focused || focused === document.body || focused.closest('.v-popper__popper')) {
+        this.$refs.viewButton?.focus();
+      }
     },
 
     showKeysModal() {
@@ -365,26 +403,53 @@ export default {
 
     hideKeysModal() {
       this.renderKeysModal = false;
+      this.focusConsoleAfterModal();
     },
 
     reconnect() {
-      this.$refs.novncConsole.reconnect();
+      this.$refs.novncConsole?.reconnect();
     },
 
     loadSettings() {
       try {
-        const saved = JSON.parse(window.localStorage.getItem(CONSOLE_SETTINGS_KEY) || '{}');
+        const saved = JSON.parse(window.localStorage.getItem(CONSOLE_SETTINGS_KEY) || 'null');
+        const previous = saved ? null : JSON.parse(window.localStorage.getItem(PREVIOUS_SETTINGS_KEY) || 'null');
 
         this.settings = {
           viewMode:         Object.values(VIEW_MODE).includes(saved?.viewMode) ? saved.viewMode : DEFAULT_SETTINGS.viewMode,
           zoomPercent:      normalizeZoom(saved?.zoomPercent ?? DEFAULT_SETTINGS.zoomPercent),
-          viewOnly:         saved?.viewOnly === true,
+          viewOnly:         (saved || previous)?.viewOnly === true,
           qualityLevel:     saved?.qualityLevel ?? DEFAULT_SETTINGS.qualityLevel,
           compressionLevel: saved?.compressionLevel ?? DEFAULT_SETTINGS.compressionLevel,
         };
       } catch (err) {
         this.settings = { ...DEFAULT_SETTINGS };
       }
+    },
+
+    saveSettings() {
+      window.localStorage.setItem(CONSOLE_SETTINGS_KEY, JSON.stringify(this.settings));
+    },
+
+    updateSettings(settings) {
+      this.settings = settings;
+      this.saveSettings();
+    },
+
+    // Back to sending input, the keyboard should reach the VM without clicking the screen first.
+    setViewOnly(viewOnly) {
+      this.settings = { ...this.settings, viewOnly };
+      this.saveSettings();
+
+      if (!viewOnly) {
+        this.focusConsole();
+      }
+    },
+
+    // View only belongs to the toolbar, not the View panel, so the panel's reset leaves it as it is.
+    resetSettings() {
+      this.settings = { ...DEFAULT_SETTINGS, viewOnly: this.settings.viewOnly };
+      this.saveSettings();
     },
 
     onStatusChanged(info) {
@@ -403,18 +468,22 @@ export default {
     },
 
     softReboot() {
-      this.confirmAction = CONFIRM_ACTION.SOFT_REBOOT;
+      if (!this.settings.viewOnly) {
+        this.confirmAction = CONFIRM_ACTION.SOFT_REBOOT;
+      }
     },
 
-    // The modal returns focus to the console canvas (return-focus-selector) once it closes.
+    // RcModal hands focus back to the toolbar button that opened it; the screen should get it.
     cancelConfirm() {
       this.confirmAction = null;
+      this.focusConsoleAfterModal();
     },
 
     runConfirmedAction() {
       const action = this.confirmAction;
 
       this.confirmAction = null;
+      this.focusConsoleAfterModal();
 
       if (action === CONFIRM_ACTION.CTRL_ALT_DEL && this.canSendKeys) {
         this.$refs.novncConsole?.ctrlAltDelete();
@@ -428,13 +497,23 @@ export default {
         if (document.fullscreenElement) {
           await document.exitFullscreen();
         } else {
+<<<<<<< HEAD
           await this.$refs.consoleContainer.requestFullscreen();
           // Keyboard lock lets shortcuts such as Ctrl+W and F11 reach the guest.
           await navigator.keyboard?.lock?.(['KeyW', 'F11']);
+=======
+          // The whole page, not just the console: menus and modals render outside it.
+          await document.documentElement.requestFullscreen();
+          // Keyboard lock (Chromium) lets browser shortcuts such as Ctrl+W, Ctrl+T, Ctrl+N and F11
+          // reach the guest; outside full screen the browser keeps them.
+          await navigator.keyboard?.lock?.(['KeyW', 'KeyT', 'KeyN', 'F11']);
+>>>>>>> f3ca9e4 (feat: redesign the VNC console (#1233))
         }
+
+        this.focusConsole();
       } catch (err) {
         this.$store.dispatch('growl/fromError', {
-          title: this.t('generic.notification.title.error', { name: escapeHtml(this.value.metadata.name) }),
+          title: this.t('generic.notification.title.error', { name: escapeHtml(this.vmName) }),
           err,
         }, { root: true });
       }
@@ -457,34 +536,152 @@ export default {
     <div
       ref="consoleContainer"
       class="vm-console"
+<<<<<<< HEAD
     >
       <div class="combination-keys">
         <div class="toolbar-group">
+=======
+      :class="{ 'vm-console--fullscreen': isFullscreen }"
+    >
+      <div
+        v-if="isFullscreen"
+        class="fullscreen-bar"
+        data-testid="vnc-fullscreen-bar"
+      >
+        <span class="fullscreen-bar__name">{{ vmName }}</span>
+        <NovncConnectionStatus
+          :status="connectionStatus"
+          :label="statusLabel"
+          :vm-name="vmName"
+          @reconnect="reconnect"
+        />
+        <span
+          class="console-toolbar__divider"
+          aria-hidden="true"
+        />
+        <NovncShortcutKeysMenu
+          v-bind="shortcutMenuProps"
+          @send-keys="sendKeys"
+          @send-shortcut="sendCustomKeys"
+          @manage="showKeysModal"
+          @ctrl-alt-del="ctrlAltDelete"
+        />
+        <span
+          class="console-toolbar__divider"
+          aria-hidden="true"
+        />
+        <RcButton
+          variant="tertiary"
+          data-testid="vnc-exit-fullscreen"
+          @click="toggleFullscreen"
+        >
+          <template #before>
+            <NovncIcon type="minimize" />
+          </template>
+          {{ t('harvester.virtualMachine.detail.console.fullscreen.exit') }}
+        </RcButton>
+      </div>
+
+      <header
+        v-else
+        class="console-toolbar"
+      >
+        <div class="console-toolbar__identity">
+          <div class="console-toolbar__vm">
+            <span
+              class="console-toolbar__vm-name"
+              data-testid="vnc-vm-name"
+            >{{ vmName }}</span>
+            <span class="console-toolbar__vm-namespace">{{ vmNamespace }}</span>
+          </div>
+
+          <NovncConnectionStatus
+            :status="connectionStatus"
+            :label="statusLabel"
+            :vm-name="vmName"
+            @reconnect="reconnect"
+          />
+
+          <Checkbox
+            class="console-toolbar__view-only"
+            :value="!!settings.viewOnly"
+            :label="t('harvester.virtualMachine.detail.console.viewOnly')"
+            use-body-text-color
+            data-testid="vnc-view-only"
+            @update:value="setViewOnly"
+          />
+        </div>
+
+        <div class="console-toolbar__group">
+          <NovncShortcutKeysMenu
+            v-bind="shortcutMenuProps"
+            @send-keys="sendKeys"
+            @send-shortcut="sendCustomKeys"
+            @manage="showKeysModal"
+            @ctrl-alt-del="ctrlAltDelete"
+          />
+        </div>
+
+        <span
+          class="console-toolbar__divider"
+          aria-hidden="true"
+        />
+
+        <div class="console-toolbar__group">
+          <RcButton
+            variant="tertiary"
+            data-testid="vnc-ctrl-alt-del"
+            :disabled="!canSendKeys"
+            @click="ctrlAltDelete"
+          >
+            <template #before>
+              <NovncIcon type="power" />
+            </template>
+            {{ t("harvester.virtualMachine.detail.console.ctrlAltDel") }}
+          </RcButton>
+
+          <RcButton
+            v-if="hasSoftRebootAction"
+            variant="tertiary"
+            left-icon="refresh-alt"
+            data-testid="vnc-soft-reboot"
+            :disabled="!!settings.viewOnly"
+            @click="softReboot"
+          >
+            {{ t("harvester.virtualMachine.detail.console.softReboot") }}
+          </RcButton>
+        </div>
+
+        <span class="console-toolbar__spacer" />
+
+        <div class="console-toolbar__group">
+>>>>>>> f3ca9e4 (feat: redesign the VNC console (#1233))
           <v-dropdown
-            ref="popover"
-            placement="top"
+            placement="bottom-end"
             trigger="click"
             :container="false"
-            @auto-hide="keysRecord = []"
+            @hide="onViewHide"
           >
-            <button
-              class="btn btn-sm bg-primary"
-              :disabled="!canSendKeys"
+            <RcButton
+              ref="viewButton"
+              variant="tertiary"
+              left-icon="show"
+              right-icon="chevron-down"
+              data-testid="vnc-view"
             >
-              {{ t("harvester.virtualMachine.detail.console.shortcutKeys") }}
-            </button>
+              {{ t("harvester.virtualMachine.detail.console.view") }}
+            </RcButton>
 
             <template #popper>
-              <novnc-console-item
-                :items="keymap"
-                :path="keysRecord"
-                :pos="0"
-                @update="update"
-                @send-keys="sendKeys"
+              <NovncViewOptions
+                :settings="settings"
+                @update="updateSettings"
+                @reset="resetSettings"
               />
             </template>
           </v-dropdown>
 
+<<<<<<< HEAD
           <button
             class="btn btn-sm bg-primary"
             :disabled="!canSendKeys"
@@ -645,63 +842,80 @@ export default {
 
           <button
             class="btn btn-sm bg-primary"
+=======
+          <RcButton
+            variant="tertiary"
+            data-testid="vnc-fullscreen"
+>>>>>>> f3ca9e4 (feat: redesign the VNC console (#1233))
             @click="toggleFullscreen"
           >
+            <template #before>
+              <NovncIcon :type="isFullscreen ? 'minimize' : 'maximize'" />
+            </template>
             {{ isFullscreen ? t('harvester.virtualMachine.detail.console.fullscreen.exit') : t('harvester.virtualMachine.detail.console.fullscreen.enter') }}
-          </button>
+          </RcButton>
         </div>
+      </header>
+
+      <div class="console-area">
+        <NovncConsole
+          v-if="url && !isDown"
+          ref="novncConsole"
+          :url="url"
+          :settings="rfbSettings"
+          :preserve-session="preserveSession"
+          :vm-running="vmRunning"
+          :vm-name="vmName"
+          :started-at="startedAt"
+          @status-changed="onStatusChanged"
+          @capabilities="onCapabilities"
+        />
+        <div
+          v-if="isDown"
+          class="console-area__down"
+          data-testid="vnc-not-running"
+        >
+          <NovncStatusCard
+            icon="power"
+            :title="t(`harvester.virtualMachine.detail.console.notRunning.${ isStarting ? 'startingTitle' : 'title' }`)"
+            :detail="t(`harvester.virtualMachine.detail.console.notRunning.${ isStarting ? 'startingDetail' : 'detail' }`)"
+          />
+        </div>
+        <p
+          v-if="!isFullscreen && !isDown"
+          class="console-area__hint"
+        >
+          {{ t(settings.viewOnly ? 'harvester.virtualMachine.detail.console.hintViewOnly' : 'harvester.virtualMachine.detail.console.hint', {}, true) }}
+        </p>
       </div>
 
-      <NovncConsole
-        v-if="url && !isDown"
-        ref="novncConsole"
-        :url="url"
-        :settings="rfbSettings"
-        :preserve-session="preserveSession"
-        :vm-running="vmRunning"
-        @status-changed="onStatusChanged"
-        @capabilities="onCapabilities"
-      />
-      <p v-if="isDown">
-        {{ t("harvester.virtualMachine.detail.console.down") }}
-      </p>
-
-      <ModalWithCard
-        v-if="confirmAction"
-        name="confirmConsoleAction"
-        :width="480"
-        return-focus-selector=".novnc-screen canvas"
-        @finish="cancelConfirm"
+      <RcModal
+        :show="!!confirmAction"
+        size="small"
+        :title="confirmAction ? t(`harvester.virtualMachine.detail.console.confirm.${ confirmAction }.title`, { name: vmName }) : ''"
+        data-testid="vnc-confirm-modal"
+        @close="cancelConfirm"
       >
-        <template #title>
-          {{ t(`harvester.virtualMachine.detail.console.confirm.${ confirmAction }.title`) }}
-        </template>
+        <p v-if="confirmAction">
+          {{ t(`harvester.virtualMachine.detail.console.confirm.${ confirmAction }.message`) }}
+        </p>
 
-        <template #content>
-          <p>{{ t(`harvester.virtualMachine.detail.console.confirm.${ confirmAction }.message`) }}</p>
+        <template #primary-action>
+          <RcButton
+            v-if="confirmAction"
+            variant="primary"
+            size="large"
+            class="confirm-modal__danger"
+            data-testid="vnc-confirm-action"
+            @click="runConfirmedAction"
+          >
+            {{ t(`harvester.virtualMachine.detail.console.confirm.${ confirmAction }.button`) }}
+          </RcButton>
         </template>
-
-        <template #footer>
-          <div class="confirm-actions">
-            <button
-              class="btn role-secondary mr-10"
-              @click="cancelConfirm"
-            >
-              {{ t('generic.cancel') }}
-            </button>
-            <button
-              class="btn role-primary"
-              data-testid="vnc-confirm-action"
-              @click="runConfirmedAction"
-            >
-              {{ t(`harvester.virtualMachine.detail.console.confirm.${ confirmAction }.button`) }}
-            </button>
-          </div>
-        </template>
-      </ModalWithCard>
+      </RcModal>
 
       <NovncConsoleCustomKeys
-        v-if="renderKeysModal"
+        :show="renderKeysModal"
         @close="hideKeysModal"
       />
     </div>
@@ -713,16 +927,49 @@ export default {
     height: 100vh;
     height: 100dvh;
     display: grid;
-    grid-template-rows: 32px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    background: var(--body-bg);
+
+    // The toolbar gives way to a bar floating over the screen, which takes the whole window. A picture
+    // of another shape keeps its proportions, with black around it like on a monitor.
+    &--fullscreen {
+      position: relative;
+      grid-template-rows: minmax(0, 1fr);
+      background: #000;
+
+      .console-area {
+        gap: 0;
+        padding: 0;
+      }
+    }
   }
 
-  .combination-keys {
+  .fullscreen-bar {
+    // vnc.vue stretches the console's child divs to full height; the bar keeps its own.
+    height: auto;
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    z-index: 2;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
-    background: rgb(40, 40, 40);
-  }
+    justify-content: center;
+    gap: 12px;
+    // From left: 50% it would only get half the window and squeeze its buttons; it wraps when it has to.
+    width: max-content;
+    max-width: calc(100vw - 16px);
+    padding: 4px 4px 4px 16px;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    background: var(--nav-bg);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    opacity: 0.7;
+    transform: translateX(-50%);
+    transition: opacity 0.15s ease;
 
+<<<<<<< HEAD
   .toolbar-group {
     display: flex;
     align-items: center;
@@ -752,18 +999,126 @@ export default {
       justify-content: space-between;
       margin-top: 8px;
       font-variant-numeric: tabular-nums;
+=======
+    // Solid while in use: the pointer is on it, the keyboard is in it, or one of its menus is open.
+    &:hover,
+    &:has(:focus-visible),
+    &:has([aria-expanded='true']) {
+      opacity: 1;
+>>>>>>> f3ca9e4 (feat: redesign the VNC console (#1233))
     }
 
-    &__zoom {
-      width: 100%;
-      margin: 4px 0 8px;
+    &__name {
+      color: var(--body-text);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 18px;
     }
+  }
 
-    &__option {
+  // Narrow windows wrap the toolbar instead of pushing the screen out of view.
+  .console-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    padding: 10px 16px;
+    background: var(--nav-bg);
+
+    &__identity {
       display: flex;
       align-items: center;
-      gap: 6px;
-      margin: 2px 0;
+      gap: 16px;
+      padding-right: 8px;
+    }
+
+    &__vm {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    &__vm-name {
+      color: var(--body-text);
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 21px;
+    }
+
+    &__vm-namespace {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 18px;
+    }
+
+    // A Checkbox keeps 10px after its label for its place in a form; here the toolbar sets the gap.
+    &__view-only {
+      margin-right: -10px;
+    }
+
+    &__group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    &__divider {
+      width: 1px;
+      height: 24px;
+      background: var(--border);
+    }
+
+    &__spacer {
+      flex: 1;
+    }
+  }
+
+  .console-area {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-height: 0;
+    padding: 24px;
+
+    // vnc.vue stretches every nested div to the full height; the hint needs its row.
+    > .novnc-console {
+      flex: 1 1 auto;
+      height: auto;
+      min-height: 0;
+    }
+
+    &__down {
+      display: flex;
+      flex: 1 1 auto;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+      background: #000;
+    }
+
+    &__hint {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 18px;
+      text-align: center;
+    }
+  }
+
+  // RcButton has no destructive variant; this is how the shell's own dialogs colour one. The class
+  // is doubled to outrank RcButton's variant rules instead of relying on stylesheet order.
+  .confirm-modal__danger.confirm-modal__danger.rc-button {
+    &,
+    &:focus,
+    &.focused {
+      background-color: var(--error);
+      color: var(--error-text);
+    }
+
+    &:hover:not(:disabled) {
+      background-color: var(--error-hover-bg);
+      color: var(--error-hover-text);
     }
   }
 </style>
