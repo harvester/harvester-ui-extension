@@ -1,5 +1,6 @@
 import VM_MIXIN from '../index';
 import impl from '../impl';
+import { SOURCE_TYPE } from '../../../config/harvester-map';
 
 const USER_ERROR = 'harvester.virtualMachine.cloudConfig.user.invalidYaml';
 const NETWORK_ERROR = 'harvester.virtualMachine.cloudConfig.network.invalidYaml';
@@ -21,6 +22,24 @@ function validate({
   VM_MIXIN.methods.validateCloudInit.call(form);
 
   return form.errors;
+}
+
+const IMAGE = { id: 'default/image-abc', storageClassName: 'longhorn-image-abc' };
+
+function volumeClaimTemplateFor(row, { hasCreateVolumes = [], isClone = false } = {}) {
+  const form = {
+    images: [IMAGE], hasCreateVolumes, isClone
+  };
+  const R = {
+    source:     SOURCE_TYPE.IMAGE,
+    image:      IMAGE.id,
+    accessMode: 'ReadWriteMany',
+    volumeMode: 'Block',
+    size:       '10Gi',
+    ...row,
+  };
+
+  return VM_MIXIN.methods.parseVolumeClaimTemplate.call(form, R, 'vm-disk-0-abcde');
 }
 
 function userDataFor(userScript) {
@@ -135,6 +154,57 @@ describe('mixin: harvester-vm', () => {
 
     it('should add the header to cloud-config typed without one', () => {
       expect(userDataFor('password: test\n')).toBe('#cloud-config\npassword: test\n');
+    });
+  });
+
+  describe('parseVolumeClaimTemplate', () => {
+    it('should use the image StorageClass for a new image volume', () => {
+      const out = volumeClaimTemplateFor({ storageClassName: '' });
+
+      expect(out.spec.storageClassName).toBe(IMAGE.storageClassName);
+      expect(out.metadata.annotations).toStrictEqual({ 'harvesterhci.io/imageId': IMAGE.id });
+    });
+
+    it.each([
+      ['empty', ''],
+      ['undefined', undefined],
+    ])('should use the image StorageClass for a template volume with a StorageClass that is %s', (_, storageClassName) => {
+      const out = volumeClaimTemplateFor({ realName: 'tpl-disk-0-xyz12', storageClassName });
+
+      expect(out.spec.storageClassName).toBe(IMAGE.storageClassName);
+    });
+
+    it('should keep the StorageClass a template volume already has', () => {
+      const out = volumeClaimTemplateFor({ realName: 'tpl-disk-0-xyz12', storageClassName: 'custom-sc' });
+
+      expect(out.spec.storageClassName).toBe('custom-sc');
+    });
+
+    it('should use the image StorageClass for a cloned volume without one', () => {
+      const out = volumeClaimTemplateFor(
+        { realName: 'vm-disk-0-xyz12', storageClassName: '' },
+        { hasCreateVolumes: ['vm-disk-0-xyz12'], isClone: true }
+      );
+
+      expect(out.spec.storageClassName).toBe(IMAGE.storageClassName);
+    });
+
+    it('should keep the StorageClass of an existing volume while editing', () => {
+      const out = volumeClaimTemplateFor(
+        { realName: 'vm-disk-0-xyz12', storageClassName: 'other-sc' },
+        { hasCreateVolumes: ['vm-disk-0-xyz12'] }
+      );
+
+      expect(out.spec.storageClassName).toBe('other-sc');
+    });
+
+    it('should not replace the StorageClass of an existing volume with the image StorageClass', () => {
+      const out = volumeClaimTemplateFor(
+        { realName: 'vm-disk-0-xyz12', storageClassName: '' },
+        { hasCreateVolumes: ['vm-disk-0-xyz12'] }
+      );
+
+      expect(out.spec.storageClassName).toBe('');
     });
   });
 });
