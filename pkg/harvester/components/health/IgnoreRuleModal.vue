@@ -55,8 +55,11 @@ const resourceOptions = computed(() => [...new Set([...allAffectedResourceNames(
 const chosenScope = ref(props.rule && !ruleResources.length ? 'check' : null);
 const scope = computed({
   get: () => chosenScope.value || (resourceOptions.value.length ? 'resources' : 'check'),
+  // the shell's RadioGroup still takes the arrow keys once it is clicked, even when disabled
   set: (value) => {
-    chosenScope.value = value;
+    if (!locked.value && !isView.value) {
+      chosenScope.value = value;
+    }
   },
 });
 // null selects every resource, the ones that are not selected are kept visible
@@ -121,11 +124,11 @@ const editable = (ruleSpec) => ({
 
 const hasChanges = computed(() => !props.rule || !isEqual(editable(spec.value), editable(props.rule.spec)));
 
-// a rule that lists no resource would ignore the entire check
-const canSave = computed(() => (scope.value === 'check' || selectedResources.value.length > 0) && hasChanges.value);
+// an expired rule applies to nothing, so it only takes changes once it has a new expiration
+const locked = computed(() => hasExpired && !isView.value && !duration.value);
 
-// saving something else on an expired rule leaves it expired
-const staysExpired = computed(() => hasExpired && !duration.value && hasChanges.value);
+// a rule that lists no resource would ignore the entire check
+const canSave = computed(() => !locked.value && (scope.value === 'check' || selectedResources.value.length > 0) && hasChanges.value);
 
 const currentExpiry = computed(() => {
   if (!expiresAt) {
@@ -189,6 +192,13 @@ async function save() {
     @close="close"
     @primary-action="save"
   >
+    <Banner
+      v-if="hasExpired && !isView"
+      class="m-0"
+      color="warning"
+      data-testid="component-health-ignore-expired"
+      :label="t('harvester.dashboard.sections.componentHealth.ignore.expiredBanner', { date: dateTimeFormat(expiresAt, store) })"
+    />
     <div class="row">
       <div class="col span-6">
         <LabelValue
@@ -203,34 +213,7 @@ async function save() {
         />
       </div>
     </div>
-    <div v-if="resourceOptions.length">
-      <RcHeading :size="4">
-        {{ t('harvester.dashboard.sections.componentHealth.ignore.scope') }}
-      </RcHeading>
-      <RadioGroup
-        v-model:value="scope"
-        name="ignore-scope"
-        :aria-label="t('harvester.dashboard.sections.componentHealth.ignore.scope')"
-        :mode="mode"
-        :options="scopeOptions"
-      />
-      <div
-        v-if="scope === 'resources'"
-        class="ignore-resources"
-      >
-        <LabeledSelect
-          :value="selectedResources"
-          :label="t('harvester.dashboard.sections.componentHealth.ignore.resources')"
-          :mode="mode"
-          :options="resourceOptions"
-          :multiple="true"
-          :close-on-select="false"
-          :clearable="false"
-          :required="!isView"
-          @update:value="selected = $event"
-        />
-      </div>
-    </div>
+    <!-- first, as an expired rule's other fields wait for it -->
     <div>
       <RcHeading :size="4">
         {{ t('harvester.dashboard.sections.componentHealth.ignore.duration') }}
@@ -260,11 +243,42 @@ async function save() {
         </p>
       </template>
     </div>
+    <div v-if="resourceOptions.length">
+      <RcHeading :size="4">
+        {{ t('harvester.dashboard.sections.componentHealth.ignore.scope') }}
+      </RcHeading>
+      <RadioGroup
+        v-model:value="scope"
+        name="ignore-scope"
+        :aria-label="t('harvester.dashboard.sections.componentHealth.ignore.scope')"
+        :mode="mode"
+        :disabled="locked"
+        :options="scopeOptions"
+      />
+      <div
+        v-if="scope === 'resources'"
+        class="ignore-resources"
+      >
+        <LabeledSelect
+          :value="selectedResources"
+          :label="t('harvester.dashboard.sections.componentHealth.ignore.resources')"
+          :mode="mode"
+          :options="resourceOptions"
+          :multiple="true"
+          :close-on-select="false"
+          :clearable="false"
+          :required="!isView"
+          :disabled="locked"
+          @update:value="selected = $event"
+        />
+      </div>
+    </div>
     <LabeledInput
       v-model:value="reason"
       :label="t('harvester.dashboard.sections.componentHealth.ignore.reason')"
       :placeholder="isView ? '' : t('harvester.dashboard.sections.componentHealth.ignore.reasonPlaceholder')"
       :mode="mode"
+      :disabled="locked"
     />
     <Banner
       v-for="(err, i) in errors"
@@ -272,13 +286,6 @@ async function save() {
       class="m-0"
       color="error"
       :label="err"
-    />
-    <Banner
-      v-if="staysExpired"
-      class="m-0"
-      color="warning"
-      data-testid="component-health-ignore-stays-expired"
-      :label="t('harvester.dashboard.sections.componentHealth.ignore.staysExpired', { date: dateTimeFormat(expiresAt, store) })"
     />
 
     <template

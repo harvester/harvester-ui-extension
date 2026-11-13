@@ -10,7 +10,7 @@ import { _CREATE, _EDIT, _VIEW } from '@shell/config/query-params';
 import { HCI } from '../../types';
 import {
   AFFECTED_RESOURCES_TRUNCATE_COUNT, MESSAGE_TRUNCATE_LENGTH, activeAffectedResourceNames, affectedResourceLabel,
-  allAffectedResourceNames, ignoreRuleName, ignoredResourceCount, resourceIgnoredBy, severityColor
+  allAffectedResourceNames, hasIgnored, ignoreRuleName, ignoredResourceCount, resourceIgnoredBy, severityColor
 } from '../../utils/component-health';
 
 const props = defineProps({
@@ -21,10 +21,6 @@ const props = defineProps({
   ignoreRules: {
     type:    Array,
     default: () => [],
-  },
-  showIgnored: {
-    type:    Boolean,
-    default: false,
   },
   // what is typed in the filter box of the table this one sits in
   filterText: {
@@ -133,9 +129,17 @@ const hasActions = computed(() => rowsWithActions.value.some((row) => row.availa
 
 const expandedMessageIds = ref([]);
 const expandedResourceIds = ref([]);
+const shownIgnoredIds = ref([]);
 
-function affectedResourceNames(row) {
-  return props.showIgnored ? allAffectedResourceNames(row) : activeAffectedResourceNames(row);
+// a check ignored as a whole lists all its resources, the others only the ones still reported
+function listedResourceNames(row) {
+  return row.ignored ? allAffectedResourceNames(row) : activeAffectedResourceNames(row);
+}
+
+function ignoredResourceNames(row) {
+  const active = activeAffectedResourceNames(row);
+
+  return allAffectedResourceNames(row).filter((name) => !active.includes(name));
 }
 
 // called from the template, where the refs are unwrapped, so the array is changed in place
@@ -157,23 +161,25 @@ function displayedMessage(row, message) {
   return expandedMessageIds.value.includes(row.id) || !isMessageTruncated(message) ? message : message.slice(0, MESSAGE_TRUNCATE_LENGTH);
 }
 
+// the ignored resources come after the others, once their link is used
 function visibleAffectedResourceNames(row) {
-  const names = affectedResourceNames(row);
+  const names = listedResourceNames(row);
+  const shown = expandedResourceIds.value.includes(row.id) ? names : names.slice(0, AFFECTED_RESOURCES_TRUNCATE_COUNT);
 
-  return expandedResourceIds.value.includes(row.id) ? names : names.slice(0, AFFECTED_RESOURCES_TRUNCATE_COUNT);
+  return shownIgnoredIds.value.includes(row.id) ? [...shown, ...ignoredResourceNames(row)] : shown;
 }
 
 function remainingAffectedResourcesCount(row) {
-  return Math.max(affectedResourceNames(row).length - AFFECTED_RESOURCES_TRUNCATE_COUNT, 0);
+  return Math.max(listedResourceNames(row).length - AFFECTED_RESOURCES_TRUNCATE_COUNT, 0);
 }
 
 function isResourceIgnored(row, name) {
   return row.ignored || !!resourceIgnoredBy(row, name);
 }
 
-// the ignored resources that are left out of the list
-function hiddenIgnoredCount(row) {
-  return props.showIgnored ? 0 : ignoredResourceCount(row);
+// the ignored resources of a check that is still reported, which have a link of their own
+function ignoredLinkCount(row) {
+  return row.ignored ? 0 : ignoredResourceCount(row);
 }
 </script>
 
@@ -204,7 +210,7 @@ function hiddenIgnoredCount(row) {
       />
     </template>
     <template #cell:checkName="{row, value}">
-      <span :class="{ 'text-muted': row.ignored }">
+      <span :class="{ 'text-muted': row.ignored, 'has-ignored': hasIgnored(row) }">
         {{ value }}
         <template v-if="row.ignored">
           ({{ t('harvester.dashboard.sections.componentHealth.ignore.ignored') }})
@@ -228,7 +234,7 @@ function hiddenIgnoredCount(row) {
     </template>
     <template #cell:affectedCount="{row, value}">
       <div
-        v-if="affectedResourceNames(row).length"
+        v-if="allAffectedResourceNames(row).length"
         class="affected-resources"
       >
         <div class="affected-title">
@@ -255,22 +261,31 @@ function hiddenIgnoredCount(row) {
             </span>
           </RcTag>
         </div>
-        <RcButton
-          v-if="remainingAffectedResourcesCount(row)"
-          variant="link"
-          size="small"
-          class="compact-link"
-          :aria-expanded="expandedResourceIds.includes(row.id)"
-          @click="toggleId(expandedResourceIds, row.id)"
+        <div
+          v-if="remainingAffectedResourcesCount(row) || ignoredLinkCount(row)"
+          class="affected-links"
         >
-          {{ expandedResourceIds.includes(row.id) ? t('generic.showLess') : t('generic.plusMore', { n: remainingAffectedResourcesCount(row) }) }}
-        </RcButton>
-        <span
-          v-if="hiddenIgnoredCount(row)"
-          class="hidden-ignored text-muted"
-        >
-          {{ t('harvester.dashboard.sections.componentHealth.ignore.plusIgnored', { n: hiddenIgnoredCount(row) }) }}
-        </span>
+          <RcButton
+            v-if="remainingAffectedResourcesCount(row)"
+            variant="link"
+            size="small"
+            class="compact-link more-link"
+            :aria-expanded="expandedResourceIds.includes(row.id)"
+            @click="toggleId(expandedResourceIds, row.id)"
+          >
+            {{ expandedResourceIds.includes(row.id) ? t('generic.showLess') : t('generic.plusMore', { n: remainingAffectedResourcesCount(row) }) }}
+          </RcButton>
+          <RcButton
+            v-if="ignoredLinkCount(row)"
+            variant="link"
+            size="small"
+            class="compact-link ignored-link"
+            :aria-expanded="shownIgnoredIds.includes(row.id)"
+            @click="toggleId(shownIgnoredIds, row.id)"
+          >
+            {{ shownIgnoredIds.includes(row.id) ? t('harvester.dashboard.sections.componentHealth.ignore.hideIgnored') : t('harvester.dashboard.sections.componentHealth.ignore.plusIgnored', { n: ignoredLinkCount(row) }) }}
+          </RcButton>
+        </div>
       </div>
       <span v-else>
         {{ t('harvester.dashboard.sections.componentHealth.noAffectedResources') }}
@@ -280,6 +295,11 @@ function hiddenIgnoredCount(row) {
 </template>
 
 <style lang="scss" scoped>
+  // a check with anything ignored stands out, in the colour of a warning banner
+  :deep(tbody tr.main-row:has(.has-ignored)) {
+    background-color: var(--warning-banner-bg);
+  }
+
   // these sit next to text, so they line up with it
   .compact-link {
     --rc-button-padding: 0;
@@ -305,9 +325,10 @@ function hiddenIgnoredCount(row) {
     font-size: 12px;
   }
 
-  // the same size as the "+ N more" link above it
-  .hidden-ignored {
-    font-size: 12px;
+  .affected-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .affected-names {

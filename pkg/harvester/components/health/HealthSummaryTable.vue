@@ -8,13 +8,14 @@ import { exceptionToErrorsArray } from '@shell/utils/error';
 import Banner from '@components/Banner/Banner.vue';
 import { BadgeState } from '@components/BadgeState';
 import { Checkbox } from '@components/Form/Checkbox';
+import { RcCounterBadge } from '@components/Pill';
 import { RcButton } from '@components/RcButton';
 import { useModal } from '@components/RcModal';
 import ComponentChecksTable from './ComponentChecksTable.vue';
 import IgnoreRuleModal from './IgnoreRuleModal.vue';
 import {
-  COMPONENT_HEALTH_SEVERITIES, HEALTH_SUMMARY_SEVERITY_RANK, activeAffectedResourceNames, affectedResourceKind,
-  affectedResourceLabel, allAffectedResourceNames, componentOf, healthSummarySeverity, ignoredCounts, severityColor
+  COMPONENT_HEALTH_SEVERITIES, HEALTH_SUMMARY_SEVERITY_RANK, affectedResourceKind, affectedResourceLabel,
+  allAffectedResourceNames, componentOf, healthSummarySeverity, severityColor
 } from '../../utils/component-health';
 
 const store = useStore();
@@ -111,22 +112,13 @@ const shownChecks = computed(() => checks.value.filter((check) => showIgnored.va
     check.affectedResources?.apiVersion,
     affectedResourceKind(check),
     affectedResourceLabel(check, store),
-    ...(showIgnored.value ? allAffectedResourceNames(check) : activeAffectedResourceNames(check)),
+    // the ignored resources too, they are behind a link like the ones past the first few
+    ...allAffectedResourceNames(check),
   ].join(' ').toLowerCase(),
 })));
 
-const ignored = computed(() => ignoredCounts(checks.value));
-const hasIgnored = computed(() => ignored.value.checks + ignored.value.resources > 0);
-
-// says what turning it on brings back, the same whether it is on or off
-const showIgnoredLabel = computed(() => {
-  const counts = [
-    ignored.value.checks && t('harvester.dashboard.sections.componentHealth.ignoredChecks', { count: ignored.value.checks }),
-    ignored.value.resources && t('harvester.dashboard.sections.componentHealth.ignoredResources', { count: ignored.value.resources }),
-  ].filter(Boolean).join(', ');
-
-  return t('harvester.dashboard.sections.componentHealth.showIgnored', { counts });
-});
+// the checks ignored as a whole, the ones the checkbox brings back
+const ignoredCheckCount = computed(() => checks.value.filter((check) => check.ignored).length);
 
 const rows = computed(() => {
   const result = [];
@@ -212,14 +204,25 @@ function collapseAll() {
   >
     <template #header-left>
       <div
-        v-if="hasIgnored"
+        v-if="ignoredCheckCount"
         class="show-ignored"
       >
+        <!-- the label holds the badge, so the checkbox is named here -->
         <Checkbox
           v-model:value="showIgnored"
           type="checkbox"
-          :label="showIgnoredLabel"
-        />
+          :alternate-label="`${ t('harvester.dashboard.sections.componentHealth.showIgnored') } ${ ignoredCheckCount }`"
+        >
+          <template #label>
+            <span class="show-ignored-label">
+              {{ t('harvester.dashboard.sections.componentHealth.showIgnored') }}
+              <RcCounterBadge
+                :count="ignoredCheckCount"
+                type="inactive"
+              />
+            </span>
+          </template>
+        </Checkbox>
       </div>
     </template>
     <template #header-right>
@@ -267,7 +270,6 @@ function collapseAll() {
             class="sub-table"
             :rows="row.checks"
             :ignore-rules="ignoreRules"
-            :show-ignored="showIgnored"
             :filter-text="filterText"
             :load-failed="!!loadErrors.componentHealths"
             @open-rule="openRuleModal"
@@ -290,6 +292,12 @@ function collapseAll() {
     display: flex;
     align-items: center;
     height: 100%;
+  }
+
+  .show-ignored-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .expand-actions {
