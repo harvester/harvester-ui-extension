@@ -3,7 +3,7 @@ import UnitInput from '@shell/components/form/UnitInput';
 import InputOrDisplay from '@shell/components/InputOrDisplay';
 import { GIBIBYTE } from '../../utils/unit';
 import { Checkbox } from '@components/Form/Checkbox';
-import { _VIEW } from '@shell/config/query-params';
+import { _EDIT, _VIEW } from '@shell/config/query-params';
 import { HCI } from '../../types';
 import { allHash } from '@shell/utils/promise';
 import { HCI_SETTING } from '../../config/settings';
@@ -44,6 +44,11 @@ export default {
       type:    String,
       default: 'create',
     },
+    // Editing a VM that is running (or starting): its maximums can only change with a restart
+    isVmRunning: {
+      type:    Boolean,
+      default: false
+    },
     disabled: {
       type:    Boolean,
       default: false
@@ -66,6 +71,8 @@ export default {
       maxLocalCpu:        this.maxCpu,
       maxLocalMemory:     this.maxMemory,
       localEnableHotPlug: this.enableHotPlug,
+      // Hotplug was turned on in this form: the maximums follow CPU and memory
+      hotPlugEnabledHere: false,
       settings:           []
     };
   },
@@ -73,6 +80,12 @@ export default {
   computed: {
     isView() {
       return this.mode === _VIEW;
+    },
+
+    // The maximums cannot change live: while the VM runs, CPU/memory edits keep them. When the VM is off
+    // (or being created) they still follow value x max-hotplug-ratio, since a restart applies them anyway.
+    keepMaximums() {
+      return this.mode === _EDIT && this.isVmRunning && !this.hotPlugEnabledHere;
     },
     cpuDisplay() {
       return `${ this.localCpu } C`;
@@ -131,6 +144,8 @@ export default {
 
   methods: {
     hotPlugChanged(neu) {
+      this.hotPlugEnabledHere = !!neu;
+
       // If hot plug is enabled, we need to update the maxCpu and maxMemory values
       if (neu) {
         this.maxLocalCpu = this.localCpu ? this.localCpu * this.maxHotplugRatio : null;
@@ -142,13 +157,19 @@ export default {
     },
     changeMemory() {
       if (this.localEnableHotPlug) {
-        this.maxLocalMemory = this.localMemory ? `${ parseInt(this.localMemory, 10) * this.maxHotplugRatio }${ GIBIBYTE }` : null;
+        // A running VM keeps its Maximum Memory: it cannot be applied live.
+        if (!(this.keepMaximums && this.maxLocalMemory)) {
+          this.maxLocalMemory = this.localMemory ? `${ parseInt(this.localMemory, 10) * this.maxHotplugRatio }${ GIBIBYTE }` : null;
+        }
       }
       this.$emit('updateCpuMemory', this.localCpu, this.localMemory, this.maxLocalCpu, this.maxLocalMemory, this.localEnableHotPlug);
     },
     changeCPU() {
       if (this.localEnableHotPlug) {
-        this.maxLocalCpu = this.localCpu ? this.localCpu * this.maxHotplugRatio : null;
+        // A running VM keeps its Maximum CPU: it cannot be applied live.
+        if (!(this.keepMaximums && this.maxLocalCpu)) {
+          this.maxLocalCpu = this.localCpu ? this.localCpu * this.maxHotplugRatio : null;
+        }
       }
       this.$emit('updateCpuMemory', this.localCpu, this.localMemory, this.maxLocalCpu, this.maxLocalMemory, this.localEnableHotPlug);
     },
