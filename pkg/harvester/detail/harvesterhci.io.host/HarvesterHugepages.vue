@@ -18,6 +18,12 @@ export default {
     docsTransparentHugepagesLink() {
       return DOC.TRANSPARENT_HUGEPAGES;
     },
+    docsStaticHugepagesLink() {
+      return DOC.STATIC_HUGEPAGES;
+    },
+    isStaticHugepagesFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('staticHugepages');
+    },
   },
 
   async fetch() {
@@ -45,13 +51,13 @@ export default {
         <div class="col span-6">
           <LabelValue
             :name="t('harvester.host.hugepages.status.anon')"
-            :value="hugepages.status.meminfo.anonHugePages"
+            :value="hugepages.status.meminfo.anonHugePages / 1024"
           />
         </div>
         <div class="col span-6">
           <LabelValue
             :name="t('harvester.host.hugepages.status.size')"
-            :value="hugepages.status.meminfo.hugepageSize"
+            :value="hugepages.status.meminfo.hugepageSize / 1024"
           />
         </div>
       </div>
@@ -110,6 +116,28 @@ export default {
             <LabelValue
               :name="t('harvester.host.hugepages.transparent.defrag')"
               :value="hugepages.spec.transparent.defrag"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="isStaticHugepagesFeatureEnabled"
+      >
+        <hr class="divider" />
+        <h3>
+          <t
+            k="harvester.host.hugepages.static.title"
+            :raw="true"
+            :url="docsStaticHugepagesLink"
+          />
+        </h3>
+
+        <div class="row mb-20">
+          <div class="col span-12">
+            <LabelValue
+              :name="t('harvester.host.hugepages.static.nrHugepages')"
+              :value="hugepages.spec.static.nrHugepages"
             />
           </div>
         </div>

@@ -10,4 +10,5 @@ export const DOC = {
   VPC_CONFIGURATION_EXAMPLES: `/networking/kubeovn-vpc#vpc-peering-configuration-examples`,
   NETWORK_POLICY:             `/networking/kubeovn-vm-isolation/#network-policies`,
   TRANSPARENT_HUGEPAGES:      `https://docs.kernel.org/admin-guide/mm/transhuge.html`,
+  STATIC_HUGEPAGES:           `https://docs.kernel.org/admin-guide/mm/hugetlbpage.html`,
 };

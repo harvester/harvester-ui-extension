@@ -663,14 +663,17 @@ harvester:
         stableNodeDups: Stable Node Dups
     hugepages:
       meminfo: Meminfo
+      static:
+        title: Static Hugepages <a href="{url}" target="_blank"><i class="icon icon-info" /></a>
+        nrHugepages: Number of Persistent Hugepages
       transparent:
         title: Transparent Hugepages <a href="{url}" target="_blank"><i class="icon icon-info" /></a>
         enabled: Enabled
         shmemEnabled: Shared Memory Enabled
         defrag: Defragmentation
       status:
-        anon: Anonymous Hugepages (bytes)
-        size: Default Hugepage Size (bytes)
+        anon: Anonymous Hugepages (kB)
+        size: Default Hugepage Size (kB)
         total: Total Hugepages
         free: Free Hugepages
         rsvd: Reserved Hugepages
