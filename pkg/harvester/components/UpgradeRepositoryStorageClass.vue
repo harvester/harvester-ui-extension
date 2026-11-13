@@ -3,13 +3,20 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { LVM_DRIVER } from '../models/harvester/storage.k8s.io.storageclass';
 import { isInternalStorageClass } from '../utils/storage-class';
 
+export function getUpgradeRepositoryStorageClassDefault(storageClasses) {
+  return storageClasses.find((storageClass) => storageClass.isDefault &&
+    !storageClass.parameters?.backingImage &&
+    storageClass.provisioner !== LVM_DRIVER &&
+    !isInternalStorageClass(storageClass.name))?.name || '';
+}
+
 export default {
   name: 'UpgradeRepositoryStorageClass',
 
   components: { LabeledSelect },
 
   props: {
-    modelValue: {
+    value: {
       type:    String,
       default: '',
     },
@@ -18,9 +25,14 @@ export default {
       type:    Array,
       default: () => [],
     },
+
+    disabled: {
+      type:    Boolean,
+      default: false,
+    },
   },
 
-  emits: ['update:modelValue'],
+  emits: ['update:value'],
 
   computed: {
     storageClassOptions() {
@@ -50,13 +62,14 @@ export default {
 
 <template>
   <LabeledSelect
-    :value="modelValue"
+    :value="value"
     :label="t('harvester.upgradePage.repositoryStorageClass')"
     :tooltip="t('harvester.upgradePage.repositoryStorageClassTooltip')"
     :placeholder="t('harvester.upgradePage.repositoryStorageClassPlaceholder')"
     :options="storageClassOptions"
+    :disabled="disabled"
     required
-    @update:value="$emit('update:modelValue', $event)"
+    @update:value="$emit('update:value', $event)"
   >
     <template #no-options="{ searching }">
       <span

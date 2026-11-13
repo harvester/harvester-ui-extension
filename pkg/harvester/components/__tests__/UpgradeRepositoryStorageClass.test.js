@@ -1,4 +1,4 @@
-import UpgradeRepositoryStorageClass from '../UpgradeRepositoryStorageClass.vue';
+import UpgradeRepositoryStorageClass, { getUpgradeRepositoryStorageClassDefault } from '../UpgradeRepositoryStorageClass.vue';
 
 const storageClasses = [
   { name: 'fast', isDefault: true },
@@ -26,5 +26,24 @@ describe('component: UpgradeRepositoryStorageClass', () => {
         label: 'slow', value: 'slow', disabled: false
       },
     ]);
+  });
+
+  it('does not use an unavailable StorageClass as the default', () => {
+    expect(getUpgradeRepositoryStorageClassDefault([
+      {
+        name: 'lvm-local', isDefault: true, provisioner: 'lvm.driver.harvesterhci.io'
+      },
+      { name: 'longhorn-static' },
+      { name: 'fast' }
+    ])).toBe('');
+  });
+
+  it('uses the project value binding convention', () => {
+    expect(UpgradeRepositoryStorageClass.props.value).toBeDefined();
+    expect(UpgradeRepositoryStorageClass.emits).toContain('update:value');
+  });
+
+  it('accepts a disabled state after an image has been created', () => {
+    expect(UpgradeRepositoryStorageClass.props.disabled).toBeDefined();
   });
 });

@@ -9,7 +9,7 @@ import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations
 import { STORAGE_CLASS } from '@shell/config/types';
 import { HCI } from '../types';
 import UpgradeInfo from './UpgradeInfo';
-import UpgradeRepositoryStorageClass from './UpgradeRepositoryStorageClass';
+import UpgradeRepositoryStorageClass, { getUpgradeRepositoryStorageClassDefault } from './UpgradeRepositoryStorageClass';
 
 export default {
   name: 'HarvesterUpgrade',
@@ -29,7 +29,7 @@ export default {
     });
 
     this.upgrade = res.upgrade;
-    this.storageClassName = res.storageClasses.find((storageClass) => storageClass.isDefault)?.name || '';
+    this.storageClassName = getUpgradeRepositoryStorageClassDefault(res.storageClasses);
   },
 
   data() {
@@ -232,7 +232,7 @@ export default {
 
           <UpgradeRepositoryStorageClass
             v-if="repositoryStorageClassEnabled"
-            v-model="storageClassName"
+            v-model:value="storageClassName"
             class="mb-10"
             :storage-classes="storageClasses"
           />

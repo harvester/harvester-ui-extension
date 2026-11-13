@@ -24,6 +24,30 @@ describe('component: HarvesterUpgrade', () => {
     expect(HarvesterUpgrade.components.UpgradeRepositoryStorageClass).toBeDefined();
   });
 
+  it('leaves the default empty when it is unavailable for upgrade repositories', async() => {
+    const form = {
+      upgrade:          [],
+      storageClassName: 'previous',
+      $store:           {
+        getters:  { currentProduct: { inStore: 'harvester' } },
+        dispatch: jest.fn()
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([
+            {
+              name: 'lvm-local', isDefault: true, provisioner: 'lvm.driver.harvesterhci.io'
+            },
+            { name: 'fast' }
+          ])
+      }
+    };
+
+    await HarvesterUpgrade.fetch.call(form);
+
+    expect(form.storageClassName).toBe('');
+  });
+
   it('blocks the upgrade when no StorageClass is selected', () => {
     const canSubmitUpgrade = HarvesterUpgrade.computed.canSubmitUpgrade;
 
