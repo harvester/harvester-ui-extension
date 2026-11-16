@@ -74,6 +74,13 @@ export default {
       return !!this.value?.metadata?.name && this.bfdPortErrors.length === 0;
     },
 
+    // Each field shows its own error once touched, so a disabled Save always has a visible reason
+    nameRules() {
+      return {
+        name: [(value) => (value ? undefined : this.t('validation.required', { key: this.t('generic.name') }, true))], namespace: [], description: []
+      };
+    },
+
     bfdPortIPRules() {
       return [(value) => this.bfdPortIPError(value)];
     },
@@ -182,6 +189,7 @@ export default {
       :value="value"
       :mode="mode"
       :namespaced="false"
+      :rules="nameRules"
       @update:value="$emit('update:value', $event)"
     />
     <ResourceTabs

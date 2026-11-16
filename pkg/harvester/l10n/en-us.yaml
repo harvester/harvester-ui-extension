@@ -1534,6 +1534,7 @@ harvester:
     internalSubnet:
       label: Internal Subnet
       placeholder: Select a subnet of the VPC
+      none: VPC {vpc} has no subnet on a virtual machine network
       tooltip: The subnet of the VPC that the gateway instances are attached to. Only subnets of a virtual machine network are listed.
     externalSubnet:
       label: External Subnet
@@ -1543,6 +1544,7 @@ harvester:
       label: Policies
       addLabel: Add Policy
       snat: Enable SNAT
+      snatTooltip: With SNAT, traffic leaves with the gateway's external IP. Without it, traffic keeps its source IP, and the external network needs a route back to these subnets.
       subnets:
         label: Subnets
         placeholder: Select subnets of the VPC
@@ -1589,6 +1591,7 @@ harvester:
       replicas: '"Replicas" must be a whole number from 0 to 10.'
       policyRequired: Add at least one policy.
       policySubnets: Select at least one subnet in each policy.
+      policySubnetRepeated: Subnet {subnet} is in more than one policy. Put each subnet in one policy only.
       sameSubnet: The internal and external subnets must be different.
       ipList: '"{key}" must contain valid IP addresses.'
       ipDuplicate: '"{key}" must not repeat an address.'

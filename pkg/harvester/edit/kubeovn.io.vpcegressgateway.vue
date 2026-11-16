@@ -162,12 +162,31 @@ export default {
       return this.validate().length === 0;
     },
 
+    // Each field shows its own error once touched, so a disabled Save always has a visible reason
+    nameRules() {
+      return {
+        name: [(value) => (value ? undefined : this.t('validation.required', { key: this.t('generic.name') }, true))], namespace: [], description: []
+      };
+    },
+
+    vpcRules() {
+      return [(value) => this.requiredError(value, 'harvester.egressGateway.vpc.label')];
+    },
+
+    internalSubnetRules() {
+      return [(value) => this.requiredError(value, 'harvester.egressGateway.internalSubnet.label')];
+    },
+
+    internalSubnetPlaceholder() {
+      return this.vpc && !this.internalSubnetOptions.length ? this.t('harvester.egressGateway.internalSubnet.none', { vpc: this.vpc }, true) : this.t('harvester.egressGateway.internalSubnet.placeholder');
+    },
+
     replicasRules() {
       return [(value) => (isWholeNumber(value, 0, MAX_REPLICAS) ? undefined : this.t('harvester.egressGateway.validation.replicas', null, true))];
     },
 
     externalSubnetRules() {
-      return [(value) => (value && value === this.internalSubnet ? this.t('harvester.egressGateway.validation.sameSubnet', null, true) : undefined)];
+      return [(value) => this.requiredError(value, 'harvester.egressGateway.externalSubnet.label') || (value === this.internalSubnet ? this.t('harvester.egressGateway.validation.sameSubnet', null, true) : undefined)];
     },
 
     internalIPRules() {
@@ -230,6 +249,10 @@ export default {
       this.policies.splice(index, 1);
     },
 
+    requiredError(value, labelKey) {
+      return value ? undefined : this.t('validation.required', { key: this.t(labelKey) }, true);
+    },
+
     ipError(field, ip) {
       const value = `${ ip || '' }`.trim();
       const { labelKey, subnet: subnetField } = IP_FIELDS[field];
@@ -269,7 +292,16 @@ export default {
     },
 
     policySubnetsError(policy) {
-      return policy.subnets.length || policy.ipBlocks?.length ? undefined : this.t('harvester.egressGateway.validation.policySubnets', null, true);
+      if (!policy.subnets.length && !policy.ipBlocks?.length) {
+        return this.t('harvester.egressGateway.validation.policySubnets', null, true);
+      }
+
+      // The gateway leaves a source out of SNAT when any policy has SNAT off for it, so a subnet in two
+      // policies would silently ignore one of them
+      const otherSubnets = this.policies.filter((other) => other !== policy).flatMap((other) => other.subnets);
+      const repeated = policy.subnets.find((subnet) => otherSubnets.includes(subnet));
+
+      return repeated ? this.t('harvester.egressGateway.validation.policySubnetRepeated', { subnet: repeated }, true) : undefined;
     },
 
     // The errors of each tab, so each tab can be marked and Save stays disabled until there are none
@@ -298,8 +330,12 @@ export default {
 
       if (!this.policies.length) {
         errors.policies.push(this.t('harvester.egressGateway.validation.policyRequired', null, true));
-      } else if (this.policies.some((policy) => this.policySubnetsError(policy))) {
-        errors.policies.push(this.t('harvester.egressGateway.validation.policySubnets', null, true));
+      } else {
+        const policyError = this.policies.map((policy) => this.policySubnetsError(policy)).find(Boolean);
+
+        if (policyError) {
+          errors.policies.push(policyError);
+        }
       }
 
       Object.keys(IP_FIELDS).forEach((field) => {
@@ -407,6 +443,7 @@ export default {
     <NameNsDescription
       :value="value"
       :mode="mode"
+      :rules="nameRules"
       @update:value="$emit('update:value', $event)"
     />
 
@@ -432,6 +469,7 @@ export default {
               data-testid="egress-gateway-vpc"
               class="mb-20"
               required
+              :rules="vpcRules"
               :options="vpcOptions"
               :mode="mode"
               :label="t('harvester.egressGateway.vpc.label')"
@@ -462,9 +500,10 @@ export default {
               class="mb-20"
               required
               :options="internalSubnetOptions"
+              :rules="internalSubnetRules"
               :mode="mode"
               :label="t('harvester.egressGateway.internalSubnet.label')"
-              :placeholder="t('harvester.egressGateway.internalSubnet.placeholder')"
+              :placeholder="internalSubnetPlaceholder"
               :tooltip="t('harvester.egressGateway.internalSubnet.tooltip')"
             />
           </div>
@@ -518,6 +557,7 @@ export default {
                   class="mb-15"
                   :mode="mode"
                   :label="t('harvester.egressGateway.policies.snat')"
+                  :tooltip="t('harvester.egressGateway.policies.snatTooltip')"
                 />
                 <LabeledSelect
                   v-model:value="policy.subnets"
@@ -627,6 +667,7 @@ export default {
                 v-model:value="bfd.minRX"
                 :min="1"
                 :mode="mode"
+                required
                 :rules="bfdRules"
                 :label="t('harvester.egressGateway.bfd.minRX.label')"
                 :suffix="t('harvester.egressGateway.bfd.milliseconds')"
@@ -637,6 +678,7 @@ export default {
                 v-model:value="bfd.minTX"
                 :min="1"
                 :mode="mode"
+                required
                 :rules="bfdRules"
                 :label="t('harvester.egressGateway.bfd.minTX.label')"
                 :suffix="t('harvester.egressGateway.bfd.milliseconds')"
@@ -648,6 +690,7 @@ export default {
                 type="number"
                 :min="1"
                 :mode="mode"
+                required
                 :rules="bfdRules"
                 :label="t('harvester.egressGateway.bfd.multiplier.label')"
                 :tooltip="t('harvester.egressGateway.bfd.multiplier.tooltip')"

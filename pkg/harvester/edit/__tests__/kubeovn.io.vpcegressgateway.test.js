@@ -5,8 +5,9 @@ const {
 } = EditVpcEgressGateway.methods;
 const { vpc: onVpcChange } = EditVpcEgressGateway.watch;
 const {
-  vpcBfdPortDisabled, vpcEditLocation, internalSubnetOptions, externalSubnetOptions
+  vpcBfdPortDisabled, vpcEditLocation, internalSubnetOptions, externalSubnetOptions, externalSubnetRules, internalSubnetPlaceholder
 } = EditVpcEgressGateway.computed;
+const { requiredError } = EditVpcEgressGateway.methods;
 
 const t = (key, args) => (args ? `${ key } ${ JSON.stringify(args) }` : key);
 
@@ -148,8 +149,42 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     expect(errors.policies[0]).toContain('harvester.egressGateway.validation.policyRequired');
   });
 
+  it.each([
+    ['empty', '', 'validation.required'],
+    ['the internal subnet', 'subnetinternal', 'harvester.egressGateway.validation.sameSubnet'],
+  ])('should explain an external subnet that is %s', (_, value, errorKey) => {
+    const [rule] = externalSubnetRules.call(createContext({ requiredError }));
+
+    expect(rule(value)).toContain(errorKey);
+  });
+
+  it('should accept an external subnet other than the internal one', () => {
+    const [rule] = externalSubnetRules.call(createContext({ requiredError }));
+
+    expect(rule('subnetexternal')).toBeUndefined();
+  });
+
+  it('should say when the VPC has no subnet on a virtual machine network', () => {
+    const t = (key, args) => (args ? `${ key } ${ args.vpc }` : key);
+
+    expect(internalSubnetPlaceholder.call({
+      t, vpc: 'ovn-cluster', internalSubnetOptions: []
+    })).toBe('harvester.egressGateway.internalSubnet.none ovn-cluster');
+    expect(internalSubnetPlaceholder.call({
+      t, vpc: 'commonvpc', internalSubnetOptions: [{ value: 'subnetinternal' }]
+    })).toBe('harvester.egressGateway.internalSubnet.placeholder');
+  });
+
   it('should leave an empty IP row to the save, which drops it', () => {
     expect(ipError.call(createContext(), 'internalIPs', ' ')).toBeUndefined();
+  });
+
+  it('should reject a subnet that is in two policies', () => {
+    const errors = validate.call(createContext({ policies: [{ snat: true, subnets: ['subnetinternal'] }, { snat: false, subnets: ['subnetinternal', 'subnetother'] }] }));
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('harvester.egressGateway.validation.policySubnetRepeated');
+    expect(errors[0]).toContain('subnetinternal');
   });
 
   it('should accept a policy with only IP blocks', () => {
