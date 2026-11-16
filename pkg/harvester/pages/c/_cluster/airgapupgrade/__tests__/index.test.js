@@ -1,3 +1,4 @@
+import { shallowMount } from '@vue/test-utils';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import HarvesterAirgapUpgrade from '../index.vue';
 
@@ -78,6 +79,53 @@ describe('page: HarvesterAirgapUpgrade', () => {
       repositoryStorageClassEnabled: true,
       storageClassName:              ''
     })).toBe(true);
+  });
+
+  it('unlocks the StorageClass selector after switching an uploaded image to URL', async() => {
+    const wrapper = shallowMount(HarvesterAirgapUpgrade, {
+      global: {
+        mocks: {
+          $store: {
+            getters: {
+              'harvester-common/getFeatureEnabled': (feature) => feature === 'repositoryStorageClass',
+              'harvester/all':                       () => [],
+              'harvester/schemaFor':                 () => false,
+            },
+            dispatch: jest.fn().mockResolvedValue({
+              metadata: { annotations: {} },
+              spec:     {
+                checksum: '', displayName: '', sourceType: 'upload', url: ''
+              },
+            }),
+          },
+          t: (key) => key,
+        },
+        stubs: {
+          CruResource:                   { template: '<div><slot /></div>' },
+          UpgradeRepositoryStorageClass: {
+            props:    ['disabled'],
+            template: '<div data-testid="storage-class" :data-disabled="disabled" />',
+          },
+        },
+      },
+    });
+
+    await wrapper.setData({
+      value:         {},
+      imageValue: {
+        spec:   {
+          checksum: '', displayName: '', sourceType: 'upload', url: ''
+        },
+        remove: jest.fn().mockResolvedValue(),
+      },
+      sourceType:       'upload',
+      uploadController: { abort: jest.fn() },
+      uploadImageId:    'harvester-system/upgrade-image',
+    });
+    expect(wrapper.find('[data-testid="storage-class"]').attributes('data-disabled')).toBe('true');
+
+    await wrapper.setData({ sourceType: 'download' });
+    expect(wrapper.find('[data-testid="storage-class"]').attributes('data-disabled')).toBe('false');
   });
 
   it('saves an uploaded upgrade image on the selected StorageClass', async() => {

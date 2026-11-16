@@ -377,6 +377,10 @@ export default {
 
   watch: {
     async sourceType(neu) {
+      if (neu === DOWNLOAD) {
+        this.uploadImageId = '';
+      }
+
       if (neu === DOWNLOAD && this.imageValue && this.uploadController) {
         if (this.uploadController) {
           this.uploadController.abort();

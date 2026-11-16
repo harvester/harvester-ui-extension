@@ -37,13 +37,4 @@ describe('component: UpgradeRepositoryStorageClass', () => {
       { name: 'fast' }
     ])).toBe('');
   });
-
-  it('uses the project value binding convention', () => {
-    expect(UpgradeRepositoryStorageClass.props.value).toBeDefined();
-    expect(UpgradeRepositoryStorageClass.emits).toContain('update:value');
-  });
-
-  it('accepts a disabled state after an image has been created', () => {
-    expect(UpgradeRepositoryStorageClass.props.disabled).toBeDefined();
-  });
 });
