@@ -1495,7 +1495,7 @@ harvester:
         label: Remote VPC
       infoBanner: The static route destination CIDR must cover all subnets CIDR from remote VPC Peer. Read <a href="{url}" target="_blank">VPC Peering Configuration Examples</a> for more information.
   natGateway:
-    label: Gateways
+    label: NAT Gateways
     internalTenantNetwork:
       label: Internal Tenant Network
       placeholder: Select a Virtual Machine Network
@@ -1512,6 +1512,70 @@ harvester:
       label: External Subnets
       addLabel: Add
       placeholder: Select a subnet
+  egressGateway:
+    label: Egress Gateways
+    vpc:
+      label: VPC
+      placeholder: Select a VPC
+    replicas:
+      label: Replicas
+      tooltip: The number of gateway instances. Traffic is spread across all instances.
+    internalSubnet:
+      label: Internal Subnet
+      placeholder: Select a subnet of the VPC
+      tooltip: The subnet of the VPC that the gateway instances are attached to.
+    externalSubnet:
+      label: External Subnet
+      placeholder: Select a subnet
+      tooltip: The subnet that connects the gateway instances to the external network.
+    policies:
+      label: Policies
+      addLabel: Add Policy
+      snat: Enable SNAT
+      subnets:
+        label: Subnets
+        placeholder: Select subnets of the VPC
+        tooltip: The traffic from these subnets goes out through the gateway.
+    ips:
+      label: IP Addresses
+      banner: Optional. When you set IP addresses, set at least one for each replica. They must be in the internal or external subnet.
+      internal:
+        label: Internal IPs
+        add: Add Internal IP
+        placeholder: e.g. 172.20.10.41
+      external:
+        label: External IPs
+        add: Add External IP
+        placeholder: e.g. 10.115.48.220
+    bfd:
+      label: BFD
+      enabled: Bidirectional Forwarding Detection (BFD)
+      tooltip: Detect a failed gateway instance quickly and move its traffic to the other instances.
+      vpcDisabled: BFD also needs to be enabled on the VPC, and VPC {vpc} doesn't have BFD enabled.
+      minRX:
+        label: Minimum Receive Interval
+      minTX:
+        label: Minimum Transmit Interval
+      multiplier:
+        label: Multiplier
+        tooltip: The number of missed packets after which a gateway instance is considered down.
+      milliseconds: ms
+    bandwidth:
+      label: Bandwidth
+      banner: Optional. Limits the bandwidth of each gateway instance.
+      ingress:
+        label: Ingress
+      egress:
+        label: Egress
+      unit: Mbps
+    validation:
+      replicas: '"Replicas" must be a whole number from 0 to 10.'
+      policyRequired: Add at least one policy.
+      policySubnets: Select at least one subnet in each policy.
+      ipList: '"{key}" must contain valid IP addresses.'
+      ipCount: '"{key}" must have at least one address for each replica ({replicas}).'
+      bfd: The BFD intervals must be whole numbers from 1 to 3600000.
+      bandwidth: The bandwidth must be a positive whole number.
   externalIP:
     label: External IPs
     natGateway:
@@ -2756,6 +2820,11 @@ typeLabel:
     {count, plural,
       one { NAT Gateway }
       other { NAT Gateways }
+    }
+  kubeovn.io.vpcegressgateway: |-
+    {count, plural,
+      one { Egress Gateway }
+      other { Egress Gateways }
     }
   kubeovn.io.iptablessnatrule: |-
     {count, plural,
