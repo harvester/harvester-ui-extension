@@ -6,7 +6,7 @@ import { STATE, AGE, NAME, NAMESPACE } from '@shell/config/table-headers';
 import {
   PVC, PV, NODE, POD, STORAGE_CLASS
 } from '@shell/config/types';
-import { FilterArgs, PaginationFilterField, PaginationParamFilter } from '@shell/types/store/pagination.types';
+import { FilterArgs, PaginationFilterEquality, PaginationParamFilter } from '@shell/types/store/pagination.types';
 
 import { allHash } from '@shell/utils/promise';
 import { uniq } from '@shell/utils/array';
@@ -385,7 +385,11 @@ export default {
         type,
         opt: {
           force,
-          pagination: new FilterArgs({ filters: PaginationParamFilter.createMultipleFields(wanted.map((value) => new PaginationFilterField({ field, value }))) }),
+          pagination: new FilterArgs({
+            filters: PaginationParamFilter.createSingleField({
+              field, value: wanted.join(','), equality: PaginationFilterEquality.IN
+            })
+          }),
         }
       });
     },

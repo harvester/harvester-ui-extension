@@ -146,17 +146,17 @@ describe('list: kubevirt.io.virtualmachine', () => {
       const filters = Object.fromEntries($store.dispatch.mock.calls.map(([action, { type, opt }]) => {
         expect(action).toBe('harvester/findPage');
 
-        return [type, opt.pagination.filters[0].fields.map(({ field, value }) => `${ field }=${ value }`)];
+        return [type, opt.pagination.filters[0].fields.map(({ field, value, equality }) => `${ field }${ equality }(${ value })`)];
       }));
 
       expect(filters).toStrictEqual({
-        [PVC]:         ['metadata.name=a-disk', 'metadata.name=b-disk'],
-        [HCI.RESTORE]: ['metadata.fields.2=a', 'metadata.fields.2=b'],
-        [HCI.VMI]:     ['metadata.name=a', 'metadata.name=b'],
-        [POD]:         ['metadata.labels[harvesterhci.io/vmName]=a', 'metadata.labels[harvesterhci.io/vmName]=b'],
-        [HCI.VMIM]:    ['metadata.fields.2=a', 'metadata.fields.2=b'],
-        [PV]:          ['metadata.name=pv-a'],
-        [HCI.BACKUP]:  ['metadata.name=backup-a'],
+        [PVC]:         ['metadata.name IN (a-disk,b-disk)'],
+        [HCI.RESTORE]: ['metadata.fields.2 IN (a,b)'],
+        [HCI.VMI]:     ['metadata.name IN (a,b)'],
+        [POD]:         ['metadata.labels[harvesterhci.io/vmName] IN (a,b)'],
+        [HCI.VMIM]:    ['metadata.fields.2 IN (a,b)'],
+        [PV]:          ['metadata.name IN (pv-a)'],
+        [HCI.BACKUP]:  ['metadata.name IN (backup-a)'],
       });
     });
 
