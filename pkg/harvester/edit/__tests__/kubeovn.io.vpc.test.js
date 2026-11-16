@@ -1,16 +1,20 @@
 import EditVPC from '../kubeovn.io.vpc/index.vue';
 
-const { validateBfdPort, applyBfdPort } = EditVPC.methods;
+const { validateBfdPort, bfdPortIPError, applyBfdPort } = EditVPC.methods;
+const { validationPassed, gatewaysNeedingBfdPort } = EditVPC.computed;
 
 const t = (key) => key;
 
-function createContext(form = {}, spec = {}) {
-  const value = { metadata: { name: 'commonvpc' }, spec };
+function createContext(form = {}, spec = {}, model = {}) {
+  const value = {
+    metadata: { name: 'commonvpc' }, spec, subnetResources: [], bfdEgressGateways: [], ...model
+  };
 
   return {
     t,
     value,
     ...EditVPC.data.call({ value }),
+    bfdPortIPError,
     ...form,
   };
 }
@@ -50,6 +54,34 @@ describe('edit: kubeovn.io.vpc', () => {
     applyBfdPort.call(context);
 
     expect(context.value.spec.bfdPort).toStrictEqual({ enabled: false, ip: '10.255.255.255' });
+  });
+
+  it('should reject a BFD port IP inside one of the VPC subnets', () => {
+    const subnet = {
+      id: 'subnetinternal', spec: { cidrBlock: '172.20.10.0/24' }, containsIP: (ip) => ip.startsWith('172.20.10.')
+    };
+    const context = createContext({ bfdPortEnabled: true, bfdPortIP: '172.20.10.200' }, {}, { subnetResources: [subnet] });
+    const errors = validateBfdPort.call(context);
+
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('harvester.vpc.bfdPort.validation.subnet');
+  });
+
+  it.each([
+    ['a name and a valid BFD port', {}, true],
+    ['no name', { value: { metadata: {} } }, false],
+    ['an invalid BFD port', { bfdPortErrors: ['error'] }, false],
+  ])('should allow the save with %s', (_, form, passed) => {
+    expect(validationPassed.call({
+      value: { metadata: { name: 'commonvpc' } }, bfdPortErrors: [], ...form
+    })).toBe(passed);
+  });
+
+  it('should list the gateways that need the BFD port only while it is disabled', () => {
+    const bfdEgressGateways = [{ id: 'default/gateway1' }];
+
+    expect(gatewaysNeedingBfdPort.call({ bfdPortEnabled: false, value: { bfdEgressGateways } })).toStrictEqual(bfdEgressGateways);
+    expect(gatewaysNeedingBfdPort.call({ bfdPortEnabled: true, value: { bfdEgressGateways } })).toStrictEqual([]);
   });
 
   it.each([

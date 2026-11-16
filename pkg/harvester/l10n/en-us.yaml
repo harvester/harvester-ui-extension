@@ -1501,8 +1501,10 @@ harvester:
         label: IP Address
         placeholder: e.g. 10.255.255.255
         tooltip: An IP address that doesn't conflict with any other address. For dual-stack, enter an IPv4 and an IPv6 address, separated by a comma.
+      gatewaysNeedPort: The Egress Gateways {gateways} have BFD enabled in this VPC, and they stop working without its BFD port.
       validation:
         ip: '"IP Address" must be an IPv4 address, an IPv6 address, or one of each separated by a comma.'
+        subnet: '"IP Address" must not be in subnet {subnet} ({cidr}) of this VPC.'
   natGateway:
     label: NAT Gateways
     internalTenantNetwork:
@@ -1532,11 +1534,11 @@ harvester:
     internalSubnet:
       label: Internal Subnet
       placeholder: Select a subnet of the VPC
-      tooltip: The subnet of the VPC that the gateway instances are attached to.
+      tooltip: The subnet of the VPC that the gateway instances are attached to. Only subnets of a virtual machine network are listed.
     externalSubnet:
       label: External Subnet
       placeholder: Select a subnet
-      tooltip: The subnet that connects the gateway instances to the external network.
+      tooltip: The subnet that connects the gateway instances to the external network. Only subnets of a virtual machine network are listed.
     policies:
       label: Policies
       addLabel: Add Policy
@@ -1545,10 +1547,12 @@ harvester:
         label: Subnets
         placeholder: Select subnets of the VPC
         tooltip: The traffic from these subnets goes out through the gateway.
-      selectors: This gateway also uses namespace and pod selectors. The form keeps them as they are.
+      ipBlocks:
+        label: IP Blocks
+        tooltip: The traffic from these CIDRs also goes out through the gateway. They were set outside this form, which keeps them as they are.
     ips:
       label: IP Addresses
-      banner: Optional. When you set IP addresses, set at least one for each replica. They must be in the internal or external subnet.
+      banner: Optional. When you set IP addresses, set at least one for each replica. Internal IPs must be in the internal subnet and external IPs in the external subnet.
       internal:
         label: Internal IPs
         add: Add Internal IP
@@ -1585,7 +1589,10 @@ harvester:
       replicas: '"Replicas" must be a whole number from 0 to 10.'
       policyRequired: Add at least one policy.
       policySubnets: Select at least one subnet in each policy.
+      sameSubnet: The internal and external subnets must be different.
       ipList: '"{key}" must contain valid IP addresses.'
+      ipDuplicate: '"{key}" must not repeat an address.'
+      ipSubnet: '"{key}" must be addresses of subnet {subnet} ({cidr}), other than its gateway.'
       ipCount: '"{key}" must have at least one address for each replica ({replicas}).'
       bfd: The BFD intervals must be whole numbers from 1 to 3600000.
       bandwidth: The bandwidth must be a whole number in Mbps or a quantity such as 100M or 1Gi.

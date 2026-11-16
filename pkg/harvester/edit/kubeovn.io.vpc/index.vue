@@ -11,7 +11,9 @@ import { Banner } from '@components/Banner';
 import StaticRoutes from './StaticRoutes';
 import VpcPeerings from './VpcPeerings';
 import { set } from '@shell/utils/object';
+import { allHash } from '@shell/utils/promise';
 import { isValidIP } from '@shell/utils/validators/cidr';
+import { HCI } from '../../types';
 
 const splitIPs = (value) => `${ value || '' }`.split(',').map((ip) => ip.trim()).filter(Boolean);
 
@@ -37,6 +39,16 @@ export default {
 
   inheritAttrs: false,
 
+  async fetch() {
+    const inStore = this.$store.getters['currentProduct'].inStore;
+    const hasEgressGateways = !!this.$store.getters[`${ inStore }/schemaFor`](HCI.VPC_EGRESS_GATEWAY);
+
+    await allHash({
+      subnets:  this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.SUBNET }),
+      gateways: hasEgressGateways ? this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VPC_EGRESS_GATEWAY }) : [],
+    });
+  },
+
   data() {
     set(this.value, 'spec', this.value.spec || {
       staticRoutes: [],
@@ -52,24 +64,53 @@ export default {
     };
   },
 
+  computed: {
+    bfdPortErrors() {
+      return this.isView ? [] : this.validateBfdPort();
+    },
+
+    // Save stays disabled until the form is valid
+    validationPassed() {
+      return !!this.value?.metadata?.name && this.bfdPortErrors.length === 0;
+    },
+
+    bfdPortIPRules() {
+      return [(value) => this.bfdPortIPError(value)];
+    },
+
+    gatewaysNeedingBfdPort() {
+      return this.bfdPortEnabled ? [] : this.value.bfdEgressGateways || [];
+    },
+  },
+
   methods: {
-    validateBfdPort() {
+    bfdPortIPError(value) {
       if (!this.bfdPortEnabled) {
-        return [];
+        return undefined;
       }
 
-      const ips = splitIPs(this.bfdPortIP);
+      const ips = splitIPs(value);
       const ipv6Count = ips.filter((ip) => ip.includes(':')).length;
 
       if (!ips.length) {
-        return [this.t('validation.required', { key: this.t('harvester.vpc.bfdPort.ip.label') }, true)];
+        return this.t('validation.required', { key: this.t('harvester.vpc.bfdPort.ip.label') }, true);
       }
 
       if (ips.length > 2 || ips.some((ip) => !isValidIP(ip)) || (ips.length === 2 && ipv6Count !== 1)) {
-        return [this.t('harvester.vpc.bfdPort.validation.ip', null, true)];
+        return this.t('harvester.vpc.bfdPort.validation.ip', null, true);
       }
 
-      return [];
+      const subnet = (this.value.subnetResources || []).find((item) => ips.some((ip) => item.containsIP(ip)));
+
+      if (subnet) {
+        return this.t('harvester.vpc.bfdPort.validation.subnet', { subnet: subnet.id, cidr: subnet.spec?.cidrBlock }, true);
+      }
+
+      return undefined;
+    },
+
+    validateBfdPort() {
+      return [this.bfdPortIPError(this.bfdPortIP)].filter(Boolean);
     },
 
     applyBfdPort() {
@@ -133,6 +174,7 @@ export default {
     :mode="mode"
     :apply-hooks="applyHooks"
     :errors="errors"
+    :validation-passed="validationPassed"
     @finish="saveVpc"
     @error="e=>errors=e"
   >
@@ -176,6 +218,8 @@ export default {
         name="bfdPort"
         :label="t('harvester.vpc.bfdPort.label')"
         :weight="-3"
+        :error="bfdPortErrors.length > 0"
+        :error-icon-tooltip="bfdPortErrors.join(' ')"
       >
         <Banner
           color="info"
@@ -190,6 +234,12 @@ export default {
           :aria-label="t('harvester.vpc.bfdPort.label')"
           :mode="mode"
         />
+        <Banner
+          v-if="gatewaysNeedingBfdPort.length"
+          color="warning"
+          data-testid="vpc-bfd-port-gateways"
+          :label="t('harvester.vpc.bfdPort.gatewaysNeedPort', { gateways: gatewaysNeedingBfdPort.map((gateway) => gateway.id).join(', ') }, true)"
+        />
         <div
           v-if="bfdPortEnabled"
           class="row mt-20"
@@ -199,6 +249,7 @@ export default {
               v-model:value="bfdPortIP"
               data-testid="vpc-bfd-port-ip"
               required
+              :rules="bfdPortIPRules"
               :mode="mode"
               :label="t('harvester.vpc.bfdPort.ip.label')"
               :placeholder="t('harvester.vpc.bfdPort.ip.placeholder')"
