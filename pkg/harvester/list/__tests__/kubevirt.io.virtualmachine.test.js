@@ -1,4 +1,6 @@
-import { PVC, PV, POD } from '@shell/config/types';
+import {
+  PVC, PV, POD, NODE, STORAGE_CLASS
+} from '@shell/config/types';
 import ResourceTable from '@shell/components/ResourceTable';
 import PaginatedResourceTable from '@shell/components/PaginatedResourceTable';
 import VmList, { VM_HEADERS } from '../kubevirt.io.virtualmachine.vue';
@@ -147,6 +149,7 @@ describe('list: kubevirt.io.virtualmachine', () => {
         found: {
           [PVC]:         [{ spec: { volumeName: 'pv-a' } }, { spec: {} }],
           [HCI.RESTORE]: [{ spec: { virtualMachineBackupName: 'backup-a' } }],
+          [HCI.VMI]:     [{ metadata: { name: 'a', uid: 'uid-a' } }, { metadata: { name: 'b', uid: 'uid-b' } }],
         }
       });
       const ctx = { $store, inStore: 'harvester' };
@@ -155,12 +158,13 @@ describe('list: kubevirt.io.virtualmachine', () => {
       ctx.printerColumnField = VmList.methods.printerColumnField.bind(ctx);
 
       await VmList.methods.fetchPageSecondaryResources.call(ctx, {
-        force: false,
+        force: true,
         page:  [vm('default', 'a', ['a-disk']), vm('other', 'a'), vm('default', 'b', ['b-disk'])],
       });
 
       const filters = Object.fromEntries($store.dispatch.mock.calls.map(([action, { type, opt }]) => {
         expect(action).toBe('harvester/findPage');
+        expect(opt.force).toBe(true);
 
         return [type, opt.pagination.filters[0].fields.map(({ field, value, equality }) => `${ field }${ equality }(${ value })`)];
       }));
@@ -169,7 +173,7 @@ describe('list: kubevirt.io.virtualmachine', () => {
         [PVC]:         ['metadata.name IN (a-disk,b-disk)'],
         [HCI.RESTORE]: ['metadata.fields.2 IN (a,b)'],
         [HCI.VMI]:     ['metadata.name IN (a,b)'],
-        [POD]:         ['metadata.labels[harvesterhci.io/vmName] IN (a,b)'],
+        [POD]:         ['metadata.labels[kubevirt.io/created-by] IN (uid-a,uid-b)'],
         [HCI.VMIM]:    ['metadata.fields.2 IN (a,b)'],
         [PV]:          ['metadata.name IN (pv-a)'],
         [HCI.BACKUP]:  ['metadata.name IN (backup-a)'],
@@ -177,7 +181,7 @@ describe('list: kubevirt.io.virtualmachine', () => {
     });
 
     it('should fetch the rest when one request fails', async() => {
-      const $store = createStore({ failing: [HCI.RESTORE], found: { [PVC]: [{ spec: { volumeName: 'pv-a' } }] } });
+      const $store = createStore({ failing: [HCI.RESTORE], found: { [PVC]: [{ spec: { volumeName: 'pv-a' } }], [HCI.VMI]: [{ metadata: { uid: 'uid-a' } }] } });
       const ctx = { $store, inStore: 'harvester' };
 
       ctx.findPageByField = VmList.methods.findPageByField.bind(ctx);
@@ -205,6 +209,31 @@ describe('list: kubevirt.io.virtualmachine', () => {
       expect(types).not.toContain(PVC);
       expect(types).not.toContain(PV);
       expect(types).not.toContain(HCI.BACKUP);
+      expect(types).not.toContain(POD);
+    });
+
+    it('should not load every VMI and migration', async() => {
+      const $store = createStore();
+
+      await VmList.created.call({
+        $store, canPaginate: true, inStore: 'harvester'
+      });
+
+      expect($store.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('should load only what every row shares, not the per-VM resources', async() => {
+      const $store = createStore();
+
+      await VmList.methods.fetchSecondaryResources.call({
+        $store, inStore: 'harvester', hasNode: true
+      });
+
+      expect($store.dispatch.mock.calls).toStrictEqual([
+        ['harvester/findAll', { type: HCI.IMAGE }],
+        ['harvester/findAll', { type: STORAGE_CLASS }],
+        ['harvester/findAll', { type: NODE }],
+      ]);
     });
   });
 

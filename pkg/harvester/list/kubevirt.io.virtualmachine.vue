@@ -373,17 +373,18 @@ export default {
       // One failed request shouldn't stop the others, the rows show what could be loaded
       const loaded = (results) => results.map((result) => (result.status === 'fulfilled' ? result.value : []));
 
-      const [pvcs, restores] = loaded(await Promise.allSettled([
+      const [pvcs, restores, vmis] = loaded(await Promise.allSettled([
         this.findPageByField(PVC, 'metadata.name', claimNames, force),
         this.findPageByField(HCI.RESTORE, this.printerColumnField(HCI.RESTORE, 'TARGET_NAME'), vmNames, force),
         this.findPageByField(HCI.VMI, 'metadata.name', vmNames, force),
-        this.findPageByField(POD, `metadata.labels[${ HCI_ANNOTATIONS.VM_NAME }]`, vmNames, force),
         this.findPageByField(HCI.VMIM, this.printerColumnField(HCI.VMIM, 'VMI'), vmNames, force),
       ]));
 
       await Promise.allSettled([
         this.findPageByField(PV, 'metadata.name', uniq(pvcs.map((pvc) => pvc.spec?.volumeName)), force),
         this.findPageByField(HCI.BACKUP, 'metadata.name', uniq(restores.map((restore) => restore.spec?.virtualMachineBackupName)), force),
+        // KubeVirt labels every launcher pod with its VMI's UID; the Harvester vmName label is only there when this UI created the VM
+        this.findPageByField(POD, `metadata.labels[${ HCI_ANNOTATIONS.VMI_CREATED_BY }]`, uniq(vmis.map((vmi) => vmi.metadata?.uid)), force),
       ]);
     },
 

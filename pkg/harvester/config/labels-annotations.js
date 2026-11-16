@@ -21,6 +21,7 @@ export const HCI = {
   VM_NAME:                          'harvesterhci.io/vmName',
   VM_NAME_PREFIX:                   'harvesterhci.io/vmNamePrefix',
   VM_DISPLAY_NAME:                  'harvesterhci.io/vmDisplayName',
+  VMI_CREATED_BY:                   'kubevirt.io/created-by',
   VM_RESERVED_MEMORY:               'harvesterhci.io/reservedMemory',
   MAINTENANCE_STATUS:               'harvesterhci.io/maintain-status', // Deprecated >= v1.10.0
   HOST_CUSTOM_NAME:                 'harvesterhci.io/host-custom-name',
