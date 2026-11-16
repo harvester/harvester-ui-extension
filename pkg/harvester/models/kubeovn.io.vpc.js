@@ -15,6 +15,12 @@ export default class HciVPC extends HarvesterResource {
     return detailLocation;
   }
 
+  get bfdPortEnabled() {
+    const bfdPort = this.spec?.bfdPort;
+
+    return bfdPort?.enabled === true && !!`${ bfdPort.ip || '' }`.trim();
+  }
+
   get parentLocationOverride() {
     return {
       ...this.listLocation,

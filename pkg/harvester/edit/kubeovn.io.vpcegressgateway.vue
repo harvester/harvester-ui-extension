@@ -6,6 +6,7 @@ import Tab from '@shell/components/Tabbed/Tab';
 import ArrayList from '@shell/components/form/ArrayList';
 import InfoBox from '@shell/components/InfoBox';
 import Loading from '@shell/components/Loading';
+import MessageLink from '@shell/components/MessageLink';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import UnitInput from '@shell/components/form/UnitInput';
 import { LabeledInput } from '@components/Form/LabeledInput';
@@ -13,7 +14,7 @@ import { Checkbox } from '@components/Form/Checkbox';
 import { RadioGroup } from '@components/Form/Radio';
 import { Banner } from '@components/Banner';
 import CreateEditView from '@shell/mixins/create-edit-view';
-import { _VIEW } from '@shell/config/query-params';
+import { _EDIT, _VIEW, MODE } from '@shell/config/query-params';
 import { allHash } from '@shell/utils/promise';
 import { isValidIP } from '@shell/utils/validators/cidr';
 import { HCI } from '../types';
@@ -21,13 +22,19 @@ import { HCI } from '../types';
 // Limits from the VpcEgressGateway CRD
 const MAX_REPLICAS = 10;
 const MAX_BFD_VALUE = 3600000;
+const MAX_BANDWIDTH_MBPS = 9223372036854;
+// A whole number in Mbps, or a quantity in bits per second such as 100M or 1Gi
+const BANDWIDTH_PATTERN = /^([0-9]+|([0-9]+(\.[0-9]+)?|\.[0-9]+)(M|Mi|G|Gi))$/;
 const BFD_DEFAULTS = {
   enabled: false, minRX: 1000, minTX: 1000, multiplier: 3
 };
 
-const isEmpty = (value) => value === '' || value === null || value === undefined;
+const isBlank = (value) => value === null || value === undefined || `${ value }`.trim() === '';
 const isWholeNumber = (value, min, max) => /^\d+$/.test(`${ value }`.trim()) && Number(value) >= min && Number(value) <= max;
+const isValidBandwidth = (value) => BANDWIDTH_PATTERN.test(`${ value }`.trim()) && (!isWholeNumber(value, 0, Infinity) || Number(value) <= MAX_BANDWIDTH_MBPS);
+const toBandwidth = (value) => (isWholeNumber(value, 0, Infinity) ? Number(value) : `${ value }`.trim());
 const cleanList = (list) => (list || []).map((item) => `${ item || '' }`.trim()).filter(Boolean);
+const hasSelectors = (spec) => !!spec?.selectors?.length;
 
 export default {
   name: 'EditVpcEgressGateway',
@@ -43,6 +50,7 @@ export default {
     LabeledInput,
     LabeledSelect,
     Loading,
+    MessageLink,
     NameNsDescription,
     RadioGroup,
     ResourceTabs,
@@ -72,7 +80,8 @@ export default {
 
   data() {
     const spec = this.value?.spec || {};
-    const policies = (spec.policies || [{ snat: true, subnets: [] }]).map((policy) => ({
+    const defaultPolicies = hasSelectors(spec) ? [] : [{ snat: true, subnets: [] }];
+    const policies = (spec.policies || defaultPolicies).map((policy) => ({
       ...policy,
       snat:    !!policy.snat,
       subnets: [...(policy.subnets || [])],
@@ -120,11 +129,24 @@ export default {
       return this.allSubnets.map((subnet) => ({ label: subnet.id, value: subnet.id }));
     },
 
-    vpcBfdDisabled() {
-      const inStore = this.$store.getters['currentProduct'].inStore;
-      const vpc = this.vpc ? this.$store.getters[`${ inStore }/byId`](HCI.VPC, this.vpc) : null;
+    hasSelectors() {
+      return hasSelectors(this.value.spec);
+    },
 
-      return !!vpc && vpc.spec?.bfd?.enabled !== true;
+    selectedVpc() {
+      const inStore = this.$store.getters['currentProduct'].inStore;
+
+      return this.vpc ? this.$store.getters[`${ inStore }/byId`](HCI.VPC, this.vpc) : null;
+    },
+
+    vpcBfdPortDisabled() {
+      return !!this.selectedVpc && !this.selectedVpc.bfdPortEnabled;
+    },
+
+    vpcEditLocation() {
+      const location = this.selectedVpc?.detailLocation;
+
+      return location ? { ...location, query: { [MODE]: _EDIT } } : null;
     },
   },
 
@@ -177,7 +199,7 @@ export default {
         errors.push(this.t('harvester.egressGateway.validation.replicas', null, true));
       }
 
-      if (!this.policies.length) {
+      if (!this.policies.length && !hasSelectors(this.value.spec)) {
         errors.push(this.t('harvester.egressGateway.validation.policyRequired', null, true));
       } else if (this.policies.some((policy) => !policy.subnets.length && !policy.ipBlocks?.length)) {
         errors.push(this.t('harvester.egressGateway.validation.policySubnets', null, true));
@@ -201,7 +223,7 @@ export default {
         errors.push(this.t('harvester.egressGateway.validation.bfd', null, true));
       }
 
-      if ([this.bandwidthIngress, this.bandwidthEgress].some((value) => !isEmpty(value) && !isWholeNumber(value, 1, Number.MAX_SAFE_INTEGER))) {
+      if ([this.bandwidthIngress, this.bandwidthEgress].some((value) => !isBlank(value) && !isValidBandwidth(value))) {
         errors.push(this.t('harvester.egressGateway.validation.bandwidth', null, true));
       }
 
@@ -225,12 +247,12 @@ export default {
           multiplier: Number(this.bfd.multiplier),
         },
         bandwidth: {
-          ingress: isEmpty(this.bandwidthIngress) ? undefined : Number(this.bandwidthIngress),
-          egress:  isEmpty(this.bandwidthEgress) ? undefined : Number(this.bandwidthEgress),
+          ingress: isBlank(this.bandwidthIngress) ? undefined : toBandwidth(this.bandwidthIngress),
+          egress:  isBlank(this.bandwidthEgress) ? undefined : toBandwidth(this.bandwidthEgress),
         },
       };
 
-      ['internalIPs', 'externalIPs'].forEach((field) => {
+      ['internalIPs', 'externalIPs', 'policies'].forEach((field) => {
         if (!spec[field].length) {
           delete spec[field];
         }
@@ -359,6 +381,11 @@ export default {
         :label="t('harvester.egressGateway.policies.label')"
         :weight="98"
       >
+        <Banner
+          v-if="hasSelectors"
+          color="info"
+          :label="t('harvester.egressGateway.policies.selectors')"
+        />
         <div
           v-for="(policy, index) in policies"
           :key="index"
@@ -450,10 +477,16 @@ export default {
         />
         <template v-if="bfd.enabled">
           <Banner
-            v-if="vpcBfdDisabled"
+            v-if="vpcBfdPortDisabled"
             color="warning"
-            :label="t('harvester.egressGateway.bfd.vpcDisabled', { vpc }, true)"
-          />
+          >
+            <MessageLink
+              :to="vpcEditLocation"
+              :prefix="t('harvester.egressGateway.bfd.vpcBfdPort.prefix', { vpc }, true)"
+              :middle="t('harvester.egressGateway.bfd.vpcBfdPort.middle')"
+              :suffix="t('harvester.egressGateway.bfd.vpcBfdPort.suffix')"
+            />
+          </Banner>
           <div class="row mt-20">
             <div class="col span-4">
               <UnitInput
@@ -498,21 +531,21 @@ export default {
         />
         <div class="row mt-20">
           <div class="col span-6">
-            <UnitInput
+            <LabeledInput
               v-model:value="bandwidthIngress"
-              :min="1"
+              data-testid="egress-gateway-bandwidth-ingress"
               :mode="mode"
               :label="t('harvester.egressGateway.bandwidth.ingress.label')"
-              :suffix="t('harvester.egressGateway.bandwidth.unit')"
+              :placeholder="t('harvester.egressGateway.bandwidth.placeholder')"
             />
           </div>
           <div class="col span-6">
-            <UnitInput
+            <LabeledInput
               v-model:value="bandwidthEgress"
-              :min="1"
+              data-testid="egress-gateway-bandwidth-egress"
               :mode="mode"
               :label="t('harvester.egressGateway.bandwidth.egress.label')"
-              :suffix="t('harvester.egressGateway.bandwidth.unit')"
+              :placeholder="t('harvester.egressGateway.bandwidth.placeholder')"
             />
           </div>
         </div>

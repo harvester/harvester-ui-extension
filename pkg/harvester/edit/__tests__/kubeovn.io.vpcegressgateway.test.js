@@ -2,6 +2,7 @@ import EditVpcEgressGateway from '../kubeovn.io.vpcegressgateway.vue';
 
 const { validate, toSpec } = EditVpcEgressGateway.methods;
 const { vpc: onVpcChange } = EditVpcEgressGateway.watch;
+const { vpcBfdPortDisabled, vpcEditLocation } = EditVpcEgressGateway.computed;
 
 const t = (key, args) => (args ? `${ key } ${ JSON.stringify(args) }` : key);
 
@@ -66,6 +67,25 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     expect(spec.bandwidth).toStrictEqual({ ingress: 10 });
   });
 
+  it('should keep a bandwidth quantity as a string and a whole number as Mbps', () => {
+    const context = createContext({ bandwidthIngress: ' 1Gi ', bandwidthEgress: '100' });
+
+    expect(validate.call(context)).toStrictEqual([]);
+    expect(toSpec.call(context).bandwidth).toStrictEqual({ ingress: '1Gi', egress: 100 });
+  });
+
+  it('should start a gateway that only has selectors without a policy, and save it without one', () => {
+    const selectors = [{ podSelector: { matchLabels: { app: 'web' } } }];
+    const context = createContext({}, { selectors });
+
+    context.policies = EditVpcEgressGateway.data.call({ value: context.value }).policies;
+
+    expect(context.policies).toStrictEqual([]);
+    expect(validate.call(context)).toStrictEqual([]);
+    expect(toSpec.call(context)).not.toHaveProperty('policies');
+    expect(toSpec.call(context).selectors).toStrictEqual(selectors);
+  });
+
   it('should keep the fields the form does not show', () => {
     const existing = {
       trafficPolicy: 'Local',
@@ -105,6 +125,7 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
       }
     }, 'harvester.egressGateway.validation.bfd'],
     ['a negative bandwidth', { bandwidthEgress: -1 }, 'harvester.egressGateway.validation.bandwidth'],
+    ['a bandwidth with an unknown unit', { bandwidthEgress: '10Mbps' }, 'harvester.egressGateway.validation.bandwidth'],
   ])('should reject %s', (_, form, errorKey) => {
     const errors = validate.call(createContext(form));
 
@@ -124,5 +145,26 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
 
     expect(context.internalSubnet).toBe('');
     expect(context.policies).toStrictEqual([{ snat: true, subnets: ['othersubnet'] }]);
+  });
+
+  it.each([
+    ['has no BFD port', { bfdPortEnabled: false }, true],
+    ['has a BFD port', { bfdPortEnabled: true }, false],
+  ])('should warn about BFD when the selected VPC %s', (_, selectedVpc, warning) => {
+    expect(vpcBfdPortDisabled.call({ selectedVpc })).toBe(warning);
+  });
+
+  it('should not warn about BFD before a VPC is selected', () => {
+    expect(vpcBfdPortDisabled.call({ selectedVpc: null })).toBe(false);
+  });
+
+  it('should link the BFD warning to the edit page of the selected VPC', () => {
+    const selectedVpc = { detailLocation: { name: 'harvester-c-cluster-resource-id', params: { resource: 'kubeovn.io.vpc', id: 'commonvpc' } } };
+
+    expect(vpcEditLocation.call({ selectedVpc })).toStrictEqual({
+      name:   'harvester-c-cluster-resource-id',
+      params: { resource: 'kubeovn.io.vpc', id: 'commonvpc' },
+      query:  { mode: 'edit' },
+    });
   });
 });

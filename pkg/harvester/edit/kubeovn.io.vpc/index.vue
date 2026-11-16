@@ -5,9 +5,15 @@ import Tab from '@shell/components/Tabbed/Tab';
 import Loading from '@shell/components/Loading';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import ResourceTabs from '@shell/components/form/ResourceTabs/index';
+import { LabeledInput } from '@components/Form/LabeledInput';
+import { RadioGroup } from '@components/Form/Radio';
+import { Banner } from '@components/Banner';
 import StaticRoutes from './StaticRoutes';
 import VpcPeerings from './VpcPeerings';
 import { set } from '@shell/utils/object';
+import { isValidIP } from '@shell/utils/validators/cidr';
+
+const splitIPs = (value) => `${ value || '' }`.split(',').map((ip) => ip.trim()).filter(Boolean);
 
 export default {
   name: 'EditVPC',
@@ -15,8 +21,11 @@ export default {
   emits: ['update:value'],
 
   components: {
+    Banner,
     CruResource,
+    LabeledInput,
     NameNsDescription,
+    RadioGroup,
     Tab,
     StaticRoutes,
     ResourceTabs,
@@ -34,10 +43,55 @@ export default {
       vpcPeerings:  [],
     });
 
-    return { staticRoutes: [] };
+    const bfdPort = this.value.spec.bfdPort || {};
+
+    return {
+      staticRoutes:   [],
+      bfdPortEnabled: bfdPort.enabled === true,
+      bfdPortIP:      bfdPort.ip || '',
+    };
   },
 
   methods: {
+    validateBfdPort() {
+      if (!this.bfdPortEnabled) {
+        return [];
+      }
+
+      const ips = splitIPs(this.bfdPortIP);
+      const ipv6Count = ips.filter((ip) => ip.includes(':')).length;
+
+      if (!ips.length) {
+        return [this.t('validation.required', { key: this.t('harvester.vpc.bfdPort.ip.label') }, true)];
+      }
+
+      if (ips.length > 2 || ips.some((ip) => !isValidIP(ip)) || (ips.length === 2 && ipv6Count !== 1)) {
+        return [this.t('harvester.vpc.bfdPort.validation.ip', null, true)];
+      }
+
+      return [];
+    },
+
+    applyBfdPort() {
+      const current = this.value.spec.bfdPort;
+
+      if (!this.bfdPortEnabled && !current) {
+        return;
+      }
+
+      const bfdPort = {
+        ...(current || {}),
+        enabled: this.bfdPortEnabled,
+        ip:      splitIPs(this.bfdPortIP).join(','),
+      };
+
+      if (!bfdPort.ip) {
+        delete bfdPort.ip;
+      }
+
+      this.value.spec.bfdPort = bfdPort;
+    },
+
     async saveVpc(buttonCb) {
       const errors = [];
 
@@ -48,12 +102,15 @@ export default {
           errors.push(this.t('validation.required', { key: this.t('generic.name') }, true));
         }
 
+        errors.push(...this.validateBfdPort());
+
         if (errors.length > 0) {
           buttonCb(false);
           this.errors = errors;
 
           return false;
         }
+        this.applyBfdPort();
         await this.value.save();
         buttonCb(true);
         this.done();
@@ -114,6 +171,41 @@ export default {
           :mode="mode"
           :vpc="value"
         />
+      </Tab>
+      <Tab
+        name="bfdPort"
+        :label="t('harvester.vpc.bfdPort.label')"
+        :weight="-3"
+      >
+        <Banner
+          color="info"
+          :label="t('harvester.vpc.bfdPort.banner')"
+        />
+        <RadioGroup
+          v-model:value="bfdPortEnabled"
+          name="bfdPort"
+          data-testid="vpc-bfd-port-enabled"
+          :options="[true, false]"
+          :labels="[t('generic.enabled'), t('generic.disabled')]"
+          :aria-label="t('harvester.vpc.bfdPort.label')"
+          :mode="mode"
+        />
+        <div
+          v-if="bfdPortEnabled"
+          class="row mt-20"
+        >
+          <div class="col span-6">
+            <LabeledInput
+              v-model:value="bfdPortIP"
+              data-testid="vpc-bfd-port-ip"
+              required
+              :mode="mode"
+              :label="t('harvester.vpc.bfdPort.ip.label')"
+              :placeholder="t('harvester.vpc.bfdPort.ip.placeholder')"
+              :tooltip="t('harvester.vpc.bfdPort.ip.tooltip')"
+            />
+          </div>
+        </div>
       </Tab>
     </ResourceTabs>
   </CruResource>
