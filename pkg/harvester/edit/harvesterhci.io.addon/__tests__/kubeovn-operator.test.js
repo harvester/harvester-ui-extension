@@ -53,8 +53,9 @@ function mountAddon({
     data:   () => ({ configuration }),
     global: {
       mocks: {
-        t:      (key, args) => (args ? `${ key } ${ JSON.stringify(args) }` : key),
-        $store: {
+        $fetchState: { pending: false },
+        t:           (key, args) => (args ? `${ key } ${ JSON.stringify(args) }` : key),
+        $store:      {
           dispatch,
           getters: {
             currentProduct:                         { inStore: 'harvester' },

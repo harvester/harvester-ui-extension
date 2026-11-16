@@ -12,10 +12,14 @@ import { NETWORK_PROTOCOL, NETWORK_TYPE } from '@pkg/harvester/config/types';
 import { set, remove } from '@shell/utils/object';
 import ArrayList from '@shell/components/form/ArrayList';
 import { allHash } from '@shell/utils/promise';
+import { _EDIT } from '@shell/config/query-params';
 import { HCI } from '../../types';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import ResourceTabs from '@shell/components/form/ResourceTabs/index';
 import { Banner } from '@components/Banner';
+import MessageLink from '@shell/components/MessageLink';
+import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../config/harvester';
+import { ADD_ONS } from '../../config/harvester-map';
 import AccessControlList from './AccessControlList';
 
 export default {
@@ -34,12 +38,17 @@ export default {
     ArrayList,
     ResourceTabs,
     Loading,
+    MessageLink,
     AccessControlList
   },
 
   mixins: [CreateEditView],
 
   inheritAttrs: false,
+
+  data() {
+    return { bgpSpeakerOff: false };
+  },
 
   created() {
     const vpc = this.$route.query.vpc || '';
@@ -70,7 +79,16 @@ export default {
       vlans: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VLAN }),
     };
 
-    await allHash(hash);
+    // BGP on a subnet only has an effect when some host runs the BGP speaker (the kubeovn-operator add-on's BGP tab)
+    if (this.bgpFeatureEnabled && this.$store.getters[`${ inStore }/schemaFor`](HCI.KUBEOVN_CONFIG)) {
+      hash.kubeovnConfig = this.$store.dispatch(`${ inStore }/find`, { type: HCI.KUBEOVN_CONFIG, id: 'kube-system/kubeovn' }).catch(() => null);
+    }
+
+    const res = await allHash(hash);
+
+    if (res.kubeovnConfig) {
+      this.bgpSpeakerOff = !`${ res.kubeovnConfig.spec?.bgp?.nodeNames || '' }`.split(',').some((name) => name.trim());
+    }
   },
 
   computed: {
@@ -136,6 +154,17 @@ export default {
     },
     bgpFeatureEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('kubeovnBgp');
+    },
+
+    bgpAddonLocation() {
+      return {
+        name:   `${ HARVESTER_PRODUCT }-c-cluster-resource-namespace-id`,
+        params: {
+          resource: HCI.ADD_ONS, namespace: 'kube-system', id: ADD_ONS.KUBEOVN_OPERATOR
+        },
+        query: { mode: _EDIT },
+        hash:  '#bgp',
+      };
     },
 
     bgpEnabled: {
@@ -403,6 +432,23 @@ export default {
               :mode="mode"
               tooltip-key="harvester.subnet.bgp.tooltip"
             />
+          </div>
+          <div
+            v-if="bgpEnabled && bgpSpeakerOff"
+            class="col span-6"
+          >
+            <Banner
+              color="warning"
+              class="mt-0"
+              data-testid="subnet-bgp-speaker-off"
+            >
+              <MessageLink
+                :to="bgpAddonLocation"
+                prefix-label="harvester.subnet.bgp.speakerOff.prefix"
+                middle-label="harvester.subnet.bgp.speakerOff.middle"
+                suffix-label="harvester.subnet.bgp.speakerOff.suffix"
+              />
+            </Banner>
           </div>
         </div>
         <ArrayList

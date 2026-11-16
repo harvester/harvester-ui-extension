@@ -3,6 +3,7 @@ import isEqual from 'lodash/isEqual';
 import Tabbed from '@shell/components/Tabbed';
 import Tab from '@shell/components/Tabbed/Tab';
 import ArrayList from '@shell/components/form/ArrayList';
+import Loading from '@shell/components/Loading';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { RadioGroup } from '@components/Form/Radio';
@@ -36,6 +37,7 @@ export default {
     Banner,
     LabeledInput,
     LabeledSelect,
+    Loading,
     RadioGroup,
     Tab,
     Tabbed,
@@ -314,7 +316,13 @@ export default {
 </script>
 
 <template>
-  <Tabbed :side-tabs="true">
+  <!-- Tabbed picks the tab from the URL hash (#bgp, linked from the subnet form) when the tabs first appear,
+       so render it once the BGP tab can be there too -->
+  <Loading v-if="$fetchState.pending" />
+  <Tabbed
+    v-else
+    :side-tabs="true"
+  >
     <Tab
       name="basic"
       :label="t('generic.basic')"

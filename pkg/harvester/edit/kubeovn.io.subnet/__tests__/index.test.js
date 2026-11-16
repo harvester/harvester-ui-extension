@@ -59,3 +59,66 @@ describe('edit: kubeovn.io.subnet BGP', () => {
     expect(context.value.metadata.annotations).toStrictEqual({ [BGP_ANNOTATION]: 'local' });
   });
 });
+
+describe('edit: kubeovn.io.subnet BGP speaker hint', () => {
+  function fetchContext({ featureEnabled = true, configuration } = {}) {
+    const dispatch = jest.fn((action) => {
+      if (action === 'harvester/find') {
+        return configuration instanceof Error ? Promise.reject(configuration) : Promise.resolve(configuration);
+      }
+
+      return Promise.resolve([]);
+    });
+
+    return {
+      bgpFeatureEnabled: featureEnabled,
+      bgpSpeakerOff:     false,
+      $store:            {
+        dispatch,
+        getters: {
+          currentProduct:        { inStore: 'harvester' },
+          'harvester/schemaFor': () => ({}),
+        },
+      },
+    };
+  }
+
+  it.each([
+    ['no speaker hosts', { spec: { bgp: { neighborAS: 64512 } } }, true],
+    ['speaker hosts', { spec: { bgp: { nodeNames: 'node-1' } } }, false],
+  ])('should know whether a host runs the BGP speaker: %s', async(_, configuration, speakerOff) => {
+    const context = fetchContext({ configuration });
+
+    await EditSubnet.fetch.call(context);
+
+    expect(context.$store.dispatch).toHaveBeenCalledWith('harvester/find', { type: 'kubeovn.io.configuration', id: 'kube-system/kubeovn' });
+    expect(context.bgpSpeakerOff).toBe(speakerOff);
+  });
+
+  it('should not warn when the Kube-OVN configuration cannot be read', async() => {
+    const context = fetchContext({ configuration: new Error('forbidden') });
+
+    await EditSubnet.fetch.call(context);
+
+    expect(context.bgpSpeakerOff).toBe(false);
+  });
+
+  it('should not read the Kube-OVN configuration on Harvester versions without BGP support', async() => {
+    const context = fetchContext({ featureEnabled: false });
+
+    await EditSubnet.fetch.call(context);
+
+    expect(context.$store.dispatch).not.toHaveBeenCalledWith('harvester/find', expect.anything());
+  });
+
+  it('should link to the BGP tab of the kubeovn-operator add-on', () => {
+    expect(EditSubnet.computed.bgpAddonLocation.call({})).toStrictEqual({
+      name:   'harvester-c-cluster-resource-namespace-id',
+      params: {
+        resource: 'harvesterhci.io.addon', namespace: 'kube-system', id: 'kubeovn-operator'
+      },
+      query: { mode: 'edit' },
+      hash:  '#bgp',
+    });
+  });
+});

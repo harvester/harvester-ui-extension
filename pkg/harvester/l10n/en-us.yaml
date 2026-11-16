@@ -1435,6 +1435,10 @@ harvester:
     bgp:
       label: BGP
       tooltip: Advertise this subnet's CIDR block to the BGP neighbors set in the BGP tab of the kubeovn-operator add-on (Advanced > Add-ons).
+      speakerOff:
+        prefix: No host runs the BGP speaker yet, so this subnet isn't advertised. Open the
+        middle: kubeovn-operator add-on
+        suffix: and pick the speaker hosts in its BGP tab.
     allowSubnet:
       label: Allow Subnets
       tooltip: You can specify certain subnets which can communicate with this subnet.
