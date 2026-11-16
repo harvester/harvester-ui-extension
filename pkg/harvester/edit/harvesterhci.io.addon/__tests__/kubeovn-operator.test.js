@@ -1,6 +1,6 @@
+import { reactive } from 'vue';
 import { shallowMount } from '@vue/test-utils';
-import { Banner } from '@components/Banner';
-import HarvesterBgp from '../index.vue';
+import EditAddonKubeovnOperator from '../kubeovn-operator.vue';
 
 const PLACEHOLDER_BGP = {
   neighborV4Address: '192.0.2.1',
@@ -17,7 +17,9 @@ function createConfiguration(bgp = PLACEHOLDER_BGP) {
   };
 }
 
-function mountPage({ featureEnabled = true, addonEnabled = true, configuration = createConfiguration() } = {}) {
+function mountAddon({
+  enabled = true, featureEnabled = true, mode = 'edit', configuration = createConfiguration()
+} = {}) {
   const dispatch = jest.fn((action) => {
     if (action === 'harvester/find' || action === 'harvester/clone') {
       return Promise.resolve(configuration);
@@ -25,18 +27,25 @@ function mountPage({ featureEnabled = true, addonEnabled = true, configuration =
 
     return Promise.resolve([]);
   });
+  const registerBeforeHook = jest.fn();
 
-  const wrapper = shallowMount(HarvesterBgp, {
-    data:   () => ({ addonEnabled, configuration: featureEnabled && addonEnabled ? configuration : null }),
+  const wrapper = shallowMount(EditAddonKubeovnOperator, {
+    props: {
+      // the real add-on is a reactive store model
+      value: reactive({ spec: { enabled } }),
+      mode,
+      registerBeforeHook,
+    },
+    data:   () => ({ configuration }),
     global: {
       mocks: {
-        $fetchState: { pending: false },
-        t:           (key, args) => (args ? `${ key } ${ JSON.stringify(args) }` : key),
-        $store:      {
+        t:      (key, args) => (args ? `${ key } ${ JSON.stringify(args) }` : key),
+        $store: {
           dispatch,
           getters: {
             currentProduct:                         { inStore: 'harvester' },
             'harvester/all':                        () => [],
+            'harvester/schemaFor':                  () => ({}),
             'harvester-common/getFeatureEnabled': () => featureEnabled,
           },
         },
@@ -44,7 +53,9 @@ function mountPage({ featureEnabled = true, addonEnabled = true, configuration =
     },
   });
 
-  return { wrapper, configuration };
+  return {
+    wrapper, configuration, dispatch, registerBeforeHook
+  };
 }
 
 function fill(wrapper, values) {
@@ -60,10 +71,15 @@ function fill(wrapper, values) {
   });
 }
 
-describe('page: BGP', () => {
-  it('should save the form into spec.bgp and keep the rest of the configuration', async() => {
-    const { wrapper, configuration } = mountPage();
-    const buttonCb = jest.fn();
+describe('edit: kubeovn-operator add-on BGP', () => {
+  it('should save the BGP tab before the add-on', () => {
+    const { wrapper, registerBeforeHook } = mountAddon();
+
+    expect(registerBeforeHook).toHaveBeenCalledWith(wrapper.vm.saveBgp, 'saveBgp');
+  });
+
+  it('should save the BGP tab into spec.bgp and keep the rest of the configuration', async() => {
+    const { wrapper, configuration } = mountAddon();
 
     fill(wrapper, {
       nodeNames:         ['node-1', 'node-2'],
@@ -73,10 +89,9 @@ describe('page: BGP', () => {
       nextHops:          '10.115.48.1,2001:db8::1',
     });
 
-    await wrapper.vm.save(buttonCb);
+    await wrapper.vm.saveBgp();
 
     expect(configuration.save).toHaveBeenCalledTimes(1);
-    expect(buttonCb).toHaveBeenCalledWith(true);
     expect(configuration.spec).toStrictEqual({
       enableBGP: true,
       bgp:       {
@@ -90,17 +105,56 @@ describe('page: BGP', () => {
     });
   });
 
-  it('should load the stored values into the form', async() => {
+  it('should load the stored values into the BGP tab', async() => {
     const configuration = createConfiguration({ ...PLACEHOLDER_BGP, nodeNames: 'node-1,node-2' });
-    const { wrapper } = mountPage({ configuration });
+    const { wrapper, dispatch } = mountAddon({ configuration });
 
-    await wrapper.vm.loadConfiguration();
+    await EditAddonKubeovnOperator.fetch.call(wrapper.vm);
 
+    expect(dispatch).toHaveBeenCalledWith('harvester/find', { type: 'kubeovn.io.configuration', id: 'kube-system/kubeovn' });
     expect(wrapper.vm.nodeNames).toStrictEqual(['node-1', 'node-2']);
     expect(wrapper.vm.neighborV4Address).toBe('192.0.2.1');
     expect(wrapper.vm.neighborV6Address).toBe('2001:db8::1');
     expect(wrapper.vm.neighborAS).toBe(64512);
     expect(wrapper.vm.clusterAS).toBe(64513);
+  });
+
+  it('should not load BGP on Harvester versions without BGP support', async() => {
+    const { wrapper, dispatch } = mountAddon({ featureEnabled: false, configuration: null });
+
+    await EditAddonKubeovnOperator.fetch.call(wrapper.vm);
+
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(wrapper.vm.showBgp).toBe(false);
+  });
+
+  it('should not save the configuration when nothing changed', async() => {
+    const { wrapper, configuration } = mountAddon();
+
+    wrapper.vm.loadBgp(configuration.spec.bgp);
+
+    await wrapper.vm.saveBgp();
+
+    expect(configuration.save).not.toHaveBeenCalled();
+  });
+
+  it('should leave BGP alone when the add-on is being disabled', async() => {
+    const { wrapper, configuration } = mountAddon();
+
+    fill(wrapper, { neighborAS: '' });
+    wrapper.vm.value.spec.enabled = false;
+
+    await expect(wrapper.vm.saveBgp()).resolves.toBeUndefined();
+    expect(configuration.save).not.toHaveBeenCalled();
+  });
+
+  it('should report a failed configuration save as plain messages', async() => {
+    const { wrapper, configuration } = mountAddon();
+
+    configuration.save.mockRejectedValue({ status: 409, message: 'the object has been modified' });
+    fill(wrapper, { neighborV4Address: '10.115.53.2' });
+
+    await expect(wrapper.vm.saveBgp()).rejects.toStrictEqual(['the object has been modified']);
   });
 
   it.each([
@@ -112,25 +166,11 @@ describe('page: BGP', () => {
     ['a router ID that is not IPv4', { routerID: '2001:db8::1' }, 'harvester.bgp.validation.routerID'],
     ['two IPv4 next hops', { nextHops: '10.115.48.1,10.115.48.2' }, 'harvester.bgp.validation.nextHops'],
   ])('should not save %s', async(_, values, errorKey) => {
-    const { wrapper, configuration } = mountPage();
-    const buttonCb = jest.fn();
+    const { wrapper, configuration } = mountAddon();
 
     fill(wrapper, { neighborV4Address: '10.115.53.2', ...values });
 
-    await wrapper.vm.save(buttonCb);
-
+    await expect(wrapper.vm.saveBgp()).rejects.toStrictEqual([expect.stringContaining(errorKey)]);
     expect(configuration.save).not.toHaveBeenCalled();
-    expect(buttonCb).toHaveBeenCalledWith(false);
-    expect(wrapper.vm.errors).toHaveLength(1);
-    expect(wrapper.vm.errors[0]).toContain(errorKey);
-  });
-
-  it('should only show a warning on Harvester versions without BGP support', () => {
-    const { wrapper } = mountPage({ featureEnabled: false });
-    const banners = wrapper.findAllComponents(Banner);
-
-    expect(banners).toHaveLength(1);
-    expect(banners[0].props('label')).toBe('harvester.bgp.unsupported');
-    expect(wrapper.find('[data-testid="bgp-save"]').exists()).toBe(false);
   });
 });

@@ -77,7 +77,6 @@ const EXTERNAL_IPS_GROUP = `${ NAT_INTERNET_GROUP }::External IPs`;
 const RULES_GROUP = `${ NAT_INTERNET_GROUP }::Rules`;
 const SOURCE_RULES_GROUP = `${ RULES_GROUP }::Source Rules`;
 const DESTINATION_RULES_GROUP = `${ RULES_GROUP }::Destination Rules`;
-const KUBEOVN_BGP = 'kubeovn-bgp';
 
 export const PRODUCT_NAME = 'harvester';
 
@@ -666,11 +665,6 @@ export function init($plugin, store) {
   );
 
   basicType(
-    [KUBEOVN_BGP],
-    OVERLAY_NETWORKS_GROUP
-  );
-
-  basicType(
     [HCI.VPC_NAT_GATEWAY, HCI.VPC_EGRESS_GATEWAY],
     GATEWAYS_GROUP
   );
@@ -966,16 +960,6 @@ export function init($plugin, store) {
     },
     exact:      false,
     ifHaveType: NETWORK_POLICY,
-  });
-
-  virtualType({
-    labelKey:   'harvester.bgp.label',
-    name:       KUBEOVN_BGP,
-    namespaced: false,
-    weight:     192,
-    route:      { name: `${ PRODUCT_NAME }-c-cluster-bgp` },
-    exact:      true,
-    ifHaveType: HCI.KUBEOVN_CONFIG,
   });
 
   configureType(HCI.PROVIDER_NETWORK, { hiddenNamespaceGroupButton: true, canYaml: false });

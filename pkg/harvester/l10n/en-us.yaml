@@ -1434,7 +1434,7 @@ harvester:
       tooltip: Enable network isolation for this Subnet. When enabled, VMs can only communicate within this subnet, even if other subnets exist under the same VPC.
     bgp:
       label: BGP
-      tooltip: Advertise this subnet's CIDR block to the BGP neighbors configured in Overlay Networks > BGP.
+      tooltip: Advertise this subnet's CIDR block to the BGP neighbors set in the BGP tab of the kubeovn-operator add-on (Advanced > Add-ons).
     allowSubnet:
       label: Allow Subnets
       tooltip: You can specify certain subnets which can communicate with this subnet.
@@ -1521,11 +1521,6 @@ harvester:
   bgp:
     label: BGP
     description: The BGP speaker runs on the selected hosts and advertises every subnet that has BGP enabled to the BGP neighbors. Enable BGP on each subnet that should be reachable from the external network.
-    unsupported: BGP configuration requires Harvester v1.10.0 or later.
-    noAddonEnabled:
-      prefix: The kubeovn-operator add-on is not enabled, click
-      middle: here
-      suffix: to enable the add-on before configuring BGP.
     nodeNames:
       label: Speaker Hosts
       placeholder: Select hosts

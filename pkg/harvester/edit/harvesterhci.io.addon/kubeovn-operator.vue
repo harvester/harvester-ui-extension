@@ -1,18 +1,17 @@
 <script>
-import Loading from '@shell/components/Loading';
-import AsyncButton from '@shell/components/AsyncButton';
-import MessageLink from '@shell/components/MessageLink';
+import isEqual from 'lodash/isEqual';
+import Tabbed from '@shell/components/Tabbed';
+import Tab from '@shell/components/Tabbed/Tab';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { LabeledInput } from '@components/Form/LabeledInput';
+import { RadioGroup } from '@components/Form/Radio';
 import { Banner } from '@components/Banner';
 import { NODE } from '@shell/config/types';
 import { _EDIT, _VIEW } from '@shell/config/query-params';
-import { allHash } from '@shell/utils/promise';
 import { isIpv4 } from '@shell/utils/string';
 import { isValidIP } from '@shell/utils/validators/cidr';
 import { exceptionToErrorsArray } from '@shell/utils/error';
-import { HCI } from '../../../../types';
-import { ADD_ONS } from '../../../../config/harvester-map';
+import { HCI } from '../../types';
 
 // The kubeovn-operator keeps a single Configuration, and the BGP speaker reads its spec.bgp
 const CONFIGURATION_ID = 'kube-system/kubeovn';
@@ -23,40 +22,59 @@ const isIpv6 = (ip) => isValidIP(ip) && !isIpv4(ip);
 const isAsNumber = (value) => /^\d+$/.test(`${ value }`.trim()) && Number(value) >= 1 && Number(value) <= AS_MAX;
 
 export default {
-  name: 'HarvesterBgp',
+  name: 'EditAddonKubeovnOperator',
 
   components: {
-    AsyncButton,
     Banner,
     LabeledInput,
     LabeledSelect,
-    Loading,
-    MessageLink,
+    RadioGroup,
+    Tab,
+    Tabbed,
+  },
+
+  inheritAttrs: false,
+
+  props: {
+    value: {
+      type:     Object,
+      required: true,
+    },
+
+    mode: {
+      type:     String,
+      required: true
+    },
+
+    registerBeforeHook: {
+      type:     Function,
+      required: true,
+    },
   },
 
   async fetch() {
     const inStore = this.$store.getters['currentProduct'].inStore;
-    const hash = await allHash({
-      addons: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.ADD_ONS }),
-      nodes:  this.$store.dispatch(`${ inStore }/findAll`, { type: NODE }),
-    });
 
-    this.addonEnabled = hash.addons.find((addon) => addon.name === ADD_ONS.KUBEOVN_OPERATOR)?.spec?.enabled === true;
-
-    if (!this.addonEnabled || !this.featureEnabled) {
+    // The Configuration only exists while the add-on is enabled, and spec.bgp needs v1.10.0
+    if (!this.value.spec?.enabled || !this.bgpFeatureEnabled || !this.$store.getters[`${ inStore }/schemaFor`](HCI.KUBEOVN_CONFIG)) {
       return;
     }
 
     try {
-      await this.loadConfiguration();
+      const [configuration] = await Promise.all([
+        this.$store.dispatch(`${ inStore }/find`, { type: HCI.KUBEOVN_CONFIG, id: CONFIGURATION_ID }),
+        this.$store.dispatch(`${ inStore }/findAll`, { type: NODE }),
+      ]);
+
+      this.configuration = await this.$store.dispatch(`${ inStore }/clone`, { resource: configuration });
+      this.loadBgp(this.configuration.spec?.bgp);
     } catch (e) {
-      this.errors = exceptionToErrorsArray(e);
+      this.bgpErrors = exceptionToErrorsArray(e);
     }
   },
 
   data() {
     return {
-      addonEnabled:      false,
       configuration:     null,
       nodeNames:         [],
       neighborV4Address: '',
@@ -65,18 +83,25 @@ export default {
       clusterAS:         '',
       routerID:          '',
       nextHops:          '',
-      errors:            [],
-      addonLink:         `${ HCI.ADD_ONS }/kube-system/${ ADD_ONS.KUBEOVN_OPERATOR }?mode=edit`,
+      bgpErrors:         [],
     };
   },
 
+  created() {
+    this.registerBeforeHook(this.saveBgp, 'saveBgp');
+  },
+
   computed: {
-    featureEnabled() {
+    bgpFeatureEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('kubeovnBgp');
     },
 
-    mode() {
-      return this.configuration?.canUpdate ? _EDIT : _VIEW;
+    showBgp() {
+      return !!this.configuration && this.value.spec.enabled === true;
+    },
+
+    bgpMode() {
+      return this.mode === _EDIT && this.configuration?.canUpdate ? _EDIT : _VIEW;
     },
 
     nodeOptions() {
@@ -91,12 +116,7 @@ export default {
   },
 
   methods: {
-    async loadConfiguration() {
-      const inStore = this.$store.getters['currentProduct'].inStore;
-      const configuration = await this.$store.dispatch(`${ inStore }/find`, { type: HCI.KUBEOVN_CONFIG, id: CONFIGURATION_ID });
-      const bgp = configuration.spec?.bgp || {};
-
-      this.configuration = await this.$store.dispatch(`${ inStore }/clone`, { resource: configuration });
+    loadBgp(bgp = {}) {
       this.nodeNames = splitList(bgp.nodeNames);
       this.neighborV4Address = bgp.neighborV4Address || '';
       this.neighborV6Address = bgp.neighborV6Address || '';
@@ -106,7 +126,7 @@ export default {
       this.nextHops = bgp.nextHops || '';
     },
 
-    validate() {
+    validateBgp() {
       const errors = [];
       const neighborV4 = splitList(this.neighborV4Address);
       const neighborV6 = splitList(this.neighborV6Address);
@@ -163,23 +183,31 @@ export default {
       return bgp;
     },
 
-    async save(buttonCb) {
-      this.errors = this.validate();
-
-      if (this.errors.length) {
-        buttonCb(false);
-
+    // Runs before the add-on is saved. BGP lives in the Kube-OVN Configuration, not in the add-on values.
+    async saveBgp() {
+      if (!this.showBgp || this.bgpMode !== _EDIT) {
         return;
       }
 
+      const errors = this.validateBgp();
+
+      if (errors.length) {
+        return Promise.reject(errors);
+      }
+
+      const bgp = this.toBgpSpec();
+
+      if (isEqual(bgp, this.configuration.spec?.bgp || {})) {
+        return;
+      }
+
+      this.configuration.spec = { ...this.configuration.spec, bgp };
+
       try {
-        this.configuration.spec = { ...this.configuration.spec, bgp: this.toBgpSpec() };
         await this.configuration.save();
-        await this.loadConfiguration();
-        buttonCb(true);
       } catch (e) {
-        this.errors = exceptionToErrorsArray(e);
-        buttonCb(false);
+        // Plain messages, so the form doesn't treat a conflict on the Configuration as one on the add-on
+        return Promise.reject(exceptionToErrorsArray(e));
       }
     },
   },
@@ -187,30 +215,36 @@ export default {
 </script>
 
 <template>
-  <Loading v-if="$fetchState.pending" />
-  <div v-else>
-    <h1 class="mb-20">
-      {{ t('harvester.bgp.label') }}
-    </h1>
-    <Banner
-      v-if="!featureEnabled"
-      color="warning"
-      :label="t('harvester.bgp.unsupported')"
-    />
-    <Banner
-      v-else-if="!addonEnabled"
-      color="warning"
+  <Tabbed :side-tabs="true">
+    <Tab
+      name="basic"
+      :label="t('generic.basic')"
+      :weight="99"
     >
-      <MessageLink
-        :to="addonLink"
-        prefix-label="harvester.bgp.noAddonEnabled.prefix"
-        middle-label="harvester.bgp.noAddonEnabled.middle"
-        suffix-label="harvester.bgp.noAddonEnabled.suffix"
+      <RadioGroup
+        v-model:value="value.spec.enabled"
+        class="mb-20"
+        name="model"
+        :mode="mode"
+        :options="[true,false]"
+        :labels="[t('generic.enabled'), t('generic.disabled')]"
       />
-    </Banner>
-    <template v-else-if="configuration">
+      <Banner
+        v-for="(err, i) in bgpErrors"
+        :key="i"
+        color="error"
+        :label="err"
+      />
+    </Tab>
+    <Tab
+      v-if="showBgp"
+      name="bgp"
+      :label="t('harvester.bgp.label')"
+      :weight="98"
+    >
       <Banner
         color="info"
+        class="mt-0"
         :label="t('harvester.bgp.description')"
       />
       <div class="row mt-20">
@@ -218,7 +252,7 @@ export default {
           <LabeledSelect
             v-model:value="nodeNames"
             data-testid="bgp-node-names"
-            :mode="mode"
+            :mode="bgpMode"
             :multiple="true"
             :options="nodeOptions"
             :label="t('harvester.bgp.nodeNames.label')"
@@ -232,7 +266,7 @@ export default {
           <LabeledInput
             v-model:value="neighborV4Address"
             data-testid="bgp-neighbor-v4"
-            :mode="mode"
+            :mode="bgpMode"
             :label="t('harvester.bgp.neighborV4Address.label')"
             :placeholder="t('harvester.bgp.neighborV4Address.placeholder')"
             :tooltip="t('harvester.bgp.neighborV4Address.tooltip')"
@@ -242,7 +276,7 @@ export default {
           <LabeledInput
             v-model:value="neighborV6Address"
             data-testid="bgp-neighbor-v6"
-            :mode="mode"
+            :mode="bgpMode"
             :label="t('harvester.bgp.neighborV6Address.label')"
             :placeholder="t('harvester.bgp.neighborV6Address.placeholder')"
             :tooltip="t('harvester.bgp.neighborV6Address.tooltip')"
@@ -257,7 +291,7 @@ export default {
             type="number"
             min="1"
             required
-            :mode="mode"
+            :mode="bgpMode"
             :label="t('harvester.bgp.neighborAS.label')"
             :placeholder="t('harvester.bgp.neighborAS.placeholder')"
             :tooltip="t('harvester.bgp.neighborAS.tooltip')"
@@ -270,7 +304,7 @@ export default {
             type="number"
             min="1"
             required
-            :mode="mode"
+            :mode="bgpMode"
             :label="t('harvester.bgp.clusterAS.label')"
             :placeholder="t('harvester.bgp.clusterAS.placeholder')"
             :tooltip="t('harvester.bgp.clusterAS.tooltip')"
@@ -282,7 +316,7 @@ export default {
           <LabeledInput
             v-model:value="routerID"
             data-testid="bgp-router-id"
-            :mode="mode"
+            :mode="bgpMode"
             :label="t('harvester.bgp.routerID.label')"
             :placeholder="t('harvester.bgp.routerID.placeholder')"
             :tooltip="t('harvester.bgp.routerID.tooltip')"
@@ -292,27 +326,22 @@ export default {
           <LabeledInput
             v-model:value="nextHops"
             data-testid="bgp-next-hops"
-            :mode="mode"
+            :mode="bgpMode"
             :label="t('harvester.bgp.nextHops.label')"
             :placeholder="t('harvester.bgp.nextHops.placeholder')"
             :tooltip="t('harvester.bgp.nextHops.tooltip')"
           />
         </div>
       </div>
-    </template>
-    <Banner
-      v-for="(err, i) in errors"
-      :key="i"
-      color="error"
-      :label="err"
-    />
-    <div v-if="configuration && mode === 'edit'">
-      <AsyncButton
-        data-testid="bgp-save"
-        class="pull-right mt-20"
-        mode="edit"
-        @click="save"
-      />
-    </div>
-  </div>
+    </Tab>
+  </Tabbed>
 </template>
+
+<style lang="scss" scoped>
+  :deep() .radio-group {
+    display: flex;
+    .radio-container {
+      margin-right: 30px;
+    }
+  }
+</style>
