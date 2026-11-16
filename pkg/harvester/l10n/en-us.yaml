@@ -1432,6 +1432,9 @@ harvester:
     private:
       label: Private Subnet
       tooltip: Enable network isolation for this Subnet. When enabled, VMs can only communicate within this subnet, even if other subnets exist under the same VPC.
+    bgp:
+      label: BGP
+      tooltip: Advertise this subnet's CIDR block to the BGP neighbors configured in Overlay Networks > BGP.
     allowSubnet:
       label: Allow Subnets
       tooltip: You can specify certain subnets which can communicate with this subnet.
@@ -1515,6 +1518,49 @@ harvester:
       validation:
         ip: '"IP Address" must be an IPv4 address, an IPv6 address, or one of each separated by a comma.'
         subnet: '"IP Address" must not be in subnet {subnet} ({cidr}) of this VPC.'
+  bgp:
+    label: BGP
+    description: The BGP speaker runs on the selected hosts and advertises every subnet that has BGP enabled to the BGP neighbors. Enable BGP on each subnet that should be reachable from the external network.
+    unsupported: BGP configuration requires Harvester v1.10.0 or later.
+    noAddonEnabled:
+      prefix: The kubeovn-operator add-on is not enabled, click
+      middle: here
+      suffix: to enable the add-on before configuring BGP.
+    nodeNames:
+      label: Speaker Hosts
+      placeholder: Select hosts
+      tooltip: The hosts that run the BGP speaker. Leave empty to stop the speaker on every host.
+    neighborV4Address:
+      label: Neighbor IPv4 Addresses
+      placeholder: e.g. 10.115.53.2,10.115.53.3
+      tooltip: The IPv4 addresses of the external BGP neighbors, separated by commas.
+    neighborV6Address:
+      label: Neighbor IPv6 Addresses
+      placeholder: e.g. 2001:db8::2
+      tooltip: The IPv6 addresses of the external BGP neighbors, separated by commas.
+    neighborAS:
+      label: Neighbor AS
+      placeholder: e.g. 65030
+      tooltip: The autonomous system (AS) number of the external BGP neighbors.
+    clusterAS:
+      label: Cluster AS
+      placeholder: e.g. 65000
+      tooltip: The autonomous system (AS) number of this cluster.
+    routerID:
+      label: Router ID
+      placeholder: e.g. 10.115.48.1
+      tooltip: Optional. The BGP router ID, an IPv4 address.
+    nextHops:
+      label: Next Hops
+      placeholder: e.g. 10.115.48.1
+      tooltip: Optional. The next hop of the advertised routes, at most one IPv4 and one IPv6 address, separated by a comma.
+    validation:
+      neighborRequired: Enter at least one neighbor address when speaker hosts are selected.
+      ipv4List: '"{key}" must be IPv4 addresses separated by commas.'
+      ipv6List: '"{key}" must be IPv6 addresses separated by commas.'
+      asNumber: '"{key}" must be a whole number from 1 to {max}.'
+      routerID: '"Router ID" must be an IPv4 address.'
+      nextHops: '"Next Hops" accepts at most one IPv4 and one IPv6 address.'
   natGateway:
     label: NAT Gateways
     internalTenantNetwork:

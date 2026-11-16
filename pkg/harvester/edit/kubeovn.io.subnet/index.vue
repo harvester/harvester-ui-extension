@@ -13,6 +13,7 @@ import { set, remove } from '@shell/utils/object';
 import ArrayList from '@shell/components/form/ArrayList';
 import { allHash } from '@shell/utils/promise';
 import { HCI } from '../../types';
+import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import ResourceTabs from '@shell/components/form/ResourceTabs/index';
 import { Banner } from '@components/Banner';
 import AccessControlList from './AccessControlList';
@@ -133,6 +134,25 @@ export default {
         value: n.id,
       }));
     },
+    bgpFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('kubeovnBgp');
+    },
+
+    bgpEnabled: {
+      get() {
+        const bgp = this.value?.metadata?.annotations?.[HCI_ANNOTATIONS.KUBEOVN_BGP];
+
+        // Kube-OVN also accepts "cluster" and "local" here, which both advertise the subnet
+        return !!bgp && bgp !== 'false';
+      },
+
+      set(enabled) {
+        if (enabled !== this.bgpEnabled) {
+          this.value.setAnnotation(HCI_ANNOTATIONS.KUBEOVN_BGP, enabled ? 'true' : null);
+        }
+      }
+    },
+
     natOutgoingDisabled() {
       // Disable the NAT Outgoing option when the subnet belongs to the ovn-cluster VPC and its name is join or ovn-default.
       return this.value?.spec?.vpc === 'ovn-cluster' && ['join', 'ovn-default'].includes(this.value?.metadata?.name);
@@ -366,6 +386,22 @@ export default {
               :labels="[t('generic.enabled'), t('generic.disabled')]"
               :mode="mode"
               tooltip-key="harvester.subnet.private.tooltip"
+            />
+          </div>
+        </div>
+        <div
+          v-if="bgpFeatureEnabled"
+          class="row mt-20"
+        >
+          <div class="col span-6">
+            <RadioGroup
+              v-model:value="bgpEnabled"
+              name="bgp"
+              :options="[true, false]"
+              :label="t('harvester.subnet.bgp.label')"
+              :labels="[t('generic.enabled'), t('generic.disabled')]"
+              :mode="mode"
+              tooltip-key="harvester.subnet.bgp.tooltip"
             />
           </div>
         </div>

@@ -92,6 +92,7 @@ export const HCI = {
   NODE_UPGRADE_PAUSE_MAP:           'harvesterhci.io/node-upgrade-pause-map',
   CDI_POPULATOR_KIND:               'cdi.kubevirt.io/storage.populator.kind',
   CNI_NETWORKS:                     'k8s.v1.cni.cncf.io/networks',
+  KUBEOVN_BGP:                      'ovn.kubernetes.io/bgp',
   WINDOWS_SYSPREP:                  'harvesterhci.io/windows-sysprep',
   SKIP_MIG_CONFIGURATION:           'harvesterhci.io/skip-mig-configuration',
 };
