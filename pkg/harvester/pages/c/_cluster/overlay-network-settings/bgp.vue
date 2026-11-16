@@ -17,9 +17,7 @@ import { allHash } from '@shell/utils/promise';
 import { HCI } from '../../../../types';
 import { ADD_ONS } from '../../../../config/harvester-map';
 import { PRODUCT_NAME } from '../../../../config/harvester';
-import {
-  KUBEOVN_CONFIGURATION_ID, PLACEHOLDER_NEIGHBORS, PLACEHOLDER_AS, splitList, isIpv6
-} from '../../../../models/kubeovn.io.configuration';
+import { KUBEOVN_CONFIGURATION_ID, PLACEHOLDER_AS, isIpv6 } from '../../../../models/kubeovn.io.configuration';
 
 const AS_MAX = 4294967294;
 
@@ -58,7 +56,7 @@ export default {
       const configuration = await this.$store.dispatch(`${ inStore }/find`, { type: HCI.KUBEOVN_CONFIG, id: KUBEOVN_CONFIGURATION_ID });
 
       this.configuration = await this.$store.dispatch(`${ inStore }/clone`, { resource: configuration });
-      this.loadBgp(this.configuration.spec?.bgp);
+      this.loadBgp(this.configuration);
     } catch (e) {
       this.errors = exceptionToErrorsArray(e);
     }
@@ -78,7 +76,6 @@ export default {
       nextHopV6:     '',
       loadedState:   null,
       errors:        [],
-      addonLink:     `${ HCI.ADD_ONS }/kube-system/${ ADD_ONS.KUBEOVN_OPERATOR }?mode=edit`,
     };
   },
 
@@ -93,6 +90,16 @@ export default {
 
     settingsLocation() {
       return { name: `${ PRODUCT_NAME }-c-cluster-overlay-network-settings` };
+    },
+
+    addonLocation() {
+      return {
+        name:   `${ PRODUCT_NAME }-c-cluster-resource-namespace-id`,
+        params: {
+          resource: HCI.ADD_ONS, namespace: 'kube-system', id: ADD_ONS.KUBEOVN_OPERATOR
+        },
+        query: { mode: _EDIT },
+      };
     },
 
     // Save stays disabled until the form is valid; each field shows its own error
@@ -141,21 +148,21 @@ export default {
   },
 
   methods: {
-    loadBgp(bgp = {}) {
-      const nextHops = splitList(bgp.nextHops);
-      const unconfigured = !splitList(bgp.nodeNames).length &&
+    loadBgp(configuration) {
+      const bgp = configuration.bgp;
+      const unconfigured = !configuration.bgpSpeakerHosts.length &&
         bgp.neighborAS === PLACEHOLDER_AS.neighborAS && bgp.clusterAS === PLACEHOLDER_AS.clusterAS;
 
-      this.nodeNames = splitList(bgp.nodeNames);
+      this.nodeNames = configuration.bgpSpeakerHosts;
       this.bgpEnabled = this.nodeNames.length > 0;
-      this.neighbors = [...splitList(bgp.neighborV4Address), ...splitList(bgp.neighborV6Address)].filter((ip) => !PLACEHOLDER_NEIGHBORS.includes(ip));
+      this.neighbors = configuration.bgpNeighbors;
       // An untouched install only has placeholder AS numbers: show empty fields instead of values nobody chose
       this.neighborAS = unconfigured ? '' : bgp.neighborAS ?? '';
       this.clusterAS = unconfigured ? '' : bgp.clusterAS ?? '';
       this.routerID = bgp.routerID || '';
       // The speaker uses the last next hop of each family
-      this.nextHopV4 = nextHops.filter(isIpv4).pop() || '';
-      this.nextHopV6 = nextHops.filter(isIpv6).pop() || '';
+      this.nextHopV4 = configuration.bgpNextHops.filter(isIpv4).pop() || '';
+      this.nextHopV6 = configuration.bgpNextHops.filter(isIpv6).pop() || '';
       this.loadedState = this.formState();
     },
 
@@ -327,7 +334,7 @@ export default {
       color="warning"
     >
       <MessageLink
-        :to="addonLink"
+        :to="addonLocation"
         prefix-label="harvester.overlayNetworkSettings.noAddonEnabled.prefix"
         middle-label="harvester.overlayNetworkSettings.noAddonEnabled.middle"
         suffix-label="harvester.overlayNetworkSettings.noAddonEnabled.suffix"
@@ -467,5 +474,14 @@ export default {
         </div>
       </template>
     </CruResource>
+    <template v-else>
+      <!-- The Configuration could not be read: the form is not shown, so its errors are shown here -->
+      <Banner
+        v-for="(err, i) in errors"
+        :key="i"
+        color="error"
+        :label="err"
+      />
+    </template>
   </div>
 </template>

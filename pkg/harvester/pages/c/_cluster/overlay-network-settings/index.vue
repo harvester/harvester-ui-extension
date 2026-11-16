@@ -4,6 +4,7 @@ import Loading from '@shell/components/Loading';
 import MessageLink from '@shell/components/MessageLink';
 import { Banner } from '@components/Banner';
 import { allHash } from '@shell/utils/promise';
+import { _EDIT } from '@shell/config/query-params';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI } from '../../../../types';
 import { ADD_ONS } from '../../../../config/harvester-map';
@@ -43,13 +44,22 @@ export default {
       addonEnabled:  false,
       configuration: null,
       errors:        [],
-      addonLink:     `${ HCI.ADD_ONS }/kube-system/${ ADD_ONS.KUBEOVN_OPERATOR }?mode=edit`,
     };
   },
 
   computed: {
     bgpFeatureEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('kubeovnBgp');
+    },
+
+    addonLocation() {
+      return {
+        name:   `${ PRODUCT_NAME }-c-cluster-resource-namespace-id`,
+        params: {
+          resource: HCI.ADD_ONS, namespace: 'kube-system', id: ADD_ONS.KUBEOVN_OPERATOR
+        },
+        query: { mode: _EDIT },
+      };
     },
 
     bgpActions() {
@@ -102,7 +112,7 @@ export default {
       color="warning"
     >
       <MessageLink
-        :to="addonLink"
+        :to="addonLocation"
         prefix-label="harvester.overlayNetworkSettings.noAddonEnabled.prefix"
         middle-label="harvester.overlayNetworkSettings.noAddonEnabled.middle"
         suffix-label="harvester.overlayNetworkSettings.noAddonEnabled.suffix"
@@ -142,6 +152,10 @@ export default {
             v-if="!bgpFeatureEnabled"
             class="text-muted"
           >{{ t('harvester.bgp.unsupported') }}</pre>
+          <pre
+            v-else-if="!configuration"
+            class="text-muted"
+          >{{ t('generic.unknown') }}</pre>
           <pre
             v-else-if="!bgpSummary.length"
             class="text-muted"

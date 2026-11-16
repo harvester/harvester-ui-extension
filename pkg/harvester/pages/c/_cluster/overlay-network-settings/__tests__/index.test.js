@@ -59,6 +59,13 @@ describe('page: Overlay Network Settings', () => {
     ]);
   });
 
+  it('should say the state is unknown, not disabled, when the configuration could not be read', () => {
+    const { wrapper } = mountPage({ configuration: null });
+
+    expect(wrapper.find('[data-testid="overlay-setting-bgp"] pre').text()).toBe('generic.unknown');
+    expect(wrapper.find('[data-testid="bgp-action-button"]').exists()).toBe(false);
+  });
+
   it('should say the BGP speaker needs v1.10.0 on older Harvester versions', () => {
     const { wrapper } = mountPage({ featureEnabled: false });
 

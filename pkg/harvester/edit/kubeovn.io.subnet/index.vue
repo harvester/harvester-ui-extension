@@ -163,7 +163,7 @@ export default {
       get() {
         const bgp = this.value?.metadata?.annotations?.[HCI_ANNOTATIONS.KUBEOVN_BGP];
 
-        // Kube-OVN also accepts "cluster" and "local" here, which both advertise the subnet
+        // Kube-OVN also accepts "cluster" (same as "true") and "local" (only the pod IPs, from the hosts running them)
         return !!bgp && bgp !== 'false';
       },
 
@@ -424,14 +424,9 @@ export default {
               :mode="mode"
               tooltip-key="harvester.subnet.bgp.tooltip"
             />
-          </div>
-          <div
-            v-if="bgpEnabled && bgpSpeakerOff"
-            class="col span-6"
-          >
             <Banner
+              v-if="bgpEnabled && bgpSpeakerOff"
               color="warning"
-              class="mt-0"
               data-testid="subnet-bgp-speaker-off"
             >
               <MessageLink

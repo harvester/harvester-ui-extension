@@ -1434,7 +1434,7 @@ harvester:
       tooltip: Enable network isolation for this Subnet. When enabled, VMs can only communicate within this subnet, even if other subnets exist under the same VPC.
     bgp:
       label: BGP
-      tooltip: Advertise this subnet's CIDR block to the BGP neighbors set in Overlay Networks > Settings.
+      tooltip: Advertise this subnet to the BGP neighbors set in Overlay Networks > Settings.
       speakerOff:
         prefix: No host runs the BGP speaker yet, so this subnet isn't advertised. Set it up in
         middle: Overlay Network Settings
@@ -1534,7 +1534,7 @@ harvester:
   bgp:
     label: BGP Speaker
     settingDescription: Advertises the subnets that have BGP enabled to external BGP routers.
-    unsupported: The BGP speaker requires Harvester v1.10.0 or later.
+    unsupported: The BGP speaker requires [[Harvester]] v1.10.0 or later.
     summary:
       hosts: 'Speaker hosts: {hosts}'
       clusterAS: 'Cluster AS: {as}'

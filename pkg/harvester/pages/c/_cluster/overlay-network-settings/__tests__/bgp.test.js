@@ -1,5 +1,7 @@
 import { shallowMount } from '@vue/test-utils';
+import { Banner } from '@components/Banner';
 import OverlayNetworkBgp from '../bgp.vue';
+import KubeOvnConfiguration from '../../../../../models/kubeovn.io.configuration';
 
 // What Harvester installs before anyone sets up BGP
 const PLACEHOLDER_BGP = {
@@ -17,21 +19,27 @@ const CONFIGURED_BGP = {
   clusterAS:         65000,
 };
 
+// A real model, so the page reads the same getters as in the app
 function createConfiguration(bgp = PLACEHOLDER_BGP) {
-  return {
-    canUpdate: true,
-    spec:      { enableBGP: true, bgp: { ...bgp } },
-    save:      jest.fn().mockResolvedValue({}),
-  };
+  const configuration = Object.create(KubeOvnConfiguration.prototype);
+
+  Object.defineProperty(configuration, 'spec', {
+    value: { enableBGP: true, bgp: { ...bgp } }, writable: true, configurable: true
+  });
+  Object.defineProperty(configuration, 'canUpdate', { value: true, configurable: true });
+  Object.defineProperty(configuration, 'save', { value: jest.fn().mockResolvedValue({}), configurable: true });
+
+  return configuration;
 }
 
 // latest: what the API returns at save time, when it differs from the copy loaded with the page
+// findError: the API refuses to return the Configuration
 function mountPage({
-  featureEnabled = true, addonEnabled = true, configuration = createConfiguration(), latest = null
+  featureEnabled = true, addonEnabled = true, configuration = createConfiguration(), latest = null, findError = null
 } = {}) {
   const dispatch = jest.fn((action, payload) => {
     if (action === 'harvester/find') {
-      return Promise.resolve(latest || configuration);
+      return findError ? Promise.reject(findError) : Promise.resolve(latest || configuration);
     }
 
     if (action === 'harvester/clone') {
@@ -67,7 +75,7 @@ function mountPage({
   });
 
   if (configuration) {
-    wrapper.vm.loadBgp(configuration.spec.bgp);
+    wrapper.vm.loadBgp(configuration);
   }
 
   return {
@@ -124,6 +132,29 @@ describe('page: Overlay Network Settings > BGP Speaker', () => {
       routerID:   '',
       nextHopV4:  '10.115.48.1',
       nextHopV6:  '2001:db8::9',
+    });
+  });
+
+  it('should show why the page is empty when the configuration cannot be read', async() => {
+    const findError = Object.assign(new Error('configurations.kubeovn.io "kubeovn" is forbidden'), { status: 403 });
+    const { wrapper } = mountPage({ configuration: null, findError });
+
+    await OverlayNetworkBgp.fetch.call(wrapper.vm);
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.vm.configuration).toBeNull();
+    expect(wrapper.findAllComponents(Banner).map((b) => b.props('label'))).toStrictEqual(['configurations.kubeovn.io "kubeovn" is forbidden']);
+  });
+
+  it('should link to the kubeovn-operator add-on by route name, so the link works from this nested page', () => {
+    const { wrapper } = mountPage();
+
+    expect(wrapper.vm.addonLocation).toStrictEqual({
+      name:   'harvester-c-cluster-resource-namespace-id',
+      params: {
+        resource: 'harvesterhci.io.addon', namespace: 'kube-system', id: 'kubeovn-operator'
+      },
+      query: { mode: 'edit' },
     });
   });
 
