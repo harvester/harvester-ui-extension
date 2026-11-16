@@ -4,13 +4,11 @@ import NameNsDescription from '@shell/components/form/NameNsDescription';
 import ResourceTabs from '@shell/components/form/ResourceTabs';
 import Tab from '@shell/components/Tabbed/Tab';
 import ArrayList from '@shell/components/form/ArrayList';
-import InfoBox from '@shell/components/InfoBox';
 import Loading from '@shell/components/Loading';
 import MessageLink from '@shell/components/MessageLink';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import UnitInput from '@shell/components/form/UnitInput';
 import { LabeledInput } from '@components/Form/LabeledInput';
-import { Checkbox } from '@components/Form/Checkbox';
 import { RadioGroup } from '@components/Form/Radio';
 import { Banner } from '@components/Banner';
 import CreateEditView from '@shell/mixins/create-edit-view';
@@ -39,6 +37,22 @@ const isValidBandwidth = (value) => BANDWIDTH_PATTERN.test(`${ value }`.trim()) 
 const toBandwidth = (value) => (isWholeNumber(value, 0, Infinity) ? Number(value) : `${ value }`.trim());
 const cleanList = (list) => (list || []).map((item) => `${ item || '' }`.trim()).filter(Boolean);
 const isValidBfdValue = (value) => isWholeNumber(value, 1, MAX_BFD_VALUE);
+const unique = (list) => [...new Set(list)];
+
+// Kube-OVN puts the sources of every policy into two sets, with SNAT and without, and leaves a source out of
+// SNAT when any policy has SNAT off for it. The form edits those two sets; IP blocks set outside it are kept.
+const policyGroups = (policies = []) => {
+  const noSnatSubnets = unique(policies.filter((policy) => !policy.snat).flatMap((policy) => policy.subnets || []));
+  const snatSubnets = unique(policies.filter((policy) => policy.snat).flatMap((policy) => policy.subnets || []))
+    .filter((subnet) => !noSnatSubnets.includes(subnet));
+  const ipBlockPolicies = policies
+    .filter((policy) => policy.ipBlocks?.length)
+    .map((policy) => ({ snat: !!policy.snat, ipBlocks: [...policy.ipBlocks] }));
+
+  return {
+    snatSubnets, noSnatSubnets, ipBlockPolicies
+  };
+};
 
 export default {
   name: 'EditVpcEgressGateway',
@@ -48,9 +62,7 @@ export default {
   components: {
     ArrayList,
     Banner,
-    Checkbox,
     CruResource,
-    InfoBox,
     LabeledInput,
     LabeledSelect,
     Loading,
@@ -84,20 +96,15 @@ export default {
 
   data() {
     const spec = this.value?.spec || {};
-    const policies = (spec.policies || [{ snat: true, subnets: [] }]).map((policy) => ({
-      ...policy,
-      snat:    !!policy.snat,
-      subnets: [...(policy.subnets || [])],
-    }));
 
     return {
+      ...policyGroups(spec.policies),
       vpc:              spec.vpc || '',
       replicas:         spec.replicas ?? 1,
       internalSubnet:   spec.internalSubnet || '',
       externalSubnet:   spec.externalSubnet || '',
       internalIPs:      [...(spec.internalIPs || [])],
       externalIPs:      [...(spec.externalIPs || [])],
-      policies,
       bfd:              { ...BFD_DEFAULTS, ...spec.bfd },
       bandwidthIngress: spec.bandwidth?.ingress ?? '',
       bandwidthEgress:  spec.bandwidth?.egress ?? '',
@@ -152,9 +159,29 @@ export default {
       return this.vpc ? this.$store.getters[`${ inStore }/byId`](HCI.VPC, this.vpc) : null;
     },
 
-    // One policy for each SNAT setting is all the gateway can use
-    canAddPolicy() {
-      return !(this.policies.some((policy) => policy.snat) && this.policies.some((policy) => !policy.snat));
+    // A subnet goes in one of the two groups only
+    snatSubnetOptions() {
+      return this.vpcSubnetOptions.filter((option) => !this.noSnatSubnets.includes(option.value));
+    },
+
+    noSnatSubnetOptions() {
+      return this.vpcSubnetOptions.filter((option) => !this.snatSubnets.includes(option.value));
+    },
+
+    ipBlocksWithSnat() {
+      return this.ipBlockPolicies.filter((policy) => policy.snat).flatMap((policy) => policy.ipBlocks);
+    },
+
+    ipBlocksWithoutSnat() {
+      return this.ipBlockPolicies.filter((policy) => !policy.snat).flatMap((policy) => policy.ipBlocks);
+    },
+
+    policySourceRequired() {
+      return !!this.policyError();
+    },
+
+    policyRules() {
+      return [() => this.policyError()];
     },
 
     tabErrors() {
@@ -239,23 +266,12 @@ export default {
         this.internalSubnet = '';
       }
 
-      this.policies.forEach((policy) => {
-        policy.subnets = policy.subnets.filter((subnet) => vpcSubnets.includes(subnet));
-      });
+      this.snatSubnets = this.snatSubnets.filter((subnet) => vpcSubnets.includes(subnet));
+      this.noSnatSubnets = this.noSnatSubnets.filter((subnet) => vpcSubnets.includes(subnet));
     },
   },
 
   methods: {
-    // Kube-OVN merges the sources of every policy with the same SNAT setting, so the form keeps one policy
-    // with SNAT on and one with it off, and a new policy takes the setting that isn't used yet
-    addPolicy() {
-      this.policies.push({ snat: !this.policies.some((policy) => policy.snat), subnets: [] });
-    },
-
-    removePolicy(index) {
-      this.policies.splice(index, 1);
-    },
-
     requiredError(value, labelKey) {
       return value ? undefined : this.t('validation.required', { key: this.t(labelKey) }, true);
     },
@@ -298,29 +314,19 @@ export default {
       return undefined;
     },
 
-    policySubnetsError(policy) {
-      if (!policy.subnets.length && !policy.ipBlocks?.length) {
-        return this.t('harvester.egressGateway.validation.policySubnets', null, true);
-      }
+    policyError() {
+      const hasSource = this.snatSubnets.length || this.noSnatSubnets.length || this.ipBlockPolicies.length;
 
-      // The gateway leaves a source out of SNAT when any policy has SNAT off for it, so a subnet in two
-      // policies would silently ignore one of them
-      const otherSubnets = this.policies.filter((other) => other !== policy).flatMap((other) => other.subnets);
-      const repeated = policy.subnets.find((subnet) => otherSubnets.includes(subnet));
+      return hasSource ? undefined : this.t('harvester.egressGateway.validation.policyRequired', null, true);
+    },
 
-      if (repeated) {
-        return this.t('harvester.egressGateway.validation.policySubnetRepeated', { subnet: repeated }, true);
-      }
-
-      // A later policy with the same SNAT setting only adds to the first one. Policies with IP blocks are
-      // left alone, since the form can't move those into another policy.
-      const first = this.policies.find((other) => other.snat === policy.snat && !other.ipBlocks?.length);
-
-      if (!policy.ipBlocks?.length && first && first !== policy) {
-        return this.t(`harvester.egressGateway.validation.${ policy.snat ? 'policySnatOnRepeated' : 'policySnatOffRepeated' }`, null, true);
-      }
-
-      return undefined;
+    // One policy for each group that has subnets, then the IP block policies as they were
+    policiesSpec() {
+      return [
+        ...(this.snatSubnets.length ? [{ snat: true, subnets: [...this.snatSubnets] }] : []),
+        ...(this.noSnatSubnets.length ? [{ snat: false, subnets: [...this.noSnatSubnets] }] : []),
+        ...this.ipBlockPolicies.map((policy) => ({ ...policy, ipBlocks: [...policy.ipBlocks] })),
+      ];
     },
 
     // The errors of each tab, so each tab can be marked and Save stays disabled until there are none
@@ -347,14 +353,10 @@ export default {
         errors.basic.push(this.t('harvester.egressGateway.validation.replicas', null, true));
       }
 
-      if (!this.policies.length) {
-        errors.policies.push(this.t('harvester.egressGateway.validation.policyRequired', null, true));
-      } else {
-        const policyError = this.policies.map((policy) => this.policySubnetsError(policy)).find(Boolean);
+      const policyError = this.policyError();
 
-        if (policyError) {
-          errors.policies.push(policyError);
-        }
+      if (policyError) {
+        errors.policies.push(policyError);
       }
 
       Object.keys(IP_FIELDS).forEach((field) => {
@@ -403,7 +405,7 @@ export default {
         externalSubnet: this.externalSubnet,
         internalIPs:    cleanList(this.internalIPs),
         externalIPs:    cleanList(this.externalIPs),
-        policies:       this.policies.map((policy) => ({ ...policy })),
+        policies:       this.policiesSpec(),
         bfd:            this.bfdSpec(),
         bandwidth:      {
           ingress: isBlank(this.bandwidthIngress) ? undefined : toBandwidth(this.bandwidthIngress),
@@ -411,7 +413,7 @@ export default {
         },
       };
 
-      ['internalIPs', 'externalIPs'].forEach((field) => {
+      ['internalIPs', 'externalIPs', 'policies'].forEach((field) => {
         if (!spec[field].length) {
           delete spec[field];
         }
@@ -550,74 +552,67 @@ export default {
         :error="tabErrors.policies.length > 0"
         :error-icon-tooltip="tabErrors.policies.join(' ')"
       >
-        <Banner
-          v-if="!isView && !policies.length"
-          color="error"
-          :label="t('harvester.egressGateway.validation.policyRequired')"
-        />
         <p
           v-if="!isView"
-          class="text-muted mb-15"
+          class="text-muted mb-20"
         >
           {{ t('harvester.egressGateway.policies.description') }}
         </p>
-        <div
-          v-for="(policy, index) in policies"
-          :key="index"
-        >
-          <InfoBox class="policy">
-            <button
-              v-if="!isView"
-              type="button"
-              class="role-link btn btn-sm remove-policy"
-              :aria-label="t('generic.remove')"
-              @click="removePolicy(index)"
-            >
-              <i class="icon icon-x" />
-            </button>
-            <div class="row">
-              <div class="col span-11">
-                <Checkbox
-                  v-model:value="policy.snat"
-                  class="mb-15"
-                  :mode="mode"
-                  :label="t('harvester.egressGateway.policies.snat')"
-                  :tooltip="t('harvester.egressGateway.policies.snatTooltip')"
-                />
-                <LabeledSelect
-                  v-model:value="policy.subnets"
-                  :data-testid="`egress-gateway-policy-subnets-${ index }`"
-                  :required="!policy.ipBlocks?.length"
-                  :rules="[() => policySubnetsError(policy)]"
-                  :multiple="true"
-                  :options="vpcSubnetOptions"
-                  :mode="mode"
-                  :label="t('harvester.egressGateway.policies.subnets.label')"
-                  :placeholder="t('harvester.egressGateway.policies.subnets.placeholder')"
-                  :tooltip="t('harvester.egressGateway.policies.subnets.tooltip')"
-                />
-                <LabeledInput
-                  v-if="policy.ipBlocks?.length"
-                  class="mt-15"
-                  :data-testid="`egress-gateway-policy-ip-blocks-${ index }`"
-                  :value="policy.ipBlocks.join(', ')"
-                  mode="view"
-                  :label="t('harvester.egressGateway.policies.ipBlocks.label')"
-                  :tooltip="t('harvester.egressGateway.policies.ipBlocks.tooltip')"
-                />
-              </div>
-            </div>
-          </InfoBox>
+        <div class="row">
+          <div class="col span-6">
+            <LabeledSelect
+              v-model:value="snatSubnets"
+              data-testid="egress-gateway-snat-subnets"
+              :required="policySourceRequired"
+              :rules="policyRules"
+              :multiple="true"
+              :options="snatSubnetOptions"
+              :mode="mode"
+              :label="t('harvester.egressGateway.policies.snatSubnets.label')"
+              :placeholder="t('harvester.egressGateway.policies.placeholder')"
+              :tooltip="t('harvester.egressGateway.policies.snatSubnets.tooltip')"
+            />
+          </div>
+          <div class="col span-6">
+            <LabeledSelect
+              v-model:value="noSnatSubnets"
+              data-testid="egress-gateway-no-snat-subnets"
+              :required="policySourceRequired"
+              :rules="policyRules"
+              :multiple="true"
+              :options="noSnatSubnetOptions"
+              :mode="mode"
+              :label="t('harvester.egressGateway.policies.noSnatSubnets.label')"
+              :placeholder="t('harvester.egressGateway.policies.placeholder')"
+              :tooltip="t('harvester.egressGateway.policies.noSnatSubnets.tooltip')"
+            />
+          </div>
         </div>
-        <button
-          v-if="!isView && canAddPolicy"
-          type="button"
-          class="btn role-tertiary"
-          data-testid="egress-gateway-add-policy"
-          @click="addPolicy"
+        <div
+          v-if="ipBlocksWithSnat.length || ipBlocksWithoutSnat.length"
+          class="row mt-20"
         >
-          {{ t('harvester.egressGateway.policies.addLabel') }}
-        </button>
+          <div class="col span-6">
+            <LabeledInput
+              v-if="ipBlocksWithSnat.length"
+              data-testid="egress-gateway-snat-ip-blocks"
+              :value="ipBlocksWithSnat.join(', ')"
+              mode="view"
+              :label="t('harvester.egressGateway.policies.ipBlocks.snat')"
+              :tooltip="t('harvester.egressGateway.policies.ipBlocks.tooltip')"
+            />
+          </div>
+          <div class="col span-6">
+            <LabeledInput
+              v-if="ipBlocksWithoutSnat.length"
+              data-testid="egress-gateway-no-snat-ip-blocks"
+              :value="ipBlocksWithoutSnat.join(', ')"
+              mode="view"
+              :label="t('harvester.egressGateway.policies.ipBlocks.noSnat')"
+              :tooltip="t('harvester.egressGateway.policies.ipBlocks.tooltip')"
+            />
+          </div>
+        </div>
       </Tab>
 
       <Tab
@@ -762,16 +757,3 @@ export default {
     </ResourceTabs>
   </CruResource>
 </template>
-
-<style lang="scss" scoped>
-  .policy {
-    position: relative;
-  }
-
-  .remove-policy {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    padding: 0;
-  }
-</style>

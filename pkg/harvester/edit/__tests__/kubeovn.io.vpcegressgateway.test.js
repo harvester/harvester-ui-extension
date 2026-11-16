@@ -1,11 +1,11 @@
 import EditVpcEgressGateway from '../kubeovn.io.vpcegressgateway.vue';
 
 const {
-  validate, validateTabs, ipError, ipCountError, policySubnetsError, toSpec, bfdSpec, saveGateway, addPolicy
+  validate, validateTabs, ipError, ipCountError, policyError, policiesSpec, toSpec, bfdSpec, saveGateway
 } = EditVpcEgressGateway.methods;
 const { vpc: onVpcChange } = EditVpcEgressGateway.watch;
 const {
-  vpcBfdPortDisabled, vpcEditLocation, internalSubnetOptions, externalSubnetOptions, externalSubnetRules, internalSubnetPlaceholder, canAddPolicy
+  vpcBfdPortDisabled, vpcEditLocation, internalSubnetOptions, externalSubnetOptions, externalSubnetRules, internalSubnetPlaceholder, snatSubnetOptions, noSnatSubnetOptions
 } = EditVpcEgressGateway.computed;
 const { requiredError } = EditVpcEgressGateway.methods;
 
@@ -22,12 +22,12 @@ function createContext(form = {}, spec = {}) {
     replicas:       2,
     internalSubnet: 'subnetinternal',
     externalSubnet: 'subnetexternal',
-    policies:       [{ snat: true, subnets: ['subnetinternal'] }],
+    snatSubnets:    ['subnetinternal'],
     ...form,
   };
 
   Object.assign(context, {
-    bfdSpec, validateTabs, ipError, ipCountError, policySubnetsError
+    bfdSpec, validateTabs, ipError, ipCountError, policyError, policiesSpec
   });
 
   return context;
@@ -41,11 +41,11 @@ function subnet(id, spec, model = {}) {
 }
 
 describe('edit: kubeovn.io.vpcegressgateway', () => {
-  it('should start a new gateway with one replica, one SNAT policy and BFD off', () => {
+  it('should start a new gateway with one replica, no subnets and BFD off', () => {
     const data = EditVpcEgressGateway.data.call({ value: { metadata: {} } });
 
     expect(data.replicas).toBe(1);
-    expect(data.policies).toStrictEqual([{ snat: true, subnets: [] }]);
+    expect([data.snatSubnets, data.noSnatSubnets, data.ipBlockPolicies]).toStrictEqual([[], [], []]);
     expect(data.bfd).toStrictEqual({
       enabled: false, minRX: 1000, minTX: 1000, multiplier: 3
     });
@@ -135,7 +135,7 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
   it('should put each error on the tab that holds the field', () => {
     const errors = validateTabs.call(createContext({
       replicas:         11,
-      policies:         [],
+      snatSubnets:      [],
       externalIPs:      ['10.115.48.300'],
       bfd:              {
         enabled: true, minRX: 0, minTX: 50, multiplier: 3
@@ -179,55 +179,57 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     expect(ipError.call(createContext(), 'internalIPs', ' ')).toBeUndefined();
   });
 
-  it('should reject a subnet that is in two policies', () => {
-    const errors = validate.call(createContext({ policies: [{ snat: true, subnets: ['subnetinternal'] }, { snat: false, subnets: ['subnetinternal', 'subnetother'] }] }));
+  it('should read the policies as Kube-OVN applies them', () => {
+    const data = EditVpcEgressGateway.data.call({
+      value: {
+        spec: {
+          policies: [
+            { snat: true, subnets: ['a', 'b'] },
+            { snat: true, subnets: ['c', 'a'] },
+            { snat: false, subnets: ['b', 'd'] },
+            { snat: false, ipBlocks: ['10.0.0.0/24'] },
+          ]
+        }
+      }
+    });
 
-    expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain('harvester.egressGateway.validation.policySubnetRepeated');
-    expect(errors[0]).toContain('subnetinternal');
+    expect(data.snatSubnets).toStrictEqual(['a', 'c']);
+    expect(data.noSnatSubnets).toStrictEqual(['b', 'd']);
+    expect(data.ipBlockPolicies).toStrictEqual([{ snat: false, ipBlocks: ['10.0.0.0/24'] }]);
+  });
+
+  it('should write one policy for each group and keep the IP block policies', () => {
+    const context = createContext({
+      snatSubnets: ['a', 'c'], noSnatSubnets: ['b'], ipBlockPolicies: [{ snat: true, ipBlocks: ['10.0.0.0/24'] }]
+    });
+
+    expect(policiesSpec.call(context)).toStrictEqual([
+      { snat: true, subnets: ['a', 'c'] },
+      { snat: false, subnets: ['b'] },
+      { snat: true, ipBlocks: ['10.0.0.0/24'] },
+    ]);
+  });
+
+  it('should leave out a group without subnets', () => {
+    expect(policiesSpec.call(createContext({ snatSubnets: [], noSnatSubnets: ['b'] }))).toStrictEqual([{ snat: false, subnets: ['b'] }]);
+  });
+
+  it('should not offer a subnet of one group in the other', () => {
+    const vpcSubnetOptions = ['a', 'b', 'c'].map((value) => ({ label: value, value }));
+    const context = {
+      vpcSubnetOptions, snatSubnets: ['a'], noSnatSubnets: ['b']
+    };
+
+    expect(snatSubnetOptions.call(context).map((option) => option.value)).toStrictEqual(['a', 'c']);
+    expect(noSnatSubnetOptions.call(context).map((option) => option.value)).toStrictEqual(['b', 'c']);
   });
 
   it.each([
-    ['no policy', [], true],
-    ['a policy with SNAT on', [{ snat: true, subnets: [] }], false],
-    ['a policy with SNAT off', [{ snat: false, subnets: [] }], true],
-  ])('should add a policy with the SNAT setting not used yet after %s', (_, policies, snat) => {
-    const context = { policies: [...policies] };
-
-    addPolicy.call(context);
-
-    expect(context.policies[context.policies.length - 1]).toStrictEqual({ snat, subnets: [] });
-  });
-
-  it.each([
-    ['one policy', [{ snat: true }], true],
-    ['one policy for each SNAT setting', [{ snat: true }, { snat: false }], false],
-  ])('should tell whether a policy can be added with %s', (_, policies, canAdd) => {
-    expect(canAddPolicy.call({ policies })).toBe(canAdd);
-  });
-
-  it.each([
-    ['on', true, 'harvester.egressGateway.validation.policySnatOnRepeated'],
-    ['off', false, 'harvester.egressGateway.validation.policySnatOffRepeated'],
-  ])('should reject a second policy with SNAT %s', (_, snat, errorKey) => {
-    const policies = [{ snat, subnets: ['subnetinternal'] }, { snat, subnets: ['subnetother'] }];
-    const context = createContext({ policies });
-
-    expect(policySubnetsError.call(context, policies[0])).toBeUndefined();
-    expect(policySubnetsError.call(context, policies[1])).toContain(errorKey);
-    expect(validate.call(context)).toHaveLength(1);
-  });
-
-  it('should leave a policy with IP blocks out of the SNAT check', () => {
-    const policies = [{ snat: true, subnets: ['subnetinternal'] }, {
-      snat: true, ipBlocks: ['10.0.0.0/24'], subnets: []
-    }];
-
-    expect(validate.call(createContext({ policies }))).toStrictEqual([]);
-  });
-
-  it('should accept a policy with only IP blocks', () => {
-    expect(policySubnetsError.call(createContext(), { subnets: [], ipBlocks: ['10.0.0.0/24'] })).toBeUndefined();
+    ['subnets with SNAT', { snatSubnets: ['a'] }],
+    ['subnets without SNAT', { snatSubnets: [], noSnatSubnets: ['b'] }],
+    ['only IP blocks', { snatSubnets: [], ipBlockPolicies: [{ snat: false, ipBlocks: ['10.0.0.0/24'] }] }],
+  ])('should accept a gateway with %s', (_, form) => {
+    expect(policyError.call(createContext(form))).toBeUndefined();
   });
 
   it('should stop the save when the form has errors', async() => {
@@ -262,17 +264,18 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
       selectors:     [{ namespaceSelector: { matchLabels: { app: 'web' } } }],
       policies:      [{ snat: false, ipBlocks: ['10.0.0.0/24'] }],
     };
-    const context = createContext({}, existing);
+    const context = createContext({ snatSubnets: [] }, existing);
+    const { snatSubnets, noSnatSubnets, ipBlockPolicies } = EditVpcEgressGateway.data.call({ value: context.value });
 
-    context.policies = EditVpcEgressGateway.data.call({ value: context.value }).policies;
+    Object.assign(context, {
+      snatSubnets, noSnatSubnets, ipBlockPolicies
+    });
 
     const spec = toSpec.call(context);
 
     expect(spec.trafficPolicy).toBe('Local');
     expect(spec.selectors).toStrictEqual(existing.selectors);
-    expect(spec.policies).toStrictEqual([{
-      snat: false, ipBlocks: ['10.0.0.0/24'], subnets: []
-    }]);
+    expect(spec.policies).toStrictEqual([{ snat: false, ipBlocks: ['10.0.0.0/24'] }]);
     expect(validate.call(context)).toStrictEqual([]);
   });
 
@@ -286,8 +289,7 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     ['no external subnet', { externalSubnet: '' }, 'validation.required'],
     ['the same internal and external subnet', { externalSubnet: 'subnetinternal' }, 'harvester.egressGateway.validation.sameSubnet'],
     ['too many replicas', { replicas: 11 }, 'harvester.egressGateway.validation.replicas'],
-    ['no policy', { policies: [] }, 'harvester.egressGateway.validation.policyRequired'],
-    ['a policy without subnets', { policies: [{ snat: true, subnets: [] }] }, 'harvester.egressGateway.validation.policySubnets'],
+    ['no subnet with or without SNAT', { snatSubnets: [] }, 'harvester.egressGateway.validation.policyRequired'],
     ['an invalid IP', { externalIPs: ['10.115.48.300', '10.115.48.221'] }, 'harvester.egressGateway.validation.ipList'],
     ['fewer IPs than replicas', { internalIPs: ['172.20.10.41'] }, 'harvester.egressGateway.validation.ipCount'],
     ['a repeated IP', { externalIPs: ['10.115.48.220', ' 10.115.48.220'] }, 'harvester.egressGateway.validation.ipDuplicate'],
@@ -309,7 +311,8 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     const context = createContext({
       vpc:                   'othervpc',
       internalSubnet:        'subnetinternal',
-      policies:              [{ snat: true, subnets: ['subnetinternal', 'othersubnet'] }],
+      snatSubnets:           ['subnetinternal', 'othersubnet'],
+      noSnatSubnets:         ['subnetinternal'],
       vpcSubnetOptions:      [{ label: 'othersubnet', value: 'othersubnet' }],
       internalSubnetOptions: [{ label: 'othersubnet', value: 'othersubnet' }],
     });
@@ -317,7 +320,8 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     onVpcChange.call(context, 'othervpc', 'commonvpc');
 
     expect(context.internalSubnet).toBe('');
-    expect(context.policies).toStrictEqual([{ snat: true, subnets: ['othersubnet'] }]);
+    expect(context.snatSubnets).toStrictEqual(['othersubnet']);
+    expect(context.noSnatSubnets).toStrictEqual([]);
   });
 
   it.each([
