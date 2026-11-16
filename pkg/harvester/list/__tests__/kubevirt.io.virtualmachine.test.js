@@ -243,11 +243,14 @@ describe('list: kubevirt.io.virtualmachine', () => {
   });
 
   describe('restart required notification', () => {
-    const notify = (ctx, names, oldNames) => VmList.watch.vmRestartRequiredNames.call(ctx, names, oldNames);
-    const createCtx = (restartNotificationDisplayed) => ({
+    const rvm = (namespace, name) => ({
+      id: `${ namespace }/${ name }`, metadata: { namespace, name }, isRestartRequired: true
+    });
+    const notify = (ctx, vms, oldVms) => VmList.watch.restartRequiredVMs.call(ctx, vms, oldVms);
+    const createCtx = (restartNotificationKey) => ({
       $store: { dispatch: jest.fn() },
       t:      (key, args) => `${ key } ${ JSON.stringify(args) }`,
-      restartNotificationDisplayed,
+      restartNotificationKey,
     });
     const warning = (count, vmNames) => ['growl/warning', {
       title:   `harvester.notification.restartRequired.title ${ JSON.stringify({ count }) }`,
@@ -255,38 +258,61 @@ describe('list: kubevirt.io.virtualmachine', () => {
       timeout: 10000,
     }, { root: true }];
 
-    it('should notify when VMs need a restart', () => {
-      const ctx = createCtx(false);
+    it('should only list the VMs that need a restart', () => {
+      const a = rvm('default', 'a');
 
-      notify(ctx, ['a', 'b'], []);
+      expect(call('restartRequiredVMs', { vms: [a, { id: 'default/b', isRestartRequired: false }] })).toStrictEqual([a]);
+    });
+
+    it('should notify when VMs need a restart', () => {
+      const ctx = createCtx('');
+
+      notify(ctx, [rvm('default', 'a'), rvm('default', 'b')], []);
 
       expect(ctx.$store.dispatch).toHaveBeenCalledWith(...warning(2, 'a, b'));
-      expect(ctx.restartNotificationDisplayed).toBe(true);
+      expect(ctx.restartNotificationKey).toBe('default/a,default/b');
+    });
+
+    it('should notify on a new visit to the list, even when the VMs it saw before are the same', () => {
+      const ctx = createCtx('');
+
+      notify(ctx, [rvm('default', 'a')], [rvm('default', 'a')]);
+
+      expect(ctx.$store.dispatch).toHaveBeenCalledWith(...warning(1, 'a'));
     });
 
     it('should not notify again when a refresh, page or sort brings back the same VMs', () => {
-      const ctx = createCtx(true);
+      const ctx = createCtx('default/a,default/b');
 
-      notify(ctx, ['b', 'a'], ['a', 'b']);
+      notify(ctx, [rvm('default', 'b'), rvm('default', 'a')], [rvm('default', 'a'), rvm('default', 'b')]);
 
       expect(ctx.$store.dispatch).not.toHaveBeenCalled();
     });
 
-    it('should replace the notification when the VMs change', () => {
-      const ctx = createCtx(true);
+    it('should notify again when a VM of the same name in another namespace takes its place', () => {
+      const ctx = createCtx('');
 
-      notify(ctx, ['a', 'c'], ['a', 'b']);
+      notify(ctx, [rvm('ns1', 'a')], []);
+      notify(ctx, [rvm('ns2', 'a')], [rvm('ns1', 'a')]);
+
+      expect(ctx.$store.dispatch.mock.calls).toStrictEqual([warning(1, 'a'), ['growl/clear'], warning(1, 'a')]);
+    });
+
+    it('should replace the notification when the VMs change', () => {
+      const ctx = createCtx('default/a,default/b');
+
+      notify(ctx, [rvm('default', 'a'), rvm('default', 'c')], [rvm('default', 'a'), rvm('default', 'b')]);
 
       expect(ctx.$store.dispatch.mock.calls).toStrictEqual([['growl/clear'], warning(2, 'a, c')]);
     });
 
     it('should reset when no VM needs a restart', () => {
-      const ctx = createCtx(true);
+      const ctx = createCtx('default/a');
 
-      notify(ctx, [], ['a']);
+      notify(ctx, [], [rvm('default', 'a')]);
 
       expect(ctx.$store.dispatch).not.toHaveBeenCalled();
-      expect(ctx.restartNotificationDisplayed).toBe(false);
+      expect(ctx.restartNotificationKey).toBe('');
     });
   });
 });

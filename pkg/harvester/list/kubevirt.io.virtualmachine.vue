@@ -174,7 +174,7 @@ export default {
     return {
       allVMs:                       [],
       allVMIs:                      [],
-      restartNotificationDisplayed: false,
+      restartNotificationKey:       '',
       HCI
     };
   },
@@ -274,10 +274,8 @@ export default {
       });
     },
 
-    vmRestartRequiredNames() {
-      return this.vms
-        .filter((vm) => vm.isRestartRequired)
-        .map((vm) => vm.metadata.name);
+    restartRequiredVMs() {
+      return this.vms.filter((vm) => vm.isRestartRequired);
     }
   },
 
@@ -307,33 +305,33 @@ export default {
       }
     },
 
-    vmRestartRequiredNames(vmNames, oldNames = []) {
-      const count = vmNames.length;
+    restartRequiredVMs(vms) {
+      // Rebuilt on every refresh, and when paging on every page, sort and search too, so only notify when the VMs change.
+      // The key lives on the component, so coming back to the list notifies again
+      const key = vms.map((vm) => vm.id).sort().join();
 
-      if (count === 0 && this.restartNotificationDisplayed) {
-        this.restartNotificationDisplayed = false;
-
+      if (key === this.restartNotificationKey) {
         return;
       }
 
-      // The names are rebuilt on every refresh, and when paging on every page, sort and search too, so only notify when they change
-      if ([...vmNames].sort().join() === [...oldNames].sort().join()) {
+      const shown = !!this.restartNotificationKey;
+
+      this.restartNotificationKey = key;
+
+      if (!vms.length) {
         return;
       }
 
-      if (count > 0) {
-        // clear old notification before showing new one
-        if (this.restartNotificationDisplayed) {
-          this.$store.dispatch('growl/clear');
-        }
-
-        this.$store.dispatch('growl/warning', {
-          title:   this.t('harvester.notification.restartRequired.title', { count }),
-          message: this.t('harvester.notification.restartRequired.message', { vmNames: vmNames.join(', ') }),
-          timeout: 10000,
-        }, { root: true });
-        this.restartNotificationDisplayed = true;
+      // clear old notification before showing new one
+      if (shown) {
+        this.$store.dispatch('growl/clear');
       }
+
+      this.$store.dispatch('growl/warning', {
+        title:   this.t('harvester.notification.restartRequired.title', { count: vms.length }),
+        message: this.t('harvester.notification.restartRequired.message', { vmNames: vms.map((vm) => vm.metadata.name).join(', ') }),
+        timeout: 10000,
+      }, { root: true });
     }
   },
   methods: {
@@ -383,7 +381,7 @@ export default {
       await Promise.allSettled([
         this.findPageByField(PV, 'metadata.name', uniq(pvcs.map((pvc) => pvc.spec?.volumeName)), force),
         this.findPageByField(HCI.BACKUP, 'metadata.name', uniq(restores.map((restore) => restore.spec?.virtualMachineBackupName)), force),
-        // KubeVirt labels every launcher pod with its VMI's UID; the Harvester vmName label is only there when this UI created the VM
+        // KubeVirt labels every launcher pod with its VMI's UID; Harvester's vmName label is missing on VMs from Forklift or plain manifests
         this.findPageByField(POD, `metadata.labels[${ HCI_ANNOTATIONS.VMI_CREATED_BY }]`, uniq(vmis.map((vmi) => vmi.metadata?.uid)), force),
       ]);
     },
