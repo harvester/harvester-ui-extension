@@ -1521,41 +1521,49 @@ harvester:
   bgp:
     label: BGP
     description: The BGP speaker runs on the selected hosts and advertises every subnet that has BGP enabled to the BGP neighbors. Enable BGP on each subnet that should be reachable from the external network.
+    enabled:
+      label: BGP Speaker
+      tooltip: When disabled, no host runs the BGP speaker. The other values are kept for when you enable it again.
+    sections:
+      advanced: Advanced
     nodeNames:
       label: Speaker Hosts
       placeholder: Select hosts
-      tooltip: The hosts that run the BGP speaker. Leave empty to stop the speaker on every host.
-    neighborV4Address:
-      label: Neighbor IPv4 Addresses
-      placeholder: e.g. 10.115.53.2,10.115.53.3
-      tooltip: The IPv4 addresses of the external BGP neighbors, separated by commas.
-    neighborV6Address:
-      label: Neighbor IPv6 Addresses
-      placeholder: e.g. 2001:db8::2
-      tooltip: The IPv6 addresses of the external BGP neighbors, separated by commas.
-    neighborAS:
-      label: Neighbor AS
-      placeholder: e.g. 65030
-      tooltip: The autonomous system (AS) number of the external BGP neighbors.
+      tooltip: The hosts that run the BGP speaker. Each host connects to every neighbor.
     clusterAS:
       label: Cluster AS
       placeholder: e.g. 65000
       tooltip: The autonomous system (AS) number of this cluster.
     routerID:
       label: Router ID
-      placeholder: e.g. 10.115.48.1
-      tooltip: Optional. The BGP router ID, an IPv4 address.
-    nextHops:
-      label: Next Hops
-      placeholder: e.g. 10.115.48.1
-      tooltip: Optional. The next hop of the advertised routes, at most one IPv4 and one IPv6 address, separated by a comma.
+      placeholder: Each host's own IPv4 address
+      tooltip: Optional. Leave it empty so each host uses its own IPv4 address. Set it only when a single host runs the speaker.
+    neighborAS:
+      label: Neighbor AS
+      placeholder: e.g. 65030
+      tooltip: The autonomous system (AS) number of the neighbors. All neighbors must be in the same AS.
+    neighbors:
+      label: Neighbor Addresses
+      placeholder: e.g. 10.115.53.2 or 2001:db8::2
+      tooltip: The IPv4 or IPv6 addresses of the external BGP routers the speaker connects to.
+      add: Add Neighbor
+    nextHopV4:
+      label: Next Hop (IPv4)
+      placeholder: Each host's own address
+      tooltip: Optional. The IPv4 next hop of the advertised routes. Leave it empty to use each host's own address.
+    nextHopV6:
+      label: Next Hop (IPv6)
+      placeholder: Each host's own address
+      tooltip: Optional. The IPv6 next hop of the advertised routes. Leave it empty to use each host's own address.
     validation:
-      neighborRequired: Enter at least one neighbor address when speaker hosts are selected.
-      ipv4List: '"{key}" must be IPv4 addresses separated by commas.'
-      ipv6List: '"{key}" must be IPv6 addresses separated by commas.'
+      hostsRequired: Select at least one speaker host, or set the BGP speaker to Disabled.
+      neighborRequired: Add at least one neighbor address.
+      neighborAddress: Neighbor addresses must be IPv4 or IPv6 addresses.
       asNumber: '"{key}" must be a whole number from 1 to {max}.'
       routerID: '"Router ID" must be an IPv4 address.'
-      nextHops: '"Next Hops" accepts at most one IPv4 and one IPv6 address.'
+      routerIDMultipleHosts: Leave "Router ID" empty when more than one host runs the speaker, so each host uses its own address.
+      ipv4: '"{key}" must be an IPv4 address.'
+      ipv6: '"{key}" must be an IPv6 address.'
   natGateway:
     label: NAT Gateways
     internalTenantNetwork:

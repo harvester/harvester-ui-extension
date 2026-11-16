@@ -2,6 +2,7 @@
 import isEqual from 'lodash/isEqual';
 import Tabbed from '@shell/components/Tabbed';
 import Tab from '@shell/components/Tabbed/Tab';
+import ArrayList from '@shell/components/form/ArrayList';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import { RadioGroup } from '@components/Form/Radio';
@@ -17,14 +18,21 @@ import { HCI } from '../../types';
 const CONFIGURATION_ID = 'kube-system/kubeovn';
 const AS_MAX = 4294967294;
 
+// Values Harvester installs before anyone sets up BGP. The addresses are documentation addresses, never a real neighbor.
+const PLACEHOLDER_NEIGHBORS = ['192.0.2.1', '2001:db8::1'];
+const PLACEHOLDER_AS = { neighborAS: 64512, clusterAS: 64513 };
+
 const splitList = (value) => `${ value || '' }`.split(',').map((item) => item.trim()).filter(Boolean);
+const cleanList = (list) => [...new Set((list || []).map((item) => `${ item || '' }`.trim()).filter(Boolean))];
 const isIpv6 = (ip) => isValidIP(ip) && !isIpv4(ip);
-const isAsNumber = (value) => /^\d+$/.test(`${ value }`.trim()) && Number(value) >= 1 && Number(value) <= AS_MAX;
+const isAsNumber = (value) => /^\d+$/.test(`${ value ?? '' }`.trim()) && Number(value) >= 1 && Number(value) <= AS_MAX;
+const asText = (value) => `${ value ?? '' }`.trim();
 
 export default {
   name: 'EditAddonKubeovnOperator',
 
   components: {
+    ArrayList,
     Banner,
     LabeledInput,
     LabeledSelect,
@@ -75,15 +83,17 @@ export default {
 
   data() {
     return {
-      configuration:     null,
-      nodeNames:         [],
-      neighborV4Address: '',
-      neighborV6Address: '',
-      neighborAS:        '',
-      clusterAS:         '',
-      routerID:          '',
-      nextHops:          '',
-      bgpErrors:         [],
+      configuration: null,
+      bgpEnabled:    false,
+      nodeNames:     [],
+      neighbors:     [],
+      neighborAS:    '',
+      clusterAS:     '',
+      routerID:      '',
+      nextHopV4:     '',
+      nextHopV6:     '',
+      loadedState:   null,
+      bgpErrors:     [],
     };
   },
 
@@ -113,65 +123,147 @@ export default {
         value: node.id,
       }));
     },
+
+    // Inline checks, shown under each field once it has been touched. saveBgp runs the same checks.
+    neighborRules() {
+      return [(value) => this.neighborError(value)];
+    },
+
+    neighborASRules() {
+      return [(value) => this.asError('neighborAS', value)];
+    },
+
+    clusterASRules() {
+      return [(value) => this.asError('clusterAS', value)];
+    },
+
+    routerIDRules() {
+      return [(value) => this.routerIDError(value)];
+    },
+
+    nextHopV4Rules() {
+      return [(value) => this.nextHopError('nextHopV4', value, isIpv4)];
+    },
+
+    nextHopV6Rules() {
+      return [(value) => this.nextHopError('nextHopV6', value, isIpv6)];
+    },
   },
 
   methods: {
     loadBgp(bgp = {}) {
+      const nextHops = splitList(bgp.nextHops);
+      const unconfigured = !splitList(bgp.nodeNames).length &&
+        bgp.neighborAS === PLACEHOLDER_AS.neighborAS && bgp.clusterAS === PLACEHOLDER_AS.clusterAS;
+
       this.nodeNames = splitList(bgp.nodeNames);
-      this.neighborV4Address = bgp.neighborV4Address || '';
-      this.neighborV6Address = bgp.neighborV6Address || '';
-      this.neighborAS = bgp.neighborAS ?? '';
-      this.clusterAS = bgp.clusterAS ?? '';
+      this.bgpEnabled = this.nodeNames.length > 0;
+      this.neighbors = [...splitList(bgp.neighborV4Address), ...splitList(bgp.neighborV6Address)].filter((ip) => !PLACEHOLDER_NEIGHBORS.includes(ip));
+      // An untouched install only has placeholder AS numbers: show empty fields instead of values nobody chose
+      this.neighborAS = unconfigured ? '' : bgp.neighborAS ?? '';
+      this.clusterAS = unconfigured ? '' : bgp.clusterAS ?? '';
       this.routerID = bgp.routerID || '';
-      this.nextHops = bgp.nextHops || '';
+      // The speaker uses the last next hop of each family
+      this.nextHopV4 = nextHops.filter(isIpv4).pop() || '';
+      this.nextHopV6 = nextHops.filter(isIpv6).pop() || '';
+      this.loadedState = this.formState();
+    },
+
+    formState() {
+      return {
+        enabled:    this.bgpEnabled,
+        nodeNames:  [...this.nodeNames],
+        neighbors:  cleanList(this.neighbors),
+        neighborAS: asText(this.neighborAS),
+        clusterAS:  asText(this.clusterAS),
+        routerID:   this.routerID.trim(),
+        nextHopV4:  this.nextHopV4.trim(),
+        nextHopV6:  this.nextHopV6.trim(),
+      };
+    },
+
+    neighborError(value) {
+      const ip = `${ value || '' }`.trim();
+
+      return ip && !isValidIP(ip) ? this.t('harvester.bgp.validation.neighborAddress', null, true) : undefined;
+    },
+
+    asError(field, value) {
+      return isAsNumber(value) ? undefined : this.t('harvester.bgp.validation.asNumber', { key: this.t(`harvester.bgp.${ field }.label`), max: AS_MAX }, true);
+    },
+
+    routerIDError(value) {
+      const ip = `${ value || '' }`.trim();
+
+      if (!ip) {
+        return undefined;
+      }
+
+      if (!isIpv4(ip)) {
+        return this.t('harvester.bgp.validation.routerID', null, true);
+      }
+
+      // Every speaker needs its own router ID, and this one would go to every selected host
+      return this.nodeNames.length > 1 ? this.t('harvester.bgp.validation.routerIDMultipleHosts', null, true) : undefined;
+    },
+
+    nextHopError(field, value, isFamily) {
+      const ip = `${ value || '' }`.trim();
+      const key = isFamily === isIpv4 ? 'ipv4' : 'ipv6';
+
+      return ip && !isFamily(ip) ? this.t(`harvester.bgp.validation.${ key }`, { key: this.t(`harvester.bgp.${ field }.label`) }, true) : undefined;
     },
 
     validateBgp() {
+      if (!this.bgpEnabled) {
+        return [];
+      }
+
+      const neighbors = cleanList(this.neighbors);
       const errors = [];
-      const neighborV4 = splitList(this.neighborV4Address);
-      const neighborV6 = splitList(this.neighborV6Address);
-      const nextHops = splitList(this.nextHops);
 
-      if (this.nodeNames.length && !neighborV4.length && !neighborV6.length) {
+      if (!this.nodeNames.length) {
+        errors.push(this.t('harvester.bgp.validation.hostsRequired', null, true));
+      }
+
+      if (!neighbors.length) {
         errors.push(this.t('harvester.bgp.validation.neighborRequired', null, true));
+      } else if (neighbors.some((ip) => this.neighborError(ip))) {
+        errors.push(this.neighborError(neighbors.find((ip) => this.neighborError(ip))));
       }
 
-      if (neighborV4.some((ip) => !isIpv4(ip))) {
-        errors.push(this.t('harvester.bgp.validation.ipv4List', { key: this.t('harvester.bgp.neighborV4Address.label') }, true));
-      }
+      errors.push(
+        this.asError('neighborAS', this.neighborAS),
+        this.asError('clusterAS', this.clusterAS),
+        this.routerIDError(this.routerID),
+        this.nextHopError('nextHopV4', this.nextHopV4, isIpv4),
+        this.nextHopError('nextHopV6', this.nextHopV6, isIpv6),
+      );
 
-      if (neighborV6.some((ip) => !isIpv6(ip))) {
-        errors.push(this.t('harvester.bgp.validation.ipv6List', { key: this.t('harvester.bgp.neighborV6Address.label') }, true));
-      }
-
-      [['neighborAS', this.neighborAS], ['clusterAS', this.clusterAS]].forEach(([field, value]) => {
-        if (!isAsNumber(value)) {
-          errors.push(this.t('harvester.bgp.validation.asNumber', { key: this.t(`harvester.bgp.${ field }.label`), max: AS_MAX }, true));
-        }
-      });
-
-      if (this.routerID.trim() && !isIpv4(this.routerID.trim())) {
-        errors.push(this.t('harvester.bgp.validation.routerID', null, true));
-      }
-
-      if (nextHops.some((ip) => !isValidIP(ip)) || nextHops.filter(isIpv4).length > 1 || nextHops.filter(isIpv6).length > 1) {
-        errors.push(this.t('harvester.bgp.validation.nextHops', null, true));
-      }
-
-      return errors;
+      return errors.filter(Boolean);
     },
 
     toBgpSpec() {
-      const bgp = {
-        ...(this.configuration.spec?.bgp || {}),
-        nodeNames:         this.nodeNames.join(','),
-        neighborV4Address: splitList(this.neighborV4Address).join(','),
-        neighborV6Address: splitList(this.neighborV6Address).join(','),
-        neighborAS:        Number(this.neighborAS),
-        clusterAS:         Number(this.clusterAS),
-        routerID:          this.routerID.trim(),
-        nextHops:          splitList(this.nextHops).join(','),
-      };
+      const bgp = { ...(this.configuration.spec?.bgp || {}) };
+
+      // Disabled: no host runs the speaker. Keep the other values for when it is turned back on.
+      if (!this.bgpEnabled) {
+        delete bgp.nodeNames;
+
+        return bgp;
+      }
+
+      const state = this.formState();
+
+      Object.assign(bgp, {
+        nodeNames:         state.nodeNames.join(','),
+        neighborV4Address: state.neighbors.filter(isIpv4).join(','),
+        neighborV6Address: state.neighbors.filter(isIpv6).join(','),
+        neighborAS:        Number(state.neighborAS),
+        clusterAS:         Number(state.clusterAS),
+        routerID:          state.routerID,
+        nextHops:          [state.nextHopV4, state.nextHopV6].filter(Boolean).join(','),
+      });
 
       // The CRD omits empty strings, so drop them instead of storing ''
       Object.keys(bgp).forEach((key) => {
@@ -185,7 +277,7 @@ export default {
 
     // Runs before the add-on is saved. BGP lives in the Kube-OVN Configuration, not in the add-on values.
     async saveBgp() {
-      if (!this.showBgp || this.bgpMode !== _EDIT) {
+      if (!this.showBgp || this.bgpMode !== _EDIT || isEqual(this.formState(), this.loadedState)) {
         return;
       }
 
@@ -195,13 +287,7 @@ export default {
         return Promise.reject(errors);
       }
 
-      const bgp = this.toBgpSpec();
-
-      if (isEqual(bgp, this.configuration.spec?.bgp || {})) {
-        return;
-      }
-
-      this.configuration.spec = { ...this.configuration.spec, bgp };
+      this.configuration.spec = { ...this.configuration.spec, bgp: this.toBgpSpec() };
 
       try {
         await this.configuration.save();
@@ -247,92 +333,121 @@ export default {
         class="mt-0"
         :label="t('harvester.bgp.description')"
       />
-      <div class="row mt-20">
-        <div class="col span-12">
-          <LabeledSelect
-            v-model:value="nodeNames"
-            data-testid="bgp-node-names"
-            :mode="bgpMode"
-            :multiple="true"
-            :options="nodeOptions"
-            :label="t('harvester.bgp.nodeNames.label')"
-            :placeholder="t('harvester.bgp.nodeNames.placeholder')"
-            :tooltip="t('harvester.bgp.nodeNames.tooltip')"
-          />
+      <RadioGroup
+        v-model:value="bgpEnabled"
+        data-testid="bgp-enabled"
+        class="mt-20"
+        name="bgp-enabled"
+        :mode="bgpMode"
+        :label="t('harvester.bgp.enabled.label')"
+        :options="[true, false]"
+        :labels="[t('generic.enabled'), t('generic.disabled')]"
+        tooltip-key="harvester.bgp.enabled.tooltip"
+      />
+      <template v-if="bgpEnabled">
+        <div class="row mt-20">
+          <div class="col span-12">
+            <LabeledSelect
+              v-model:value="nodeNames"
+              data-testid="bgp-node-names"
+              :mode="bgpMode"
+              :multiple="true"
+              :required="true"
+              :options="nodeOptions"
+              :label="t('harvester.bgp.nodeNames.label')"
+              :placeholder="t('harvester.bgp.nodeNames.placeholder')"
+              :tooltip="t('harvester.bgp.nodeNames.tooltip')"
+            />
+          </div>
         </div>
-      </div>
-      <div class="row mt-20">
-        <div class="col span-6">
-          <LabeledInput
-            v-model:value="neighborV4Address"
-            data-testid="bgp-neighbor-v4"
-            :mode="bgpMode"
-            :label="t('harvester.bgp.neighborV4Address.label')"
-            :placeholder="t('harvester.bgp.neighborV4Address.placeholder')"
-            :tooltip="t('harvester.bgp.neighborV4Address.tooltip')"
-          />
+        <div class="row mt-20">
+          <div class="col span-6">
+            <LabeledInput
+              v-model:value="clusterAS"
+              data-testid="bgp-cluster-as"
+              type="number"
+              min="1"
+              :required="true"
+              :mode="bgpMode"
+              :rules="clusterASRules"
+              :label="t('harvester.bgp.clusterAS.label')"
+              :placeholder="t('harvester.bgp.clusterAS.placeholder')"
+              :tooltip="t('harvester.bgp.clusterAS.tooltip')"
+            />
+          </div>
+          <div class="col span-6">
+            <LabeledInput
+              v-model:value="routerID"
+              data-testid="bgp-router-id"
+              :mode="bgpMode"
+              :rules="routerIDRules"
+              :label="t('harvester.bgp.routerID.label')"
+              :placeholder="t('harvester.bgp.routerID.placeholder', null, true)"
+              :tooltip="t('harvester.bgp.routerID.tooltip')"
+            />
+          </div>
         </div>
-        <div class="col span-6">
-          <LabeledInput
-            v-model:value="neighborV6Address"
-            data-testid="bgp-neighbor-v6"
-            :mode="bgpMode"
-            :label="t('harvester.bgp.neighborV6Address.label')"
-            :placeholder="t('harvester.bgp.neighborV6Address.placeholder')"
-            :tooltip="t('harvester.bgp.neighborV6Address.tooltip')"
-          />
+
+        <div class="row mt-20">
+          <div class="col span-6">
+            <ArrayList
+              v-model:value="neighbors"
+              data-testid="bgp-neighbors"
+              :mode="bgpMode"
+              :initial-empty-row="true"
+              :rules="neighborRules"
+              :title="t('harvester.bgp.neighbors.label')"
+              :protip="t('harvester.bgp.neighbors.tooltip')"
+              :value-placeholder="t('harvester.bgp.neighbors.placeholder')"
+              :add-label="t('harvester.bgp.neighbors.add')"
+            />
+          </div>
         </div>
-      </div>
-      <div class="row mt-20">
-        <div class="col span-6">
-          <LabeledInput
-            v-model:value="neighborAS"
-            data-testid="bgp-neighbor-as"
-            type="number"
-            min="1"
-            required
-            :mode="bgpMode"
-            :label="t('harvester.bgp.neighborAS.label')"
-            :placeholder="t('harvester.bgp.neighborAS.placeholder')"
-            :tooltip="t('harvester.bgp.neighborAS.tooltip')"
-          />
+        <div class="row mt-20">
+          <div class="col span-6">
+            <LabeledInput
+              v-model:value="neighborAS"
+              data-testid="bgp-neighbor-as"
+              type="number"
+              min="1"
+              :required="true"
+              :mode="bgpMode"
+              :rules="neighborASRules"
+              :label="t('harvester.bgp.neighborAS.label')"
+              :placeholder="t('harvester.bgp.neighborAS.placeholder')"
+              :tooltip="t('harvester.bgp.neighborAS.tooltip')"
+            />
+          </div>
         </div>
-        <div class="col span-6">
-          <LabeledInput
-            v-model:value="clusterAS"
-            data-testid="bgp-cluster-as"
-            type="number"
-            min="1"
-            required
-            :mode="bgpMode"
-            :label="t('harvester.bgp.clusterAS.label')"
-            :placeholder="t('harvester.bgp.clusterAS.placeholder')"
-            :tooltip="t('harvester.bgp.clusterAS.tooltip')"
-          />
+
+        <h3 class="mt-20">
+          {{ t('harvester.bgp.sections.advanced') }}
+        </h3>
+        <div class="row">
+          <div class="col span-6">
+            <LabeledInput
+              v-model:value="nextHopV4"
+              data-testid="bgp-next-hop-v4"
+              :mode="bgpMode"
+              :rules="nextHopV4Rules"
+              :label="t('harvester.bgp.nextHopV4.label')"
+              :placeholder="t('harvester.bgp.nextHopV4.placeholder', null, true)"
+              :tooltip="t('harvester.bgp.nextHopV4.tooltip')"
+            />
+          </div>
+          <div class="col span-6">
+            <LabeledInput
+              v-model:value="nextHopV6"
+              data-testid="bgp-next-hop-v6"
+              :mode="bgpMode"
+              :rules="nextHopV6Rules"
+              :label="t('harvester.bgp.nextHopV6.label')"
+              :placeholder="t('harvester.bgp.nextHopV6.placeholder', null, true)"
+              :tooltip="t('harvester.bgp.nextHopV6.tooltip')"
+            />
+          </div>
         </div>
-      </div>
-      <div class="row mt-20">
-        <div class="col span-6">
-          <LabeledInput
-            v-model:value="routerID"
-            data-testid="bgp-router-id"
-            :mode="bgpMode"
-            :label="t('harvester.bgp.routerID.label')"
-            :placeholder="t('harvester.bgp.routerID.placeholder')"
-            :tooltip="t('harvester.bgp.routerID.tooltip')"
-          />
-        </div>
-        <div class="col span-6">
-          <LabeledInput
-            v-model:value="nextHops"
-            data-testid="bgp-next-hops"
-            :mode="bgpMode"
-            :label="t('harvester.bgp.nextHops.label')"
-            :placeholder="t('harvester.bgp.nextHops.placeholder')"
-            :tooltip="t('harvester.bgp.nextHops.tooltip')"
-          />
-        </div>
-      </div>
+      </template>
     </Tab>
   </Tabbed>
 </template>

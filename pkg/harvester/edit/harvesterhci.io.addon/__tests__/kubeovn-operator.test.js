@@ -2,11 +2,20 @@ import { reactive } from 'vue';
 import { shallowMount } from '@vue/test-utils';
 import EditAddonKubeovnOperator from '../kubeovn-operator.vue';
 
+// What Harvester installs before anyone sets up BGP
 const PLACEHOLDER_BGP = {
   neighborV4Address: '192.0.2.1',
   neighborV6Address: '2001:db8::1',
   neighborAS:        64512,
   clusterAS:         64513,
+};
+
+const CONFIGURED_BGP = {
+  nodeNames:         'node-1',
+  neighborV4Address: '10.115.53.2',
+  neighborV6Address: '2001:db8::1',
+  neighborAS:        65030,
+  clusterAS:         65000,
 };
 
 function createConfiguration(bgp = PLACEHOLDER_BGP) {
@@ -53,20 +62,26 @@ function mountAddon({
     },
   });
 
+  if (configuration) {
+    wrapper.vm.loadBgp(configuration.spec.bgp);
+  }
+
   return {
     wrapper, configuration, dispatch, registerBeforeHook
   };
 }
 
+// A valid, enabled form; each case overrides what it checks
 function fill(wrapper, values) {
   wrapper.setData({
-    nodeNames:         [],
-    neighborV4Address: '',
-    neighborV6Address: '',
-    neighborAS:        '65030',
-    clusterAS:         '65000',
-    routerID:          '',
-    nextHops:          '',
+    bgpEnabled: true,
+    nodeNames:  ['node-1'],
+    neighbors:  ['10.115.53.2'],
+    neighborAS: '65030',
+    clusterAS:  '65000',
+    routerID:   '',
+    nextHopV4:  '',
+    nextHopV6:  '',
     ...values,
   });
 }
@@ -78,15 +93,50 @@ describe('edit: kubeovn-operator add-on BGP', () => {
     expect(registerBeforeHook).toHaveBeenCalledWith(wrapper.vm.saveBgp, 'saveBgp');
   });
 
-  it('should save the BGP tab into spec.bgp and keep the rest of the configuration', async() => {
+  it('should load an untouched install as disabled, without the placeholder values', async() => {
+    const { wrapper, dispatch } = mountAddon();
+
+    await EditAddonKubeovnOperator.fetch.call(wrapper.vm);
+
+    expect(dispatch).toHaveBeenCalledWith('harvester/find', { type: 'kubeovn.io.configuration', id: 'kube-system/kubeovn' });
+    expect(wrapper.vm.formState()).toStrictEqual({
+      enabled:    false,
+      nodeNames:  [],
+      neighbors:  [],
+      neighborAS: '',
+      clusterAS:  '',
+      routerID:   '',
+      nextHopV4:  '',
+      nextHopV6:  '',
+    });
+  });
+
+  it('should load a configured speaker, with both neighbor families in one list', () => {
+    const configuration = createConfiguration({
+      ...CONFIGURED_BGP, nodeNames: 'node-1,node-2', neighborV6Address: '2001:db8::2', nextHops: '10.115.48.1,2001:db8::9'
+    });
+    const { wrapper } = mountAddon({ configuration });
+
+    expect(wrapper.vm.formState()).toStrictEqual({
+      enabled:    true,
+      nodeNames:  ['node-1', 'node-2'],
+      neighbors:  ['10.115.53.2', '2001:db8::2'],
+      neighborAS: '65030',
+      clusterAS:  '65000',
+      routerID:   '',
+      nextHopV4:  '10.115.48.1',
+      nextHopV6:  '2001:db8::9',
+    });
+  });
+
+  it('should split the neighbors by family, drop duplicates and keep the rest of the configuration', async() => {
     const { wrapper, configuration } = mountAddon();
 
     fill(wrapper, {
-      nodeNames:         ['node-1', 'node-2'],
-      neighborV4Address: ' 10.115.53.2, 10.115.53.3 ',
-      neighborV6Address: '',
-      routerID:          '10.115.48.1',
-      nextHops:          '10.115.48.1,2001:db8::1',
+      nodeNames: ['node-1', 'node-2'],
+      neighbors: [' 10.115.53.2 ', '2001:db8::2', '10.115.53.3', '10.115.53.2', ''],
+      nextHopV4: '10.115.48.1',
+      nextHopV6: '2001:db8::9',
     });
 
     await wrapper.vm.saveBgp();
@@ -97,26 +147,36 @@ describe('edit: kubeovn-operator add-on BGP', () => {
       bgp:       {
         nodeNames:         'node-1,node-2',
         neighborV4Address: '10.115.53.2,10.115.53.3',
+        neighborV6Address: '2001:db8::2',
         neighborAS:        65030,
         clusterAS:         65000,
-        routerID:          '10.115.48.1',
-        nextHops:          '10.115.48.1,2001:db8::1',
+        nextHops:          '10.115.48.1,2001:db8::9',
       },
     });
   });
 
-  it('should load the stored values into the BGP tab', async() => {
-    const configuration = createConfiguration({ ...PLACEHOLDER_BGP, nodeNames: 'node-1,node-2' });
-    const { wrapper, dispatch } = mountAddon({ configuration });
+  it('should only remove the speaker hosts when BGP is disabled', async() => {
+    const { wrapper, configuration } = mountAddon({ configuration: createConfiguration(CONFIGURED_BGP) });
 
-    await EditAddonKubeovnOperator.fetch.call(wrapper.vm);
+    // invalid values are ignored while disabled
+    fill(wrapper, { bgpEnabled: false, neighborAS: '' });
 
-    expect(dispatch).toHaveBeenCalledWith('harvester/find', { type: 'kubeovn.io.configuration', id: 'kube-system/kubeovn' });
-    expect(wrapper.vm.nodeNames).toStrictEqual(['node-1', 'node-2']);
-    expect(wrapper.vm.neighborV4Address).toBe('192.0.2.1');
-    expect(wrapper.vm.neighborV6Address).toBe('2001:db8::1');
-    expect(wrapper.vm.neighborAS).toBe(64512);
-    expect(wrapper.vm.clusterAS).toBe(64513);
+    await wrapper.vm.saveBgp();
+
+    const { nodeNames, ...rest } = CONFIGURED_BGP;
+
+    expect(configuration.spec.bgp).toStrictEqual(rest);
+  });
+
+  it.each([
+    ['an untouched install', PLACEHOLDER_BGP],
+    ['a configured speaker', CONFIGURED_BGP],
+  ])('should not save the configuration when nothing changed on %s', async(_, bgp) => {
+    const { wrapper, configuration } = mountAddon({ configuration: createConfiguration(bgp) });
+
+    await wrapper.vm.saveBgp();
+
+    expect(configuration.save).not.toHaveBeenCalled();
   });
 
   it('should not load BGP on Harvester versions without BGP support', async() => {
@@ -126,16 +186,6 @@ describe('edit: kubeovn-operator add-on BGP', () => {
 
     expect(dispatch).not.toHaveBeenCalled();
     expect(wrapper.vm.showBgp).toBe(false);
-  });
-
-  it('should not save the configuration when nothing changed', async() => {
-    const { wrapper, configuration } = mountAddon();
-
-    wrapper.vm.loadBgp(configuration.spec.bgp);
-
-    await wrapper.vm.saveBgp();
-
-    expect(configuration.save).not.toHaveBeenCalled();
   });
 
   it('should leave BGP alone when the add-on is being disabled', async() => {
@@ -152,25 +202,38 @@ describe('edit: kubeovn-operator add-on BGP', () => {
     const { wrapper, configuration } = mountAddon();
 
     configuration.save.mockRejectedValue({ status: 409, message: 'the object has been modified' });
-    fill(wrapper, { neighborV4Address: '10.115.53.2' });
+    fill(wrapper);
 
     await expect(wrapper.vm.saveBgp()).rejects.toStrictEqual(['the object has been modified']);
   });
 
   it.each([
-    ['speaker hosts without a neighbor', { nodeNames: ['node-1'], neighborV4Address: '' }, 'harvester.bgp.validation.neighborRequired'],
-    ['an invalid IPv4 neighbor', { neighborV4Address: '10.115.53.2,2001:db8::2' }, 'harvester.bgp.validation.ipv4List'],
-    ['an invalid IPv6 neighbor', { neighborV6Address: '10.115.53.2' }, 'harvester.bgp.validation.ipv6List'],
+    ['no speaker hosts', { nodeNames: [] }, 'harvester.bgp.validation.hostsRequired'],
+    ['no neighbor', { neighbors: ['', ' '] }, 'harvester.bgp.validation.neighborRequired'],
+    ['an invalid neighbor', { neighbors: ['10.115.53.300'] }, 'harvester.bgp.validation.neighborAddress'],
     ['an empty AS number', { neighborAS: '' }, 'harvester.bgp.validation.asNumber'],
     ['an AS number out of range', { clusterAS: '4294967295' }, 'harvester.bgp.validation.asNumber'],
     ['a router ID that is not IPv4', { routerID: '2001:db8::1' }, 'harvester.bgp.validation.routerID'],
-    ['two IPv4 next hops', { nextHops: '10.115.48.1,10.115.48.2' }, 'harvester.bgp.validation.nextHops'],
+    ['a router ID shared by two hosts', { nodeNames: ['node-1', 'node-2'], routerID: '10.115.48.1' }, 'harvester.bgp.validation.routerIDMultipleHosts'],
+    ['an IPv6 address as the IPv4 next hop', { nextHopV4: '2001:db8::9' }, 'harvester.bgp.validation.ipv4'],
+    ['an IPv4 address as the IPv6 next hop', { nextHopV6: '10.115.48.1' }, 'harvester.bgp.validation.ipv6'],
   ])('should not save %s', async(_, values, errorKey) => {
     const { wrapper, configuration } = mountAddon();
 
-    fill(wrapper, { neighborV4Address: '10.115.53.2', ...values });
+    fill(wrapper, values);
 
     await expect(wrapper.vm.saveBgp()).rejects.toStrictEqual([expect.stringContaining(errorKey)]);
     expect(configuration.save).not.toHaveBeenCalled();
+  });
+
+  it('should flag a router ID inline as soon as a second host is picked', async() => {
+    const { wrapper } = mountAddon();
+    const [rule] = wrapper.vm.routerIDRules;
+
+    fill(wrapper, { routerID: '10.115.48.1' });
+    expect(rule('10.115.48.1')).toBeUndefined();
+
+    await wrapper.setData({ nodeNames: ['node-1', 'node-2'] });
+    expect(rule('10.115.48.1')).toContain('harvester.bgp.validation.routerIDMultipleHosts');
   });
 });
