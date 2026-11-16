@@ -259,6 +259,24 @@ describe('page: Overlay Network Settings > BGP Speaker', () => {
     expect(configuration.save).not.toHaveBeenCalled();
   });
 
+  it('should flag missing speaker hosts and neighbors on the fields', async() => {
+    const { wrapper } = mountPage();
+    const [hostsRule] = wrapper.vm.nodeNamesRules;
+    const [neighborRule] = wrapper.vm.neighborRules;
+
+    fill(wrapper, { nodeNames: [], neighbors: [''] });
+
+    expect(hostsRule([])).toContain('harvester.bgp.validation.hostsRequired');
+    expect(hostsRule(['node-1'])).toBeUndefined();
+    expect(neighborRule('')).toContain('harvester.bgp.validation.neighborRequired');
+
+    await wrapper.setData({ neighbors: ['10.115.53.2', ''] });
+
+    // with one neighbor set, an extra empty row is fine and an invalid one is flagged
+    expect(neighborRule('')).toBeUndefined();
+    expect(neighborRule('10.115.53.300')).toContain('harvester.bgp.validation.neighborAddress');
+  });
+
   it('should flag a router ID inline as soon as a second host is picked', async() => {
     const { wrapper } = mountPage();
     const [rule] = wrapper.vm.routerIDRules;

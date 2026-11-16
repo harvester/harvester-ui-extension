@@ -110,8 +110,13 @@ export default {
       }));
     },
 
+    // Each field shows its own error once touched, so a disabled Save always has a visible reason
+    nodeNamesRules() {
+      return [(value) => ((value || []).length ? undefined : this.t('harvester.bgp.validation.hostsRequired', null, true))];
+    },
+
     neighborRules() {
-      return [(value) => this.neighborError(value)];
+      return [(value) => (cleanList(this.neighbors).length ? this.neighborError(value) : this.t('harvester.bgp.validation.neighborRequired', null, true))];
     },
 
     neighborASRules() {
@@ -365,6 +370,7 @@ export default {
               :mode="mode"
               :multiple="true"
               :required="true"
+              :rules="nodeNamesRules"
               :options="nodeOptions"
               :label="t('harvester.bgp.nodeNames.label')"
               :placeholder="t('harvester.bgp.nodeNames.placeholder')"
@@ -406,6 +412,7 @@ export default {
               data-testid="bgp-neighbors"
               :mode="mode"
               :initial-empty-row="true"
+              :required="true"
               :rules="neighborRules"
               :title="t('harvester.bgp.neighbors.label')"
               :protip="t('harvester.bgp.neighbors.tooltip')"
