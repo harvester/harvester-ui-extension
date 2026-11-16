@@ -45,6 +45,16 @@ export default {
     networkBootFirst: {
       type:    Boolean,
       default: true
+    },
+
+    namespace: {
+      type:    String,
+      default: ''
+    },
+
+    canLiveUpdateNADRef: {
+      type:    Boolean,
+      default: false
     }
   },
 
@@ -146,7 +156,8 @@ export default {
       return (networks || []).map((network) => ({
         ...network,
         isHotunpluggable: this.hotunpluggableNics.has(network.name),
-        rowKeyId:         network.rowKeyId || randomStr(10)
+        // keep the key of an existing row, so its Base component is not recreated
+        rowKeyId:         network.rowKeyId || this.rows?.find((R) => R.name === network.name)?.rowKeyId || randomStr(10)
       }));
     },
 
@@ -208,7 +219,7 @@ export default {
   <div>
     <InfoBox
       v-for="(row, i) in rows"
-      :key="i"
+      :key="row.rowKeyId"
     >
       <div class="box-title mb-10">
         <h3>
@@ -238,6 +249,8 @@ export default {
         :mode="mode"
         :is-single="isSingle"
         :network-option="networkOption"
+        :namespace="namespace"
+        :can-live-update-n-a-d-ref="canLiveUpdateNADRef"
         @update="update"
       />
     </InfoBox>
