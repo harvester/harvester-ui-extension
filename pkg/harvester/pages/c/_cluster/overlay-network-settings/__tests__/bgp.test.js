@@ -1,6 +1,5 @@
-import { reactive } from 'vue';
 import { shallowMount } from '@vue/test-utils';
-import EditAddonKubeovnOperator from '../kubeovn-operator.vue';
+import OverlayNetworkBgp from '../bgp.vue';
 
 // What Harvester installs before anyone sets up BGP
 const PLACEHOLDER_BGP = {
@@ -26,9 +25,9 @@ function createConfiguration(bgp = PLACEHOLDER_BGP) {
   };
 }
 
-// latest: what the API returns at save time, when it differs from the copy loaded with the form
-function mountAddon({
-  enabled = true, featureEnabled = true, mode = 'edit', configuration = createConfiguration(), latest = null
+// latest: what the API returns at save time, when it differs from the copy loaded with the page
+function mountPage({
+  featureEnabled = true, addonEnabled = true, configuration = createConfiguration(), latest = null
 } = {}) {
   const dispatch = jest.fn((action, payload) => {
     if (action === 'harvester/find') {
@@ -39,28 +38,27 @@ function mountAddon({
       return Promise.resolve(payload.resource);
     }
 
+    if (action === 'harvester/findAll' && payload.type === 'harvesterhci.io.addon') {
+      return Promise.resolve([{ name: 'kubeovn-operator', spec: { enabled: addonEnabled } }]);
+    }
+
     return Promise.resolve([]);
   });
-  const registerBeforeHook = jest.fn();
+  const router = { push: jest.fn() };
 
-  const wrapper = shallowMount(EditAddonKubeovnOperator, {
-    props: {
-      // the real add-on is a reactive store model
-      value: reactive({ spec: { enabled } }),
-      mode,
-      registerBeforeHook,
-    },
-    data:   () => ({ configuration }),
+  const wrapper = shallowMount(OverlayNetworkBgp, {
+    data:   () => ({ addonEnabled, configuration }),
     global: {
+      stubs: { 'router-link': true },
       mocks: {
         $fetchState: { pending: false },
+        $router:     router,
         t:           (key, args) => (args ? `${ key } ${ JSON.stringify(args) }` : key),
         $store:      {
           dispatch,
           getters: {
             currentProduct:                         { inStore: 'harvester' },
             'harvester/all':                        () => [],
-            'harvester/schemaFor':                  () => ({}),
             'harvester-common/getFeatureEnabled': () => featureEnabled,
           },
         },
@@ -73,7 +71,7 @@ function mountAddon({
   }
 
   return {
-    wrapper, configuration, dispatch, registerBeforeHook
+    wrapper, configuration, dispatch, router
   };
 }
 
@@ -92,17 +90,11 @@ function fill(wrapper, values) {
   });
 }
 
-describe('edit: kubeovn-operator add-on BGP', () => {
-  it('should save the BGP tab before the add-on', () => {
-    const { wrapper, registerBeforeHook } = mountAddon();
-
-    expect(registerBeforeHook).toHaveBeenCalledWith(wrapper.vm.saveBgp, 'saveBgp');
-  });
-
+describe('page: Overlay Network Settings > BGP Speaker', () => {
   it('should load an untouched install as disabled, without the placeholder values', async() => {
-    const { wrapper, dispatch } = mountAddon();
+    const { wrapper, dispatch } = mountPage();
 
-    await EditAddonKubeovnOperator.fetch.call(wrapper.vm);
+    await OverlayNetworkBgp.fetch.call(wrapper.vm);
 
     expect(dispatch).toHaveBeenCalledWith('harvester/find', { type: 'kubeovn.io.configuration', id: 'kube-system/kubeovn' });
     expect(wrapper.vm.formState()).toStrictEqual({
@@ -121,7 +113,7 @@ describe('edit: kubeovn-operator add-on BGP', () => {
     const configuration = createConfiguration({
       ...CONFIGURED_BGP, nodeNames: 'node-1,node-2', neighborV6Address: '2001:db8::2', nextHops: '10.115.48.1,2001:db8::9'
     });
-    const { wrapper } = mountAddon({ configuration });
+    const { wrapper } = mountPage({ configuration });
 
     expect(wrapper.vm.formState()).toStrictEqual({
       enabled:    true,
@@ -135,8 +127,18 @@ describe('edit: kubeovn-operator add-on BGP', () => {
     });
   });
 
-  it('should split the neighbors by family, drop duplicates and keep the rest of the configuration', async() => {
-    const { wrapper, configuration } = mountAddon();
+  it('should not load the configuration when the add-on is disabled', async() => {
+    const { wrapper, dispatch } = mountPage({ addonEnabled: false, configuration: null });
+
+    await OverlayNetworkBgp.fetch.call(wrapper.vm);
+
+    expect(wrapper.vm.addonEnabled).toBe(false);
+    expect(dispatch).not.toHaveBeenCalledWith('harvester/find', expect.anything());
+  });
+
+  it('should split the neighbors by family, drop duplicates, keep the rest of the configuration and go back', async() => {
+    const { wrapper, configuration, router } = mountPage();
+    const buttonCb = jest.fn();
 
     fill(wrapper, {
       nodeNames: ['node-1', 'node-2'],
@@ -145,8 +147,9 @@ describe('edit: kubeovn-operator add-on BGP', () => {
       nextHopV6: '2001:db8::9',
     });
 
-    await wrapper.vm.saveBgp();
+    await wrapper.vm.save(buttonCb);
 
+    expect(buttonCb).toHaveBeenCalledWith(true);
     expect(configuration.save).toHaveBeenCalledTimes(1);
     expect(configuration.spec).toStrictEqual({
       enableBGP: true,
@@ -159,20 +162,21 @@ describe('edit: kubeovn-operator add-on BGP', () => {
         nextHops:          '10.115.48.1,2001:db8::9',
       },
     });
+    expect(router.push).toHaveBeenCalledWith({ name: 'harvester-c-cluster-overlay-network-settings' });
   });
 
   it('should save on top of the latest copy of the configuration', async() => {
-    // the operator updated the Configuration after the form loaded it
+    // the operator updated the Configuration after the page loaded it
     const latest = createConfiguration();
 
     latest.spec = {
       enableBGP: false, ovnCentral: { replicas: 3 }, bgp: { ...PLACEHOLDER_BGP }
     };
-    const { wrapper, configuration, dispatch } = mountAddon({ latest });
+    const { wrapper, configuration, dispatch } = mountPage({ latest });
 
     fill(wrapper);
 
-    await wrapper.vm.saveBgp();
+    await wrapper.vm.save(jest.fn());
 
     expect(dispatch).toHaveBeenCalledWith('harvester/find', {
       type: 'kubeovn.io.configuration', id: 'kube-system/kubeovn', opt: { force: true }
@@ -188,25 +192,14 @@ describe('edit: kubeovn-operator add-on BGP', () => {
     });
   });
 
-  it('should not save the configuration again when Save is pressed again', async() => {
-    const { wrapper, configuration } = mountAddon();
-
-    fill(wrapper);
-
-    await wrapper.vm.saveBgp();
-    // e.g. the add-on save failed and the user presses Save again
-    await wrapper.vm.saveBgp();
-
-    expect(configuration.save).toHaveBeenCalledTimes(1);
-  });
-
   it('should only remove the speaker hosts when BGP is disabled', async() => {
-    const { wrapper, configuration } = mountAddon({ configuration: createConfiguration(CONFIGURED_BGP) });
+    const { wrapper, configuration } = mountPage({ configuration: createConfiguration(CONFIGURED_BGP) });
 
     // invalid values are ignored while disabled
     fill(wrapper, { bgpEnabled: false, neighborAS: '' });
 
-    await wrapper.vm.saveBgp();
+    expect(wrapper.vm.validationPassed).toBe(true);
+    await wrapper.vm.save(jest.fn());
 
     const { nodeNames, ...rest } = CONFIGURED_BGP;
 
@@ -216,40 +209,29 @@ describe('edit: kubeovn-operator add-on BGP', () => {
   it.each([
     ['an untouched install', PLACEHOLDER_BGP],
     ['a configured speaker', CONFIGURED_BGP],
-  ])('should not save the configuration when nothing changed on %s', async(_, bgp) => {
-    const { wrapper, configuration } = mountAddon({ configuration: createConfiguration(bgp) });
+  ])('should not save the configuration when nothing changed on %s, and go back', async(_, bgp) => {
+    const { wrapper, configuration, router } = mountPage({ configuration: createConfiguration(bgp) });
+    const buttonCb = jest.fn();
 
-    await wrapper.vm.saveBgp();
+    await wrapper.vm.save(buttonCb);
 
     expect(configuration.save).not.toHaveBeenCalled();
+    expect(buttonCb).toHaveBeenCalledWith(true);
+    expect(router.push).toHaveBeenCalledTimes(1);
   });
 
-  it('should not load BGP on Harvester versions without BGP support', async() => {
-    const { wrapper, dispatch } = mountAddon({ featureEnabled: false, configuration: null });
-
-    await EditAddonKubeovnOperator.fetch.call(wrapper.vm);
-
-    expect(dispatch).not.toHaveBeenCalled();
-    expect(wrapper.vm.showBgp).toBe(false);
-  });
-
-  it('should leave BGP alone when the add-on is being disabled', async() => {
-    const { wrapper, configuration } = mountAddon();
-
-    fill(wrapper, { neighborAS: '' });
-    wrapper.vm.value.spec.enabled = false;
-
-    await expect(wrapper.vm.saveBgp()).resolves.toBeUndefined();
-    expect(configuration.save).not.toHaveBeenCalled();
-  });
-
-  it('should report a failed configuration save as plain messages', async() => {
-    const { wrapper, configuration } = mountAddon();
+  it('should report a failed save as plain messages and stay on the page', async() => {
+    const { wrapper, configuration, router } = mountPage();
+    const buttonCb = jest.fn();
 
     configuration.save.mockRejectedValue({ status: 409, message: 'the object has been modified' });
     fill(wrapper);
 
-    await expect(wrapper.vm.saveBgp()).rejects.toStrictEqual(['the object has been modified']);
+    await wrapper.vm.save(buttonCb);
+
+    expect(buttonCb).toHaveBeenCalledWith(false);
+    expect(wrapper.vm.errors).toStrictEqual(['the object has been modified']);
+    expect(router.push).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -262,17 +244,23 @@ describe('edit: kubeovn-operator add-on BGP', () => {
     ['a router ID shared by two hosts', { nodeNames: ['node-1', 'node-2'], routerID: '10.115.48.1' }, 'harvester.bgp.validation.routerIDMultipleHosts'],
     ['an IPv6 address as the IPv4 next hop', { nextHopV4: '2001:db8::9' }, 'harvester.bgp.validation.ipv4'],
     ['an IPv4 address as the IPv6 next hop', { nextHopV6: '10.115.48.1' }, 'harvester.bgp.validation.ipv6'],
-  ])('should not save %s', async(_, values, errorKey) => {
-    const { wrapper, configuration } = mountAddon();
+  ])('should disable Save and not save %s', async(_, values, errorKey) => {
+    const { wrapper, configuration } = mountPage();
+    const buttonCb = jest.fn();
 
     fill(wrapper, values);
 
-    await expect(wrapper.vm.saveBgp()).rejects.toStrictEqual([expect.stringContaining(errorKey)]);
+    expect(wrapper.vm.validationPassed).toBe(false);
+
+    await wrapper.vm.save(buttonCb);
+
+    expect(buttonCb).toHaveBeenCalledWith(false);
+    expect(wrapper.vm.errors).toStrictEqual([expect.stringContaining(errorKey)]);
     expect(configuration.save).not.toHaveBeenCalled();
   });
 
   it('should flag a router ID inline as soon as a second host is picked', async() => {
-    const { wrapper } = mountAddon();
+    const { wrapper } = mountPage();
     const [rule] = wrapper.vm.routerIDRules;
 
     fill(wrapper, { routerID: '10.115.48.1' });

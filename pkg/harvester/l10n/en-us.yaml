@@ -1434,11 +1434,11 @@ harvester:
       tooltip: Enable network isolation for this Subnet. When enabled, VMs can only communicate within this subnet, even if other subnets exist under the same VPC.
     bgp:
       label: BGP
-      tooltip: Advertise this subnet's CIDR block to the BGP neighbors set in the BGP tab of the kubeovn-operator add-on (Advanced > Add-ons).
+      tooltip: Advertise this subnet's CIDR block to the BGP neighbors set in Overlay Networks > Settings.
       speakerOff:
-        prefix: No host runs the BGP speaker yet, so this subnet isn't advertised. Open the
-        middle: kubeovn-operator add-on
-        suffix: and pick the speaker hosts in its BGP tab.
+        prefix: No host runs the BGP speaker yet, so this subnet isn't advertised. Set it up in
+        middle: Overlay Network Settings
+        suffix: under BGP Speaker.
     allowSubnet:
       label: Allow Subnets
       tooltip: You can specify certain subnets which can communicate with this subnet.
@@ -1522,8 +1522,25 @@ harvester:
       validation:
         ip: '"IP Address" must be an IPv4 address, an IPv6 address, or one of each separated by a comma.'
         subnet: '"IP Address" must not be in subnet {subnet} ({cidr}) of this VPC.'
+  overlayNetworkSettings:
+    label: Settings
+    title: Overlay Network Settings
+    edit: Edit Setting
+    view: View Setting
+    noAddonEnabled:
+      prefix: The kubeovn-operator add-on is not enabled, click
+      middle: here
+      suffix: to enable the add-on before changing overlay network settings.
   bgp:
-    label: BGP
+    label: BGP Speaker
+    settingDescription: Advertises the subnets that have BGP enabled to external BGP routers.
+    unsupported: The BGP speaker requires Harvester v1.10.0 or later.
+    summary:
+      hosts: 'Speaker hosts: {hosts}'
+      clusterAS: 'Cluster AS: {as}'
+      neighbors: 'Neighbors: {neighbors} (AS {as})'
+      routerID: 'Router ID: {id}'
+      nextHops: 'Next hops: {hops}'
     description: The BGP speaker runs on the selected hosts and advertises every subnet that has BGP enabled to the BGP neighbors. Enable BGP on each subnet that should be reachable from the external network.
     enabled:
       label: BGP Speaker

@@ -84,8 +84,8 @@ describe('edit: kubeovn.io.subnet BGP speaker hint', () => {
   }
 
   it.each([
-    ['no speaker hosts', { spec: { bgp: { neighborAS: 64512 } } }, true],
-    ['speaker hosts', { spec: { bgp: { nodeNames: 'node-1' } } }, false],
+    ['no speaker hosts', { bgpSpeakerHosts: [] }, true],
+    ['speaker hosts', { bgpSpeakerHosts: ['node-1'] }, false],
   ])('should know whether a host runs the BGP speaker: %s', async(_, configuration, speakerOff) => {
     const context = fetchContext({ configuration });
 
@@ -111,14 +111,7 @@ describe('edit: kubeovn.io.subnet BGP speaker hint', () => {
     expect(context.$store.dispatch).not.toHaveBeenCalledWith('harvester/find', expect.anything());
   });
 
-  it('should link to the BGP tab of the kubeovn-operator add-on', () => {
-    expect(EditSubnet.computed.bgpAddonLocation.call({})).toStrictEqual({
-      name:   'harvester-c-cluster-resource-namespace-id',
-      params: {
-        resource: 'harvesterhci.io.addon', namespace: 'kube-system', id: 'kubeovn-operator'
-      },
-      query: { mode: 'edit' },
-      hash:  '#bgp',
-    });
+  it('should link to Overlay Network Settings', () => {
+    expect(EditSubnet.computed.bgpSettingsLocation.call({})).toStrictEqual({ name: 'harvester-c-cluster-overlay-network-settings' });
   });
 });

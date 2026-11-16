@@ -19,6 +19,8 @@ import HarvesterUnsupported from '../pages/c/_cluster/unsupported/index.vue';
 import ForkliftDashboard from '../pages/c/_cluster/vm-migration/index.vue';
 import ForkliftVmMigrationWizard from '../pages/c/_cluster/vm-migration/vm-migration-wizard.vue';
 import ForkliftProviderWizard from '../pages/c/_cluster/vm-migration/provider-wizard.vue';
+import OverlayNetworkSettings from '../pages/c/_cluster/overlay-network-settings/index.vue';
+import OverlayNetworkBgp from '../pages/c/_cluster/overlay-network-settings/bgp.vue';
 
 const routes = [
   {
@@ -98,6 +100,14 @@ const routes = [
     name:      `${ PRODUCT_NAME }-c-cluster-vm-migration-provider-wizard`,
     path:      `/:product/c/:cluster/vm-migration/provider-wizard`,
     component: ForkliftProviderWizard,
+  }, {
+    name:      `${ PRODUCT_NAME }-c-cluster-overlay-network-settings`,
+    path:      `/:product/c/:cluster/overlay-network-settings`,
+    component: OverlayNetworkSettings,
+  }, {
+    name:      `${ PRODUCT_NAME }-c-cluster-overlay-network-settings-bgp`,
+    path:      `/:product/c/:cluster/overlay-network-settings/bgp`,
+    component: OverlayNetworkBgp,
   }, {
     name:      `${ PRODUCT_NAME }-c-cluster-resource`,
     path:      `/:product/c/:cluster/:resource`,
