@@ -243,8 +243,8 @@ export default {
       return errors.filter(Boolean);
     },
 
-    toBgpSpec() {
-      const bgp = { ...(this.configuration.spec?.bgp || {}) };
+    toBgpSpec(current = {}) {
+      const bgp = { ...current };
 
       // Disabled: no host runs the speaker. Keep the other values for when it is turned back on.
       if (!this.bgpEnabled) {
@@ -287,10 +287,23 @@ export default {
         return Promise.reject(errors);
       }
 
-      this.configuration.spec = { ...this.configuration.spec, bgp: this.toBgpSpec() };
-
       try {
-        await this.configuration.save();
+        // The operator keeps updating the Configuration's status, so the copy loaded with the form goes stale
+        // and saving it fails with a conflict. Save the BGP values on top of the latest copy instead.
+        const inStore = this.$store.getters['currentProduct'].inStore;
+        const latest = await this.$store.dispatch(`${ inStore }/find`, {
+          type: HCI.KUBEOVN_CONFIG, id: CONFIGURATION_ID, opt: { force: true }
+        });
+        const configuration = await this.$store.dispatch(`${ inStore }/clone`, { resource: latest });
+        const bgp = this.toBgpSpec(configuration.spec?.bgp);
+
+        if (!isEqual(bgp, configuration.spec?.bgp || {})) {
+          configuration.spec = { ...configuration.spec, bgp };
+          await configuration.save();
+        }
+
+        // Saved: if the add-on save fails and Save is pressed again, don't save the Configuration twice
+        this.loadedState = this.formState();
       } catch (e) {
         // Plain messages, so the form doesn't treat a conflict on the Configuration as one on the add-on
         return Promise.reject(exceptionToErrorsArray(e));

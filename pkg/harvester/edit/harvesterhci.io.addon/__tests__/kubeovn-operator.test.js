@@ -26,12 +26,17 @@ function createConfiguration(bgp = PLACEHOLDER_BGP) {
   };
 }
 
+// latest: what the API returns at save time, when it differs from the copy loaded with the form
 function mountAddon({
-  enabled = true, featureEnabled = true, mode = 'edit', configuration = createConfiguration()
+  enabled = true, featureEnabled = true, mode = 'edit', configuration = createConfiguration(), latest = null
 } = {}) {
-  const dispatch = jest.fn((action) => {
-    if (action === 'harvester/find' || action === 'harvester/clone') {
-      return Promise.resolve(configuration);
+  const dispatch = jest.fn((action, payload) => {
+    if (action === 'harvester/find') {
+      return Promise.resolve(latest || configuration);
+    }
+
+    if (action === 'harvester/clone') {
+      return Promise.resolve(payload.resource);
     }
 
     return Promise.resolve([]);
@@ -153,6 +158,45 @@ describe('edit: kubeovn-operator add-on BGP', () => {
         nextHops:          '10.115.48.1,2001:db8::9',
       },
     });
+  });
+
+  it('should save on top of the latest copy of the configuration', async() => {
+    // the operator updated the Configuration after the form loaded it
+    const latest = createConfiguration();
+
+    latest.spec = {
+      enableBGP: false, ovnCentral: { replicas: 3 }, bgp: { ...PLACEHOLDER_BGP }
+    };
+    const { wrapper, configuration, dispatch } = mountAddon({ latest });
+
+    fill(wrapper);
+
+    await wrapper.vm.saveBgp();
+
+    expect(dispatch).toHaveBeenCalledWith('harvester/find', {
+      type: 'kubeovn.io.configuration', id: 'kube-system/kubeovn', opt: { force: true }
+    });
+    expect(configuration.save).not.toHaveBeenCalled();
+    expect(latest.save).toHaveBeenCalledTimes(1);
+    expect(latest.spec).toStrictEqual({
+      enableBGP:  false,
+      ovnCentral: { replicas: 3 },
+      bgp:        {
+        nodeNames: 'node-1', neighborV4Address: '10.115.53.2', neighborAS: 65030, clusterAS: 65000
+      },
+    });
+  });
+
+  it('should not save the configuration again when Save is pressed again', async() => {
+    const { wrapper, configuration } = mountAddon();
+
+    fill(wrapper);
+
+    await wrapper.vm.saveBgp();
+    // e.g. the add-on save failed and the user presses Save again
+    await wrapper.vm.saveBgp();
+
+    expect(configuration.save).toHaveBeenCalledTimes(1);
   });
 
   it('should only remove the speaker hosts when BGP is disabled', async() => {
