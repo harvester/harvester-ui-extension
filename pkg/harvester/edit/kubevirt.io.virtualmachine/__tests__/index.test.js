@@ -32,22 +32,58 @@ describe('page: kubevirt.io.virtualmachine edit', () => {
     expect(hasVMStateStorageClass.call(storageClasses(['vmstate-persistence']))).toBe(true);
   });
 
-  it('shows the persistent state storage banner outside view mode when vmstate-persistence is missing', () => {
+  it('waits for StorageClasses before treating vmstate-persistence as unavailable', () => {
+    const vmStateStorageClassUnavailable = HarvesterEditVM.computed.vmStateStorageClassUnavailable;
+
+    expect(vmStateStorageClassUnavailable.call({ hasVMStateStorageClass: false, storageClassesLoaded: false })).toBe(false);
+    expect(vmStateStorageClassUnavailable.call({ hasVMStateStorageClass: false, storageClassesLoaded: true })).toBe(true);
+    expect(vmStateStorageClassUnavailable.call({ hasVMStateStorageClass: true, storageClassesLoaded: true })).toBe(false);
+  });
+
+  it('shows the persistent state storage banner outside view mode when vmstate-persistence is unavailable', () => {
     const showPersistentStateStorageBanner = HarvesterEditVM.computed.showPersistentStateStorageBanner;
 
-    expect(showPersistentStateStorageBanner.call({ hasVMStateStorageClass: false, mode: 'create' })).toBe(true);
-    expect(showPersistentStateStorageBanner.call({ hasVMStateStorageClass: false, mode: 'edit' })).toBe(true);
-    expect(showPersistentStateStorageBanner.call({ hasVMStateStorageClass: true, mode: 'create' })).toBe(false);
-    expect(showPersistentStateStorageBanner.call({ hasVMStateStorageClass: false, mode: 'view' })).toBe(false);
+    expect(showPersistentStateStorageBanner.call({ mode: 'create', vmStateStorageClassUnavailable: true })).toBe(true);
+    expect(showPersistentStateStorageBanner.call({ mode: 'edit', vmStateStorageClassUnavailable: true })).toBe(true);
+    expect(showPersistentStateStorageBanner.call({ mode: 'create', vmStateStorageClassUnavailable: false })).toBe(false);
+    expect(showPersistentStateStorageBanner.call({ mode: 'view', vmStateStorageClassUnavailable: true })).toBe(false);
+  });
+
+  it('only disables persistent state controls in create mode after StorageClasses load', () => {
+    const persistentStateControlDisabled = HarvesterEditVM.computed.persistentStateControlDisabled;
+
+    expect(persistentStateControlDisabled.call({ mode: 'create', vmStateStorageClassUnavailable: false })).toBe(false);
+    expect(persistentStateControlDisabled.call({ mode: 'create', vmStateStorageClassUnavailable: true })).toBe(true);
+    expect(persistentStateControlDisabled.call({ mode: 'edit', vmStateStorageClassUnavailable: true })).toBe(false);
+  });
+
+  it('marks StorageClasses as loaded after the VM data fetch completes', async() => {
+    const form = { storageClassesLoaded: false };
+    const fetch = jest.spyOn(VM_MIXIN, 'fetch').mockImplementation().mockResolvedValue();
+
+    await HarvesterEditVM.fetch.call(form);
+    fetch.mockRestore();
+
+    expect(form.storageClassesLoaded).toBe(true);
+  });
+
+  it('links persistent state guidance to Storage Classes', () => {
+    const toStorageClass = HarvesterEditVM.computed.toStorageClass;
+
+    expect(toStorageClass.call({ $store: { getters: { clusterId: 'c-1' } } })).toStrictEqual({
+      name:   'harvester-c-cluster-resource',
+      params: { cluster: 'c-1', resource: 'harvesterhci.io.storage' },
+    });
   });
 
   it('clears persistent state selections only for create mode without vmstate-persistence', () => {
     const clearPersistentState = HarvesterEditVM.methods.clearPersistentStateWithoutStorageClass;
 
     const createForm = {
-      efiPersistentStateEnabled: true,
-      mode:                      'create',
-      tpmPersistentStateEnabled: true,
+      efiPersistentStateEnabled:        true,
+      mode:                             'create',
+      tpmPersistentStateEnabled:        true,
+      vmStateStorageClassUnavailable:   true,
     };
 
     clearPersistentState.call(createForm);
@@ -56,9 +92,10 @@ describe('page: kubevirt.io.virtualmachine edit', () => {
     expect(createForm.efiPersistentStateEnabled).toBe(false);
 
     const editForm = {
-      efiPersistentStateEnabled: true,
-      mode:                      'edit',
-      tpmPersistentStateEnabled: true,
+      efiPersistentStateEnabled:        true,
+      mode:                             'edit',
+      tpmPersistentStateEnabled:        true,
+      vmStateStorageClassUnavailable:   true,
     };
 
     clearPersistentState.call(editForm);
@@ -67,10 +104,10 @@ describe('page: kubevirt.io.virtualmachine edit', () => {
     expect(editForm.efiPersistentStateEnabled).toBe(true);
 
     const storageClassForm = {
-      efiPersistentStateEnabled: true,
-      hasVMStateStorageClass:      true,
-      mode:                        'create',
-      tpmPersistentStateEnabled:   true,
+      efiPersistentStateEnabled:        true,
+      mode:                             'create',
+      tpmPersistentStateEnabled:        true,
+      vmStateStorageClassUnavailable:   false,
     };
 
     clearPersistentState.call(storageClassForm);

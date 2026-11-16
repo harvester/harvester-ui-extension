@@ -91,6 +91,11 @@ export default {
     },
   },
 
+  async fetch() {
+    await VM_MIXIN.fetch.call(this);
+    this.storageClassesLoaded = true;
+  },
+
   data() {
     const cloneVM = clone(this.value);
     const isRestartImmediately = this.value.actualState === 'Running';
@@ -113,6 +118,7 @@ export default {
       hostname,
       isRestartImmediately,
       customizeDisplayName,
+      storageClassesLoaded: false,
     };
   },
 
@@ -125,8 +131,16 @@ export default {
       return storageClasses.some((storageClass) => storageClass.metadata?.name === INTERNAL_STORAGE_CLASS.VMSTATE_PERSISTENCE);
     },
 
+    vmStateStorageClassUnavailable() {
+      return this.storageClassesLoaded && !this.hasVMStateStorageClass;
+    },
+
+    persistentStateControlDisabled() {
+      return this.mode === 'create' && this.vmStateStorageClassUnavailable;
+    },
+
     showPersistentStateStorageBanner() {
-      return this.mode !== 'view' && !this.hasVMStateStorageClass;
+      return this.mode !== 'view' && this.vmStateStorageClassUnavailable;
     },
 
     // VM display name is stored as an annotation; bind a dedicated input to it
@@ -144,6 +158,13 @@ export default {
       return {
         name:   'harvester-c-cluster-resource',
         params: { cluster: this.$store.getters['clusterId'], resource: HCI.HOST },
+      };
+    },
+
+    toStorageClass() {
+      return {
+        name:   'harvester-c-cluster-resource',
+        params: { cluster: this.$store.getters['clusterId'], resource: HCI.STORAGE },
       };
     },
 
@@ -262,6 +283,10 @@ export default {
         this.clearPersistentStateWithoutStorageClass();
       },
       immediate: true,
+    },
+
+    storageClassesLoaded() {
+      this.clearPersistentStateWithoutStorageClass();
     },
 
     tpmPersistentStateEnabled() {
@@ -395,7 +420,7 @@ export default {
 
   methods: {
     clearPersistentStateWithoutStorageClass() {
-      if (this.mode === 'create' && !this.hasVMStateStorageClass) {
+      if (this.mode === 'create' && this.vmStateStorageClassUnavailable) {
         this.tpmPersistentStateEnabled = false;
         this.efiPersistentStateEnabled = false;
       }
@@ -841,7 +866,7 @@ export default {
           <Checkbox
             v-if="value.tpmPersistentStateFeatureEnabled && tpmEnabled"
             v-model:value="tpmPersistentStateEnabled"
-            :disabled="!hasVMStateStorageClass"
+            :disabled="persistentStateControlDisabled"
             class="check"
             type="checkbox"
             :label="t('harvester.virtualMachine.systemOptions.tpmPersistentState')"
@@ -859,7 +884,7 @@ export default {
           <Checkbox
             v-if="value.efiPersistentStateFeatureEnabled && efiEnabled"
             v-model:value="efiPersistentStateEnabled"
-            :disabled="!hasVMStateStorageClass"
+            :disabled="persistentStateControlDisabled"
             class="check"
             type="checkbox"
             :label="t('harvester.virtualMachine.systemOptions.efiPersistentState')"
@@ -880,7 +905,15 @@ export default {
           v-if="showPersistentStateStorageBanner"
           color="info"
         >
-          <t k="harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable" />
+          <span>{{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.prefix') }}&nbsp;</span>
+          <router-link :to="to">
+            {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.host') }}
+          </router-link>
+          <span>&nbsp;{{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.middle') }}&nbsp;</span>
+          <router-link :to="toStorageClass">
+            {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.storageClass') }}
+          </router-link>
+          <span>{{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.suffix') }}</span>
         </Banner>
 
         <Banner
