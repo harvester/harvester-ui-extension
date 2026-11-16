@@ -43,13 +43,25 @@ describe('component: upgrade-config', () => {
     expect(savedValue(wrapper).shutdownVMOnMigrationFailure).toBe(true);
   });
 
-  it('should save the selected value', () => {
+  it('should save the value selected in its radio group', async() => {
     const wrapper = mountConfig(undefined, true);
 
-    wrapper.vm.parseDefaultValue.shutdownVMOnMigrationFailure = true;
-    wrapper.vm.update();
+    await wrapper.findComponent('[name="shutdownVMOnMigrationFailure"]').vm.$emit('update:value', true);
 
     expect(savedValue(wrapper).shutdownVMOnMigrationFailure).toBe(true);
+    expect(savedValue(wrapper).restoreVM).toBe(false);
+
+    await wrapper.findComponent('[name="restoreVM"]').vm.$emit('update:value', true);
+
+    expect(savedValue(wrapper).shutdownVMOnMigrationFailure).toBe(true);
+    expect(savedValue(wrapper).restoreVM).toBe(true);
+  });
+
+  it('should name the radio groups for screen readers', () => {
+    const wrapper = mountConfig(undefined, true);
+
+    expect(wrapper.findComponent('[name="restoreVM"]').attributes('aria-label')).toBe('harvester.setting.upgrade.restoreVM');
+    expect(wrapper.findComponent('[name="shutdownVMOnMigrationFailure"]').attributes('aria-label')).toBe('harvester.setting.upgrade.shutdownVMOnMigrationFailure');
   });
 
   it('should hide the control and not add the field on clusters without the feature', () => {
