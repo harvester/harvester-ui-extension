@@ -1,11 +1,11 @@
 import EditVpcEgressGateway from '../kubeovn.io.vpcegressgateway.vue';
 
 const {
-  validate, validateTabs, ipError, ipCountError, policySubnetsError, toSpec, bfdSpec, saveGateway
+  validate, validateTabs, ipError, ipCountError, policySubnetsError, toSpec, bfdSpec, saveGateway, addPolicy
 } = EditVpcEgressGateway.methods;
 const { vpc: onVpcChange } = EditVpcEgressGateway.watch;
 const {
-  vpcBfdPortDisabled, vpcEditLocation, internalSubnetOptions, externalSubnetOptions, externalSubnetRules, internalSubnetPlaceholder
+  vpcBfdPortDisabled, vpcEditLocation, internalSubnetOptions, externalSubnetOptions, externalSubnetRules, internalSubnetPlaceholder, canAddPolicy
 } = EditVpcEgressGateway.computed;
 const { requiredError } = EditVpcEgressGateway.methods;
 
@@ -185,6 +185,45 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain('harvester.egressGateway.validation.policySubnetRepeated');
     expect(errors[0]).toContain('subnetinternal');
+  });
+
+  it.each([
+    ['no policy', [], true],
+    ['a policy with SNAT on', [{ snat: true, subnets: [] }], false],
+    ['a policy with SNAT off', [{ snat: false, subnets: [] }], true],
+  ])('should add a policy with the SNAT setting not used yet after %s', (_, policies, snat) => {
+    const context = { policies: [...policies] };
+
+    addPolicy.call(context);
+
+    expect(context.policies[context.policies.length - 1]).toStrictEqual({ snat, subnets: [] });
+  });
+
+  it.each([
+    ['one policy', [{ snat: true }], true],
+    ['one policy for each SNAT setting', [{ snat: true }, { snat: false }], false],
+  ])('should tell whether a policy can be added with %s', (_, policies, canAdd) => {
+    expect(canAddPolicy.call({ policies })).toBe(canAdd);
+  });
+
+  it.each([
+    ['on', true, 'harvester.egressGateway.validation.policySnatOnRepeated'],
+    ['off', false, 'harvester.egressGateway.validation.policySnatOffRepeated'],
+  ])('should reject a second policy with SNAT %s', (_, snat, errorKey) => {
+    const policies = [{ snat, subnets: ['subnetinternal'] }, { snat, subnets: ['subnetother'] }];
+    const context = createContext({ policies });
+
+    expect(policySubnetsError.call(context, policies[0])).toBeUndefined();
+    expect(policySubnetsError.call(context, policies[1])).toContain(errorKey);
+    expect(validate.call(context)).toHaveLength(1);
+  });
+
+  it('should leave a policy with IP blocks out of the SNAT check', () => {
+    const policies = [{ snat: true, subnets: ['subnetinternal'] }, {
+      snat: true, ipBlocks: ['10.0.0.0/24'], subnets: []
+    }];
+
+    expect(validate.call(createContext({ policies }))).toStrictEqual([]);
   });
 
   it('should accept a policy with only IP blocks', () => {

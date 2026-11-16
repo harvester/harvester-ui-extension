@@ -152,6 +152,11 @@ export default {
       return this.vpc ? this.$store.getters[`${ inStore }/byId`](HCI.VPC, this.vpc) : null;
     },
 
+    // One policy for each SNAT setting is all the gateway can use
+    canAddPolicy() {
+      return !(this.policies.some((policy) => policy.snat) && this.policies.some((policy) => !policy.snat));
+    },
+
     tabErrors() {
       return this.isView ? {
         basic: [], policies: [], ips: [], bfd: [], bandwidth: []
@@ -241,8 +246,10 @@ export default {
   },
 
   methods: {
+    // Kube-OVN merges the sources of every policy with the same SNAT setting, so the form keeps one policy
+    // with SNAT on and one with it off, and a new policy takes the setting that isn't used yet
     addPolicy() {
-      this.policies.push({ snat: true, subnets: [] });
+      this.policies.push({ snat: !this.policies.some((policy) => policy.snat), subnets: [] });
     },
 
     removePolicy(index) {
@@ -301,7 +308,19 @@ export default {
       const otherSubnets = this.policies.filter((other) => other !== policy).flatMap((other) => other.subnets);
       const repeated = policy.subnets.find((subnet) => otherSubnets.includes(subnet));
 
-      return repeated ? this.t('harvester.egressGateway.validation.policySubnetRepeated', { subnet: repeated }, true) : undefined;
+      if (repeated) {
+        return this.t('harvester.egressGateway.validation.policySubnetRepeated', { subnet: repeated }, true);
+      }
+
+      // A later policy with the same SNAT setting only adds to the first one. Policies with IP blocks are
+      // left alone, since the form can't move those into another policy.
+      const first = this.policies.find((other) => other.snat === policy.snat && !other.ipBlocks?.length);
+
+      if (!policy.ipBlocks?.length && first && first !== policy) {
+        return this.t(`harvester.egressGateway.validation.${ policy.snat ? 'policySnatOnRepeated' : 'policySnatOffRepeated' }`, null, true);
+      }
+
+      return undefined;
     },
 
     // The errors of each tab, so each tab can be marked and Save stays disabled until there are none
@@ -536,6 +555,12 @@ export default {
           color="error"
           :label="t('harvester.egressGateway.validation.policyRequired')"
         />
+        <p
+          v-if="!isView"
+          class="text-muted mb-15"
+        >
+          {{ t('harvester.egressGateway.policies.description') }}
+        </p>
         <div
           v-for="(policy, index) in policies"
           :key="index"
@@ -585,7 +610,7 @@ export default {
           </InfoBox>
         </div>
         <button
-          v-if="!isView"
+          v-if="!isView && canAddPolicy"
           type="button"
           class="btn role-tertiary"
           data-testid="egress-gateway-add-policy"

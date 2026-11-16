@@ -1542,6 +1542,7 @@ harvester:
       tooltip: The subnet that connects the gateway instances to the external network. Only subnets of a virtual machine network are listed.
     policies:
       label: Policies
+      description: The traffic from the subnets of a policy goes out through the gateway. A gateway has at most two policies, one with SNAT and one without.
       addLabel: Add Policy
       snat: Enable SNAT
       snatTooltip: With SNAT, traffic leaves with the gateway's external IP. Without it, traffic keeps its source IP, and the external network needs a route back to these subnets.
@@ -1592,6 +1593,8 @@ harvester:
       policyRequired: Add at least one policy.
       policySubnets: Select at least one subnet in each policy.
       policySubnetRepeated: Subnet {subnet} is in more than one policy. Put each subnet in one policy only.
+      policySnatOnRepeated: Another policy already has SNAT enabled. Put these subnets in that policy.
+      policySnatOffRepeated: Another policy already has SNAT disabled. Put these subnets in that policy.
       sameSubnet: The internal and external subnets must be different.
       ipList: '"{key}" must contain valid IP addresses.'
       ipDuplicate: '"{key}" must not repeat an address.'
