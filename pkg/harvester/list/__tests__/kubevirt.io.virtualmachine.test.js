@@ -212,4 +212,52 @@ describe('list: kubevirt.io.virtualmachine', () => {
     expect(VmList.$loadingResources(null, createStore())).toStrictEqual({ loadResources: [] });
     expect(VmList.$loadingResources(null, createStore({ featureEnabled: false }))).toStrictEqual({});
   });
+
+  describe('restart required notification', () => {
+    const notify = (ctx, names, oldNames) => VmList.watch.vmRestartRequiredNames.call(ctx, names, oldNames);
+    const createCtx = (restartNotificationDisplayed) => ({
+      $store: { dispatch: jest.fn() },
+      t:      (key, args) => `${ key } ${ JSON.stringify(args) }`,
+      restartNotificationDisplayed,
+    });
+    const warning = (count, vmNames) => ['growl/warning', {
+      title:   `harvester.notification.restartRequired.title ${ JSON.stringify({ count }) }`,
+      message: `harvester.notification.restartRequired.message ${ JSON.stringify({ vmNames }) }`,
+      timeout: 10000,
+    }, { root: true }];
+
+    it('should notify when VMs need a restart', () => {
+      const ctx = createCtx(false);
+
+      notify(ctx, ['a', 'b'], []);
+
+      expect(ctx.$store.dispatch).toHaveBeenCalledWith(...warning(2, 'a, b'));
+      expect(ctx.restartNotificationDisplayed).toBe(true);
+    });
+
+    it('should not notify again when a refresh, page or sort brings back the same VMs', () => {
+      const ctx = createCtx(true);
+
+      notify(ctx, ['b', 'a'], ['a', 'b']);
+
+      expect(ctx.$store.dispatch).not.toHaveBeenCalled();
+    });
+
+    it('should replace the notification when the VMs change', () => {
+      const ctx = createCtx(true);
+
+      notify(ctx, ['a', 'c'], ['a', 'b']);
+
+      expect(ctx.$store.dispatch.mock.calls).toStrictEqual([['growl/clear'], warning(2, 'a, c')]);
+    });
+
+    it('should reset when no VM needs a restart', () => {
+      const ctx = createCtx(true);
+
+      notify(ctx, [], ['a']);
+
+      expect(ctx.$store.dispatch).not.toHaveBeenCalled();
+      expect(ctx.restartNotificationDisplayed).toBe(false);
+    });
+  });
 });

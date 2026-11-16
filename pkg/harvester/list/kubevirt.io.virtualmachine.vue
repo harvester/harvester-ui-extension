@@ -307,12 +307,17 @@ export default {
       }
     },
 
-    vmRestartRequiredNames(vmNames) {
+    vmRestartRequiredNames(vmNames, oldNames = []) {
       const count = vmNames.length;
 
       if (count === 0 && this.restartNotificationDisplayed) {
         this.restartNotificationDisplayed = false;
 
+        return;
+      }
+
+      // The names are rebuilt on every refresh, and when paging on every page, sort and search too, so only notify when they change
+      if ([...vmNames].sort().join() === [...oldNames].sort().join()) {
         return;
       }
 
