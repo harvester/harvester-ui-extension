@@ -88,8 +88,6 @@ const FEATURE_FLAGS = {
     'componentHealth',
     'repositoryStorageClass',
     'shutdownVMOnMigrationFailure',
-  ],
-  'v1.11.0': [
     'vmListPagination',
   ],
 };
