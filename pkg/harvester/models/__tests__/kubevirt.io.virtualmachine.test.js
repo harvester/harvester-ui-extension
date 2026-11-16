@@ -395,4 +395,42 @@ describe('class VirtVm', () => {
       expect(vm.isRestartRequired).toBe(true);
     });
   });
+
+  describe('findInNamespace', () => {
+    function vmWithStore({ havePage }) {
+      const vm = Object.create(VirtVm.prototype);
+      const stored = [{ metadata: { namespace: 'ns1', name: 'a' } }, { metadata: { namespace: 'other', name: 'b' } }];
+      const dispatch = jest.fn((action) => Promise.resolve(action === 'findPage' ? { data: [{ metadata: { namespace: 'ns1', name: 'page' } }] } : stored));
+
+      vm.metadata = { name: 'vm1', namespace: 'ns1' };
+      Object.defineProperty(vm, '$getters', { value: { havePage: (type) => havePage && type === PVC } });
+      Object.defineProperty(vm, '$dispatch', { value: dispatch });
+
+      return {
+        vm, dispatch, stored
+      };
+    }
+
+    it('should load every resource and return a copy with the ones of the namespace when no page of the type is stored', async() => {
+      const { vm, dispatch, stored } = vmWithStore({ havePage: false });
+      const out = await vm.findInNamespace(PVC);
+
+      expect(dispatch.mock.calls).toStrictEqual([['findAll', { type: PVC }]]);
+      expect(out.map(({ metadata }) => metadata.name)).toStrictEqual(['a']);
+      expect(out).not.toBe(stored);
+    });
+
+    it('should read only the namespace, without storing it, when a paged list keeps a page of the type', async() => {
+      const { vm, dispatch } = vmWithStore({ havePage: true });
+      const out = await vm.findInNamespace(PVC);
+
+      expect(out.map(({ metadata }) => metadata.name)).toStrictEqual(['page']);
+      expect(dispatch).toHaveBeenCalledTimes(1);
+
+      const [action, { type, opt }] = dispatch.mock.calls[0];
+
+      expect([action, type, opt.transient]).toStrictEqual(['findPage', PVC, true]);
+      expect(opt.pagination.filters[0].fields.map(({ field, value }) => `${ field }=${ value }`)).toStrictEqual(['metadata.namespace=ns1']);
+    });
+  });
 });

@@ -76,7 +76,12 @@ function canPaginate(store) {
   const context = paginationContext(store);
   const inStore = store.getters['currentProduct']?.inStore;
 
-  return !!context && !!store.getters[`${ inStore }/paginationEnabled`]?.({ id: HCI.VM, context });
+  // An API served from the SQL cache lists the printer columns of a CRD as `metadata.fields[N]`. Without the SQL cache
+  // it can't filter the paged list, so don't rely on the version alone (it can be missing or not semver)
+  const columns = store.getters[`${ inStore }/schemaFor`]?.(HCI.VM)?.attributes?.columns || [];
+  const fromSqlCache = columns.some((col) => col.field?.startsWith('$.metadata.fields['));
+
+  return !!context && fromSqlCache && !!store.getters[`${ inStore }/paginationEnabled`]?.({ id: HCI.VM, context });
 }
 
 // The API indexes the printer columns of a CRD by position (`metadata.fields.N`), so look the position up by name
@@ -360,15 +365,18 @@ export default {
       const vmNames = uniq(page.map((vm) => vm.metadata.name));
       const claimNames = uniq(page.flatMap((vm) => vm.persistentVolumeClaimName));
 
-      const [pvcs, restores] = await Promise.all([
+      // One failed request shouldn't stop the others, the rows show what could be loaded
+      const loaded = (results) => results.map((result) => (result.status === 'fulfilled' ? result.value : []));
+
+      const [pvcs, restores] = loaded(await Promise.allSettled([
         this.findPageByField(PVC, 'metadata.name', claimNames, force),
         this.findPageByField(HCI.RESTORE, this.printerColumnField(HCI.RESTORE, 'TARGET_NAME'), vmNames, force),
         this.findPageByField(HCI.VMI, 'metadata.name', vmNames, force),
         this.findPageByField(POD, `metadata.labels[${ HCI_ANNOTATIONS.VM_NAME }]`, vmNames, force),
         this.findPageByField(HCI.VMIM, this.printerColumnField(HCI.VMIM, 'VMI'), vmNames, force),
-      ]);
+      ]));
 
-      await Promise.all([
+      await Promise.allSettled([
         this.findPageByField(PV, 'metadata.name', uniq(pvcs.map((pvc) => pvc.spec?.volumeName)), force),
         this.findPageByField(HCI.BACKUP, 'metadata.name', uniq(restores.map((restore) => restore.spec?.virtualMachineBackupName)), force),
       ]);

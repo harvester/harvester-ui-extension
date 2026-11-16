@@ -3,7 +3,6 @@ import { exceptionToErrorsArray } from '@shell/utils/error';
 import { sortBy } from '@shell/utils/sort';
 import { mapGetters } from 'vuex';
 import { PVC, STORAGE_CLASS, LONGHORN_DRIVER } from '@shell/config/types';
-import { FilterArgs, PaginationParamFilter } from '@shell/types/store/pagination.types';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import { VOLUME_MODE } from '@pkg/harvester/config/types';
 import { HCI } from '@pkg/harvester/types';
@@ -31,9 +30,9 @@ export default {
   },
 
   async fetch() {
-    this.allPVCs = await this.$store.dispatch('harvester/findAll', { type: PVC });
+    this.allPVCs = await this.actionResource.findInNamespace(PVC);
     this.allStorageClasses = await this.$store.dispatch('harvester/findAll', { type: STORAGE_CLASS });
-    this.allVMs = await this.findNamespaceVMs();
+    this.allVMs = await this.actionResource.findInNamespace(HCI.VM);
   },
 
   data() {
@@ -134,23 +133,6 @@ export default {
   },
 
   methods: {
-    // A paged VM list keeps one page of VMs in the store, and loading every VM would replace that page and empty the list
-    async findNamespaceVMs() {
-      if (!this.$store.getters['harvester/havePage'](HCI.VM)) {
-        return this.$store.dispatch('harvester/findAll', { type: HCI.VM });
-      }
-
-      const res = await this.$store.dispatch('harvester/findPage', {
-        type: HCI.VM,
-        opt:  {
-          transient:  true,
-          pagination: new FilterArgs({ filters: PaginationParamFilter.createSingleField({ field: 'metadata.namespace', value: this.actionResource.metadata.namespace }) }),
-        }
-      });
-
-      return res?.data || [];
-    },
-
     isShareableCapablePVC(pvc) {
       const pvcSpec = pvc?.spec;
 

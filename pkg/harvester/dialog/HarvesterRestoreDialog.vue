@@ -2,7 +2,6 @@
 import { mapGetters } from 'vuex';
 
 import { randomStr } from '@shell/utils/string';
-import { allHash } from '@shell/utils/promise';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 
 import { Card } from '@components/Card';
@@ -24,9 +23,7 @@ export default {
   },
 
   async fetch() {
-    const hash = await allHash({ backups: this.$store.dispatch('harvester/findAll', { type: HCI.BACKUP }) });
-
-    this.backups = hash.backups;
+    this.backups = await this.actionResource.findInNamespace(HCI.BACKUP);
   },
 
   props: {

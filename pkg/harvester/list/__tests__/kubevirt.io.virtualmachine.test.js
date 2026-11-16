@@ -21,8 +21,10 @@ const SCHEMAS = {
   [PV]:          { id: PV },
 };
 
-function createStore({ featureEnabled = true, paginationEnabled = true, found = {} } = {}) {
-  const dispatch = jest.fn((action, { type } = {}) => Promise.resolve(found[type] || []));
+function createStore({
+  featureEnabled = true, paginationEnabled = true, found = {}, failing = [], vmSchema = SCHEMAS[HCI.VM], storedVMs = []
+} = {}) {
+  const dispatch = jest.fn((action, { type } = {}) => (failing.includes(type) ? Promise.reject(new Error('failed')) : Promise.resolve(found[type] || [])));
 
   return {
     dispatch,
@@ -30,7 +32,8 @@ function createStore({ featureEnabled = true, paginationEnabled = true, found = 
       currentProduct:                       { inStore: 'harvester' },
       'harvester-common/getFeatureEnabled': (name) => featureEnabled && name === 'vmListPagination',
       'harvester/paginationEnabled':        ({ id, context }) => paginationEnabled && id === HCI.VM && context === VM_LIST_PAGINATION_CONTEXT,
-      'harvester/schemaFor':                (type) => SCHEMAS[type],
+      'harvester/schemaFor':                (type) => (type === HCI.VM ? vmSchema : SCHEMAS[type]),
+      'harvester/all':                      (type) => (type === HCI.VM ? storedVMs : []),
     }
   };
 }
@@ -48,6 +51,7 @@ describe('list: kubevirt.io.virtualmachine', () => {
     it.each([
       ['the feature is off for the cluster version', { featureEnabled: false }],
       ['the shell does not page the VM list', { paginationEnabled: false }],
+      ['the API is not served from the SQL cache', { vmSchema: { id: HCI.VM, attributes: { columns: [{ name: 'Status', field: '.status.printableStatus' }] } } }],
     ])('should list every VM with ResourceTable when %s', (_, opts) => {
       const $store = createStore(opts);
 
@@ -96,17 +100,20 @@ describe('list: kubevirt.io.virtualmachine', () => {
     });
 
     it('should only sort and search on fields the API indexes', () => {
-      const props = call('tableProps', {
+      const ctx = {
         canPaginate:                 true,
         paginationContext:           VM_LIST_PAGINATION_CONTEXT,
         headers:                     VM_HEADERS,
         schema:                      SCHEMAS[HCI.VM],
         fetchSecondaryResources:     jest.fn(),
         fetchPageSecondaryResources: jest.fn(),
-      });
+      };
+      const props = call('tableProps', ctx);
       const byName = Object.fromEntries(props.paginationHeaders.map((h) => [h.name, { sort: h.sort, search: h.search }]));
 
       expect(props.context).toBe(VM_LIST_PAGINATION_CONTEXT);
+      expect(props.fetchSecondaryResources).toBe(ctx.fetchSecondaryResources);
+      expect(props.fetchPageSecondaryResources).toBe(ctx.fetchPageSecondaryResources);
       expect(byName).toStrictEqual({
         state:     { sort: ['metadata.fields.2'], search: false },
         name:      { sort: ['metadata.name'], search: ['metadata.name', 'metadata.annotations[harvesterhci.io/vmDisplayName]'] },
@@ -116,6 +123,15 @@ describe('list: kubevirt.io.virtualmachine', () => {
         ip:        { sort: false, search: false },
         age:       { sort: 'metadata.creationTimestamp:desc', search: false },
       });
+    });
+
+    it('should take the VMs of the page from the store', () => {
+      const storedVMs = [vm('default', 'a')];
+      const $store = createStore({ storedVMs });
+
+      expect(call('vms', {
+        $store, canPaginate: true, inStore: 'harvester', allVMs: []
+      })).toBe(storedVMs);
     });
 
     it('should list only the VMs of the page', () => {
@@ -158,6 +174,21 @@ describe('list: kubevirt.io.virtualmachine', () => {
         [PV]:          ['metadata.name IN (pv-a)'],
         [HCI.BACKUP]:  ['metadata.name IN (backup-a)'],
       });
+    });
+
+    it('should fetch the rest when one request fails', async() => {
+      const $store = createStore({ failing: [HCI.RESTORE], found: { [PVC]: [{ spec: { volumeName: 'pv-a' } }] } });
+      const ctx = { $store, inStore: 'harvester' };
+
+      ctx.findPageByField = VmList.methods.findPageByField.bind(ctx);
+      ctx.printerColumnField = VmList.methods.printerColumnField.bind(ctx);
+
+      await expect(VmList.methods.fetchPageSecondaryResources.call(ctx, { force: false, page: [vm('default', 'a', ['a-disk'])] })).resolves.toBeUndefined();
+
+      const types = $store.dispatch.mock.calls.map(([, { type }]) => type);
+
+      expect(types).toStrictEqual(expect.arrayContaining([PVC, HCI.VMI, POD, HCI.VMIM, PV]));
+      expect(types).not.toContain(HCI.BACKUP);
     });
 
     it('should not fetch a type when no VM on the page needs it', async() => {
