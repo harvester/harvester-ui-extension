@@ -33,7 +33,7 @@ export default {
   },
 
   async fetch() {
-    if (!this.thirdPartyBackupEnabled) {
+    if (!this.thirdPartyBackupFeatureEnabled) {
       return;
     }
 
@@ -67,12 +67,12 @@ export default {
       return getFsFreezeDeadlineOptions(this.t);
     },
 
-    thirdPartyBackupEnabled() {
+    thirdPartyBackupFeatureEnabled() {
       return !!this.actionResource?.thirdPartyBackupFeatureEnabled;
     },
 
     backupTypeOptions() {
-      return this.thirdPartyBackupEnabled ? this.actionResource.backupTypeOptions : [];
+      return this.thirdPartyBackupFeatureEnabled ? this.actionResource.backupTypeOptions : [];
     },
 
     // Shown outside the select too: its disabled options can't be reached by keyboard
@@ -81,11 +81,11 @@ export default {
     },
 
     isLoading() {
-      return this.thirdPartyBackupEnabled && this.$fetchState.pending;
+      return this.thirdPartyBackupFeatureEnabled && this.$fetchState.pending;
     },
 
     noBackupTypeAvailable() {
-      return this.thirdPartyBackupEnabled && !this.isLoading && !this.backupType;
+      return this.thirdPartyBackupFeatureEnabled && !this.isLoading && !this.backupType;
     },
 
     canCreate() {
@@ -207,7 +207,7 @@ export default {
           required
         />
         <LabeledSelect
-          v-if="thirdPartyBackupEnabled"
+          v-if="thirdPartyBackupFeatureEnabled"
           v-model:value="backupType"
           class="mt-20"
           data-testid="backup-type-select"

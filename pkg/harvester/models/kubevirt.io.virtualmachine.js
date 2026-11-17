@@ -16,7 +16,7 @@ import { HCI } from '../types';
 import HarvesterResource from './harvester';
 import { getVmCPUMemoryValues } from '../utils/cpuMemory';
 import { sharedComputed } from '../utils/shared-computed';
-import { getBackupTargetType, isBackupTargetSettingUnavailable } from '../utils/setting';
+import { getBackupTarget, isBackupTargetSettingUnavailable } from '../utils/setting';
 
 export const OFF = 'Off';
 
@@ -1406,11 +1406,18 @@ export default class VirtVm extends HarvesterResource {
     return !!this.actions?.backup || (this.thirdPartyBackupFeatureEnabled && !!this.actions?.snapshot && !this.dataMoverBackupUnavailableReason);
   }
 
-  // Only users who can read backup-target know its type, for everyone else the webhook decides
+  // Only users who can read backup-target know its type and whether it allows Restic and Kopia, for everyone else the webhook decides
   get isBackupTargetNotS3() {
-    const type = getBackupTargetType(this.$rootGetters['harvester/byId'](HCI.SETTING, 'backup-target'));
+    const { type } = getBackupTarget(this.$rootGetters['harvester/byId'](HCI.SETTING, 'backup-target'));
 
     return !!type && type !== 's3';
+  }
+
+  // The backend rejects Restic and Kopia until thirdPartyBackupEnabled is set on the S3 target
+  get isThirdPartyBackupOffOnTarget() {
+    const { type, thirdPartyBackupEnabled } = getBackupTarget(this.$rootGetters['harvester/byId'](HCI.SETTING, 'backup-target'));
+
+    return type === 's3' && !thirdPartyBackupEnabled;
   }
 
   async fetchBackupTypeRequirements() {
@@ -1482,6 +1489,11 @@ export default class VirtVm extends HarvesterResource {
       const driver = this.driverMissingSnapshotClass('volumeSnapshotClassName');
 
       return driver ? this.t('harvester.backup.typeUnavailable.noSnapshotClass', { driver }) : this.t('harvester.backup.typeUnavailable.snapshot');
+    }
+
+    // Last, so a reason that turning it on wouldn't fix is shown first
+    if (this.isThirdPartyBackupOffOnTarget) {
+      return this.t('harvester.backup.typeUnavailable.thirdPartyBackupOff');
     }
 
     return undefined;
