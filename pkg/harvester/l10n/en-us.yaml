@@ -1542,7 +1542,7 @@ harvester:
       tooltip: The subnet that connects the gateway instances to the external network. Only subnets of a virtual machine network are listed.
     policies:
       label: Policies
-      description: Traffic from these subnets of the VPC goes out through the gateway. Select at least one subnet, in either list, and each subnet in one list only.
+      description: Traffic from these subnets of the VPC goes out through the gateway. Each subnet can be in one list only.
       placeholder: Select subnets of the VPC
       snatSubnets:
         label: Subnets with SNAT
@@ -1591,7 +1591,7 @@ harvester:
         label: Egress
     validation:
       replicas: '"Replicas" must be a whole number from 0 to 10.'
-      policyRequired: Select at least one subnet, with or without SNAT.
+      policyRequired: Select at least one subnet, in either list.
       sameSubnet: The internal and external subnets must be different.
       ipList: '"{key}" must contain valid IP addresses.'
       ipDuplicate: '"{key}" must not repeat an address.'

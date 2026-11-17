@@ -176,10 +176,6 @@ export default {
       return this.ipBlockPolicies.filter((policy) => !policy.snat).flatMap((policy) => policy.ipBlocks);
     },
 
-    policyRules() {
-      return [() => this.policyError()];
-    },
-
     tabErrors() {
       return this.isView ? {
         basic: [], policies: [], ips: [], bfd: [], bandwidth: []
@@ -559,7 +555,6 @@ export default {
             <LabeledSelect
               v-model:value="snatSubnets"
               data-testid="egress-gateway-snat-subnets"
-              :rules="policyRules"
               :multiple="true"
               :options="snatSubnetOptions"
               :mode="mode"
@@ -572,7 +567,6 @@ export default {
             <LabeledSelect
               v-model:value="noSnatSubnets"
               data-testid="egress-gateway-no-snat-subnets"
-              :rules="policyRules"
               :multiple="true"
               :options="noSnatSubnetOptions"
               :mode="mode"
@@ -581,6 +575,14 @@ export default {
               :tooltip="t('harvester.egressGateway.policies.noSnatSubnets.tooltip')"
             />
           </div>
+        </div>
+        <!-- One subnet in either list is enough, so the rule is shown once for both lists -->
+        <div
+          v-if="tabErrors.policies.length"
+          class="text-error mt-10"
+          data-testid="egress-gateway-policy-error"
+        >
+          {{ tabErrors.policies[0] }}
         </div>
         <div
           v-if="ipBlocksWithSnat.length || ipBlocksWithoutSnat.length"
