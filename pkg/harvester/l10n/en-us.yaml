@@ -833,7 +833,7 @@ harvester:
       persistentStateStorageClassUnavailable:
         prefix: Persistent TPM and EFI state require the vmstate-persistence StorageClass. Add a Longhorn disk on the
         host: Hosts page
-        middle: or create the
+        middle: or create the class on the
         storageClass: Storage Classes page
         suffix: .
       secureBoot: Secure Boot

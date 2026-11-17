@@ -906,15 +906,14 @@ export default {
           color="info"
         >
           <span>
-            {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.prefix') }}&nbsp;
+            {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.prefix') }}
             <router-link :to="to">
               {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.host') }}
             </router-link>
-            &nbsp;{{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.middle') }}&nbsp;
+            {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.middle') }}
             <router-link :to="toStorageClass">
               {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.storageClass') }}
-            </router-link>
-            {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.suffix') }}
+            </router-link>{{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.suffix') }}
           </span>
         </Banner>
 

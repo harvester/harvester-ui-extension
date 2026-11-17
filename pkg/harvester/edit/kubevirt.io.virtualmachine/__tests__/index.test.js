@@ -1,6 +1,11 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { STORAGE_CLASS } from '@shell/config/types';
 import VM_MIXIN from '@pkg/harvester/mixins/harvester-vm';
 import HarvesterEditVM from '../index.vue';
+
+const vmFormSource = readFileSync(resolve(__dirname, '../index.vue'), 'utf8');
+const translations = readFileSync(resolve(__dirname, '../../../l10n/en-us.yaml'), 'utf8');
 
 function saveWith(userScript) {
   const buttonCb = jest.fn();
@@ -74,6 +79,11 @@ describe('page: kubevirt.io.virtualmachine edit', () => {
       name:   'harvester-c-cluster-resource',
       params: { cluster: 'c-1', resource: 'harvesterhci.io.storage' },
     });
+  });
+
+  it('describes creating the StorageClass without non-breaking spaces around guidance links', () => {
+    expect(translations).toContain('middle: or create the class on the');
+    expect(vmFormSource).not.toContain('&nbsp;');
   });
 
   it('clears persistent state selections only for create mode without vmstate-persistence', () => {
