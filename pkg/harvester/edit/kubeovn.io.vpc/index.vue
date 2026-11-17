@@ -69,7 +69,6 @@ export default {
       return this.isView ? [] : this.validateBfdPort();
     },
 
-    // Save stays disabled until the form is valid
     validationPassed() {
       return !!this.value?.metadata?.name && this.bfdPortErrors.length === 0;
     },

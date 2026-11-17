@@ -159,13 +159,13 @@ export default {
       return this.vpc ? this.$store.getters[`${ inStore }/byId`](HCI.VPC, this.vpc) : null;
     },
 
-    // A subnet goes in one of the two groups only
+    // A subnet goes in one of the two groups only, and the gateway's external subnet in neither
     snatSubnetOptions() {
-      return this.vpcSubnetOptions.filter((option) => !this.noSnatSubnets.includes(option.value));
+      return this.vpcSubnetOptions.filter((option) => option.value !== this.externalSubnet && !this.noSnatSubnets.includes(option.value));
     },
 
     noSnatSubnetOptions() {
-      return this.vpcSubnetOptions.filter((option) => !this.snatSubnets.includes(option.value));
+      return this.vpcSubnetOptions.filter((option) => option.value !== this.externalSubnet && !this.snatSubnets.includes(option.value));
     },
 
     ipBlocksWithSnat() {
@@ -218,6 +218,10 @@ export default {
       return this.internalSubnetOptions.length ? this.t('harvester.egressGateway.internalSubnet.placeholder') : this.t('harvester.egressGateway.internalSubnet.none', { vpc: this.vpc }, true);
     },
 
+    maxReplicas() {
+      return MAX_REPLICAS;
+    },
+
     replicasRules() {
       return [(value) => (isWholeNumber(value, 0, MAX_REPLICAS) ? undefined : this.t('harvester.egressGateway.validation.replicas', null, true))];
     },
@@ -238,8 +242,12 @@ export default {
       return Object.keys(IP_FIELDS).map((field) => this.ipCountError(field)).filter(Boolean);
     },
 
-    bfdRules() {
+    bfdIntervalRules() {
       return [(value) => (isValidBfdValue(value) ? undefined : this.t('harvester.egressGateway.validation.bfd', null, true))];
+    },
+
+    bfdMultiplierRules() {
+      return [(value) => (isValidBfdValue(value) ? undefined : this.t('harvester.egressGateway.validation.bfdMultiplier', null, true))];
     },
 
     bandwidthRules() {
@@ -322,7 +330,16 @@ export default {
     policyError() {
       const hasSource = this.snatSubnets.length || this.noSnatSubnets.length || this.ipBlockPolicies.length;
 
-      return hasSource ? undefined : this.t('harvester.egressGateway.validation.policyRequired', null, true);
+      if (!hasSource) {
+        return this.t('harvester.egressGateway.validation.policyRequired', null, true);
+      }
+
+      // Kube-OVN reroutes a policy's sources to the gateway, so its own external subnet would loop back into it
+      if (this.externalSubnet && [...this.snatSubnets, ...this.noSnatSubnets].includes(this.externalSubnet)) {
+        return this.t('harvester.egressGateway.validation.policyExternalSubnet', { subnet: this.externalSubnet }, true);
+      }
+
+      return undefined;
     },
 
     // One policy for each group that has subnets, then the IP block policies as they were
@@ -373,8 +390,12 @@ export default {
         }
       });
 
-      if (this.bfd.enabled && ['minRX', 'minTX', 'multiplier'].some((field) => !isValidBfdValue(this.bfd[field]))) {
+      if (this.bfd.enabled && ['minRX', 'minTX'].some((field) => !isValidBfdValue(this.bfd[field]))) {
         errors.bfd.push(this.t('harvester.egressGateway.validation.bfd', null, true));
+      }
+
+      if (this.bfd.enabled && !isValidBfdValue(this.bfd.multiplier)) {
+        errors.bfd.push(this.t('harvester.egressGateway.validation.bfdMultiplier', null, true));
       }
 
       if ([this.bandwidthIngress, this.bandwidthEgress].some((value) => !isBlank(value) && !isValidBandwidth(value))) {
@@ -510,7 +531,7 @@ export default {
               type="number"
               required
               :min="0"
-              :max="10"
+              :max="maxReplicas"
               :mode="mode"
               :rules="replicasRules"
               :label="t('harvester.egressGateway.replicas.label')"
@@ -564,6 +585,13 @@ export default {
         >
           {{ t('harvester.egressGateway.policies.description') }}
         </p>
+        <!-- One subnet in either list is enough, so the rule is shown once for both lists -->
+        <Banner
+          v-if="vpc && tabErrors.policies.length"
+          color="error"
+          data-testid="egress-gateway-policy-error"
+          :label="tabErrors.policies[0]"
+        />
         <div class="row">
           <div class="col span-6">
             <LabeledSelect
@@ -593,14 +621,6 @@ export default {
               :tooltip="t('harvester.egressGateway.policies.noSnatSubnets.tooltip')"
             />
           </div>
-        </div>
-        <!-- One subnet in either list is enough, so the rule is shown once for both lists -->
-        <div
-          v-if="vpc && tabErrors.policies.length"
-          class="text-error mt-10"
-          data-testid="egress-gateway-policy-error"
-        >
-          {{ tabErrors.policies[0] }}
         </div>
         <div
           v-if="ipBlocksWithSnat.length || ipBlocksWithoutSnat.length"
@@ -637,6 +657,7 @@ export default {
         :error-icon-tooltip="tabErrors.ips.join(' ')"
       >
         <Banner
+          v-if="!isView"
           color="info"
           :label="t('harvester.egressGateway.ips.banner')"
         />
@@ -702,7 +723,7 @@ export default {
                 :min="1"
                 :mode="mode"
                 required
-                :rules="bfdRules"
+                :rules="bfdIntervalRules"
                 :label="t('harvester.egressGateway.bfd.minRX.label')"
                 :tooltip="t('harvester.egressGateway.bfd.minRX.tooltip')"
                 :suffix="t('harvester.egressGateway.bfd.milliseconds')"
@@ -714,7 +735,7 @@ export default {
                 :min="1"
                 :mode="mode"
                 required
-                :rules="bfdRules"
+                :rules="bfdIntervalRules"
                 :label="t('harvester.egressGateway.bfd.minTX.label')"
                 :tooltip="t('harvester.egressGateway.bfd.minTX.tooltip')"
                 :suffix="t('harvester.egressGateway.bfd.milliseconds')"
@@ -727,7 +748,7 @@ export default {
                 :min="1"
                 :mode="mode"
                 required
-                :rules="bfdRules"
+                :rules="bfdMultiplierRules"
                 :label="t('harvester.egressGateway.bfd.multiplier.label')"
                 :tooltip="t('harvester.egressGateway.bfd.multiplier.tooltip')"
               />
@@ -744,6 +765,7 @@ export default {
         :error-icon-tooltip="tabErrors.bandwidth.join(' ')"
       >
         <Banner
+          v-if="!isView"
           color="info"
           :label="t('harvester.egressGateway.bandwidth.banner')"
         />

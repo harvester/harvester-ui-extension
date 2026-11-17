@@ -48,12 +48,23 @@ export default class HciSubnet extends HarvesterResource {
     return !!address && splitList(this.spec?.cidrBlock).map(parseCIDR).some((range) => range?.[0].kind() === address.kind() && address.match(range));
   }
 
-  // Kube-OVN only assigns a static IP that is inside the subnet's CIDR of its family and isn't the gateway
+  // Kube-OVN assigns static IPs from the network address + 1 to the broadcast address - 1 of the subnet's
+  // CIDR (a /31 or /127 uses both), and never the gateway
   canAssignIP(ip) {
     const address = parseIP(ip);
-    const isGateway = splitList(this.spec?.gateway).map(parseIP).some((gateway) => gateway?.kind() === address?.kind() && gateway.toNormalizedString() === address.toNormalizedString());
+    const range = address && splitList(this.spec?.cidrBlock).map(parseCIDR).find((item) => item?.[0].kind() === address.kind() && address.match(item));
 
-    return this.containsIP(ip) && !isGateway;
+    if (!range) {
+      return false;
+    }
+
+    const [base, prefix] = range;
+    const family = address.kind() === 'ipv4' ? ipaddr.IPv4 : ipaddr.IPv6;
+    const cidr = `${ base.toString() }/${ prefix }`;
+    const edges = prefix < (address.kind() === 'ipv4' ? 31 : 127) ? [family.networkAddressFromCIDR(cidr), family.broadcastAddressFromCIDR(cidr)] : [];
+    const gateways = splitList(this.spec?.gateway).map(parseIP).filter((gateway) => gateway?.kind() === address.kind());
+
+    return ![...edges, ...gateways].some((other) => other.toNormalizedString() === address.toNormalizedString());
   }
 
   get doneOverride() {

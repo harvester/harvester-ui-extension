@@ -24,9 +24,14 @@ describe('class HciSubnet', () => {
   it.each([
     ['172.20.10.41', true],
     ['172.20.10.1', false],
+    ['172.20.10.0', false],
+    ['172.20.10.255', false],
+    ['172.20.10.254', true],
     ['172.20.11.1', false],
     ['fd00::10', true],
     ['fd00::1', false],
+    ['fd00::', false],
+    ['fd00::ff', false],
     ['fd01::10', false],
     ['not-an-ip', false],
   ])('should tell whether %s can be assigned in a dual-stack subnet', (ip, assignable) => {
@@ -40,5 +45,13 @@ describe('class HciSubnet', () => {
 
     expect(subnet.containsIP('172.20.10.1')).toBe(true);
     expect(subnet.containsIP('10.255.255.255')).toBe(false);
+  });
+
+  it.each([
+    ['10.0.0.0/31', '10.0.0.0', true],
+    ['10.0.0.0/31', '10.0.0.1', true],
+    ['10.0.0.5/32', '10.0.0.5', true],
+  ])('should use every address of a point-to-point subnet %s', (cidrBlock, ip, assignable) => {
+    expect(createSubnet({ cidrBlock }).canAssignIP(ip)).toBe(assignable);
   });
 });

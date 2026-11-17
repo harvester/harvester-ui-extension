@@ -232,14 +232,21 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     })).toBe(placeholder);
   });
 
-  it('should not offer a subnet of one group in the other', () => {
-    const vpcSubnetOptions = ['a', 'b', 'c'].map((value) => ({ label: value, value }));
+  it('should not offer a subnet of one group in the other, nor the external subnet', () => {
+    const vpcSubnetOptions = ['a', 'b', 'c', 'ext'].map((value) => ({ label: value, value }));
     const context = {
-      vpcSubnetOptions, snatSubnets: ['a'], noSnatSubnets: ['b']
+      vpcSubnetOptions, snatSubnets: ['a'], noSnatSubnets: ['b'], externalSubnet: 'ext'
     };
 
     expect(snatSubnetOptions.call(context).map((option) => option.value)).toStrictEqual(['a', 'c']);
     expect(noSnatSubnetOptions.call(context).map((option) => option.value)).toStrictEqual(['b', 'c']);
+  });
+
+  it('should reject the external subnet as a policy source', () => {
+    const error = policyError.call(createContext({ snatSubnets: ['subnetexternal'] }));
+
+    expect(error).toContain('harvester.egressGateway.validation.policyExternalSubnet');
+    expect(error).toContain('subnetexternal');
   });
 
   it.each([
@@ -305,7 +312,7 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     ['no VPC', { vpc: '' }, 'validation.required'],
     ['no internal subnet', { internalSubnet: '' }, 'validation.required'],
     ['no external subnet', { externalSubnet: '' }, 'validation.required'],
-    ['the same internal and external subnet', { externalSubnet: 'subnetinternal' }, 'harvester.egressGateway.validation.sameSubnet'],
+    ['the same internal and external subnet', { externalSubnet: 'subnetinternal', snatSubnets: ['subnetother'] }, 'harvester.egressGateway.validation.sameSubnet'],
     ['too many replicas', { replicas: 11 }, 'harvester.egressGateway.validation.replicas'],
     ['no subnet with or without SNAT', { snatSubnets: [] }, 'harvester.egressGateway.validation.policyRequired'],
     ['an invalid IP', { externalIPs: ['10.115.48.300', '10.115.48.221'] }, 'harvester.egressGateway.validation.ipList'],
@@ -316,6 +323,11 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
         enabled: true, minRX: 0, minTX: 50, multiplier: 3
       }
     }, 'harvester.egressGateway.validation.bfd'],
+    ['a BFD multiplier of 0', {
+      bfd: {
+        enabled: true, minRX: 50, minTX: 50, multiplier: 0
+      }
+    }, 'harvester.egressGateway.validation.bfdMultiplier'],
     ['a negative bandwidth', { bandwidthEgress: -1 }, 'harvester.egressGateway.validation.bandwidth'],
     ['a bandwidth with an unknown unit', { bandwidthEgress: '10Mbps' }, 'harvester.egressGateway.validation.bandwidth'],
   ])('should reject %s', (_, form, errorKey) => {

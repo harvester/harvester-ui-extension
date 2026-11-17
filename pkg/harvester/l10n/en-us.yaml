@@ -1501,7 +1501,7 @@ harvester:
         label: IP Address
         placeholder: e.g. 10.255.255.255
         tooltip: An IP address that doesn't conflict with any other address. For dual-stack, enter an IPv4 and an IPv6 address, separated by a comma.
-      gatewaysNeedPort: The Egress Gateways {gateways} have BFD enabled in this VPC, and they stop working without its BFD port.
+      gatewaysNeedPort: 'Egress Gateways of this VPC that have BFD enabled stop working without its BFD port: {gateways}.'
       validation:
         ip: '"IP Address" must be an IPv4 address, an IPv6 address, or one of each separated by a comma.'
         subnet: '"IP Address" must not be in subnet {subnet} ({cidr}) of this VPC.'
@@ -1597,12 +1597,14 @@ harvester:
     validation:
       replicas: '"Replicas" must be a whole number from 0 to 10.'
       policyRequired: Select at least one subnet, in either list.
+      policyExternalSubnet: Subnet {subnet} is the external subnet of the gateway, so it can't be in a policy.
       sameSubnet: The internal and external subnets must be different.
       ipList: '"{key}" must contain valid IP addresses.'
       ipDuplicate: '"{key}" must not repeat an address.'
-      ipSubnet: '"{key}" must be addresses of subnet {subnet} ({cidr}), other than its gateway.'
+      ipSubnet: '"{key}" must be usable addresses of subnet {subnet} ({cidr}), not its network, broadcast or gateway address.'
       ipCount: '"{key}" must have at least one address for each replica ({replicas}).'
       bfd: The BFD intervals must be whole numbers from 1 to 3600000.
+      bfdMultiplier: The BFD multiplier must be a whole number from 1 to 3600000.
       bandwidth: The bandwidth must be a whole number in Mbps or a quantity such as 100M or 1Gi.
   externalIP:
     label: External IPs
