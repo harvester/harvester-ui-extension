@@ -47,6 +47,7 @@ export const HCI = {
   OS_UPGRADE_IMAGE:                 'harvesterhci.io/os-upgrade-image',
   LATEST_UPGRADE:                   'harvesterhci.io/latestUpgrade',
   UPGRADE_STATE:                    'harvesterhci.io/upgradeState',
+  UPGRADE_STORAGE_CLASS:            'harvesterhci.io/upgrade-storage-class',
   REAY_MESSAGE:                     'harvesterhci.io/read-message',
   DYNAMIC_SSHKEYS_NAMES:            'harvesterhci.io/dynamic-ssh-key-names',
   DYNAMIC_SSHKEYS_USERS:            'harvesterhci.io/dynamic-ssh-key-users',

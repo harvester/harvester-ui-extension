@@ -21,6 +21,11 @@ describe('featureEnabled', () => {
     expect(featureEnabled('vncPreserveSession', 'v1.7.0')).toBe(true);
   });
 
+  it('should enable repositoryStorageClass only from Harvester v1.10.0', () => {
+    expect(featureEnabled('repositoryStorageClass', 'v1.9.1')).toBe(false);
+    expect(featureEnabled('repositoryStorageClass', 'v1.10.0')).toBe(true);
+  });
+
   it('should return false for unknown features', () => {
     expect(featureEnabled('doesNotExist', 'v1.8.0')).toBe(false);
   });
