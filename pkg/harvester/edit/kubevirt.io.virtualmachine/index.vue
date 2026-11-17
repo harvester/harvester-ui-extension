@@ -19,7 +19,8 @@ import KeyValue from '@shell/components/form/KeyValue';
 import { clear } from '@shell/utils/array';
 import { saferDump } from '@shell/utils/create-yaml';
 import { exceptionToErrorsArray } from '@shell/utils/error';
-import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
+import { HCI as HCI_ANNOTATIONS, VM_DELETE_PROTECTION_LABEL, VM_DELETE_PROTECTION_REGEX, SETTING_TRUE_REGEX } from '@pkg/harvester/config/labels-annotations';
+import { HCI_SETTING } from '@pkg/harvester/config/settings';
 import { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
@@ -111,6 +112,8 @@ export default {
       hostname,
       isRestartImmediately,
       customizeDisplayName,
+      // null until the user ticks/unticks "Delete protection"
+      protectChoice:        null,
     };
   },
 
@@ -202,6 +205,37 @@ export default {
 
     hasStartAction() {
       return this.value.hasAction('start');
+    },
+
+    deleteProtectionFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('vmDeleteProtection');
+    },
+
+    defaultDeleteProtection() {
+      const setting = this.$store.getters[`${ this.inStore }/all`](HCI.SETTING).find((s) => s.id === HCI_SETTING.DEFAULT_VM_DELETE_PROTECTION) || {};
+
+      return SETTING_TRUE_REGEX.test(setting.value || setting.default || '');
+    },
+
+    deleteProtection: {
+      get() {
+        if (this.protectChoice !== null) {
+          return this.protectChoice;
+        }
+
+        const label = this.value.metadata?.labels?.[VM_DELETE_PROTECTION_LABEL];
+
+        if (label !== undefined) {
+          return VM_DELETE_PROTECTION_REGEX.test(label);
+        }
+
+        // New VMs start from the cluster default; clones keep the source's label.
+        return this.isCreate ? this.defaultDeleteProtection : false;
+      },
+      set(val) {
+        this.protectChoice = !!val;
+        this.applyDeleteProtectionLabel();
+      }
     },
 
     enableCpuPinningCheckbox() {
@@ -427,7 +461,25 @@ export default {
       }
     },
 
+    // On create, always write the label ("true" or "false") so the server-side
+    // default can't override an explicit untick. On edit, only write it when the
+    // user changed the checkbox, so saving other changes leaves the label alone.
+    applyDeleteProtectionLabel() {
+      if (!this.deleteProtectionFeatureEnabled || (!this.isCreate && this.protectChoice === null)) {
+        return;
+      }
+
+      const value = this.deleteProtection ? 'true' : 'false';
+
+      if (!this.value.metadata.labels) {
+        this.value.metadata['labels'] = {};
+      }
+
+      this.value.metadata.labels[VM_DELETE_PROTECTION_LABEL] = value;
+    },
+
     async saveSingle(buttonCb) {
+      this.applyDeleteProtectionLabel();
       this.parseVM();
       this.value.spec.template.spec.hostname = this.hostname ? this.hostname : this.value.metadata.name;
       await this._save(this.value, buttonCb);
@@ -469,6 +521,7 @@ export default {
         this.value.metadata.name = `${ this.namePrefix }${ join }${ suffix }`;
         this.value.spec.template.spec['hostname'] = `${ baseHostname }${ join }${ suffix }`;
         this.secretName = '';
+        this.applyDeleteProtectionLabel();
         await this.parseVM();
         const basicValue = await this.$store.dispatch('harvester/clone', { resource: this.value });
 
@@ -836,6 +889,17 @@ export default {
             class="check"
             type="checkbox"
             :label="t('harvester.virtualMachine.systemOptions.secureBoot')"
+            :mode="mode"
+          />
+
+          <Checkbox
+            v-if="deleteProtectionFeatureEnabled"
+            v-model:value="deleteProtection"
+            class="check"
+            type="checkbox"
+            data-testid="vm-delete-protection-checkbox"
+            :label="t('harvester.virtualMachine.deleteProtection.label')"
+            :tooltip="t('harvester.virtualMachine.deleteProtection.tooltip')"
             :mode="mode"
           />
         </div>

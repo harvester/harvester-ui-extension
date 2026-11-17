@@ -88,6 +88,9 @@ const FEATURE_FLAGS = {
     'componentHealth',
     'shutdownVMOnMigrationFailure',
   ],
+  'v1.11.0': [
+    'vmDeleteProtection',
+  ],
 };
 
 const generateFeatureFlags = () => {
