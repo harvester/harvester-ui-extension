@@ -164,6 +164,12 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     expect(rule('subnetexternal')).toBeUndefined();
   });
 
+  it('should ask for a VPC before the internal subnet', () => {
+    expect(internalSubnetPlaceholder.call({
+      t: (key) => key, vpc: '', internalSubnetOptions: []
+    })).toBe('harvester.egressGateway.internalSubnet.noVpc');
+  });
+
   it('should say when the VPC has no subnet on a virtual machine network', () => {
     const t = (key, args) => (args ? `${ key } ${ args.vpc }` : key);
 

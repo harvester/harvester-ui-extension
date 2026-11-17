@@ -1534,6 +1534,7 @@ harvester:
     internalSubnet:
       label: Internal Subnet
       placeholder: Select a subnet of the VPC
+      noVpc: Select a VPC first
       none: VPC {vpc} has no subnet on a virtual machine network
       tooltip: The subnet of the VPC that the gateway instances are attached to. Only subnets of a virtual machine network are listed.
     externalSubnet:
@@ -1576,9 +1577,11 @@ harvester:
         middle: Edit the VPC
         suffix: to enable it.
       minRX:
-        label: Minimum Receive Interval
+        label: Receive Interval
+        tooltip: The shortest interval at which the gateway accepts BFD packets.
       minTX:
-        label: Minimum Transmit Interval
+        label: Transmit Interval
+        tooltip: The shortest interval at which the gateway sends BFD packets.
       multiplier:
         label: Multiplier
         tooltip: The number of missed packets after which a gateway instance is considered down.

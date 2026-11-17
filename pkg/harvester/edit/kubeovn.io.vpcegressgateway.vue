@@ -211,7 +211,11 @@ export default {
     },
 
     internalSubnetPlaceholder() {
-      return this.vpc && !this.internalSubnetOptions.length ? this.t('harvester.egressGateway.internalSubnet.none', { vpc: this.vpc }, true) : this.t('harvester.egressGateway.internalSubnet.placeholder');
+      if (!this.vpc) {
+        return this.t('harvester.egressGateway.internalSubnet.noVpc');
+      }
+
+      return this.internalSubnetOptions.length ? this.t('harvester.egressGateway.internalSubnet.placeholder') : this.t('harvester.egressGateway.internalSubnet.none', { vpc: this.vpc }, true);
     },
 
     replicasRules() {
@@ -523,6 +527,7 @@ export default {
               required
               :options="internalSubnetOptions"
               :rules="internalSubnetRules"
+              :disabled="!vpc"
               :mode="mode"
               :label="t('harvester.egressGateway.internalSubnet.label')"
               :placeholder="internalSubnetPlaceholder"
@@ -564,6 +569,8 @@ export default {
             <LabeledSelect
               v-model:value="snatSubnets"
               data-testid="egress-gateway-snat-subnets"
+              :disabled="!vpc"
+              :append-to-body="false"
               :multiple="true"
               :options="snatSubnetOptions"
               :mode="mode"
@@ -576,6 +583,8 @@ export default {
             <LabeledSelect
               v-model:value="noSnatSubnets"
               data-testid="egress-gateway-no-snat-subnets"
+              :disabled="!vpc"
+              :append-to-body="false"
               :multiple="true"
               :options="noSnatSubnetOptions"
               :mode="mode"
@@ -587,7 +596,7 @@ export default {
         </div>
         <!-- One subnet in either list is enough, so the rule is shown once for both lists -->
         <div
-          v-if="tabErrors.policies.length"
+          v-if="vpc && tabErrors.policies.length"
           class="text-error mt-10"
           data-testid="egress-gateway-policy-error"
         >
@@ -695,6 +704,7 @@ export default {
                 required
                 :rules="bfdRules"
                 :label="t('harvester.egressGateway.bfd.minRX.label')"
+                :tooltip="t('harvester.egressGateway.bfd.minRX.tooltip')"
                 :suffix="t('harvester.egressGateway.bfd.milliseconds')"
               />
             </div>
@@ -706,6 +716,7 @@ export default {
                 required
                 :rules="bfdRules"
                 :label="t('harvester.egressGateway.bfd.minTX.label')"
+                :tooltip="t('harvester.egressGateway.bfd.minTX.tooltip')"
                 :suffix="t('harvester.egressGateway.bfd.milliseconds')"
               />
             </div>
