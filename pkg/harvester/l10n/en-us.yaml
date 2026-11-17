@@ -1361,6 +1361,12 @@ harvester:
       label: Refresh Interval
       tip: The interval for the backup target to sync data to [[Harvester]] cluster. Set to 0 to disable refresh mechanism.
     backupTargetTip: The endpoint used to access the backupstore. NFS and S3 are supported.
+    thirdPartyBackup:
+      label: Enable Restic and Kopia Backups
+      tooltip: Allows Restic and Kopia virtual machine backups to this S3 target. Native backups and snapshots are not affected.
+      password:
+        label: Repository Password
+        tip: Restic and Kopia encrypt their backups with this password. Enter it every time you save this setting. It can't be changed for an existing repository, so keep a copy.
     kopiaGC:
       label: Enable Kopia Garbage Collection
       tooltip: Runs scheduled Kopia maintenance to remove unused data from the S3 repository.
@@ -1379,6 +1385,7 @@ harvester:
       longhornV1: Not supported on Longhorn V1 volumes such as {volume}.
       noSnapshotClass: Set a volume snapshot class for {driver} in the csi-driver-config setting.
       snapshot: The volumes of this virtual machine cannot be snapshotted.
+      thirdPartyBackupOff: Not enabled in the backup-target setting.
     message:
       noSetting:
         prefix: You must configure the backup target

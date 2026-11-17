@@ -89,11 +89,11 @@ const pvc = (name, encrypted, ns = 'ns1') => ({
 const LONGHORN_CSI = { 'driver.longhorn.io': { volumeSnapshotClassName: 'longhorn-snapshot', backupVolumeSnapshotClassName: 'longhorn' } };
 
 function backupVm({
-  actions = { backup: '/backup', snapshot: '/snapshot' }, volumes = [{}], target = 's3', csi = {}
+  actions = { backup: '/backup', snapshot: '/snapshot' }, volumes = [{}], target = 's3', thirdPartyBackupEnabled = true, csi = {}
 } = {}) {
   // target null: a user who can't read backup-target or csi-driver-config
   const settings = target === null ? {} : {
-    'backup-target':     { value: JSON.stringify({ type: target }) },
+    'backup-target':     { value: JSON.stringify({ type: target, thirdPartyBackupEnabled }) },
     'csi-driver-config': { value: JSON.stringify(csi), default: JSON.stringify(LONGHORN_CSI) },
   };
   const pvcs = volumes.map((volume, i) => ({
@@ -132,14 +132,15 @@ describe('class VirtVm', () => {
     });
 
     it.each([
-      ['an NFS target', 'nfs', false],
-      ['an S3 target', 's3', true],
+      ['an NFS target', { type: 'nfs' }, false],
+      ['an S3 target with Restic and Kopia enabled', { type: 's3', thirdPartyBackupEnabled: true }, true],
+      ['an S3 target with Restic and Kopia not enabled', { type: 's3' }, false],
       ['a target the user cannot read', undefined, true],
     ])('with only the snapshot action and %s returns %s', (_, target, expected) => {
       const { vm } = createVm({
         root: {
           'harvester-common/getFeatureEnabled': () => true,
-          'harvester/byId':                     () => (target ? { value: JSON.stringify({ type: target }) } : undefined),
+          'harvester/byId':                     () => (target ? { value: JSON.stringify(target) } : undefined),
         },
       });
 
@@ -221,11 +222,18 @@ describe('class VirtVm', () => {
         volumes: [{ volumeProvider: 'lvm.driver.harvesterhci.io' }],
       }, 'noSnapshotClass'],
       ['no snapshot action', { actions: { backup: '/b' } }, 'snapshot'],
+      ['an S3 target with Restic and Kopia not enabled', { thirdPartyBackupEnabled: false }, 'thirdPartyBackupOff'],
     ])('should block Restic and Kopia with %s', (_, args, reason) => {
       const reasons = backupVm(args);
 
       expect(reasons.restic).toBe(`harvester.backup.typeUnavailable.${ reason }`);
       expect(reasons.kopia).toBe(`harvester.backup.typeUnavailable.${ reason }`);
+    });
+
+    it('should explain a volume problem before a target that only needs Restic and Kopia enabled', () => {
+      const reasons = backupVm({ thirdPartyBackupEnabled: false, volumes: [{ isLonghornV1: true }] });
+
+      expect(reasons.kopia).toBe('harvester.backup.typeUnavailable.longhornV1');
     });
 
     it('should leave the target check to the webhook when the user cannot read it', () => {

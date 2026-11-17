@@ -31,14 +31,48 @@ describe('component: backup-target', () => {
     expect(JSON.parse(setting.value).virtualHostedStyle).toBe(false);
   });
 
-  it('should keep kopiaGCEnabled on S3 and drop it on NFS, where the webhook rejects it', async() => {
-    const { wrapper, setting } = mountTarget({ type: 's3', kopiaGCEnabled: true });
+  it.each(['kopiaGCEnabled', 'thirdPartyBackupEnabled'])('should keep %s on S3 and drop it on NFS, where only S3 uses it', (field) => {
+    const { wrapper, setting } = mountTarget({ type: 's3', [field]: true });
 
-    expect(JSON.parse(setting.value).kopiaGCEnabled).toBe(true);
+    expect(JSON.parse(setting.value)[field]).toBe(true);
 
     wrapper.vm.parseDefaultValue.type = 'nfs';
     wrapper.vm.update();
 
-    expect(JSON.parse(setting.value).kopiaGCEnabled).toBeUndefined();
+    expect(JSON.parse(setting.value)[field]).toBeUndefined();
+  });
+
+  it('should offer the Restic and Kopia switch on S3', () => {
+    const { wrapper } = mountTarget({ type: 's3' });
+
+    expect(wrapper.find('[data-testid="backup-target-third-party-backup"]').exists()).toBe(true);
+  });
+
+  it('should ask for the repository password only while Restic and Kopia are on', () => {
+    const off = mountTarget({ type: 's3' }).wrapper;
+    const on = mountTarget({ type: 's3', thirdPartyBackupEnabled: true }).wrapper;
+
+    expect(off.find('[data-testid="backup-target-repository-password"]').exists()).toBe(false);
+    expect(on.find('[data-testid="backup-target-repository-password"]').exists()).toBe(true);
+  });
+
+  it.each([
+    ['Restic and Kopia are turned off', (vm) => {
+      vm.parseDefaultValue.thirdPartyBackupEnabled = false;
+    }],
+    ['the target changes to NFS', (vm) => {
+      vm.parseDefaultValue.type = 'nfs';
+    }],
+  ])('should drop the repository password when %s, which the backend rejects', (_, change) => {
+    const { wrapper, setting } = mountTarget({
+      type: 's3', thirdPartyBackupEnabled: true, thirdPartyRepositoryPassword: 'secret'
+    });
+
+    expect(JSON.parse(setting.value).thirdPartyRepositoryPassword).toBe('secret');
+
+    change(wrapper.vm);
+    wrapper.vm.update();
+
+    expect(JSON.parse(setting.value).thirdPartyRepositoryPassword).toBeUndefined();
   });
 });

@@ -70,7 +70,7 @@ export default {
       return this.$store.getters['harvester-common/getFeatureEnabled']('refreshIntervalInSecond');
     },
 
-    thirdPartyBackupEnabled() {
+    thirdPartyBackupFeatureEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('thirdPartyVMBackup');
     },
 
@@ -120,7 +120,13 @@ export default {
         delete this.parseDefaultValue.bucketRegion;
         delete this.parseDefaultValue.virtualHostedStyle;
         delete this.parseDefaultValue.kopiaGCEnabled;
+        delete this.parseDefaultValue.thirdPartyBackupEnabled;
         delete this.parseDefaultValue.cert;
+      }
+
+      // The backend rejects a repository password while Restic and Kopia are off
+      if (!this.parseDefaultValue.thirdPartyBackupEnabled) {
+        delete this.parseDefaultValue.thirdPartyRepositoryPassword;
       }
 
       if (this.isS3 && !this.parseDefaultValue.virtualHostedStyle) {
@@ -228,16 +234,44 @@ export default {
           @update:value="update"
         />
 
-        <Checkbox
-          v-if="thirdPartyBackupEnabled"
-          v-model:value="parseDefaultValue.kopiaGCEnabled"
-          class="mb-20"
-          data-testid="backup-target-kopia-gc"
-          :label="t('harvester.backup.kopiaGC.label')"
-          :mode="mode"
-          :tooltip="t('harvester.backup.kopiaGC.tooltip', {}, true)"
-          @update:value="update"
-        />
+        <!-- Checkbox is inline, so each gets its own line -->
+        <template v-if="thirdPartyBackupFeatureEnabled">
+          <div class="mb-20">
+            <Checkbox
+              v-model:value="parseDefaultValue.thirdPartyBackupEnabled"
+              data-testid="backup-target-third-party-backup"
+              :label="t('harvester.backup.thirdPartyBackup.label')"
+              :mode="mode"
+              :tooltip="t('harvester.backup.thirdPartyBackup.tooltip', {}, true)"
+              @update:value="update"
+            />
+          </div>
+          <template v-if="parseDefaultValue.thirdPartyBackupEnabled">
+            <Password
+              v-model:value="parseDefaultValue.thirdPartyRepositoryPassword"
+              data-testid="backup-target-repository-password"
+              class="mb-5"
+              :mode="mode"
+              :label="t('harvester.backup.thirdPartyBackup.password.label')"
+              required
+            />
+            <Tip
+              class="mb-20"
+              icon="icon icon-info"
+              :text="t('harvester.backup.thirdPartyBackup.password.tip', {}, true)"
+            />
+          </template>
+          <div class="mb-20">
+            <Checkbox
+              v-model:value="parseDefaultValue.kopiaGCEnabled"
+              data-testid="backup-target-kopia-gc"
+              :label="t('harvester.backup.kopiaGC.label')"
+              :mode="mode"
+              :tooltip="t('harvester.backup.kopiaGC.tooltip', {}, true)"
+              @update:value="update"
+            />
+          </div>
+        </template>
 
         <div class="mb-20">
           <Tip icon="icon icon-info">
