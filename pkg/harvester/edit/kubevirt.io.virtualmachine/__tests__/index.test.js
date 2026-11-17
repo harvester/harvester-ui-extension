@@ -49,12 +49,12 @@ describe('page: kubevirt.io.virtualmachine edit', () => {
     expect(showPersistentStateStorageBanner.call({ mode: 'view', vmStateStorageClassUnavailable: true })).toBe(false);
   });
 
-  it('only disables persistent state controls in create mode after StorageClasses load', () => {
-    const persistentStateControlDisabled = HarvesterEditVM.computed.persistentStateControlDisabled;
+  it('blocks new persistent state without vmstate-persistence while allowing it to be turned off', () => {
+    const isPersistentStateControlDisabled = HarvesterEditVM.methods.isPersistentStateControlDisabled;
 
-    expect(persistentStateControlDisabled.call({ mode: 'create', vmStateStorageClassUnavailable: false })).toBe(false);
-    expect(persistentStateControlDisabled.call({ mode: 'create', vmStateStorageClassUnavailable: true })).toBe(true);
-    expect(persistentStateControlDisabled.call({ mode: 'edit', vmStateStorageClassUnavailable: true })).toBe(false);
+    expect(isPersistentStateControlDisabled.call({ vmStateStorageClassUnavailable: false }, false)).toBe(false);
+    expect(isPersistentStateControlDisabled.call({ vmStateStorageClassUnavailable: true }, false)).toBe(true);
+    expect(isPersistentStateControlDisabled.call({ vmStateStorageClassUnavailable: true }, true)).toBe(false);
   });
 
   it('marks StorageClasses as loaded after the VM data fetch completes', async() => {

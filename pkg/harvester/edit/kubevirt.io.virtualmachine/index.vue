@@ -135,10 +135,6 @@ export default {
       return this.storageClassesLoaded && !this.hasVMStateStorageClass;
     },
 
-    persistentStateControlDisabled() {
-      return this.mode === 'create' && this.vmStateStorageClassUnavailable;
-    },
-
     showPersistentStateStorageBanner() {
       return this.mode !== 'view' && this.vmStateStorageClassUnavailable;
     },
@@ -419,6 +415,10 @@ export default {
   },
 
   methods: {
+    isPersistentStateControlDisabled(persistentStateEnabled) {
+      return this.vmStateStorageClassUnavailable && !persistentStateEnabled;
+    },
+
     clearPersistentStateWithoutStorageClass() {
       if (this.mode === 'create' && this.vmStateStorageClassUnavailable) {
         this.tpmPersistentStateEnabled = false;
@@ -866,7 +866,7 @@ export default {
           <Checkbox
             v-if="value.tpmPersistentStateFeatureEnabled && tpmEnabled"
             v-model:value="tpmPersistentStateEnabled"
-            :disabled="persistentStateControlDisabled"
+            :disabled="isPersistentStateControlDisabled(tpmPersistentStateEnabled)"
             class="check"
             type="checkbox"
             :label="t('harvester.virtualMachine.systemOptions.tpmPersistentState')"
@@ -884,7 +884,7 @@ export default {
           <Checkbox
             v-if="value.efiPersistentStateFeatureEnabled && efiEnabled"
             v-model:value="efiPersistentStateEnabled"
-            :disabled="persistentStateControlDisabled"
+            :disabled="isPersistentStateControlDisabled(efiPersistentStateEnabled)"
             class="check"
             type="checkbox"
             :label="t('harvester.virtualMachine.systemOptions.efiPersistentState')"
@@ -905,15 +905,17 @@ export default {
           v-if="showPersistentStateStorageBanner"
           color="info"
         >
-          <span>{{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.prefix') }}&nbsp;</span>
-          <router-link :to="to">
-            {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.host') }}
-          </router-link>
-          <span>&nbsp;{{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.middle') }}&nbsp;</span>
-          <router-link :to="toStorageClass">
-            {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.storageClass') }}
-          </router-link>
-          <span>{{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.suffix') }}</span>
+          <span>
+            {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.prefix') }}&nbsp;
+            <router-link :to="to">
+              {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.host') }}
+            </router-link>
+            &nbsp;{{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.middle') }}&nbsp;
+            <router-link :to="toStorageClass">
+              {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.storageClass') }}
+            </router-link>
+            {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.suffix') }}
+          </span>
         </Banner>
 
         <Banner
