@@ -5,7 +5,7 @@ const {
 } = EditVpcEgressGateway.methods;
 const { vpc: onVpcChange } = EditVpcEgressGateway.watch;
 const {
-  vpcBfdPortDisabled, vpcEditLocation, internalSubnetOptions, externalSubnetOptions, externalSubnetRules, internalSubnetPlaceholder, snatSubnetOptions, noSnatSubnetOptions
+  vpcBfdPortDisabled, vpcEditLocation, internalSubnetOptions, externalSubnetOptions, externalSubnetRules, internalSubnetPlaceholder, snatSubnetOptions, noSnatSubnetOptions, policySubnetsPlaceholder
 } = EditVpcEgressGateway.computed;
 const { requiredError } = EditVpcEgressGateway.methods;
 
@@ -212,6 +212,18 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
 
   it('should leave out a group without subnets', () => {
     expect(policiesSpec.call(createContext({ snatSubnets: [], noSnatSubnets: ['b'] }))).toStrictEqual([{ snat: false, subnets: ['b'] }]);
+  });
+
+  it.each([
+    ['no VPC is chosen', '', [], 'harvester.egressGateway.policies.noVpc'],
+    ['the VPC has no subnets', 'emptyvpc', [], 'harvester.egressGateway.policies.noSubnets emptyvpc'],
+    ['the VPC has subnets', 'commonvpc', [{ value: 'a' }], 'harvester.egressGateway.policies.placeholder'],
+  ])('should explain the policy lists when %s', (_, vpc, vpcSubnetOptions, placeholder) => {
+    const t = (key, args) => (args ? `${ key } ${ args.vpc }` : key);
+
+    expect(policySubnetsPlaceholder.call({
+      t, vpc, vpcSubnetOptions
+    })).toBe(placeholder);
   });
 
   it('should not offer a subnet of one group in the other', () => {

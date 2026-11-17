@@ -201,6 +201,15 @@ export default {
       return [(value) => this.requiredError(value, 'harvester.egressGateway.internalSubnet.label')];
     },
 
+    // The policy lists only offer subnets of the chosen VPC, so say why they're empty
+    policySubnetsPlaceholder() {
+      if (!this.vpc) {
+        return this.t('harvester.egressGateway.policies.noVpc');
+      }
+
+      return this.vpcSubnetOptions.length ? this.t('harvester.egressGateway.policies.placeholder') : this.t('harvester.egressGateway.policies.noSubnets', { vpc: this.vpc }, true);
+    },
+
     internalSubnetPlaceholder() {
       return this.vpc && !this.internalSubnetOptions.length ? this.t('harvester.egressGateway.internalSubnet.none', { vpc: this.vpc }, true) : this.t('harvester.egressGateway.internalSubnet.placeholder');
     },
@@ -559,7 +568,7 @@ export default {
               :options="snatSubnetOptions"
               :mode="mode"
               :label="t('harvester.egressGateway.policies.snatSubnets.label')"
-              :placeholder="t('harvester.egressGateway.policies.placeholder')"
+              :placeholder="policySubnetsPlaceholder"
               :tooltip="t('harvester.egressGateway.policies.snatSubnets.tooltip')"
             />
           </div>
@@ -571,7 +580,7 @@ export default {
               :options="noSnatSubnetOptions"
               :mode="mode"
               :label="t('harvester.egressGateway.policies.noSnatSubnets.label')"
-              :placeholder="t('harvester.egressGateway.policies.placeholder')"
+              :placeholder="policySubnetsPlaceholder"
               :tooltip="t('harvester.egressGateway.policies.noSnatSubnets.tooltip')"
             />
           </div>

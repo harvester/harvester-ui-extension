@@ -1544,6 +1544,8 @@ harvester:
       label: Policies
       description: Traffic from these subnets of the VPC goes out through the gateway. Each subnet can be in one list only.
       placeholder: Select subnets of the VPC
+      noVpc: Select a VPC on the Basic tab first
+      noSubnets: VPC {vpc} has no subnets
       snatSubnets:
         label: Subnets with SNAT
         tooltip: Traffic from these subnets leaves with the gateway's external IP.
