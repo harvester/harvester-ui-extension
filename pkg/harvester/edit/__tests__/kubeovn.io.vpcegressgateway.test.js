@@ -1,11 +1,11 @@
 import EditVpcEgressGateway from '../kubeovn.io.vpcegressgateway.vue';
 
 const {
-  validate, validateTabs, ipError, ipCountError, policyError, policiesSpec, toSpec, bfdSpec, saveGateway
+  validate, validateTabs, ipError, ipCountError, policySubnetsError, toSpec, bfdSpec, saveGateway
 } = EditVpcEgressGateway.methods;
 const { vpc: onVpcChange } = EditVpcEgressGateway.watch;
 const {
-  vpcBfdPortDisabled, vpcEditLocation, internalSubnetOptions, externalSubnetOptions, externalSubnetRules, internalSubnetPlaceholder, snatSubnetOptions, noSnatSubnetOptions
+  vpcBfdPortDisabled, vpcEditLocation, internalSubnetOptions, externalSubnetOptions, externalSubnetRules, internalSubnetPlaceholder
 } = EditVpcEgressGateway.computed;
 const { requiredError } = EditVpcEgressGateway.methods;
 
@@ -22,12 +22,12 @@ function createContext(form = {}, spec = {}) {
     replicas:       2,
     internalSubnet: 'subnetinternal',
     externalSubnet: 'subnetexternal',
-    snatSubnets:    ['subnetinternal'],
+    policies:       [{ snat: true, subnets: ['subnetinternal'] }],
     ...form,
   };
 
   Object.assign(context, {
-    bfdSpec, validateTabs, ipError, ipCountError, policyError, policiesSpec
+    bfdSpec, validateTabs, ipError, ipCountError, policySubnetsError
   });
 
   return context;
@@ -41,11 +41,11 @@ function subnet(id, spec, model = {}) {
 }
 
 describe('edit: kubeovn.io.vpcegressgateway', () => {
-  it('should start a new gateway with one replica, no subnets and BFD off', () => {
+  it('should start a new gateway with one replica, one SNAT policy and BFD off', () => {
     const data = EditVpcEgressGateway.data.call({ value: { metadata: {} } });
 
     expect(data.replicas).toBe(1);
-    expect([data.snatSubnets, data.noSnatSubnets, data.ipBlockPolicies]).toStrictEqual([[], [], []]);
+    expect(data.policies).toStrictEqual([{ snat: true, subnets: [] }]);
     expect(data.bfd).toStrictEqual({
       enabled: false, minRX: 1000, minTX: 1000, multiplier: 3
     });
@@ -135,7 +135,7 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
   it('should put each error on the tab that holds the field', () => {
     const errors = validateTabs.call(createContext({
       replicas:         11,
-      snatSubnets:      [],
+      policies:         [],
       externalIPs:      ['10.115.48.300'],
       bfd:              {
         enabled: true, minRX: 0, minTX: 50, multiplier: 3
@@ -179,57 +179,16 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     expect(ipError.call(createContext(), 'internalIPs', ' ')).toBeUndefined();
   });
 
-  it('should read the policies as Kube-OVN applies them', () => {
-    const data = EditVpcEgressGateway.data.call({
-      value: {
-        spec: {
-          policies: [
-            { snat: true, subnets: ['a', 'b'] },
-            { snat: true, subnets: ['c', 'a'] },
-            { snat: false, subnets: ['b', 'd'] },
-            { snat: false, ipBlocks: ['10.0.0.0/24'] },
-          ]
-        }
-      }
-    });
+  it('should reject a subnet that is in two policies', () => {
+    const errors = validate.call(createContext({ policies: [{ snat: true, subnets: ['subnetinternal'] }, { snat: false, subnets: ['subnetinternal', 'subnetother'] }] }));
 
-    expect(data.snatSubnets).toStrictEqual(['a', 'c']);
-    expect(data.noSnatSubnets).toStrictEqual(['b', 'd']);
-    expect(data.ipBlockPolicies).toStrictEqual([{ snat: false, ipBlocks: ['10.0.0.0/24'] }]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('harvester.egressGateway.validation.policySubnetRepeated');
+    expect(errors[0]).toContain('subnetinternal');
   });
 
-  it('should write one policy for each group and keep the IP block policies', () => {
-    const context = createContext({
-      snatSubnets: ['a', 'c'], noSnatSubnets: ['b'], ipBlockPolicies: [{ snat: true, ipBlocks: ['10.0.0.0/24'] }]
-    });
-
-    expect(policiesSpec.call(context)).toStrictEqual([
-      { snat: true, subnets: ['a', 'c'] },
-      { snat: false, subnets: ['b'] },
-      { snat: true, ipBlocks: ['10.0.0.0/24'] },
-    ]);
-  });
-
-  it('should leave out a group without subnets', () => {
-    expect(policiesSpec.call(createContext({ snatSubnets: [], noSnatSubnets: ['b'] }))).toStrictEqual([{ snat: false, subnets: ['b'] }]);
-  });
-
-  it('should not offer a subnet of one group in the other', () => {
-    const vpcSubnetOptions = ['a', 'b', 'c'].map((value) => ({ label: value, value }));
-    const context = {
-      vpcSubnetOptions, snatSubnets: ['a'], noSnatSubnets: ['b']
-    };
-
-    expect(snatSubnetOptions.call(context).map((option) => option.value)).toStrictEqual(['a', 'c']);
-    expect(noSnatSubnetOptions.call(context).map((option) => option.value)).toStrictEqual(['b', 'c']);
-  });
-
-  it.each([
-    ['subnets with SNAT', { snatSubnets: ['a'] }],
-    ['subnets without SNAT', { snatSubnets: [], noSnatSubnets: ['b'] }],
-    ['only IP blocks', { snatSubnets: [], ipBlockPolicies: [{ snat: false, ipBlocks: ['10.0.0.0/24'] }] }],
-  ])('should accept a gateway with %s', (_, form) => {
-    expect(policyError.call(createContext(form))).toBeUndefined();
+  it('should accept a policy with only IP blocks', () => {
+    expect(policySubnetsError.call(createContext(), { subnets: [], ipBlocks: ['10.0.0.0/24'] })).toBeUndefined();
   });
 
   it('should stop the save when the form has errors', async() => {
@@ -264,12 +223,9 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
       selectors:     [{ namespaceSelector: { matchLabels: { app: 'web' } } }],
       policies:      [{ snat: false, ipBlocks: ['10.0.0.0/24'] }],
     };
-    const context = createContext({ snatSubnets: [] }, existing);
-    const { snatSubnets, noSnatSubnets, ipBlockPolicies } = EditVpcEgressGateway.data.call({ value: context.value });
+    const context = createContext({}, existing);
 
-    Object.assign(context, {
-      snatSubnets, noSnatSubnets, ipBlockPolicies
-    });
+    context.policies = EditVpcEgressGateway.data.call({ value: context.value }).policies;
 
     const spec = toSpec.call(context);
 
@@ -289,7 +245,8 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     ['no external subnet', { externalSubnet: '' }, 'validation.required'],
     ['the same internal and external subnet', { externalSubnet: 'subnetinternal' }, 'harvester.egressGateway.validation.sameSubnet'],
     ['too many replicas', { replicas: 11 }, 'harvester.egressGateway.validation.replicas'],
-    ['no subnet with or without SNAT', { snatSubnets: [] }, 'harvester.egressGateway.validation.policyRequired'],
+    ['no policy', { policies: [] }, 'harvester.egressGateway.validation.policyRequired'],
+    ['a policy without subnets', { policies: [{ snat: true, subnets: [] }] }, 'harvester.egressGateway.validation.policySubnets'],
     ['an invalid IP', { externalIPs: ['10.115.48.300', '10.115.48.221'] }, 'harvester.egressGateway.validation.ipList'],
     ['fewer IPs than replicas', { internalIPs: ['172.20.10.41'] }, 'harvester.egressGateway.validation.ipCount'],
     ['a repeated IP', { externalIPs: ['10.115.48.220', ' 10.115.48.220'] }, 'harvester.egressGateway.validation.ipDuplicate'],
@@ -311,8 +268,7 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     const context = createContext({
       vpc:                   'othervpc',
       internalSubnet:        'subnetinternal',
-      snatSubnets:           ['subnetinternal', 'othersubnet'],
-      noSnatSubnets:         ['subnetinternal'],
+      policies:              [{ snat: true, subnets: ['subnetinternal', 'othersubnet'] }],
       vpcSubnetOptions:      [{ label: 'othersubnet', value: 'othersubnet' }],
       internalSubnetOptions: [{ label: 'othersubnet', value: 'othersubnet' }],
     });
@@ -320,8 +276,7 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     onVpcChange.call(context, 'othervpc', 'commonvpc');
 
     expect(context.internalSubnet).toBe('');
-    expect(context.snatSubnets).toStrictEqual(['othersubnet']);
-    expect(context.noSnatSubnets).toStrictEqual([]);
+    expect(context.policies).toStrictEqual([{ snat: true, subnets: ['othersubnet'] }]);
   });
 
   it.each([
