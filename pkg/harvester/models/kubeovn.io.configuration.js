@@ -6,11 +6,12 @@ import HarvesterResource from './harvester';
 export const KUBEOVN_CONFIGURATION_ID = 'kube-system/kubeovn';
 
 // Values Harvester installs before anyone sets up BGP. The addresses are documentation addresses, never a real neighbor.
-export const PLACEHOLDER_NEIGHBORS = ['192.0.2.1', '2001:db8::1'];
 export const PLACEHOLDER_AS = { neighborAS: 64512, clusterAS: 64513 };
+const PLACEHOLDER_NEIGHBORS = ['192.0.2.1', '2001:db8::1'];
 
 // spec.bgp keeps its lists as comma-separated strings
-export const splitList = (value) => `${ value || '' }`.split(',').map((item) => item.trim()).filter(Boolean);
+const splitList = (value) => `${ value || '' }`.split(',').map((item) => item.trim()).filter(Boolean);
+
 export const isIpv6 = (ip) => isValidIP(ip) && !isIpv4(ip);
 
 export default class KubeOvnConfiguration extends HarvesterResource {
