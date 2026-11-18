@@ -86,6 +86,8 @@ const FEATURE_FLAGS = {
     'maintenanceModeConditions',
     'maintenanceModeDrainTimeoutSetting',
     'componentHealth',
+    'repositoryStorageClass',
+    'shutdownVMOnMigrationFailure',
     'sessionTimeoutSettings',
     'websocketNotificationsSetting',
   ],

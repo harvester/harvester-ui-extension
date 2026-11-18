@@ -20,6 +20,7 @@ import { clear } from '@shell/utils/array';
 import { saferDump } from '@shell/utils/create-yaml';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
+import { INTERNAL_STORAGE_CLASS } from '../../config/types';
 import { BEFORE_SAVE_HOOKS, AFTER_SAVE_HOOKS } from '@shell/mixins/child-hook';
 import CreateEditView from '@shell/mixins/create-edit-view';
 import { parseVolumeClaimTemplates } from '@pkg/utils/vm';
@@ -40,6 +41,7 @@ import Reserved from './VirtualMachineReserved';
 import Filesystem from './VirtualMachineFilesystem';
 import { Banner } from '@components/Banner';
 import MessageLink from '@shell/components/MessageLink';
+import { STORAGE_CLASS } from '@shell/config/types';
 
 export default {
   name: 'HarvesterEditVM',
@@ -89,6 +91,11 @@ export default {
     },
   },
 
+  async fetch() {
+    await VM_MIXIN.fetch.call(this);
+    this.storageClassesLoaded = true;
+  },
+
   data() {
     const cloneVM = clone(this.value);
     const isRestartImmediately = this.value.actualState === 'Running';
@@ -111,11 +118,26 @@ export default {
       hostname,
       isRestartImmediately,
       customizeDisplayName,
+      storageClassesLoaded: false,
     };
   },
 
   computed: {
     ...mapGetters({ t: 'i18n/t' }),
+
+    hasVMStateStorageClass() {
+      const storageClasses = this.$store.getters[`${ this.inStore }/all`](STORAGE_CLASS) || [];
+
+      return storageClasses.some((storageClass) => storageClass.metadata?.name === INTERNAL_STORAGE_CLASS.VMSTATE_PERSISTENCE);
+    },
+
+    vmStateStorageClassUnavailable() {
+      return this.storageClassesLoaded && !this.hasVMStateStorageClass;
+    },
+
+    showPersistentStateStorageBanner() {
+      return this.mode !== 'view' && this.vmStateStorageClassUnavailable;
+    },
 
     // VM display name is stored as an annotation; bind a dedicated input to it
     // so we don't have to mutate metadata.name (which would break the k8s PUT).
@@ -132,6 +154,13 @@ export default {
       return {
         name:   'harvester-c-cluster-resource',
         params: { cluster: this.$store.getters['clusterId'], resource: HCI.HOST },
+      };
+    },
+
+    toStorageClass() {
+      return {
+        name:   'harvester-c-cluster-resource',
+        params: { cluster: this.$store.getters['clusterId'], resource: HCI.STORAGE },
       };
     },
 
@@ -245,6 +274,25 @@ export default {
   },
 
   watch: {
+    hasVMStateStorageClass: {
+      handler() {
+        this.clearPersistentStateWithoutStorageClass();
+      },
+      immediate: true,
+    },
+
+    storageClassesLoaded() {
+      this.clearPersistentStateWithoutStorageClass();
+    },
+
+    tpmPersistentStateEnabled() {
+      this.clearPersistentStateWithoutStorageClass();
+    },
+
+    efiPersistentStateEnabled() {
+      this.clearPersistentStateWithoutStorageClass();
+    },
+
     templateId: {
       async handler(id, old) {
         if (!id) {
@@ -367,6 +415,17 @@ export default {
   },
 
   methods: {
+    isPersistentStateControlDisabled(persistentStateEnabled) {
+      return this.vmStateStorageClassUnavailable && !persistentStateEnabled;
+    },
+
+    clearPersistentStateWithoutStorageClass() {
+      if (this.mode === 'create' && this.vmStateStorageClassUnavailable) {
+        this.tpmPersistentStateEnabled = false;
+        this.efiPersistentStateEnabled = false;
+      }
+    },
+
     cancelAction() {
       const { fromPage = HCI.VM } = this.$route?.query; // default back to VM list page
       const cancelOverride = {
@@ -807,6 +866,7 @@ export default {
           <Checkbox
             v-if="value.tpmPersistentStateFeatureEnabled && tpmEnabled"
             v-model:value="tpmPersistentStateEnabled"
+            :disabled="isPersistentStateControlDisabled(tpmPersistentStateEnabled)"
             class="check"
             type="checkbox"
             :label="t('harvester.virtualMachine.systemOptions.tpmPersistentState')"
@@ -824,6 +884,7 @@ export default {
           <Checkbox
             v-if="value.efiPersistentStateFeatureEnabled && efiEnabled"
             v-model:value="efiPersistentStateEnabled"
+            :disabled="isPersistentStateControlDisabled(efiPersistentStateEnabled)"
             class="check"
             type="checkbox"
             :label="t('harvester.virtualMachine.systemOptions.efiPersistentState')"
@@ -839,6 +900,22 @@ export default {
             :mode="mode"
           />
         </div>
+
+        <Banner
+          v-if="showPersistentStateStorageBanner"
+          color="info"
+        >
+          <span>
+            {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.prefix') }}
+            <router-link :to="to">
+              {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.host') }}
+            </router-link>
+            {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.middle') }}
+            <router-link :to="toStorageClass">
+              {{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.storageClass') }}
+            </router-link>{{ t('harvester.virtualMachine.systemOptions.persistentStateStorageClassUnavailable.suffix') }}
+          </span>
+        </Banner>
 
         <Banner
           v-if="showCpuPinningBanner"
