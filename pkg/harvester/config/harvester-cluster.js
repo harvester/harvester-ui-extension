@@ -54,6 +54,8 @@ import {
   FORKLIFT_PLAN_TARGET_NS,
   FORKLIFT_PLAN_VM_COUNT,
   FORKLIFT_MIGRATION_PLAN,
+  VM_HEADERS,
+  VM_PAGINATION_HEADERS,
 } from './table-headers';
 import { ADD_ONS } from './harvester-map';
 import { registerAddonSideNav } from '../utils/dynamic-nav';
@@ -257,6 +259,7 @@ export function init($plugin, store) {
 
   basicType([HCI.VM]);
   configureType(HCI.VM, { canYaml: false });
+  headers(HCI.VM, VM_HEADERS, VM_PAGINATION_HEADERS);
   virtualType({
     labelKey:   'harvester.virtualMachine.label',
     group:      'root',

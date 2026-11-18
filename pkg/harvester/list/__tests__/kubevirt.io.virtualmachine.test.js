@@ -1,7 +1,8 @@
 import {
   PVC, PV, POD, NODE, STORAGE_CLASS
 } from '@shell/config/types';
-import VmList, { VM_HEADERS } from '../kubevirt.io.virtualmachine.vue';
+import VmList from '../kubevirt.io.virtualmachine.vue';
+import { VM_HEADERS, VM_PAGINATION_HEADERS } from '../../config/table-headers';
 import { HCI } from '../../types';
 import { VM_LIST_PAGINATION_CONTEXT } from '../../config/harvester';
 
@@ -34,11 +35,13 @@ function createStore({
       'harvester/paginationEnabled':        ({ id, context }) => paginationEnabled && id === HCI.VM && context === VM_LIST_PAGINATION_CONTEXT,
       'harvester/schemaFor':                (type) => (type === HCI.VM ? vmSchema : SCHEMAS[type]),
       'harvester/all':                      (type) => ({ [HCI.VM]: storedVMs, [HCI.VMI]: storedVMIs }[type] || []),
+      'type-map/headersFor':                (schema, pagination) => (pagination ? VM_PAGINATION_HEADERS : VM_HEADERS),
     }
   };
 }
 
 const call = (name, ctx) => VmList.computed[name].call(ctx);
+const byName = (headers) => Object.fromEntries(headers.map((h) => [h.name, { sort: h.sort, search: h.search }]));
 
 const vm = (namespace, name, claimNames = []) => ({
   id:                        `${ namespace }/${ name }`,
@@ -57,6 +60,19 @@ describe('list: kubevirt.io.virtualmachine', () => {
 
       expect(call('canPaginate', { $store })).toBe(false);
       expect(call('paginationContext', { canPaginate: false })).toBeNull();
+    });
+
+    it('should add the node and restore columns to the product\'s VM columns', () => {
+      const ctx = {
+        $store: createStore({ featureEnabled: false }), schema: SCHEMAS[HCI.VM], hasNode: true, hasBackUpRestoreInProgress: true
+      };
+
+      ctx.withListColumns = VmList.methods.withListColumns.bind(ctx);
+      const headers = call('headers', ctx);
+
+      expect(headers.map(({ name }) => name)).toStrictEqual(['state', 'name', 'namespace', 'CPU', 'Memory', 'ip', 'node', 'restoreProgress', 'age']);
+      expect(byName(headers).CPU).toStrictEqual({ sort: ['displayCPU'], search: undefined });
+      expect(byName(headers).node).toStrictEqual({ sort: ['realAttachNodeName'], search: undefined });
     });
 
     it('should add VMIs without a VM to the rows', () => {
@@ -95,20 +111,21 @@ describe('list: kubevirt.io.virtualmachine', () => {
 
     it('should only sort and search on fields the API indexes', () => {
       const ctx = {
-        $store: createStore(), inStore: 'harvester', headers: VM_HEADERS
+        $store: createStore(), schema: SCHEMAS[HCI.VM], hasNode: true, hasBackUpRestoreInProgress: true
       };
 
-      ctx.printerColumnField = VmList.methods.printerColumnField.bind(ctx);
-      const byName = Object.fromEntries(call('paginationHeaders', ctx).map((h) => [h.name, { sort: h.sort, search: h.search }]));
+      ctx.withListColumns = VmList.methods.withListColumns.bind(ctx);
 
-      expect(byName).toStrictEqual({
-        state:     { sort: ['metadata.fields.2'], search: false },
-        name:      { sort: ['metadata.name'], search: ['metadata.name', 'metadata.annotations[harvesterhci.io/vmDisplayName]'] },
-        namespace: { sort: ['metadata.namespace'], search: 'metadata.namespace' },
-        CPU:       { sort: false, search: false },
-        Memory:    { sort: false, search: false },
-        ip:        { sort: false, search: false },
-        age:       { sort: 'metadata.creationTimestamp:desc', search: false },
+      expect(byName(call('paginationHeaders', ctx))).toStrictEqual({
+        state:           { sort: ['metadata.fields.2'], search: false },
+        name:            { sort: ['metadata.name'], search: ['metadata.name', 'metadata.annotations[harvesterhci.io/vmDisplayName]'] },
+        namespace:       { sort: ['metadata.namespace'], search: 'metadata.namespace' },
+        CPU:             { sort: false, search: false },
+        Memory:          { sort: false, search: false },
+        ip:              { sort: false, search: false },
+        node:            { sort: false, search: false },
+        restoreProgress: { sort: false, search: false },
+        age:             { sort: 'metadata.creationTimestamp:desc', search: false },
       });
     });
 

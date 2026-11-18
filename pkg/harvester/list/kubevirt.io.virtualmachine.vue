@@ -1,7 +1,6 @@
 <script>
 import { mapGetters } from 'vuex';
 import PaginatedResourceTable from '@shell/components/PaginatedResourceTable';
-import { STATE, AGE, NAME, NAMESPACE } from '@shell/config/table-headers';
 import {
   PVC, PV, NODE, POD, STORAGE_CLASS
 } from '@shell/config/types';
@@ -9,7 +8,6 @@ import { FilterArgs, PaginationFilterEquality, PaginationParamFilter } from '@sh
 
 import { allHash } from '@shell/utils/promise';
 import { uniq } from '@shell/utils/array';
-import { clone } from '@shell/utils/object';
 import { HCI } from '../types';
 import { HCI as HCI_ANNOTATIONS } from '../config/labels-annotations';
 import { VM_LIST_PAGINATION_CONTEXT } from '../config/harvester';
@@ -20,51 +18,6 @@ const ENCRYPTED_VOLUME_TOOLTIP_KEYS = {
   all:     'harvester.virtualMachine.volume.lockTooltip.all',
   partial: 'harvester.virtualMachine.volume.lockTooltip.partial',
 };
-
-export const VM_HEADERS = [
-  STATE,
-  {
-    ...NAME,
-    width: 350,
-    value: 'nameDisplay',
-    sort:  ['nameDisplay'],
-  },
-  NAMESPACE,
-  {
-    name:        'CPU',
-    label:       'CPU',
-    sort:        ['displayCPU'],
-    value:       'displayCPU',
-    align:       'center',
-    dashIfEmpty: true,
-  },
-  {
-    name:          'Memory',
-    value:         'displayMemory',
-    sort:          ['memorySort'],
-    align:         'center',
-    labelKey:      'tableHeaders.memory',
-    formatter:     'Si',
-    formatterOpts: {
-      opts: {
-        increment: 1024, addSuffix: true, maxExponent: 3, minExponent: 3, suffix: 'i',
-      },
-      needParseSi: true
-    },
-  },
-  {
-    name:      'ip',
-    label:     'IP Address',
-    value:     'id',
-    formatter: 'HarvesterIpAddress',
-    labelKey:  'tableHeaders.ipAddress',
-    sort:      ['id'],
-  },
-  {
-    ...AGE,
-    sort: 'metadata.creationTimestamp:desc',
-  }
-];
 
 // Outside the component because `ResourceList` calls `$loadingResources(route, store)` on the component options,
 // where there's no `this`
@@ -122,35 +75,10 @@ export default {
       return this.canPaginate ? VM_LIST_PAGINATION_CONTEXT : null;
     },
 
-    // With server-side pagination the API sorts and searches, so only fields it indexes can be used.
-    // CPU, memory, IP and node are computed by the VM model or come from other resources.
+    // The product registers both sets of VM columns (`headers()` in config/harvester-cluster.js). With pagination the
+    // API can't sort or search the node and restore columns, they come from other resources
     paginationHeaders() {
-      const statusField = this.printerColumnField(HCI.VM, 'Status');
-
-      return this.headers.map((header) => {
-        switch (header.name) {
-        case STATE.name:
-          return {
-            ...header, sort: statusField ? [statusField] : false, search: false
-          };
-        case NAME.name:
-          return {
-            ...header,
-            sort:   ['metadata.name'],
-            search: ['metadata.name', `metadata.annotations[${ HCI_ANNOTATIONS.VM_DISPLAY_NAME }]`],
-          };
-        case NAMESPACE.name:
-          return {
-            ...header, sort: ['metadata.namespace'], search: 'metadata.namespace'
-          };
-        case AGE.name:
-          return { ...header, search: false };
-        default:
-          return {
-            ...header, sort: false, search: false
-          };
-        }
-      });
+      return this.withListColumns(this.$store.getters['type-map/headersFor'](this.schema, true), { sort: false, search: false });
     },
 
     // With pagination the store only holds the VMs of the current page
@@ -170,34 +98,7 @@ export default {
     },
 
     headers() {
-      const restoreCol = {
-        name:      'restoreProgress',
-        labelKey:  'harvester.tableHeaders.restore',
-        value:     'restoreProgress',
-        align:     'left',
-        formatter: 'HarvesterBackupProgressBar',
-        width:     200,
-      };
-      const nodeCol = {
-        name:      'node',
-        label:     'Node',
-        value:     'nodeName',
-        sort:      ['realAttachNodeName'],
-        formatter: 'HarvesterHost',
-        labelKey:  'harvester.tableHeaders.vm.node'
-      };
-
-      const cols = clone(VM_HEADERS);
-
-      if (this.hasNode) {
-        cols.splice(-1, 0, nodeCol);
-      }
-
-      if (this.hasBackUpRestoreInProgress) {
-        cols.splice(-1, 0, restoreCol);
-      }
-
-      return cols;
+      return this.withListColumns(this.$store.getters['type-map/headersFor'](this.schema, false));
     },
 
     rows() {
@@ -300,6 +201,39 @@ export default {
       }
 
       await allHash(hash);
+    },
+
+    // The node column when the cluster has nodes, and the restore progress while a backup is being restored
+    withListColumns(headers, options = {}) {
+      const restoreCol = {
+        name:      'restoreProgress',
+        labelKey:  'harvester.tableHeaders.restore',
+        value:     'restoreProgress',
+        align:     'left',
+        formatter: 'HarvesterBackupProgressBar',
+        width:     200,
+        ...options,
+      };
+      const nodeCol = {
+        name:      'node',
+        label:     'Node',
+        value:     'nodeName',
+        sort:      ['realAttachNodeName'],
+        formatter: 'HarvesterHost',
+        labelKey:  'harvester.tableHeaders.vm.node',
+        ...options,
+      };
+      const cols = [...headers];
+
+      if (this.hasNode) {
+        cols.splice(-1, 0, nodeCol);
+      }
+
+      if (this.hasBackUpRestoreInProgress) {
+        cols.splice(-1, 0, restoreCol);
+      }
+
+      return cols;
     },
 
     // localFilter of PaginatedResourceTable, which only runs without pagination
