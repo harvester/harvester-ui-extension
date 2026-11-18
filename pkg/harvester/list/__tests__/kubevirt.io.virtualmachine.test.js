@@ -103,13 +103,16 @@ describe('list: kubevirt.io.virtualmachine', () => {
 
     it('should only sort and search on fields the API indexes', () => {
       const ctx = {
+        $store:                      createStore(),
+        inStore:                     'harvester',
         canPaginate:                 true,
-        paginationContext:           VM_LIST_PAGINATION_CONTEXT,
         headers:                     VM_HEADERS,
-        schema:                      SCHEMAS[HCI.VM],
         fetchSecondaryResources:     jest.fn(),
         fetchPageSecondaryResources: jest.fn(),
       };
+
+      ctx.printerColumnField = VmList.methods.printerColumnField.bind(ctx);
+      ctx.paginationHeaders = call('paginationHeaders', ctx);
       const props = call('tableProps', ctx);
       const byName = Object.fromEntries(props.paginationHeaders.map((h) => [h.name, { sort: h.sort, search: h.search }]));
 

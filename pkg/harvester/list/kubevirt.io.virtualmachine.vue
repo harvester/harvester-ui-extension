@@ -68,58 +68,18 @@ export const VM_HEADERS = [
   }
 ];
 
-function paginationContext(store) {
-  return store.getters['harvester-common/getFeatureEnabled']('vmListPagination') ? VM_LIST_PAGINATION_CONTEXT : null;
-}
-
+// Outside the component because `ResourceList` calls `$loadingResources(route, store)` on the component options,
+// where there's no `this`
 function canPaginate(store) {
-  const context = paginationContext(store);
   const inStore = store.getters['currentProduct']?.inStore;
+  const featureEnabled = !!store.getters['harvester-common/getFeatureEnabled']('vmListPagination');
 
   // An API served from the SQL cache lists the printer columns of a CRD as `metadata.fields[N]`. Without the SQL cache
   // it can't filter the paged list, so don't rely on the version alone (it can be missing or not semver)
   const columns = store.getters[`${ inStore }/schemaFor`]?.(HCI.VM)?.attributes?.columns || [];
   const fromSqlCache = columns.some((col) => col.field?.startsWith('$.metadata.fields['));
 
-  return !!context && fromSqlCache && !!store.getters[`${ inStore }/paginationEnabled`]?.({ id: HCI.VM, context });
-}
-
-// The API indexes the printer columns of a CRD by position (`metadata.fields.N`), so look the position up by name
-function printerColumnField(schema, columnName) {
-  const column = schema?.attributes?.columns?.find((col) => col.name === columnName);
-
-  return column?.field?.replace('$.', '').replace('[', '.').replace(']', '');
-}
-
-// With server-side pagination the API sorts and searches, so only fields it indexes can be used.
-// CPU, memory, IP and node are computed by the VM model or come from other resources.
-function paginationHeaders(headers, schema) {
-  const statusField = printerColumnField(schema, 'Status');
-
-  return headers.map((header) => {
-    switch (header.name) {
-    case STATE.name:
-      return {
-        ...header, sort: statusField ? [statusField] : false, search: false
-      };
-    case NAME.name:
-      return {
-        ...header,
-        sort:   ['metadata.name'],
-        search: ['metadata.name', `metadata.annotations[${ HCI_ANNOTATIONS.VM_DISPLAY_NAME }]`],
-      };
-    case NAMESPACE.name:
-      return {
-        ...header, sort: ['metadata.namespace'], search: 'metadata.namespace'
-      };
-    case AGE.name:
-      return { ...header, search: false };
-    default:
-      return {
-        ...header, sort: false, search: false
-      };
-    }
-  });
+  return featureEnabled && fromSqlCache && !!store.getters[`${ inStore }/paginationEnabled`]?.({ id: HCI.VM, context: VM_LIST_PAGINATION_CONTEXT });
 }
 
 export default {
@@ -190,10 +150,6 @@ export default {
       return !!this.$store.getters[`${ this.inStore }/schemaFor`](NODE);
     },
 
-    paginationContext() {
-      return paginationContext(this.$store);
-    },
-
     canPaginate() {
       return canPaginate(this.$store);
     },
@@ -208,11 +164,42 @@ export default {
       }
 
       return {
-        context:                     this.paginationContext,
-        paginationHeaders:           paginationHeaders(this.headers, this.schema),
+        context:                     VM_LIST_PAGINATION_CONTEXT,
+        paginationHeaders:           this.paginationHeaders,
         fetchSecondaryResources:     this.fetchSecondaryResources,
         fetchPageSecondaryResources: this.fetchPageSecondaryResources,
       };
+    },
+
+    // With server-side pagination the API sorts and searches, so only fields it indexes can be used.
+    // CPU, memory, IP and node are computed by the VM model or come from other resources.
+    paginationHeaders() {
+      const statusField = this.printerColumnField(HCI.VM, 'Status');
+
+      return this.headers.map((header) => {
+        switch (header.name) {
+        case STATE.name:
+          return {
+            ...header, sort: statusField ? [statusField] : false, search: false
+          };
+        case NAME.name:
+          return {
+            ...header,
+            sort:   ['metadata.name'],
+            search: ['metadata.name', `metadata.annotations[${ HCI_ANNOTATIONS.VM_DISPLAY_NAME }]`],
+          };
+        case NAMESPACE.name:
+          return {
+            ...header, sort: ['metadata.namespace'], search: 'metadata.namespace'
+          };
+        case AGE.name:
+          return { ...header, search: false };
+        default:
+          return {
+            ...header, sort: false, search: false
+          };
+        }
+      });
     },
 
     // With pagination the store only holds the VMs of the current page
@@ -406,8 +393,12 @@ export default {
       });
     },
 
+    // The API indexes the printer columns of a CRD by position (`metadata.fields.N`), so look the position up by name
     printerColumnField(type, columnName) {
-      return printerColumnField(this.$store.getters[`${ this.inStore }/schemaFor`](type), columnName);
+      const schema = this.$store.getters[`${ this.inStore }/schemaFor`](type);
+      const column = schema?.attributes?.columns?.find((col) => col.name === columnName);
+
+      return column?.field?.replace('$.', '').replace('[', '.').replace(']', '');
     }
   },
 
