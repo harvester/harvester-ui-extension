@@ -86,14 +86,15 @@ function mountPage({
 // A valid, enabled form; each case overrides what it checks
 function fill(wrapper, values) {
   wrapper.setData({
-    bgpEnabled: true,
-    nodeNames:  ['node-1'],
-    neighbors:  ['10.115.53.2'],
-    neighborAS: '65030',
-    clusterAS:  '65000',
-    routerID:   '',
-    nextHopV4:  '',
-    nextHopV6:  '',
+    bgpEnabled:  true,
+    nodeNames:   ['node-1'],
+    neighborsV4: ['10.115.53.2'],
+    neighborsV6: [],
+    neighborAS:  '65030',
+    clusterAS:   '65000',
+    routerID:    '',
+    nextHopV4:   '',
+    nextHopV6:   '',
     ...values,
   });
 }
@@ -106,32 +107,52 @@ describe('page: Overlay Network Settings > BGP Speaker', () => {
 
     expect(dispatch).toHaveBeenCalledWith('harvester/find', { type: 'kubeovn.io.configuration', id: 'kube-system/kubeovn' });
     expect(wrapper.vm.formState()).toStrictEqual({
-      enabled:    false,
-      nodeNames:  [],
-      neighbors:  [],
-      neighborAS: '',
-      clusterAS:  '',
-      routerID:   '',
-      nextHopV4:  '',
-      nextHopV6:  '',
+      enabled:     false,
+      nodeNames:   [],
+      neighborsV4: [],
+      neighborsV6: [],
+      neighborAS:  '',
+      clusterAS:   '',
+      routerID:    '',
+      nextHopV4:   '',
+      nextHopV6:   '',
     });
   });
 
-  it('should load a configured speaker, with both neighbor families in one list', () => {
+  it('should keep the AS numbers of a disabled speaker, even when they are the ones Harvester installs', () => {
+    // set up with the private AS numbers 64512/64513, then disabled: only the hosts are gone
+    const configuration = createConfiguration({ ...PLACEHOLDER_BGP, neighborV4Address: '10.115.53.2' });
+    const { wrapper } = mountPage({ configuration });
+
+    expect(wrapper.vm.formState()).toStrictEqual({
+      enabled:     false,
+      nodeNames:   [],
+      neighborsV4: ['10.115.53.2'],
+      neighborsV6: [],
+      neighborAS:  '64512',
+      clusterAS:   '64513',
+      routerID:    '',
+      nextHopV4:   '',
+      nextHopV6:   '',
+    });
+  });
+
+  it('should load a configured speaker, with each neighbor family in its own list', () => {
     const configuration = createConfiguration({
       ...CONFIGURED_BGP, nodeNames: 'node-1,node-2', neighborV6Address: '2001:db8::2', nextHops: '10.115.48.1,2001:db8::9'
     });
     const { wrapper } = mountPage({ configuration });
 
     expect(wrapper.vm.formState()).toStrictEqual({
-      enabled:    true,
-      nodeNames:  ['node-1', 'node-2'],
-      neighbors:  ['10.115.53.2', '2001:db8::2'],
-      neighborAS: '65030',
-      clusterAS:  '65000',
-      routerID:   '',
-      nextHopV4:  '10.115.48.1',
-      nextHopV6:  '2001:db8::9',
+      enabled:     true,
+      nodeNames:   ['node-1', 'node-2'],
+      neighborsV4: ['10.115.53.2'],
+      neighborsV6: ['2001:db8::2'],
+      neighborAS:  '65030',
+      clusterAS:   '65000',
+      routerID:    '',
+      nextHopV4:   '10.115.48.1',
+      nextHopV6:   '2001:db8::9',
     });
   });
 
@@ -167,15 +188,16 @@ describe('page: Overlay Network Settings > BGP Speaker', () => {
     expect(dispatch).not.toHaveBeenCalledWith('harvester/find', expect.anything());
   });
 
-  it('should split the neighbors by family, drop duplicates, keep the rest of the configuration and go back', async() => {
+  it('should save both neighbor lists without duplicates or empty rows, keep the rest of the configuration and go back', async() => {
     const { wrapper, configuration, router } = mountPage();
     const buttonCb = jest.fn();
 
     fill(wrapper, {
-      nodeNames: ['node-1', 'node-2'],
-      neighbors: [' 10.115.53.2 ', '2001:db8::2', '10.115.53.3', '10.115.53.2', ''],
-      nextHopV4: '10.115.48.1',
-      nextHopV6: '2001:db8::9',
+      nodeNames:   ['node-1', 'node-2'],
+      neighborsV4: [' 10.115.53.2 ', '10.115.53.3', '10.115.53.2', ''],
+      neighborsV6: ['2001:db8::2', ''],
+      nextHopV4:   '10.115.48.1',
+      nextHopV6:   '2001:db8::9',
     });
 
     await wrapper.vm.save(buttonCb);
@@ -267,8 +289,12 @@ describe('page: Overlay Network Settings > BGP Speaker', () => {
 
   it.each([
     ['no speaker hosts', { nodeNames: [] }, 'harvester.bgp.validation.hostsRequired'],
-    ['no neighbor', { neighbors: ['', ' '] }, 'harvester.bgp.validation.neighborRequired'],
-    ['an invalid neighbor', { neighbors: ['10.115.53.300'] }, 'harvester.bgp.validation.neighborAddress'],
+    ['no neighbor', { neighborsV4: ['', ' '], neighborsV6: [''] }, 'harvester.bgp.validation.neighborRequired'],
+    ['an invalid IPv4 neighbor', { neighborsV4: ['10.115.53.300'] }, 'harvester.bgp.validation.neighborV4'],
+    ['an IPv6 address in the IPv4 neighbors', { neighborsV4: ['2001:db8::2'] }, 'harvester.bgp.validation.neighborV4'],
+    ['an IPv4 address in the IPv6 neighbors', { neighborsV4: [], neighborsV6: ['10.115.53.2'] }, 'harvester.bgp.validation.neighborV6'],
+    ['the IPv4 placeholder neighbor', { neighborsV4: ['192.0.2.1'] }, 'harvester.bgp.validation.placeholderNeighbor'],
+    ['the IPv6 placeholder neighbor', { neighborsV6: ['2001:db8::1'] }, 'harvester.bgp.validation.placeholderNeighbor'],
     ['an empty AS number', { neighborAS: '' }, 'harvester.bgp.validation.asNumber'],
     ['an AS number out of range', { clusterAS: '4294967295' }, 'harvester.bgp.validation.asNumber'],
     ['a router ID that is not IPv4', { routerID: '2001:db8::1' }, 'harvester.bgp.validation.routerID'],
@@ -293,19 +319,26 @@ describe('page: Overlay Network Settings > BGP Speaker', () => {
   it('should flag missing speaker hosts and neighbors on the fields', async() => {
     const { wrapper } = mountPage();
     const [hostsRule] = wrapper.vm.nodeNamesRules;
-    const [neighborRule] = wrapper.vm.neighborRules;
+    const [v4Rule] = wrapper.vm.neighborV4Rules;
+    const [v6Rule] = wrapper.vm.neighborV6Rules;
 
-    fill(wrapper, { nodeNames: [], neighbors: [''] });
+    fill(wrapper, {
+      nodeNames: [], neighborsV4: [''], neighborsV6: ['']
+    });
 
     expect(hostsRule([])).toContain('harvester.bgp.validation.hostsRequired');
     expect(hostsRule(['node-1'])).toBeUndefined();
-    expect(neighborRule('')).toContain('harvester.bgp.validation.neighborRequired');
+    // no neighbor yet: both lists say so
+    expect(v4Rule('')).toContain('harvester.bgp.validation.neighborRequired');
+    expect(v6Rule('')).toContain('harvester.bgp.validation.neighborRequired');
 
-    await wrapper.setData({ neighbors: ['10.115.53.2', ''] });
+    await wrapper.setData({ neighborsV6: ['2001:db8::2'] });
 
-    // with one neighbor set, an extra empty row is fine and an invalid one is flagged
-    expect(neighborRule('')).toBeUndefined();
-    expect(neighborRule('10.115.53.300')).toContain('harvester.bgp.validation.neighborAddress');
+    // one neighbor in either list is enough; an address of the wrong family is flagged
+    expect(v4Rule('')).toBeUndefined();
+    expect(v4Rule('2001:db8::2')).toContain('harvester.bgp.validation.neighborV4');
+    expect(v6Rule('10.115.53.2')).toContain('harvester.bgp.validation.neighborV6');
+    expect(v6Rule('2001:db8::1')).toContain('harvester.bgp.validation.placeholderNeighbor');
   });
 
   it('should flag a router ID inline as soon as a second host is picked', async() => {

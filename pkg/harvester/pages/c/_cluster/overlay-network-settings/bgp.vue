@@ -11,13 +11,12 @@ import { Banner } from '@components/Banner';
 import { NODE } from '@shell/config/types';
 import { _EDIT, _VIEW } from '@shell/config/query-params';
 import { isIpv4 } from '@shell/utils/string';
-import { isValidIP } from '@shell/utils/validators/cidr';
 import { exceptionToErrorsArray } from '@shell/utils/error';
 import { allHash } from '@shell/utils/promise';
 import { HCI } from '../../../../types';
 import { ADD_ONS } from '../../../../config/harvester-map';
 import { PRODUCT_NAME } from '../../../../config/harvester';
-import { KUBEOVN_CONFIGURATION_ID, PLACEHOLDER_AS, isIpv6 } from '../../../../models/kubeovn.io.configuration';
+import { KUBEOVN_CONFIGURATION_ID, isIpv6, isPlaceholderNeighbor } from '../../../../models/kubeovn.io.configuration';
 
 const AS_MAX = 4294967294;
 
@@ -68,7 +67,8 @@ export default {
       configuration: null,
       bgpEnabled:    false,
       nodeNames:     [],
-      neighbors:     [],
+      neighborsV4:   [],
+      neighborsV6:   [],
       neighborAS:    '',
       clusterAS:     '',
       routerID:      '',
@@ -86,6 +86,10 @@ export default {
 
     mode() {
       return this.configuration?.canUpdate ? _EDIT : _VIEW;
+    },
+
+    isView() {
+      return this.mode === _VIEW;
     },
 
     settingsLocation() {
@@ -122,8 +126,17 @@ export default {
       return [(value) => ((value || []).length ? undefined : this.t('harvester.bgp.validation.hostsRequired', null, true))];
     },
 
-    neighborRules() {
-      return [(value) => (cleanList(this.neighbors).length ? this.neighborError(value) : this.t('harvester.bgp.validation.neighborRequired', null, true))];
+    neighborV4Rules() {
+      return [(value) => this.neighborError(value, isIpv4)];
+    },
+
+    neighborV6Rules() {
+      return [(value) => this.neighborError(value, isIpv6)];
+    },
+
+    // One neighbor in either list is enough
+    hasNeighbor() {
+      return cleanList(this.neighborsV4).length + cleanList(this.neighborsV6).length > 0;
     },
 
     neighborASRules() {
@@ -150,15 +163,15 @@ export default {
   methods: {
     loadBgp(configuration) {
       const bgp = configuration.bgp;
-      const unconfigured = !configuration.bgpSpeakerHosts.length &&
-        bgp.neighborAS === PLACEHOLDER_AS.neighborAS && bgp.clusterAS === PLACEHOLDER_AS.clusterAS;
+      const untouched = configuration.bgpUntouched;
 
       this.nodeNames = configuration.bgpSpeakerHosts;
       this.bgpEnabled = this.nodeNames.length > 0;
-      this.neighbors = configuration.bgpNeighbors;
+      this.neighborsV4 = configuration.bgpNeighborsV4;
+      this.neighborsV6 = configuration.bgpNeighborsV6;
       // An untouched install only has placeholder AS numbers: show empty fields instead of values nobody chose
-      this.neighborAS = unconfigured ? '' : bgp.neighborAS ?? '';
-      this.clusterAS = unconfigured ? '' : bgp.clusterAS ?? '';
+      this.neighborAS = untouched ? '' : bgp.neighborAS ?? '';
+      this.clusterAS = untouched ? '' : bgp.clusterAS ?? '';
       this.routerID = bgp.routerID || '';
       // The speaker uses the last next hop of each family
       this.nextHopV4 = configuration.bgpNextHops.filter(isIpv4).pop() || '';
@@ -168,21 +181,33 @@ export default {
 
     formState() {
       return {
-        enabled:    this.bgpEnabled,
-        nodeNames:  [...this.nodeNames],
-        neighbors:  cleanList(this.neighbors),
-        neighborAS: asText(this.neighborAS),
-        clusterAS:  asText(this.clusterAS),
-        routerID:   this.routerID.trim(),
-        nextHopV4:  this.nextHopV4.trim(),
-        nextHopV6:  this.nextHopV6.trim(),
+        enabled:     this.bgpEnabled,
+        nodeNames:   [...this.nodeNames],
+        neighborsV4: cleanList(this.neighborsV4),
+        neighborsV6: cleanList(this.neighborsV6),
+        neighborAS:  asText(this.neighborAS),
+        clusterAS:   asText(this.clusterAS),
+        routerID:    this.routerID.trim(),
+        nextHopV4:   this.nextHopV4.trim(),
+        nextHopV6:   this.nextHopV6.trim(),
       };
     },
 
-    neighborError(value) {
+    neighborError(value, isFamily) {
       const ip = `${ value || '' }`.trim();
 
-      return ip && !isValidIP(ip) ? this.t('harvester.bgp.validation.neighborAddress', null, true) : undefined;
+      if (!ip) {
+        return this.hasNeighbor ? undefined : this.t('harvester.bgp.validation.neighborRequired', null, true);
+      }
+
+      // Harvester installs these before anyone sets up BGP, and this page hides them, so saving one would lose it
+      if (isPlaceholderNeighbor(ip)) {
+        return this.t('harvester.bgp.validation.placeholderNeighbor', { ip }, true);
+      }
+
+      const key = isFamily === isIpv4 ? 'neighborV4' : 'neighborV6';
+
+      return isFamily(ip) ? undefined : this.t(`harvester.bgp.validation.${ key }`, { ip }, true);
     },
 
     asError(field, value) {
@@ -216,17 +241,20 @@ export default {
         return [];
       }
 
-      const neighbors = cleanList(this.neighbors);
       const errors = [];
 
       if (!this.nodeNames.length) {
         errors.push(this.t('harvester.bgp.validation.hostsRequired', null, true));
       }
 
-      if (!neighbors.length) {
+      if (!this.hasNeighbor) {
         errors.push(this.t('harvester.bgp.validation.neighborRequired', null, true));
-      } else if (neighbors.some((ip) => this.neighborError(ip))) {
-        errors.push(this.neighborError(neighbors.find((ip) => this.neighborError(ip))));
+      } else {
+        // The first bad address is enough here: the lists flag each one
+        errors.push([
+          ...cleanList(this.neighborsV4).map((ip) => this.neighborError(ip, isIpv4)),
+          ...cleanList(this.neighborsV6).map((ip) => this.neighborError(ip, isIpv6)),
+        ].find(Boolean));
       }
 
       errors.push(
@@ -254,8 +282,8 @@ export default {
 
       Object.assign(bgp, {
         nodeNames:         state.nodeNames.join(','),
-        neighborV4Address: state.neighbors.filter(isIpv4).join(','),
-        neighborV6Address: state.neighbors.filter(isIpv6).join(','),
+        neighborV4Address: state.neighborsV4.join(','),
+        neighborV6Address: state.neighborsV6.join(','),
         neighborAS:        Number(state.neighborAS),
         clusterAS:         Number(state.clusterAS),
         routerID:          state.routerID,
@@ -412,19 +440,38 @@ export default {
             />
           </div>
         </div>
-        <div class="row mt-20">
+        <!-- One neighbor in either list is enough, so neither list is marked required -->
+        <p
+          v-if="!isView"
+          class="text-muted mt-20"
+        >
+          {{ t('harvester.bgp.neighbors.description') }}
+        </p>
+        <div class="row mt-10">
           <div class="col span-6">
             <ArrayList
-              v-model:value="neighbors"
-              data-testid="bgp-neighbors"
+              v-model:value="neighborsV4"
+              data-testid="bgp-neighbors-v4"
               :mode="mode"
               :initial-empty-row="true"
-              :required="true"
-              :rules="neighborRules"
-              :title="t('harvester.bgp.neighbors.label')"
-              :protip="t('harvester.bgp.neighbors.tooltip')"
-              :value-placeholder="t('harvester.bgp.neighbors.placeholder')"
-              :add-label="t('harvester.bgp.neighbors.add')"
+              :rules="neighborV4Rules"
+              :title="t('harvester.bgp.neighborsV4.label')"
+              :protip="t('harvester.bgp.neighborsV4.tooltip')"
+              :value-placeholder="t('harvester.bgp.neighborsV4.placeholder')"
+              :add-label="t('harvester.bgp.neighborsV4.add')"
+            />
+          </div>
+          <div class="col span-6">
+            <ArrayList
+              v-model:value="neighborsV6"
+              data-testid="bgp-neighbors-v6"
+              :mode="mode"
+              :initial-empty-row="true"
+              :rules="neighborV6Rules"
+              :title="t('harvester.bgp.neighborsV6.label')"
+              :protip="t('harvester.bgp.neighborsV6.tooltip')"
+              :value-placeholder="t('harvester.bgp.neighborsV6.placeholder')"
+              :add-label="t('harvester.bgp.neighborsV6.add')"
             />
           </div>
         </div>
