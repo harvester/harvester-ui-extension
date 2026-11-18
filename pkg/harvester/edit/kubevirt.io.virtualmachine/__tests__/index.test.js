@@ -1,5 +1,11 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { STORAGE_CLASS } from '@shell/config/types';
 import VM_MIXIN from '@pkg/harvester/mixins/harvester-vm';
 import HarvesterEditVM from '../index.vue';
+
+const vmFormSource = readFileSync(resolve(__dirname, '../index.vue'), 'utf8');
+const translations = readFileSync(resolve(__dirname, '../../../l10n/en-us.yaml'), 'utf8');
 
 function saveWith(userScript) {
   const buttonCb = jest.fn();
@@ -20,6 +26,106 @@ function saveWith(userScript) {
 }
 
 describe('page: kubevirt.io.virtualmachine edit', () => {
+  it('shows the persistent state storage hint only when vmstate-persistence is missing', () => {
+    const hasVMStateStorageClass = HarvesterEditVM.computed.hasVMStateStorageClass;
+    const storageClasses = (storageClassNames) => ({
+      inStore: 'harvester',
+      $store:  { getters: { 'harvester/all': (type) => type === STORAGE_CLASS ? storageClassNames.map((name) => ({ metadata: { name } })) : [] } },
+    });
+
+    expect(hasVMStateStorageClass.call(storageClasses([]))).toBe(false);
+    expect(hasVMStateStorageClass.call(storageClasses(['vmstate-persistence']))).toBe(true);
+  });
+
+  it('waits for StorageClasses before treating vmstate-persistence as unavailable', () => {
+    const vmStateStorageClassUnavailable = HarvesterEditVM.computed.vmStateStorageClassUnavailable;
+
+    expect(vmStateStorageClassUnavailable.call({ hasVMStateStorageClass: false, storageClassesLoaded: false })).toBe(false);
+    expect(vmStateStorageClassUnavailable.call({ hasVMStateStorageClass: false, storageClassesLoaded: true })).toBe(true);
+    expect(vmStateStorageClassUnavailable.call({ hasVMStateStorageClass: true, storageClassesLoaded: true })).toBe(false);
+  });
+
+  it('shows the persistent state storage banner outside view mode when vmstate-persistence is unavailable', () => {
+    const showPersistentStateStorageBanner = HarvesterEditVM.computed.showPersistentStateStorageBanner;
+
+    expect(showPersistentStateStorageBanner.call({ mode: 'create', vmStateStorageClassUnavailable: true })).toBe(true);
+    expect(showPersistentStateStorageBanner.call({ mode: 'edit', vmStateStorageClassUnavailable: true })).toBe(true);
+    expect(showPersistentStateStorageBanner.call({ mode: 'create', vmStateStorageClassUnavailable: false })).toBe(false);
+    expect(showPersistentStateStorageBanner.call({ mode: 'view', vmStateStorageClassUnavailable: true })).toBe(false);
+  });
+
+  it('blocks new persistent state without vmstate-persistence while allowing it to be turned off', () => {
+    const isPersistentStateControlDisabled = HarvesterEditVM.methods.isPersistentStateControlDisabled;
+
+    expect(isPersistentStateControlDisabled.call({ vmStateStorageClassUnavailable: false }, false)).toBe(false);
+    expect(isPersistentStateControlDisabled.call({ vmStateStorageClassUnavailable: true }, false)).toBe(true);
+    expect(isPersistentStateControlDisabled.call({ vmStateStorageClassUnavailable: true }, true)).toBe(false);
+  });
+
+  it('marks StorageClasses as loaded after the VM data fetch completes', async() => {
+    const form = { storageClassesLoaded: false };
+    const fetch = jest.spyOn(VM_MIXIN, 'fetch').mockImplementation().mockResolvedValue();
+
+    await HarvesterEditVM.fetch.call(form);
+    fetch.mockRestore();
+
+    expect(form.storageClassesLoaded).toBe(true);
+  });
+
+  it('links persistent state guidance to Storage Classes', () => {
+    const toStorageClass = HarvesterEditVM.computed.toStorageClass;
+
+    expect(toStorageClass.call({ $store: { getters: { clusterId: 'c-1' } } })).toStrictEqual({
+      name:   'harvester-c-cluster-resource',
+      params: { cluster: 'c-1', resource: 'harvesterhci.io.storage' },
+    });
+  });
+
+  it('describes creating the StorageClass without non-breaking spaces around guidance links', () => {
+    expect(translations).toContain('middle: or create the class on the');
+    expect(vmFormSource).not.toContain('&nbsp;');
+  });
+
+  it('clears persistent state selections only for create mode without vmstate-persistence', () => {
+    const clearPersistentState = HarvesterEditVM.methods.clearPersistentStateWithoutStorageClass;
+
+    const createForm = {
+      efiPersistentStateEnabled:        true,
+      mode:                             'create',
+      tpmPersistentStateEnabled:        true,
+      vmStateStorageClassUnavailable:   true,
+    };
+
+    clearPersistentState.call(createForm);
+
+    expect(createForm.tpmPersistentStateEnabled).toBe(false);
+    expect(createForm.efiPersistentStateEnabled).toBe(false);
+
+    const editForm = {
+      efiPersistentStateEnabled:        true,
+      mode:                             'edit',
+      tpmPersistentStateEnabled:        true,
+      vmStateStorageClassUnavailable:   true,
+    };
+
+    clearPersistentState.call(editForm);
+
+    expect(editForm.tpmPersistentStateEnabled).toBe(true);
+    expect(editForm.efiPersistentStateEnabled).toBe(true);
+
+    const storageClassForm = {
+      efiPersistentStateEnabled:        true,
+      mode:                             'create',
+      tpmPersistentStateEnabled:        true,
+      vmStateStorageClassUnavailable:   false,
+    };
+
+    clearPersistentState.call(storageClassForm);
+
+    expect(storageClassForm.tpmPersistentStateEnabled).toBe(true);
+    expect(storageClassForm.efiPersistentStateEnabled).toBe(true);
+  });
+
   it('should stop the save when the cloud config is invalid', () => {
     const { form, buttonCb } = saveWith('#cloud-config\nsome words\n');
 
