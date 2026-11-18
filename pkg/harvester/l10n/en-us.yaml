@@ -1526,26 +1526,14 @@ harvester:
   overlayNetworkSettings:
     label: Settings
     title: Overlay Network Settings
-    edit: Edit Setting
-    view: View Setting
     noAddonEnabled:
       prefix: The kubeovn-operator add-on is not enabled, click
       middle: here
       suffix: to enable the add-on before changing overlay network settings.
   bgp:
     label: BGP Speaker
-    settingDescription: Advertises the subnets that have BGP enabled to external BGP routers.
     unsupported: The BGP speaker requires [[Harvester]] v1.10.0 or later.
-    summary:
-      hosts: 'Speaker hosts: {hosts}'
-      clusterAS: 'Cluster AS: {as}'
-      neighbors: 'Neighbors: {neighbors} (AS {as})'
-      routerID: 'Router ID: {id}'
-      nextHops: 'Next hops: {hops}'
-    description: The BGP speaker runs on the selected hosts and advertises every subnet that has BGP enabled to the BGP neighbors. Enable BGP on each subnet that should be reachable from the external network.
-    enabled:
-      label: BGP Speaker
-      tooltip: When disabled, no host runs the BGP speaker. The other values are kept for when you enable it again.
+    description: The BGP speaker runs on the selected hosts and advertises every subnet that has BGP enabled to the BGP neighbors. Enable BGP on each subnet that should be reachable from the external network. When the speaker is disabled, no host runs it, and its settings are kept for when you enable it again.
     sections:
       advanced: Advanced
     nodeNames:
@@ -1565,16 +1553,15 @@ harvester:
       placeholder: e.g. 65030
       tooltip: The autonomous system (AS) number of the neighbors. All neighbors must be in the same AS.
     neighbors:
-      description: Add at least one neighbor address, IPv4 or IPv6.
+      label: Neighbors
+      description: The addresses of the external BGP routers the speaker connects to. Add at least one, IPv4 or IPv6.
     neighborsV4:
-      label: Neighbor Addresses (IPv4)
+      label: IPv4 Address
       placeholder: e.g. 10.115.53.2
-      tooltip: The IPv4 addresses of the external BGP routers the speaker connects to.
       add: Add IPv4 Neighbor
     neighborsV6:
-      label: Neighbor Addresses (IPv6)
+      label: IPv6 Address
       placeholder: e.g. 2001:db8::2
-      tooltip: The IPv6 addresses of the external BGP routers the speaker connects to.
       add: Add IPv6 Neighbor
     nextHopV4:
       label: Next Hop (IPv4)
