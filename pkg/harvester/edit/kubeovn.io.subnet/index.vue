@@ -436,6 +436,12 @@ export default {
                 suffix-label="harvester.subnet.bgp.speakerOff.suffix"
               />
             </Banner>
+            <Banner
+              v-if="bgpEnabled"
+              color="info"
+              data-testid="subnet-bgp-external-gateway"
+              :label="t('harvester.subnet.bgp.externalGateway', null, true)"
+            />
           </div>
         </div>
         <ArrayList

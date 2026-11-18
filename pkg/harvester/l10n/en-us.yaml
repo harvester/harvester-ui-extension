@@ -1435,6 +1435,7 @@ harvester:
     bgp:
       label: BGP
       tooltip: Advertise this subnet to the BGP neighbors set in Overlay Networks > Settings.
+      externalGateway: Label the hosts that act as gateways for external traffic with the key "ovn.kubernetes.io/external-gw" and the value "true".
       speakerOff:
         prefix: No host runs the BGP speaker yet, so this subnet isn't advertised. Set it up in
         middle: Overlay Network Settings
