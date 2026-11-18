@@ -1,8 +1,6 @@
 import {
   PVC, PV, POD, NODE, STORAGE_CLASS
 } from '@shell/config/types';
-import ResourceTable from '@shell/components/ResourceTable';
-import PaginatedResourceTable from '@shell/components/PaginatedResourceTable';
 import VmList, { VM_HEADERS } from '../kubevirt.io.virtualmachine.vue';
 import { HCI } from '../../types';
 import { VM_LIST_PAGINATION_CONTEXT } from '../../config/harvester';
@@ -24,7 +22,7 @@ const SCHEMAS = {
 };
 
 function createStore({
-  featureEnabled = true, paginationEnabled = true, found = {}, failing = [], vmSchema = SCHEMAS[HCI.VM], storedVMs = []
+  featureEnabled = true, paginationEnabled = true, found = {}, failing = [], vmSchema = SCHEMAS[HCI.VM], storedVMs = [], storedVMIs = []
 } = {}) {
   const dispatch = jest.fn((action, { type } = {}) => (failing.includes(type) ? Promise.reject(new Error('failed')) : Promise.resolve(found[type] || [])));
 
@@ -35,7 +33,7 @@ function createStore({
       'harvester-common/getFeatureEnabled': (name) => featureEnabled && name === 'vmListPagination',
       'harvester/paginationEnabled':        ({ id, context }) => paginationEnabled && id === HCI.VM && context === VM_LIST_PAGINATION_CONTEXT,
       'harvester/schemaFor':                (type) => (type === HCI.VM ? vmSchema : SCHEMAS[type]),
-      'harvester/all':                      (type) => (type === HCI.VM ? storedVMs : []),
+      'harvester/all':                      (type) => ({ [HCI.VM]: storedVMs, [HCI.VMI]: storedVMIs }[type] || []),
     }
   };
 }
@@ -54,71 +52,55 @@ describe('list: kubevirt.io.virtualmachine', () => {
       ['the feature is off for the cluster version', { featureEnabled: false }],
       ['the shell does not page the VM list', { paginationEnabled: false }],
       ['the API is not served from the SQL cache', { vmSchema: { id: HCI.VM, attributes: { columns: [{ name: 'Status', field: '.status.printableStatus' }] } } }],
-    ])('should list every VM with ResourceTable when %s', (_, opts) => {
+    ])('should not give the table the context when %s', (_, opts) => {
       const $store = createStore(opts);
 
       expect(call('canPaginate', { $store })).toBe(false);
-      expect(call('tableComponent', { canPaginate: false })).toBe(ResourceTable);
+      expect(call('paginationContext', { canPaginate: false })).toBeNull();
     });
 
-    it('should show VMIs without a VM', () => {
+    it('should add VMIs without a VM to the rows', () => {
+      const vms = [{ id: 'default/a' }];
+      const $store = createStore({ storedVMs: vms, storedVMIs: [{ id: 'default/a' }, { id: 'default/orphan' }] });
       const ctx = {
-        canPaginate: false,
-        allVMs:      [{ id: 'default/a' }],
-        allVMIs:     [{ id: 'default/a' }, { id: 'default/orphan' }],
+        $store, inStore: 'harvester', canPaginate: false, vms
       };
 
+      ctx.vmisWithoutVM = call('vmisWithoutVM', ctx);
+
+      expect(VmList.methods.addVMIsWithoutVM.call(ctx, vms).map(({ id }) => id)).toStrictEqual(['default/a', 'default/orphan']);
       expect(call('rows', ctx).map(({ id }) => id)).toStrictEqual(['default/a', 'default/orphan']);
-      expect(call('tableProps', { ...ctx, rows: call('rows', ctx) })).toStrictEqual({ rows: call('rows', ctx) });
     });
 
-    it('should load the VMs and what the rows need itself', async() => {
+    it('should load every resource the rows need, the table loads the VMs', async() => {
       const $store = createStore({ featureEnabled: false });
-      const ctx = {
-        $store, canPaginate: false, inStore: 'harvester', hasNode: false
-      };
 
-      await VmList.fetch.call(ctx);
+      await VmList.methods.fetchSecondaryResources.call({
+        $store, inStore: 'harvester', hasNode: true
+      }, { canPaginate: false });
 
-      expect($store.dispatch).toHaveBeenCalledWith('harvester/findAll', { type: HCI.VM, opt: { force: true } });
-      expect($store.dispatch).toHaveBeenCalledWith('harvester/findAll', { type: POD });
+      expect($store.dispatch.mock.calls.map(([action, { type }]) => `${ action } ${ type }`).sort()).toStrictEqual([
+        HCI.BACKUP, HCI.IMAGE, HCI.RESTORE, HCI.VMI, HCI.VMIM, NODE, POD, PV, PVC, STORAGE_CLASS
+      ].map((type) => `harvester/findAll ${ type }`).sort());
     });
   });
 
   describe('with server-side pagination', () => {
-    it('should use PaginatedResourceTable with the VM list context', () => {
+    it('should give the table the VM list context', () => {
       const $store = createStore();
 
       expect(call('canPaginate', { $store })).toBe(true);
-      expect(call('tableComponent', { canPaginate: true })).toBe(PaginatedResourceTable);
-    });
-
-    it('should leave the fetch to PaginatedResourceTable', async() => {
-      const $store = createStore();
-
-      await VmList.fetch.call({ $store, canPaginate: true });
-
-      expect($store.dispatch).not.toHaveBeenCalled();
+      expect(call('paginationContext', { canPaginate: true })).toBe(VM_LIST_PAGINATION_CONTEXT);
     });
 
     it('should only sort and search on fields the API indexes', () => {
       const ctx = {
-        $store:                      createStore(),
-        inStore:                     'harvester',
-        canPaginate:                 true,
-        headers:                     VM_HEADERS,
-        fetchSecondaryResources:     jest.fn(),
-        fetchPageSecondaryResources: jest.fn(),
+        $store: createStore(), inStore: 'harvester', headers: VM_HEADERS
       };
 
       ctx.printerColumnField = VmList.methods.printerColumnField.bind(ctx);
-      ctx.paginationHeaders = call('paginationHeaders', ctx);
-      const props = call('tableProps', ctx);
-      const byName = Object.fromEntries(props.paginationHeaders.map((h) => [h.name, { sort: h.sort, search: h.search }]));
+      const byName = Object.fromEntries(call('paginationHeaders', ctx).map((h) => [h.name, { sort: h.sort, search: h.search }]));
 
-      expect(props.context).toBe(VM_LIST_PAGINATION_CONTEXT);
-      expect(props.fetchSecondaryResources).toBe(ctx.fetchSecondaryResources);
-      expect(props.fetchPageSecondaryResources).toBe(ctx.fetchPageSecondaryResources);
       expect(byName).toStrictEqual({
         state:     { sort: ['metadata.fields.2'], search: false },
         name:      { sort: ['metadata.name'], search: ['metadata.name', 'metadata.annotations[harvesterhci.io/vmDisplayName]'] },
@@ -134,17 +116,19 @@ describe('list: kubevirt.io.virtualmachine', () => {
       const storedVMs = [vm('default', 'a')];
       const $store = createStore({ storedVMs });
 
-      expect(call('vms', {
-        $store, canPaginate: true, inStore: 'harvester', allVMs: []
-      })).toBe(storedVMs);
+      expect(call('vms', { $store, inStore: 'harvester' })).toBe(storedVMs);
     });
 
     it('should list only the VMs of the page', () => {
       const page = [vm('default', 'a')];
+      const $store = createStore({ storedVMs: page, storedVMIs: [{ id: 'default/orphan' }] });
+      const ctx = {
+        $store, inStore: 'harvester', canPaginate: true, vms: page
+      };
 
-      expect(call('rows', {
-        canPaginate: true, vms: page, allVMIs: [{ id: 'default/orphan' }]
-      })).toBe(page);
+      ctx.vmisWithoutVM = call('vmisWithoutVM', ctx);
+
+      expect(call('rows', ctx)).toStrictEqual(page);
     });
 
     it('should fetch only the resources of the VMs on the page', async() => {
@@ -215,22 +199,12 @@ describe('list: kubevirt.io.virtualmachine', () => {
       expect(types).not.toContain(POD);
     });
 
-    it('should not load every VMI and migration', async() => {
-      const $store = createStore();
-
-      await VmList.created.call({
-        $store, canPaginate: true, inStore: 'harvester'
-      });
-
-      expect($store.dispatch).not.toHaveBeenCalled();
-    });
-
     it('should load only what every row shares, not the per-VM resources', async() => {
       const $store = createStore();
 
       await VmList.methods.fetchSecondaryResources.call({
         $store, inStore: 'harvester', hasNode: true
-      });
+      }, { canPaginate: true });
 
       expect($store.dispatch.mock.calls).toStrictEqual([
         ['harvester/findAll', { type: HCI.IMAGE }],

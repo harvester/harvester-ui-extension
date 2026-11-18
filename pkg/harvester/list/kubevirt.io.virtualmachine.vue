@@ -1,6 +1,5 @@
 <script>
 import { mapGetters } from 'vuex';
-import ResourceTable from '@shell/components/ResourceTable';
 import PaginatedResourceTable from '@shell/components/PaginatedResourceTable';
 import { STATE, AGE, NAME, NAMESPACE } from '@shell/config/table-headers';
 import {
@@ -10,7 +9,6 @@ import { FilterArgs, PaginationFilterEquality, PaginationParamFilter } from '@sh
 
 import { allHash } from '@shell/utils/promise';
 import { uniq } from '@shell/utils/array';
-import Loading from '@shell/components/Loading';
 import { clone } from '@shell/utils/object';
 import { HCI } from '../types';
 import { HCI as HCI_ANNOTATIONS } from '../config/labels-annotations';
@@ -85,10 +83,8 @@ function canPaginate(store) {
 export default {
   name:       'HarvesterListVM',
   components: {
-    Loading,
     HarvesterVmState,
     ConsoleBar,
-    ResourceTable,
     PaginatedResourceTable
   },
 
@@ -99,42 +95,9 @@ export default {
     },
   },
 
-  async fetch() {
-    // PaginatedResourceTable fetches the VMs and calls fetchSecondaryResources / fetchPageSecondaryResources
-    if (this.canPaginate) {
-      return;
-    }
-
-    const inStore = this.inStore;
-    const _hash = {
-      vms:     this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VM, opt: { force: true } }),
-      pod:     this.$store.dispatch(`${ inStore }/findAll`, { type: POD }),
-      pvcs:    this.$store.dispatch(`${ inStore }/findAll`, { type: PVC }),
-      pvs:     this.$store.dispatch(`${ inStore }/findAll`, { type: PV }),
-      images:  this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.IMAGE }),
-      restore: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.RESTORE }),
-      backups: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.BACKUP }),
-      storage: this.$store.dispatch(`${ inStore }/findAll`, { type: STORAGE_CLASS }),
-    };
-
-    if (this.$store.getters[`${ inStore }/schemaFor`](HCI.RESOURCE_QUOTA)) {
-      _hash.resourceQuotas = this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.RESOURCE_QUOTA });
-    }
-
-    if (this.hasNode) {
-      _hash.nodes = this.$store.dispatch(`${ inStore }/findAll`, { type: NODE });
-    }
-
-    const hash = await allHash(_hash);
-
-    this.allVMs = hash.vms;
-  },
-
   data() {
     return {
-      allVMs:                       [],
-      allVMIs:                      [],
-      restartNotificationKey:       '',
+      restartNotificationKey: '',
       HCI
     };
   },
@@ -154,21 +117,9 @@ export default {
       return canPaginate(this.$store);
     },
 
-    tableComponent() {
-      return this.canPaginate ? PaginatedResourceTable : ResourceTable;
-    },
-
-    tableProps() {
-      if (!this.canPaginate) {
-        return { rows: this.rows };
-      }
-
-      return {
-        context:                     VM_LIST_PAGINATION_CONTEXT,
-        paginationHeaders:           this.paginationHeaders,
-        fetchSecondaryResources:     this.fetchSecondaryResources,
-        fetchPageSecondaryResources: this.fetchPageSecondaryResources,
-      };
+    // PaginatedResourceTable only pages when it's given the context, so clusters whose API can't page keep the full list
+    paginationContext() {
+      return this.canPaginate ? VM_LIST_PAGINATION_CONTEXT : null;
     },
 
     // With server-side pagination the API sorts and searches, so only fields it indexes can be used.
@@ -204,7 +155,18 @@ export default {
 
     // With pagination the store only holds the VMs of the current page
     vms() {
-      return this.canPaginate ? this.$store.getters[`${ this.inStore }/all`](HCI.VM) : this.allVMs;
+      return this.$store.getters[`${ this.inStore }/all`](HCI.VM);
+    },
+
+    // The paginated API lists VMs only, so VMIs without a VM are only shown without pagination
+    vmisWithoutVM() {
+      if (this.canPaginate) {
+        return [];
+      }
+
+      const vmIds = new Set(this.vms.map((vm) => vm.id));
+
+      return this.$store.getters[`${ this.inStore }/all`](HCI.VMI).filter((vmi) => !vmIds.has(vmi.id));
     },
 
     headers() {
@@ -239,15 +201,7 @@ export default {
     },
 
     rows() {
-      // The paginated API lists VMs only, so VMIs without a VM aren't shown then
-      if (this.canPaginate) {
-        return this.vms;
-      }
-
-      const vmIds = new Set(this.allVMs.map((VM) => VM.id));
-      const matchVMIs = this.allVMIs.filter((VMI) => !vmIds.has(VMI.id));
-
-      return [...this.allVMs, ...matchVMIs];
+      return [...this.vms, ...this.vmisWithoutVM];
     },
 
     /**
@@ -264,19 +218,6 @@ export default {
     restartRequiredVMs() {
       return this.vms.filter((vm) => vm.isRestartRequired);
     }
-  },
-
-  async created() {
-    if (this.canPaginate) {
-      return;
-    }
-
-    const inStore = this.inStore;
-    const vmis = await this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VMI });
-
-    await this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VMIM });
-
-    this['allVMIs'] = vmis;
   },
 
   beforeUnmount() {
@@ -328,22 +269,42 @@ export default {
       return key ? this.t(key) : '';
     },
 
-    async fetchSecondaryResources() {
+    // Called by PaginatedResourceTable before it loads the VMs. With pagination fetchPageSecondaryResources loads the
+    // resources of the VMs on the page, without it every VM needs its pods, volumes, restores, backups, VMI and migration
+    async fetchSecondaryResources({ canPaginate }) {
       const inStore = this.inStore;
+      const findAll = (type) => this.$store.dispatch(`${ inStore }/findAll`, { type });
       const hash = {
-        images:  this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.IMAGE }),
-        storage: this.$store.dispatch(`${ inStore }/findAll`, { type: STORAGE_CLASS }),
+        images:  findAll(HCI.IMAGE),
+        storage: findAll(STORAGE_CLASS),
       };
 
       if (this.$store.getters[`${ inStore }/schemaFor`](HCI.RESOURCE_QUOTA)) {
-        hash.resourceQuotas = this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.RESOURCE_QUOTA });
+        hash.resourceQuotas = findAll(HCI.RESOURCE_QUOTA);
       }
 
       if (this.hasNode) {
-        hash.nodes = this.$store.dispatch(`${ inStore }/findAll`, { type: NODE });
+        hash.nodes = findAll(NODE);
+      }
+
+      if (!canPaginate) {
+        Object.assign(hash, {
+          pods:     findAll(POD),
+          pvcs:     findAll(PVC),
+          pvs:      findAll(PV),
+          restores: findAll(HCI.RESTORE),
+          backups:  findAll(HCI.BACKUP),
+          vmis:     findAll(HCI.VMI),
+          vmims:    findAll(HCI.VMIM),
+        });
       }
 
       await allHash(hash);
+    },
+
+    // localFilter of PaginatedResourceTable, which only runs without pagination
+    addVMIsWithoutVM(rows) {
+      return [...rows, ...this.vmisWithoutVM];
     },
 
     // The VM model looks these up by id or owner, so the ones of the VMs on the page are enough
@@ -410,15 +371,18 @@ export default {
 </script>
 
 <template>
-  <Loading v-if="$fetchState.pending" />
-  <div v-else>
-    <component
-      :is="tableComponent"
+  <div>
+    <PaginatedResourceTable
       ref="resourceTable"
-      v-bind="{ ...$attrs, ...tableProps }"
-      :headers="headers"
-      default-sort-by="age"
+      v-bind="$attrs"
       :schema="schema"
+      :headers="headers"
+      :pagination-headers="paginationHeaders"
+      :context="paginationContext"
+      :fetch-secondary-resources="fetchSecondaryResources"
+      :fetch-page-secondary-resources="fetchPageSecondaryResources"
+      :local-filter="addVMIsWithoutVM"
+      default-sort-by="age"
       :groupable="true"
       key-field="_key"
     >
@@ -457,7 +421,7 @@ export default {
           />
         </div>
       </template>
-    </component>
+    </PaginatedResourceTable>
   </div>
 </template>
 
