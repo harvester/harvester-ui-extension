@@ -5,7 +5,7 @@ const {
 } = EditVpcEgressGateway.methods;
 const { vpc: onVpcChange, externalNetworkMode: onExternalNetworkModeChange } = EditVpcEgressGateway.watch;
 const {
-  vpcBfdPortDisabled, vpcEditLocation, internalSubnetOptions, externalSubnetOptions, externalSubnetRules, internalSubnetPlaceholder, snatSubnetOptions, noSnatSubnetOptions, policySubnetsPlaceholder
+  showExternalNetworkMode, vpcBfdPortDisabled, vpcEditLocation, internalSubnetOptions, externalSubnetOptions, externalSubnetRules, internalSubnetPlaceholder, snatSubnetOptions, noSnatSubnetOptions, policySubnetsPlaceholder
 } = EditVpcEgressGateway.computed;
 const { requiredError } = EditVpcEgressGateway.methods;
 
@@ -302,6 +302,33 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     expect(spec.selectors).toStrictEqual(existing.selectors);
     expect(spec.policies).toStrictEqual([{ snat: false, ipBlocks: ['10.0.0.0/24'] }]);
     expect(validate.call(context)).toStrictEqual([]);
+  });
+
+  it.each([
+    ['has', true],
+    ['does not have', false],
+  ])('should offer Primary CNI when the CRD %s externalNetworkMode', async(_, hasField) => {
+    const schema = { fetchResourceFields: jest.fn().mockResolvedValue({}) };
+    const getters = {
+      currentProduct:                 { inStore: 'harvester' },
+      'harvester/schemaFor':          () => schema,
+      'harvester/pathExistsInSchema': jest.fn(() => hasField),
+    };
+    const context = { $store: { getters, dispatch: jest.fn().mockResolvedValue([]) }, supportsPrimaryCNI: false };
+
+    await EditVpcEgressGateway.fetch.call(context);
+
+    expect(schema.fetchResourceFields).toHaveBeenCalledWith();
+    expect(getters['harvester/pathExistsInSchema']).toHaveBeenCalledWith('kubeovn.io.vpcegressgateway', 'spec.externalNetworkMode');
+    expect(context.supportsPrimaryCNI).toBe(hasField);
+  });
+
+  it.each([
+    ['a CRD with the mode', { supportsPrimaryCNI: true, usesPrimaryCNI: false }, true],
+    ['a CRD without the mode', { supportsPrimaryCNI: false, usesPrimaryCNI: false }, false],
+    ['an existing Primary CNI gateway', { supportsPrimaryCNI: false, usesPrimaryCNI: true }, true],
+  ])('should show the external network choice for %s', (_, context, shown) => {
+    expect(showExternalNetworkMode.call(context)).toBe(shown);
   });
 
   it('should start a new gateway on an external subnet and leave the mode to the CRD default', () => {

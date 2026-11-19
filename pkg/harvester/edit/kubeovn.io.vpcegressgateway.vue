@@ -91,10 +91,16 @@ export default {
   async fetch() {
     const inStore = this.$store.getters['currentProduct'].inStore;
 
+    const schema = this.$store.getters[`${ inStore }/schemaFor`](HCI.VPC_EGRESS_GATEWAY);
+
     await allHash({
       vpcs:    this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VPC }),
       subnets: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.SUBNET }),
+      fields:  schema?.fetchResourceFields(),
     });
+
+    // Kube-OVN v1.16 (Harvester v1.10.0-rc1 and older) has no externalNetworkMode and always needs an external subnet
+    this.supportsPrimaryCNI = !!schema && this.$store.getters[`${ inStore }/pathExistsInSchema`](HCI.VPC_EGRESS_GATEWAY, 'spec.externalNetworkMode');
   },
 
   data() {
@@ -105,6 +111,7 @@ export default {
       vpc:                 spec.vpc || '',
       replicas:            spec.replicas ?? 1,
       externalNetworkMode: spec.externalNetworkMode || ATTACHMENT,
+      supportsPrimaryCNI:  false,
       internalSubnet:      spec.internalSubnet || '',
       externalSubnet:      spec.externalSubnet || '',
       internalIPs:         [...(spec.internalIPs || [])],
@@ -159,6 +166,10 @@ export default {
 
     usesPrimaryCNI() {
       return this.externalNetworkMode === PRIMARY_CNI;
+    },
+
+    showExternalNetworkMode() {
+      return this.supportsPrimaryCNI || this.usesPrimaryCNI;
     },
 
     externalNetworkModes() {
@@ -571,7 +582,10 @@ export default {
             />
           </div>
         </div>
-        <div class="row mb-20">
+        <div
+          v-if="showExternalNetworkMode"
+          class="row mb-20"
+        >
           <div class="col span-12">
             <!-- The CRD makes the mode immutable -->
             <RadioGroup
