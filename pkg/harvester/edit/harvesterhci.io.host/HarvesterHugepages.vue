@@ -1,7 +1,9 @@
 <script>
 import LabeledSelect from '@shell/components/form/LabeledSelect.vue';
+import { LabeledInput } from '@components/Form/LabeledInput';
 import { HCI } from '../../types';
 import { DOC } from '../../config/doc-links';
+import { MEBIBYTE } from '../../utils/unit';
 
 export const hugepagesTHPEnabledMode = [{
   label: 'Always',
@@ -53,7 +55,7 @@ export const hugepagesTHPDefragMode = [{
 
 export default {
   name:       'HarvesterHugepages',
-  components: { LabeledSelect },
+  components: { LabeledSelect, LabeledInput },
 
   props: {
     node: {
@@ -70,6 +72,12 @@ export default {
   computed: {
     docsTransparentHugepagesLink() {
       return DOC.TRANSPARENT_HUGEPAGES;
+    },
+    docsStaticHugepagesLink() {
+      return DOC.STATIC_HUGEPAGES;
+    },
+    isStaticHugepagesFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('staticHugepages');
     },
   },
 
@@ -99,15 +107,17 @@ export default {
       return node.id === this.node.id;
     });
     this.spec = this.hugepages.spec;
+    this.spec.static = this.spec.static || { hugepages: 0 };
   },
 
   data() {
     return {
       hugepages: {},
-      spec:      { transparent: {} },
+      spec:      { static: {}, transparent: {} },
       hugepagesTHPEnabledMode,
       hugepagesTHPShmemEnabledMode,
       hugepagesTHPDefragMode,
+      MEBIBYTE,
     };
   },
 
@@ -149,6 +159,30 @@ export default {
             v-model:value="spec.transparent.defrag"
             :label="t('harvester.host.hugepages.transparent.defrag')"
             :options="hugepagesTHPDefragMode"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div
+      v-if="isStaticHugepagesFeatureEnabled"
+    >
+      <hr class="divider" />
+      <h3>
+        <t
+          k="harvester.host.hugepages.static.title"
+          :raw="true"
+          :url="docsStaticHugepagesLink"
+        />
+      </h3>
+      <div class="row mb-20">
+        <div class="col span-12">
+          <LabeledInput
+            v-model:value.number="spec.static.hugepages"
+            required
+            type="integer"
+            min="0"
+            :label="t('harvester.host.hugepages.static.hugepages', { total: `${spec.static.hugepages * 2}${ MEBIBYTE }` })"
           />
         </div>
       </div>
