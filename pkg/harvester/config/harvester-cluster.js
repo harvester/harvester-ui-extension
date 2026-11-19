@@ -662,7 +662,7 @@ export function init($plugin, store) {
   );
 
   basicType(
-    [HCI.VPC_NAT_GATEWAY],
+    [HCI.VPC_NAT_GATEWAY, HCI.VPC_EGRESS_GATEWAY],
     GATEWAYS_GROUP
   );
 
@@ -851,6 +851,52 @@ export function init($plugin, store) {
     },
     exact:      false,
     ifHaveType: HCI.VPC_NAT_GATEWAY,
+  });
+
+  configureType(HCI.VPC_EGRESS_GATEWAY, { hiddenNamespaceGroupButton: true, canYaml: false });
+
+  headers(HCI.VPC_EGRESS_GATEWAY, [
+    STATE,
+    NAME_COL,
+    NAMESPACE_COL,
+    {
+      name:     'vpc',
+      labelKey: 'harvester.egressGateway.vpc.label',
+      value:    'spec.vpc',
+      sort:     ['spec.vpc'],
+    },
+    {
+      name:     'replicas',
+      labelKey: 'harvester.egressGateway.replicas.label',
+      value:    'spec.replicas',
+      sort:     ['spec.replicas'],
+    },
+    {
+      name:     'externalSubnet',
+      labelKey: 'harvester.egressGateway.externalSubnet.label',
+      value:    'spec.externalSubnet',
+      sort:     ['spec.externalSubnet'],
+    },
+    {
+      name:      'externalIPs',
+      labelKey:  'harvester.egressGateway.ips.external.label',
+      value:     'status.externalIPs',
+      formatter: 'List',
+    },
+    AGE
+  ]);
+
+  virtualType({
+    labelKey:   'harvester.egressGateway.label',
+    name:       HCI.VPC_EGRESS_GATEWAY,
+    namespaced: true,
+    weight:     193,
+    route:      {
+      name:   `${ PRODUCT_NAME }-c-cluster-resource`,
+      params: { resource: HCI.VPC_EGRESS_GATEWAY }
+    },
+    exact:      false,
+    ifHaveType: HCI.VPC_EGRESS_GATEWAY,
   });
 
   configureType(HCI.IPTABLES_EIP, { hiddenNamespaceGroupButton: true, canYaml: false });

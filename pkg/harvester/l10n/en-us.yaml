@@ -1504,8 +1504,19 @@ harvester:
       remoteVpc:
         label: Remote VPC
       infoBanner: The static route destination CIDR must cover all subnets CIDR from remote VPC Peer. Read <a href="{url}" target="_blank">VPC Peering Configuration Examples</a> for more information.
+    bfdPort:
+      label: BFD Port
+      banner: The Egress Gateways of this VPC that have BFD enabled use the BFD port to detect a failed gateway instance quickly.
+      ip:
+        label: IP Address
+        placeholder: e.g. 10.255.255.255
+        tooltip: An IP address that doesn't conflict with any other address. For dual-stack, enter an IPv4 and an IPv6 address, separated by a comma.
+      gatewaysNeedPort: 'Egress Gateways of this VPC that have BFD enabled stop working without its BFD port: {gateways}.'
+      validation:
+        ip: '"IP Address" must be an IPv4 address, an IPv6 address, or one of each separated by a comma.'
+        subnet: '"IP Address" must not be in subnet {subnet} ({cidr}) of this VPC.'
   natGateway:
-    label: Gateways
+    label: NAT Gateways
     internalTenantNetwork:
       label: Internal Tenant Network
       placeholder: Select a Virtual Machine Network
@@ -1522,6 +1533,95 @@ harvester:
       label: External Subnets
       addLabel: Add
       placeholder: Select a subnet
+  egressGateway:
+    label: Egress Gateways
+    vpc:
+      label: VPC
+      placeholder: Select a VPC
+    replicas:
+      label: Replicas
+      tooltip: The number of gateway instances. Traffic is spread across all instances.
+    internalSubnet:
+      label: Internal Subnet
+      placeholder: Select a subnet of the VPC
+      noVpc: Select a VPC first
+      none: VPC {vpc} has no subnet on a virtual machine network
+      tooltip: The subnet of the VPC that the gateway instances are attached to. Only subnets of a virtual machine network are listed.
+    externalNetworkMode:
+      label: External Network
+      tooltip: How the gateway instances reach the external network. Primary CNI uses the pod network of the cluster, so it needs no external subnet and has no external IPs or bandwidth limits. This can't be changed after the gateway is created.
+      attachment: External subnet
+      primaryCNI: Primary CNI
+    externalSubnet:
+      label: External Subnet
+      placeholder: Select a subnet
+      tooltip: The subnet that connects the gateway instances to the external network. Only subnets of a virtual machine network are listed.
+    policies:
+      label: Policies
+      description: Traffic from these subnets of the VPC goes out through the gateway. Each subnet can be in one list only.
+      placeholder: Select subnets of the VPC
+      noVpc: Select a VPC on the Basic tab first
+      noSubnets: VPC {vpc} has no subnets
+      snatSubnets:
+        label: Subnets with SNAT
+        tooltip: Traffic from these subnets leaves with the gateway's external IP.
+      noSnatSubnets:
+        label: Subnets without SNAT
+        tooltip: Traffic from these subnets keeps its source IP, so the external network needs a route back to them.
+      ipBlocks:
+        snat: IP Blocks with SNAT
+        noSnat: IP Blocks without SNAT
+        tooltip: Set outside this form, which keeps them as they are.
+    ips:
+      label: IP Addresses
+      banner: Optional. When you set IP addresses, set at least one for each replica. Internal IPs must be in the internal subnet and external IPs in the external subnet.
+      bannerPrimaryCNI: Optional. When you set internal IPs, set at least one for each replica, in the internal subnet. The external IPs come from the pod network.
+      internal:
+        label: Internal IPs
+        add: Add Internal IP
+        placeholder: e.g. 172.20.10.41
+      external:
+        label: External IPs
+        add: Add External IP
+        placeholder: e.g. 10.115.48.220
+    bfd:
+      label: BFD
+      enabled: Bidirectional Forwarding Detection (BFD)
+      tooltip: Detect a failed gateway instance quickly and move its traffic to the other instances.
+      vpcBfdPort:
+        prefix: BFD also needs the BFD port of VPC {vpc}, which isn't enabled.
+        middle: Edit the VPC
+        suffix: to enable it.
+      minRX:
+        label: Receive Interval
+        tooltip: The shortest interval at which the gateway accepts BFD packets.
+      minTX:
+        label: Transmit Interval
+        tooltip: The shortest interval at which the gateway sends BFD packets.
+      multiplier:
+        label: Multiplier
+        tooltip: The number of missed packets after which a gateway instance is considered down.
+      milliseconds: ms
+    bandwidth:
+      label: Bandwidth
+      banner: Optional. Limits the bandwidth of each gateway instance. Enter a whole number in Mbps, such as 10, or a quantity in bits per second, such as 100M or 1Gi.
+      placeholder: e.g. 10
+      ingress:
+        label: Ingress
+      egress:
+        label: Egress
+    validation:
+      replicas: '"Replicas" must be a whole number from 0 to 10.'
+      policyRequired: Select at least one subnet, in either list.
+      policyExternalSubnet: Subnet {subnet} is the external subnet of the gateway, so it can't be in a policy.
+      sameSubnet: The internal and external subnets must be different.
+      ipList: '"{key}" must contain valid IP addresses.'
+      ipDuplicate: '"{key}" must not repeat an address.'
+      ipSubnet: '"{key}" must be usable addresses of subnet {subnet} ({cidr}), not its network, broadcast or gateway address.'
+      ipCount: '"{key}" must have at least one address for each replica ({replicas}).'
+      bfd: The BFD intervals must be whole numbers from 1 to 3600000.
+      bfdMultiplier: The BFD multiplier must be a whole number from 1 to 3600000.
+      bandwidth: The bandwidth must be a whole number in Mbps or a quantity such as 100M or 1Gi.
   externalIP:
     label: External IPs
     natGateway:
@@ -2767,6 +2867,11 @@ typeLabel:
     {count, plural,
       one { NAT Gateway }
       other { NAT Gateways }
+    }
+  kubeovn.io.vpcegressgateway: |-
+    {count, plural,
+      one { Egress Gateway }
+      other { Egress Gateways }
     }
   kubeovn.io.iptablessnatrule: |-
     {count, plural,
