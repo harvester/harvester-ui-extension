@@ -1927,6 +1927,11 @@ harvester:
         no-options: No available tags, please add in the `Host > Storage` page
       migratable:
         label: Migratable
+      cloneMode:
+        label: Clone Mode
+        fullCopy: Full Copy
+        linkedClone: Linked Clone
+        tooltip: Applies when a volume is created from another volume or a snapshot, for example a virtual machine disk created from an image. Full Copy copies all data to the new volume. Linked Clone shares the data blocks of the source volume (copy-on-write), so no data is copied. The replicas of a linked clone must be placed on the same nodes and disks as the source replicas.
       lvmVolumeGroupType:
         label: Volume Group Type
       lvmVolumeGroup:

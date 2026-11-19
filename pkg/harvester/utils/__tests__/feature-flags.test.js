@@ -26,6 +26,11 @@ describe('featureEnabled', () => {
     expect(featureEnabled('repositoryStorageClass', 'v1.10.0')).toBe(true);
   });
 
+  it('should enable longhornV2LinkedClone only from Harvester v1.10.0, which ships Longhorn v1.13', () => {
+    expect(featureEnabled('longhornV2LinkedClone', 'v1.9.1')).toBe(false);
+    expect(featureEnabled('longhornV2LinkedClone', 'v1.10.0')).toBe(true);
+  });
+
   it('should return false for unknown features', () => {
     expect(featureEnabled('doesNotExist', 'v1.8.0')).toBe(false);
   });

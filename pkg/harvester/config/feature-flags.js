@@ -88,6 +88,7 @@ const FEATURE_FLAGS = {
     'componentHealth',
     'repositoryStorageClass',
     'shutdownVMOnMigrationFailure',
+    'longhornV2LinkedClone',
   ],
 };
 
