@@ -433,4 +433,19 @@ describe('class VirtVm', () => {
       expect(opt.pagination.filters[0].fields.map(({ field, value }) => `${ field }=${ value }`)).toStrictEqual(['metadata.namespace=ns1']);
     });
   });
+
+  describe('disableResourceDetailDrawerConfigTab', () => {
+    it.each([
+      ['hide the drawer\'s Config tab while the paged VM list keeps a page of VMs', { paged: true }, true],
+      ['keep the drawer\'s Config tab when every VM is loaded', null, false],
+    ])('should %s', (_, page, hidden) => {
+      const vm = Object.create(VirtVm.prototype);
+      const havePage = jest.fn(() => page);
+
+      Object.defineProperty(vm, '$getters', { value: { havePage } });
+
+      expect(vm.disableResourceDetailDrawerConfigTab).toBe(hidden);
+      expect(havePage).toHaveBeenCalledWith(HCI.VM);
+    });
+  });
 });

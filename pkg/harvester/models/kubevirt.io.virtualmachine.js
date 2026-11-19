@@ -1186,6 +1186,12 @@ export default class VirtVm extends HarvesterResource {
     return res?.data || [];
   }
 
+  // The configuration form loads every VM, volume, VMI and migration, which would replace the page the paged VM list
+  // keeps in the store, so the drawer only shows the YAML then. The VM's own page still shows its configuration
+  get disableResourceDetailDrawerConfigTab() {
+    return !!this.$getters['havePage'](HCI.VM);
+  }
+
   get rootImageId() {
     let imageId = '';
 
