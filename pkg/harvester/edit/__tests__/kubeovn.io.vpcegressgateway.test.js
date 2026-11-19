@@ -3,7 +3,7 @@ import EditVpcEgressGateway from '../kubeovn.io.vpcegressgateway.vue';
 const {
   validate, validateTabs, ipError, ipCountError, policyError, policiesSpec, toSpec, bfdSpec, saveGateway
 } = EditVpcEgressGateway.methods;
-const { vpc: onVpcChange } = EditVpcEgressGateway.watch;
+const { vpc: onVpcChange, externalNetworkMode: onExternalNetworkModeChange } = EditVpcEgressGateway.watch;
 const {
   vpcBfdPortDisabled, vpcEditLocation, internalSubnetOptions, externalSubnetOptions, externalSubnetRules, internalSubnetPlaceholder, snatSubnetOptions, noSnatSubnetOptions, policySubnetsPlaceholder
 } = EditVpcEgressGateway.computed;
@@ -302,6 +302,53 @@ describe('edit: kubeovn.io.vpcegressgateway', () => {
     expect(spec.selectors).toStrictEqual(existing.selectors);
     expect(spec.policies).toStrictEqual([{ snat: false, ipBlocks: ['10.0.0.0/24'] }]);
     expect(validate.call(context)).toStrictEqual([]);
+  });
+
+  it('should start a new gateway on an external subnet and leave the mode to the CRD default', () => {
+    const context = createContext();
+
+    expect(context.externalNetworkMode).toBe('Attachment');
+    expect(toSpec.call(context)).not.toHaveProperty('externalNetworkMode');
+  });
+
+  it('should write a PrimaryCNI gateway without an external subnet', () => {
+    const spec = toSpec.call(createContext({ externalNetworkMode: 'PrimaryCNI', externalSubnet: '' }));
+
+    expect(spec.externalNetworkMode).toBe('PrimaryCNI');
+    expect(spec).not.toHaveProperty('externalSubnet');
+    expect(spec).not.toHaveProperty('externalIPs');
+    expect(spec).not.toHaveProperty('bandwidth');
+  });
+
+  it('should clear the external fields when PrimaryCNI is chosen', () => {
+    const context = createContext({
+      externalIPs: ['10.115.48.220'], bandwidthIngress: 10, bandwidthEgress: '1Gi'
+    });
+
+    onExternalNetworkModeChange.call(context, 'PrimaryCNI');
+
+    expect([context.externalSubnet, context.externalIPs, context.bandwidthIngress, context.bandwidthEgress]).toStrictEqual(['', [], '', '']);
+  });
+
+  it('should save a PrimaryCNI gateway made outside the form', () => {
+    const existing = {
+      vpc:                 'commonvpc',
+      replicas:            1,
+      externalNetworkMode: 'PrimaryCNI',
+      internalSubnet:      'subnetinternal',
+      policies:            [{ snat: true, subnets: ['subnetinternal'] }],
+    };
+    const value = { metadata: { name: 'gateway1', namespace: 'default' }, spec: existing };
+    const context = createContext(EditVpcEgressGateway.data.call({ value }), existing);
+
+    expect(context.externalNetworkMode).toBe('PrimaryCNI');
+    expect(validate.call(context)).toStrictEqual([]);
+    expect(toSpec.call(context)).toStrictEqual({
+      ...existing,
+      bfd: {
+        enabled: false, minRX: 1000, minTX: 1000, multiplier: 3
+      },
+    });
   });
 
   it('should accept a complete form', () => {

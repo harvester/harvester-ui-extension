@@ -30,6 +30,9 @@ const IP_FIELDS = {
 const BFD_DEFAULTS = {
   enabled: false, minRX: 1000, minTX: 1000, multiplier: 3
 };
+// PrimaryCNI sends traffic out through the pod's primary network, so it takes no external subnet, external IPs or bandwidth
+const ATTACHMENT = 'Attachment';
+const PRIMARY_CNI = 'PrimaryCNI';
 
 const isBlank = (value) => value === null || value === undefined || `${ value }`.trim() === '';
 const isWholeNumber = (value, min, max) => /^\d+$/.test(`${ value }`.trim()) && Number(value) >= min && Number(value) <= max;
@@ -99,15 +102,16 @@ export default {
 
     return {
       ...policyGroups(spec.policies),
-      vpc:              spec.vpc || '',
-      replicas:         spec.replicas ?? 1,
-      internalSubnet:   spec.internalSubnet || '',
-      externalSubnet:   spec.externalSubnet || '',
-      internalIPs:      [...(spec.internalIPs || [])],
-      externalIPs:      [...(spec.externalIPs || [])],
-      bfd:              { ...BFD_DEFAULTS, ...spec.bfd },
-      bandwidthIngress: spec.bandwidth?.ingress ?? '',
-      bandwidthEgress:  spec.bandwidth?.egress ?? '',
+      vpc:                 spec.vpc || '',
+      replicas:            spec.replicas ?? 1,
+      externalNetworkMode: spec.externalNetworkMode || ATTACHMENT,
+      internalSubnet:      spec.internalSubnet || '',
+      externalSubnet:      spec.externalSubnet || '',
+      internalIPs:         [...(spec.internalIPs || [])],
+      externalIPs:         [...(spec.externalIPs || [])],
+      bfd:                 { ...BFD_DEFAULTS, ...spec.bfd },
+      bandwidthIngress:    spec.bandwidth?.ingress ?? '',
+      bandwidthEgress:     spec.bandwidth?.egress ?? '',
     };
   },
 
@@ -151,6 +155,18 @@ export default {
 
     externalSubnetResource() {
       return this.allSubnets.find((subnet) => subnet.id === this.externalSubnet);
+    },
+
+    usesPrimaryCNI() {
+      return this.externalNetworkMode === PRIMARY_CNI;
+    },
+
+    externalNetworkModes() {
+      return [ATTACHMENT, PRIMARY_CNI];
+    },
+
+    externalNetworkModeLabels() {
+      return [this.t('harvester.egressGateway.externalNetworkMode.attachment'), this.t('harvester.egressGateway.externalNetworkMode.primaryCNI')];
     },
 
     selectedVpc() {
@@ -282,6 +298,16 @@ export default {
       this.snatSubnets = this.snatSubnets.filter((subnet) => vpcSubnets.includes(subnet));
       this.noSnatSubnets = this.noSnatSubnets.filter((subnet) => vpcSubnets.includes(subnet));
     },
+
+    // The mode can only be chosen on create; PrimaryCNI rejects the external fields, so they're cleared
+    externalNetworkMode(neu) {
+      if (neu === PRIMARY_CNI) {
+        this.externalSubnet = '';
+        this.externalIPs = [];
+        this.bandwidthIngress = '';
+        this.bandwidthEgress = '';
+      }
+    },
   },
 
   methods: {
@@ -360,7 +386,7 @@ export default {
       [
         ['vpc', 'harvester.egressGateway.vpc.label'],
         ['internalSubnet', 'harvester.egressGateway.internalSubnet.label'],
-        ['externalSubnet', 'harvester.egressGateway.externalSubnet.label'],
+        ...(this.externalNetworkMode === PRIMARY_CNI ? [] : [['externalSubnet', 'harvester.egressGateway.externalSubnet.label']]),
       ].forEach(([field, labelKey]) => {
         if (!this[field]) {
           errors.basic.push(this.t('validation.required', { key: this.t(labelKey) }, true));
@@ -455,6 +481,12 @@ export default {
         delete spec.bandwidth;
       }
 
+      // Attachment is the CRD default, so a new gateway only names the mode when it's PrimaryCNI
+      if (this.externalNetworkMode === PRIMARY_CNI) {
+        spec.externalNetworkMode = PRIMARY_CNI;
+        delete spec.externalSubnet;
+      }
+
       return spec;
     },
 
@@ -539,6 +571,22 @@ export default {
             />
           </div>
         </div>
+        <div class="row mb-20">
+          <div class="col span-12">
+            <!-- The CRD makes the mode immutable -->
+            <RadioGroup
+              v-model:value="externalNetworkMode"
+              data-testid="egress-gateway-external-network-mode"
+              name="externalNetworkMode"
+              :options="externalNetworkModes"
+              :labels="externalNetworkModeLabels"
+              :label="t('harvester.egressGateway.externalNetworkMode.label')"
+              :tooltip="t('harvester.egressGateway.externalNetworkMode.tooltip')"
+              :disabled="!isCreate"
+              :mode="mode"
+            />
+          </div>
+        </div>
         <div class="row">
           <div class="col span-6">
             <LabeledSelect
@@ -555,7 +603,10 @@ export default {
               :tooltip="t('harvester.egressGateway.internalSubnet.tooltip')"
             />
           </div>
-          <div class="col span-6">
+          <div
+            v-if="!usesPrimaryCNI"
+            class="col span-6"
+          >
             <LabeledSelect
               v-model:value="externalSubnet"
               data-testid="egress-gateway-external-subnet"
@@ -659,7 +710,7 @@ export default {
         <Banner
           v-if="!isView"
           color="info"
-          :label="t('harvester.egressGateway.ips.banner')"
+          :label="usesPrimaryCNI ? t('harvester.egressGateway.ips.bannerPrimaryCNI') : t('harvester.egressGateway.ips.banner')"
         />
         <Banner
           v-for="error in ipCountErrors"
@@ -677,6 +728,7 @@ export default {
           :value-placeholder="t('harvester.egressGateway.ips.internal.placeholder')"
         />
         <ArrayList
+          v-if="!usesPrimaryCNI"
           v-model:value="externalIPs"
           class="mt-20"
           :rules="externalIPRules"
@@ -758,6 +810,7 @@ export default {
       </Tab>
 
       <Tab
+        v-if="!usesPrimaryCNI"
         name="bandwidth"
         :label="t('harvester.egressGateway.bandwidth.label')"
         :weight="95"

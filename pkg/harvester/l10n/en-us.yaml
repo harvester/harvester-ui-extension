@@ -1537,6 +1537,11 @@ harvester:
       noVpc: Select a VPC first
       none: VPC {vpc} has no subnet on a virtual machine network
       tooltip: The subnet of the VPC that the gateway instances are attached to. Only subnets of a virtual machine network are listed.
+    externalNetworkMode:
+      label: External Network
+      tooltip: How the gateway instances reach the external network. Primary CNI uses the pod network of the cluster, so it needs no external subnet and has no external IPs or bandwidth limits. This can't be changed after the gateway is created.
+      attachment: External subnet
+      primaryCNI: Primary CNI
     externalSubnet:
       label: External Subnet
       placeholder: Select a subnet
@@ -1560,6 +1565,7 @@ harvester:
     ips:
       label: IP Addresses
       banner: Optional. When you set IP addresses, set at least one for each replica. Internal IPs must be in the internal subnet and external IPs in the external subnet.
+      bannerPrimaryCNI: Optional. When you set internal IPs, set at least one for each replica, in the internal subnet. The external IPs come from the pod network.
       internal:
         label: Internal IPs
         add: Add Internal IP
