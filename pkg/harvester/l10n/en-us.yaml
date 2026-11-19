@@ -1434,12 +1434,12 @@ harvester:
       tooltip: Enable network isolation for this Subnet. When enabled, VMs can only communicate within this subnet, even if other subnets exist under the same VPC.
     bgp:
       label: BGP
-      tooltip: Advertise this subnet to the BGP neighbors set in Overlay Networks > Settings.
+      tooltip: Advertise this subnet to the BGP neighbors set in Overlay Networks > BGP Speaker.
       externalGateway: Label the hosts that act as gateways for external traffic with the key "ovn.kubernetes.io/external-gw" and the value "true".
       speakerOff:
-        prefix: No host runs the BGP speaker yet, so this subnet isn't advertised. Set it up in
-        middle: Overlay Network Settings
-        suffix: under BGP Speaker.
+        prefix: No host runs the BGP speaker yet, so this subnet isn't advertised. Set it up on the
+        middle: BGP Speaker
+        suffix: page under Overlay Networks.
     allowSubnet:
       label: Allow Subnets
       tooltip: You can specify certain subnets which can communicate with this subnet.
@@ -1523,15 +1523,12 @@ harvester:
       validation:
         ip: '"IP Address" must be an IPv4 address, an IPv6 address, or one of each separated by a comma.'
         subnet: '"IP Address" must not be in subnet {subnet} ({cidr}) of this VPC.'
-  overlayNetworkSettings:
-    label: Settings
-    title: Overlay Network Settings
+  bgp:
+    label: BGP Speaker
     noAddonEnabled:
       prefix: The kubeovn-operator add-on is not enabled, click
       middle: here
-      suffix: to enable the add-on before changing overlay network settings.
-  bgp:
-    label: BGP Speaker
+      suffix: to enable the add-on before setting up the BGP speaker.
     unsupported: The BGP speaker requires [[Harvester]] v1.10.0 or later.
     description: The BGP speaker runs on the selected hosts and advertises every subnet that has BGP enabled to the BGP neighbors. Enable BGP on each subnet that should be reachable from the external network. When the speaker is disabled, no host runs it, and its settings are kept for when you enable it again.
     sections:

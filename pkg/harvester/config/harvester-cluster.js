@@ -77,7 +77,8 @@ const EXTERNAL_IPS_GROUP = `${ NAT_INTERNET_GROUP }::External IPs`;
 const RULES_GROUP = `${ NAT_INTERNET_GROUP }::Rules`;
 const SOURCE_RULES_GROUP = `${ RULES_GROUP }::Source Rules`;
 const DESTINATION_RULES_GROUP = `${ RULES_GROUP }::Destination Rules`;
-const OVERLAY_NETWORK_SETTINGS = 'overlay-network-settings';
+// The BGP speaker part of the Kube-OVN Configuration. If more parts get a form, they can move into a Configuration group.
+const BGP_SPEAKER = 'bgp-speaker';
 
 export const PRODUCT_NAME = 'harvester';
 
@@ -666,7 +667,7 @@ export function init($plugin, store) {
   );
 
   basicType(
-    [OVERLAY_NETWORK_SETTINGS],
+    [BGP_SPEAKER],
     OVERLAY_NETWORKS_GROUP
   );
 
@@ -969,11 +970,11 @@ export function init($plugin, store) {
   });
 
   virtualType({
-    labelKey:   'harvester.overlayNetworkSettings.label',
-    name:       OVERLAY_NETWORK_SETTINGS,
+    labelKey:   'harvester.bgp.label',
+    name:       BGP_SPEAKER,
     namespaced: false,
     weight:     190,
-    route:      { name: `${ PRODUCT_NAME }-c-cluster-overlay-network-settings` },
+    route:      { name: `${ PRODUCT_NAME }-c-cluster-bgp-speaker` },
     exact:      false,
     ifHaveType: HCI.KUBEOVN_CONFIG,
   });

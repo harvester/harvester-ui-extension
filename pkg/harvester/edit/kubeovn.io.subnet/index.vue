@@ -156,7 +156,7 @@ export default {
     },
 
     bgpSettingsLocation() {
-      return { name: `${ HARVESTER_PRODUCT }-c-cluster-overlay-network-settings` };
+      return { name: `${ HARVESTER_PRODUCT }-c-cluster-bgp-speaker` };
     },
 
     bgpEnabled: {

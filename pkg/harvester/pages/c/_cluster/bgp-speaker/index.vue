@@ -26,9 +26,9 @@ const cleanList = (list) => [...new Set((list || []).map((item) => `${ item || '
 const isAsNumber = (value) => /^\d+$/.test(`${ value ?? '' }`.trim()) && Number(value) >= 1 && Number(value) <= AS_MAX;
 const asText = (value) => `${ value ?? '' }`.trim();
 
-// Cluster-wide Kube-OVN settings, edited on this page. For now there is one section, the BGP speaker.
+// The BGP speaker part of the Kube-OVN Configuration (Overlay Networks > BGP Speaker)
 export default {
-  name: 'HarvesterOverlayNetworkSettings',
+  name: 'HarvesterBgpSpeaker',
 
   components: {
     ArrayList,
@@ -368,7 +368,7 @@ export default {
   <Loading v-if="$fetchState.pending" />
   <div v-else>
     <h1 class="mb-20">
-      {{ t('harvester.overlayNetworkSettings.title') }}
+      {{ t('harvester.bgp.label') }}
     </h1>
     <CruResource
       v-if="featureEnabled && addonEnabled && configuration"
@@ -381,12 +381,10 @@ export default {
       @finish="save"
       @error="e => errors = e"
     >
-      <!-- One section per setting; Save covers them all -->
       <RcSection
         :key="formKey"
-        :title="t('harvester.bgp.label')"
         type="primary"
-        mode="with-header"
+        mode="no-header"
         :expandable="false"
         data-testid="bgp-section"
       >
@@ -552,9 +550,8 @@ export default {
     <!-- No form: the section says why -->
     <RcSection
       v-else
-      :title="t('harvester.bgp.label')"
       type="primary"
-      mode="with-header"
+      mode="no-header"
       :expandable="false"
       data-testid="bgp-section"
     >
@@ -571,9 +568,9 @@ export default {
       >
         <MessageLink
           :to="addonLocation"
-          prefix-label="harvester.overlayNetworkSettings.noAddonEnabled.prefix"
-          middle-label="harvester.overlayNetworkSettings.noAddonEnabled.middle"
-          suffix-label="harvester.overlayNetworkSettings.noAddonEnabled.suffix"
+          prefix-label="harvester.bgp.noAddonEnabled.prefix"
+          middle-label="harvester.bgp.noAddonEnabled.middle"
+          suffix-label="harvester.bgp.noAddonEnabled.suffix"
         />
       </Banner>
       <!-- The Configuration could not be read -->

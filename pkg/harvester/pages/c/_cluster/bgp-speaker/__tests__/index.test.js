@@ -103,7 +103,7 @@ function fill(wrapper, values) {
   });
 }
 
-describe('page: Overlay Network Settings, BGP Speaker section', () => {
+describe('page: Overlay Networks > BGP Speaker', () => {
   it('should load an untouched install as disabled, without the placeholder values', async() => {
     const { wrapper, dispatch } = mountPage();
 
@@ -160,13 +160,12 @@ describe('page: Overlay Network Settings, BGP Speaker section', () => {
     });
   });
 
-  it('should edit the BGP speaker in a section of this page, without a Cancel button', () => {
+  it('should edit the BGP speaker on this page, titled BGP Speaker, without a Cancel button', () => {
     const { wrapper } = mountPage();
 
-    expect(wrapper.find('h1').text()).toBe('harvester.overlayNetworkSettings.title');
-    expect(wrapper.findComponent(RcSection).props()).toStrictEqual(expect.objectContaining({
-      title: 'harvester.bgp.label', type: 'primary', mode: 'with-header', expandable: false
-    }));
+    expect(wrapper.find('h1').text()).toBe('harvester.bgp.label');
+    // the page title names it, so the outer section has no header of its own
+    expect(wrapper.findComponent(RcSection).props()).toStrictEqual(expect.objectContaining({ type: 'primary', mode: 'no-header' }));
     expect(wrapper.findComponent(CruResource).props('showCancel')).toBe(false);
   });
 
@@ -188,7 +187,7 @@ describe('page: Overlay Network Settings, BGP Speaker section', () => {
     await wrapper.vm.$nextTick();
 
     expect(wrapper.findAllComponents(RcSection).map((section) => [section.props('title'), section.props('type')])).toStrictEqual([
-      ['harvester.bgp.label', 'primary'],
+      ['', 'primary'],
       ['harvester.bgp.neighbors.label', 'secondary'],
       ['harvester.bgp.sections.advanced', 'secondary'],
     ]);
@@ -197,7 +196,7 @@ describe('page: Overlay Network Settings, BGP Speaker section', () => {
   it('should say the BGP speaker needs v1.10.0 on older Harvester versions', () => {
     const { wrapper } = mountPage({ featureEnabled: false, configuration: null });
 
-    expect(wrapper.findComponent(RcSection).props('title')).toBe('harvester.bgp.label');
+    expect(wrapper.findComponent(RcSection).exists()).toBe(true);
     expect(wrapper.findAllComponents(Banner).map((b) => b.props('label'))).toStrictEqual(['harvester.bgp.unsupported']);
     expect(wrapper.findComponent(CruResource).exists()).toBe(false);
   });

@@ -111,7 +111,7 @@ describe('edit: kubeovn.io.subnet BGP speaker hint', () => {
     expect(context.$store.dispatch).not.toHaveBeenCalledWith('harvester/find', expect.anything());
   });
 
-  it('should link to Overlay Network Settings', () => {
-    expect(EditSubnet.computed.bgpSettingsLocation.call({})).toStrictEqual({ name: 'harvester-c-cluster-overlay-network-settings' });
+  it('should link to the BGP Speaker page', () => {
+    expect(EditSubnet.computed.bgpSettingsLocation.call({})).toStrictEqual({ name: 'harvester-c-cluster-bgp-speaker' });
   });
 });
