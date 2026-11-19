@@ -5,7 +5,7 @@ import extensionRoutes from './routing/harvester-routing';
 import harvesterCommonStore from './store/harvester-common';
 import harvesterStore from './store/harvester-store';
 import customValidators from './validators';
-import { PRODUCT_NAME, VM_LIST_PAGINATION_CONTEXT } from './config/harvester';
+import { PRODUCT_NAME } from './config/harvester';
 import { HCI } from './types';
 import {
   hostResolvesL10nGlobals, resolveL10nGlobals, standaloneProductName, PRODUCT_NAME_GLOBAL
@@ -42,12 +42,12 @@ export default function (plugin: IPlugin) {
   plugin.addDashboardStore(harvesterStore.config.namespace, harvesterStore.specifics, harvesterStore.config, harvesterStore.init);
   plugin.validators = customValidators;
 
-  // Only the VM list asks with this context, and only when the cluster's API can page it (feature `vmListPagination`)
+  // The store's `paginationEnabled` getter turns it off on clusters whose API can't page the VM list
   plugin.enableServerSidePagination?.({
     [PRODUCT_NAME]: {
       resources: {
         enableAll:  false,
-        enableSome: { enabled: [{ resource: HCI.VM, context: [VM_LIST_PAGINATION_CONTEXT] }] }
+        enableSome: { enabled: [HCI.VM] }
       }
     }
   });

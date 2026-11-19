@@ -5,7 +5,6 @@ import {
 import VmList from '../kubevirt.io.virtualmachine.vue';
 import { VM_HEADERS, VM_PAGINATION_HEADERS } from '../../config/table-headers';
 import { HCI } from '../../types';
-import { VM_LIST_PAGINATION_CONTEXT } from '../../config/harvester';
 
 const schemaWithColumns = (id, columns) => ({
   id,
@@ -23,8 +22,9 @@ const SCHEMAS = {
   [PV]:          { id: PV },
 };
 
+// `harvester/paginationEnabled` is the store's getter, which checks the cluster's API (see store/harvester-store/getters.ts)
 function createStore({
-  featureEnabled = true, paginationEnabled = true, havePage = true, found = {}, failing = [], vmSchema = SCHEMAS[HCI.VM], storedVMs = [], storedVMIs = []
+  paginationEnabled = true, havePage = true, found = {}, failing = [], storedVMs = [], storedVMIs = [], namespaceFilters = []
 } = {}) {
   const dispatch = jest.fn((action, { type } = {}) => (failing.includes(type) ? Promise.reject(new Error('failed')) : Promise.resolve(found[type] || [])));
 
@@ -32,13 +32,13 @@ function createStore({
     dispatch,
     getters: {
       currentProduct:                       { inStore: 'harvester' },
-      'harvester-common/getFeatureEnabled': (name) => featureEnabled && name === 'vmListPagination',
-      'harvester/paginationEnabled':        ({ id, context }) => paginationEnabled && id === HCI.VM && context === VM_LIST_PAGINATION_CONTEXT,
+      'harvester/paginationEnabled':        jest.fn((args) => paginationEnabled && (args?.id || args) === HCI.VM),
       'harvester/havePage':                 (type) => havePage && type === HCI.VM,
-      'harvester/schemaFor':                (type) => (type === HCI.VM ? vmSchema : SCHEMAS[type]),
+      'harvester/schemaFor':                (type) => SCHEMAS[type],
       'harvester/all':                      (type) => ({ [HCI.VM]: storedVMs, [HCI.VMI]: storedVMIs }[type] || []),
       'type-map/headersFor':                (schema, pagination) => (pagination ? VM_PAGINATION_HEADERS : VM_HEADERS),
       'action-menu/performCallbackData':    undefined,
+      namespaceFilters,
     }
   };
 }
@@ -54,20 +54,16 @@ const vm = (namespace, name, claimNames = []) => ({
 
 describe('list: kubevirt.io.virtualmachine', () => {
   describe('without server-side pagination', () => {
-    it.each([
-      ['the feature is off for the cluster version', { featureEnabled: false }],
-      ['the shell does not page the VM list', { paginationEnabled: false }],
-      ['the API is not served from the SQL cache', { vmSchema: { id: HCI.VM, attributes: { columns: [{ name: 'Status', field: '.status.printableStatus' }] } } }],
-    ])('should not give the table the context when %s', (_, opts) => {
-      const $store = createStore(opts);
+    it('should not page when the store says the cluster\'s API can\'t page the VMs', () => {
+      const $store = createStore({ paginationEnabled: false });
 
       expect(call('canPaginate', { $store })).toBe(false);
-      expect(call('paginationContext', { canPaginate: false })).toBeNull();
+      expect($store.getters['harvester/paginationEnabled']).toHaveBeenCalledWith(HCI.VM);
     });
 
     it('should add the node and restore columns to the product\'s VM columns', () => {
       const ctx = {
-        $store: createStore({ featureEnabled: false }), schema: SCHEMAS[HCI.VM], hasNode: true, hasBackUpRestoreInProgress: true
+        $store: createStore({ paginationEnabled: false }), schema: SCHEMAS[HCI.VM], hasNode: true, hasBackUpRestoreInProgress: true
       };
 
       ctx.withListColumns = VmList.methods.withListColumns.bind(ctx);
@@ -92,7 +88,7 @@ describe('list: kubevirt.io.virtualmachine', () => {
     });
 
     it('should load every resource the rows need, the table loads the VMs', async() => {
-      const $store = createStore({ featureEnabled: false });
+      const $store = createStore({ paginationEnabled: false });
 
       await VmList.methods.fetchSecondaryResources.call({
         $store, inStore: 'harvester', hasNode: true
@@ -105,11 +101,8 @@ describe('list: kubevirt.io.virtualmachine', () => {
   });
 
   describe('with server-side pagination', () => {
-    it('should give the table the VM list context', () => {
-      const $store = createStore();
-
-      expect(call('canPaginate', { $store })).toBe(true);
-      expect(call('paginationContext', { canPaginate: true })).toBe(VM_LIST_PAGINATION_CONTEXT);
+    it('should page when the store says the cluster\'s API can page the VMs', () => {
+      expect(call('canPaginate', { $store: createStore() })).toBe(true);
     });
 
     it('should only sort and search on fields the API indexes', () => {
@@ -234,9 +227,24 @@ describe('list: kubevirt.io.virtualmachine', () => {
     });
   });
 
+  // The header's filter is shared by every list, so Not in a Project can come from a list that doesn't page
+  it.each([
+    ['ask for another namespace filter while paging when the API can\'t filter by it', { namespaceFilters: ['all://orphans'] }, true],
+    ['show the list while paging with a namespace filter the API can use', { namespaceFilters: ['ns://default'] }, false],
+    ['show the list without pagination, whatever the filter', { paginationEnabled: false, namespaceFilters: ['all://orphans'] }, false],
+  ])('should %s', (_, opts, asks) => {
+    const wrapper = shallowMount(VmList, {
+      props:  { schema: SCHEMAS[HCI.VM] },
+      global: { mocks: { $store: createStore(opts), t: (key) => key }, stubs: { 'router-link': true } },
+    });
+
+    expect(wrapper.findComponent({ name: 'IconMessage' }).exists()).toBe(asks);
+    expect(wrapper.findComponent({ name: 'PaginatedResourceTable' }).exists()).toBe(!asks);
+  });
+
   it('should hide the masthead loading count only with pagination', () => {
     expect(VmList.$loadingResources(null, createStore())).toStrictEqual({ loadResources: [] });
-    expect(VmList.$loadingResources(null, createStore({ featureEnabled: false }))).toStrictEqual({});
+    expect(VmList.$loadingResources(null, createStore({ paginationEnabled: false }))).toStrictEqual({});
   });
 
   describe('restart required notification', () => {

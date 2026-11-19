@@ -1,16 +1,17 @@
 <script>
 import { mapGetters } from 'vuex';
 import PaginatedResourceTable from '@shell/components/PaginatedResourceTable';
+import IconMessage from '@shell/components/IconMessage';
 import {
   PVC, PV, NODE, POD, STORAGE_CLASS
 } from '@shell/config/types';
 import { FilterArgs, PaginationFilterEquality, PaginationParamFilter } from '@shell/types/store/pagination.types';
 
 import { allHash } from '@shell/utils/promise';
+import paginationUtils from '@shell/utils/pagination-utils';
 import { uniq } from '@shell/utils/array';
 import { HCI } from '../types';
 import { HCI as HCI_ANNOTATIONS } from '../config/labels-annotations';
-import { VM_LIST_PAGINATION_CONTEXT } from '../config/harvester';
 import HarvesterVmState from '../formatters/HarvesterVmState';
 import ConsoleBar from '../components/VMConsoleBar';
 
@@ -20,17 +21,11 @@ const ENCRYPTED_VOLUME_TOOLTIP_KEYS = {
 };
 
 // Outside the component because `ResourceList` calls `$loadingResources(route, store)` on the component options,
-// where there's no `this`
+// where there's no `this`. The store's getter knows whether this cluster's API can page the list
 function canPaginate(store) {
   const inStore = store.getters['currentProduct']?.inStore;
-  const featureEnabled = !!store.getters['harvester-common/getFeatureEnabled']('vmListPagination');
 
-  // An API served from the SQL cache lists the printer columns of a CRD as `metadata.fields[N]`. Without the SQL cache
-  // it can't filter the paged list, so don't rely on the version alone (it can be missing or not semver)
-  const columns = store.getters[`${ inStore }/schemaFor`]?.(HCI.VM)?.attributes?.columns || [];
-  const fromSqlCache = columns.some((col) => col.field?.startsWith('$.metadata.fields['));
-
-  return featureEnabled && fromSqlCache && !!store.getters[`${ inStore }/paginationEnabled`]?.({ id: HCI.VM, context: VM_LIST_PAGINATION_CONTEXT });
+  return !!store.getters[`${ inStore }/paginationEnabled`]?.(HCI.VM);
 }
 
 export default {
@@ -38,6 +33,7 @@ export default {
   components: {
     HarvesterVmState,
     ConsoleBar,
+    IconMessage,
     PaginatedResourceTable
   },
 
@@ -70,9 +66,10 @@ export default {
       return canPaginate(this.$store);
     },
 
-    // PaginatedResourceTable only pages when it's given the context, so clusters whose API can't page keep the full list
-    paginationContext() {
-      return this.canPaginate ? VM_LIST_PAGINATION_CONTEXT : null;
+    // The header's namespace filter is shared by every list, so an option the paged API can't filter by, like Not in a
+    // Project, can still be selected from another list. Ask for another one, like the shell's generic lists do
+    namespaceFilterInvalid() {
+      return this.canPaginate && !paginationUtils.validateNsProjectFilters(this.$store.getters['namespaceFilters']);
     },
 
     // The product registers both sets of VM columns (`headers()` in config/harvester-cluster.js). With pagination the
@@ -134,7 +131,7 @@ export default {
   watch: {
     actionCb(neu) {
       if (neu?.clearTableSelection) {
-        this.$refs.resourceTable.clearSelection();
+        this.$refs.resourceTable?.clearSelection();
         this.$store.dispatch('action-menu/clearCallbackData');
       }
     },
@@ -315,13 +312,23 @@ export default {
 
 <template>
   <div>
+    <IconMessage
+      v-if="namespaceFilterInvalid"
+      :vertical="true"
+      :subtle="false"
+      icon="icon-filter_alt"
+    >
+      <template #message>
+        {{ t('resourceList.nsFilteringGeneric') }}
+      </template>
+    </IconMessage>
     <PaginatedResourceTable
+      v-else
       ref="resourceTable"
       v-bind="$attrs"
       :schema="schema"
       :headers="headers"
       :pagination-headers="paginationHeaders"
-      :context="paginationContext"
       :fetch-secondary-resources="fetchSecondaryResources"
       :fetch-page-secondary-resources="fetchPageSecondaryResources"
       :local-filter="addVMIsWithoutVM"
