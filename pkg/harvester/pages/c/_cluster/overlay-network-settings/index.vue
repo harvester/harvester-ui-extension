@@ -18,7 +18,7 @@ import { allHash } from '@shell/utils/promise';
 import { HCI } from '../../../../types';
 import { ADD_ONS } from '../../../../config/harvester-map';
 import { PRODUCT_NAME } from '../../../../config/harvester';
-import { KUBEOVN_CONFIGURATION_ID, isIpv6, isPlaceholderNeighbor } from '../../../../models/kubeovn.io.configuration';
+import { KUBEOVN_CONFIGURATION_ID, isIpv6, isPlaceholderNeighbor, withoutLeadingZeros } from '../../../../models/kubeovn.io.configuration';
 
 const AS_MAX = 4294967294;
 
@@ -203,6 +203,10 @@ export default {
         return this.hasNeighbor ? undefined : this.t('harvester.bgp.validation.neighborRequired', null, true);
       }
 
+      if (withoutLeadingZeros(ip)) {
+        return this.leadingZeroError(ip);
+      }
+
       // Harvester installs these before anyone sets up BGP, and this page hides them, so saving one would lose it
       if (isPlaceholderNeighbor(ip)) {
         return this.t('harvester.bgp.validation.placeholderNeighbor', { ip }, true);
@@ -217,11 +221,20 @@ export default {
       return isAsNumber(value) ? undefined : this.t('harvester.bgp.validation.asNumber', { key: this.t(`harvester.bgp.${ field }.label`), max: AS_MAX }, true);
     },
 
+    // The speaker can't parse these, so it would not start
+    leadingZeroError(ip) {
+      return this.t('harvester.bgp.validation.leadingZero', { ip, fixed: withoutLeadingZeros(ip) }, true);
+    },
+
     routerIDError(value) {
       const ip = `${ value || '' }`.trim();
 
       if (!ip) {
         return undefined;
+      }
+
+      if (withoutLeadingZeros(ip)) {
+        return this.leadingZeroError(ip);
       }
 
       if (!isIpv4(ip)) {
@@ -235,6 +248,10 @@ export default {
     nextHopError(field, value, isFamily) {
       const ip = `${ value || '' }`.trim();
       const key = isFamily === isIpv4 ? 'ipv4' : 'ipv6';
+
+      if (ip && withoutLeadingZeros(ip)) {
+        return this.leadingZeroError(ip);
+      }
 
       return ip && !isFamily(ip) ? this.t(`harvester.bgp.validation.${ key }`, { key: this.t(`harvester.bgp.${ field }.label`) }, true) : undefined;
     },

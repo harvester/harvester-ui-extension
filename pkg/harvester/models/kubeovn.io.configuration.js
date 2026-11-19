@@ -16,6 +16,21 @@ export const isIpv6 = (ip) => isValidIP(ip) && !isIpv4(ip);
 
 export const isPlaceholderNeighbor = (ip) => PLACEHOLDER_NEIGHBORS.includes(`${ ip || '' }`.trim());
 
+// The speaker parses its addresses with Go, which rejects an IPv4 part written with a leading zero (192.0.2.010), so
+// the speaker would not start. Returns the address without those zeros, or null when it has none. An IPv6 address
+// can end in an IPv4 one (::ffff:10.0.0.1), so only its dotted tail is checked.
+export const withoutLeadingZeros = (ip) => {
+  const value = `${ ip || '' }`.trim();
+  const tailStart = value.lastIndexOf(':') + 1;
+  const parts = value.slice(tailStart).split('.');
+
+  if (parts.length !== 4 || !parts.some((part) => /^0\d/.test(part))) {
+    return null;
+  }
+
+  return value.slice(0, tailStart) + parts.map((part) => part.replace(/^0+(?=\d)/, '')).join('.');
+};
+
 export default class KubeOvnConfiguration extends HarvesterResource {
   get bgp() {
     return this.spec?.bgp || {};

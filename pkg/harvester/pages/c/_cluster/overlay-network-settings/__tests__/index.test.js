@@ -4,7 +4,7 @@ import ArrayList from '@shell/components/form/ArrayList';
 import CruResource from '@shell/components/CruResource';
 import { RcSection } from '@components/RcSection';
 import OverlayNetworkSettings from '../index.vue';
-import KubeOvnConfiguration from '../../../../../models/kubeovn.io.configuration';
+import KubeOvnConfiguration, { withoutLeadingZeros } from '../../../../../models/kubeovn.io.configuration';
 
 // What Harvester installs before anyone sets up BGP
 const PLACEHOLDER_BGP = {
@@ -356,6 +356,11 @@ describe('page: Overlay Network Settings, BGP Speaker section', () => {
     ['an IPv4 address in the IPv6 neighbors', { neighborsV4: [], neighborsV6: ['10.115.53.2'] }, 'harvester.bgp.validation.neighborV6'],
     ['the IPv4 placeholder neighbor', { neighborsV4: ['192.0.2.1'] }, 'harvester.bgp.validation.placeholderNeighbor'],
     ['the IPv6 placeholder neighbor', { neighborsV6: ['2001:db8::1'] }, 'harvester.bgp.validation.placeholderNeighbor'],
+    ['an IPv4 neighbor with a leading zero', { neighborsV4: ['192.0.2.010'] }, 'harvester.bgp.validation.leadingZero'],
+    ['an IPv6 neighbor ending in an IPv4 address with a leading zero', { neighborsV6: ['::ffff:10.0.0.010'] }, 'harvester.bgp.validation.leadingZero'],
+    ['a router ID with a leading zero', { routerID: '10.115.048.1' }, 'harvester.bgp.validation.leadingZero'],
+    ['an IPv4 next hop with a leading zero', { nextHopV4: '010.115.48.1' }, 'harvester.bgp.validation.leadingZero'],
+    ['an IPv6 next hop ending in an IPv4 address with a leading zero', { nextHopV6: '::ffff:10.115.48.01' }, 'harvester.bgp.validation.leadingZero'],
     ['an empty AS number', { neighborAS: '' }, 'harvester.bgp.validation.asNumber'],
     ['an AS number out of range', { clusterAS: '4294967295' }, 'harvester.bgp.validation.asNumber'],
     ['a router ID that is not IPv4', { routerID: '2001:db8::1' }, 'harvester.bgp.validation.routerID'],
@@ -400,6 +405,28 @@ describe('page: Overlay Network Settings, BGP Speaker section', () => {
     expect(v4Rule('2001:db8::2')).toContain('harvester.bgp.validation.neighborV4');
     expect(v6Rule('10.115.53.2')).toContain('harvester.bgp.validation.neighborV6');
     expect(v6Rule('2001:db8::1')).toContain('harvester.bgp.validation.placeholderNeighbor');
+  });
+
+  it.each([
+    ['192.0.2.010', '192.0.2.10'],
+    ['010.115.053.002', '10.115.53.2'],
+    ['10.0.0.00', '10.0.0.0'],
+    ['::ffff:10.0.0.010', '::ffff:10.0.0.10'],
+    ['192.0.2.10', null],
+    ['0.0.0.0', null],
+    ['2001:db8::0002', null],
+    ['', null],
+  ])('should find the leading zeros the speaker cannot parse in %j', (ip, fixed) => {
+    expect(withoutLeadingZeros(ip)).toBe(fixed);
+  });
+
+  it('should say how to write an address with a leading zero', () => {
+    const { wrapper } = mountPage();
+    const [rule] = wrapper.vm.neighborV4Rules;
+
+    fill(wrapper);
+
+    expect(rule('192.0.2.010')).toBe('harvester.bgp.validation.leadingZero {"ip":"192.0.2.010","fixed":"192.0.2.10"}');
   });
 
   it('should flag a router ID inline as soon as a second host is picked', async() => {

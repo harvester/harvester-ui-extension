@@ -1577,6 +1577,7 @@ harvester:
       neighborV4: '"{ip}" is not an IPv4 address.'
       neighborV6: '"{ip}" is not an IPv6 address.'
       placeholderNeighbor: '{ip} is the placeholder address Harvester installs, not a BGP router.'
+      leadingZero: '"{ip}" has a leading zero; write it as {fixed}.'
       asNumber: '"{key}" must be a whole number from 1 to {max}.'
       routerID: '"Router ID" must be an IPv4 address.'
       routerIDMultipleHosts: Leave "Router ID" empty when more than one host runs the speaker, so each host uses its own address.
