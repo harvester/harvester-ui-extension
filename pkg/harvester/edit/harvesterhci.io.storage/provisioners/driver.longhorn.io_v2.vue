@@ -19,7 +19,14 @@ const DEFAULT_PARAMETERS = [
   'migratable',
   'encrypted',
   'dataEngine',
+  'cloneMode',
 ];
+
+// Longhorn V2 clone modes, used when a volume is created from another volume or a snapshot
+export const CLONE_MODE = {
+  FULL_COPY:    'full-copy',
+  LINKED_CLONE: 'linked-clone',
+};
 
 const {
   CSI_PROVISIONER_SECRET_NAME,
@@ -111,6 +118,35 @@ export default {
 
     isView() {
       return this.mode === _VIEW;
+    },
+
+    cloneModeEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('longhornV2LinkedClone');
+    },
+
+    cloneModeOptions() {
+      return [{
+        label: this.t('harvester.storage.parameters.cloneMode.fullCopy'),
+        value: CLONE_MODE.FULL_COPY
+      }, {
+        label: this.t('harvester.storage.parameters.cloneMode.linkedClone'),
+        value: CLONE_MODE.LINKED_CLONE
+      }];
+    },
+
+    cloneMode: {
+      get() {
+        return this.value?.parameters?.cloneMode || CLONE_MODE.FULL_COPY;
+      },
+
+      set(value) {
+        if (value === CLONE_MODE.LINKED_CLONE) {
+          this.value.parameters.cloneMode = value;
+        } else {
+          // full-copy is the Longhorn default, so leave the parameter out
+          delete this.value.parameters.cloneMode;
+        }
+      }
     },
 
     migratableOptions() {
@@ -309,6 +345,21 @@ export default {
             </span>
           </template>
         </LabeledSelect>
+      </div>
+    </div>
+    <div
+      v-if="cloneModeEnabled"
+      class="row mt-10"
+    >
+      <div class="col span-6">
+        <LabeledSelect
+          v-model:value="cloneMode"
+          data-testid="clone-mode"
+          :label="t('harvester.storage.parameters.cloneMode.label')"
+          :tooltip="t('harvester.storage.parameters.cloneMode.tooltip')"
+          :options="cloneModeOptions"
+          :mode="mode"
+        />
       </div>
     </div>
     <div class="row mt-20">
