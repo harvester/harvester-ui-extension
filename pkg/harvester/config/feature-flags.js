@@ -88,6 +88,8 @@ const FEATURE_FLAGS = {
     'componentHealth',
     'repositoryStorageClass',
     'shutdownVMOnMigrationFailure',
+    'sessionTimeoutSettings',
+    'websocketNotificationsSetting',
   ],
 };
 

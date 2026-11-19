@@ -6,6 +6,7 @@ import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { TextAreaAutoGrow } from '@components/Form/TextArea';
 import UnitInput from '@shell/components/form/UnitInput';
 import CreateEditView from '@shell/mixins/create-edit-view';
+import { MANAGEMENT } from '@shell/config/types';
 import { DOC } from '../config/doc-links';
 import { docLink } from '../utils/feature-flags';
 
@@ -51,6 +52,7 @@ export default {
     const oldValue = this.value.value;
 
     const isHarvester = this.value?.type?.includes('harvesterhci');
+    const descriptionKey = setting.descriptionKey || (isHarvester ? `advancedSettings.descriptions.harv-${ this.value.id }` : `advancedSettings.descriptions.${ this.value.id }`);
 
     // Get all the custom volume types from the file names of this folder
     const customSettingComponents = require
@@ -60,13 +62,7 @@ export default {
 
     return {
       setting,
-      description: isHarvester ? t(
-        `advancedSettings.descriptions.harv-${ this.value.id }`,
-        this.getDocLinkParams()
-      ) : t(
-        `advancedSettings.descriptions.${ this.value.id }`,
-        this.getDocLinkParams()
-      ),
+      description:        t(descriptionKey, this.getDocLinkParams()),
       editHelp:           t(`advancedSettings.editHelp.${ this.value.id }`),
       enumOptions,
       canReset,
@@ -137,6 +133,14 @@ export default {
         await this.clusterRegistrationUrlTip();
       }
 
+      const sessionTTLError = await this.validateSessionTTL();
+
+      if (sessionTTLError) {
+        this.errors = [sessionTTLError];
+
+        return done(false);
+      }
+
       // remove any leading zeros (e.g. '0123' becomes 123)
       if (this.setting.kind === 'number' && this.value.value) {
         const num = Number(this.value.value);
@@ -145,6 +149,44 @@ export default {
       }
 
       this.save(done);
+    },
+
+    // Rancher's webhook checks these two settings, but it doesn't cover them on standalone Harvester, so apply its rules here
+    async validateSessionTTL() {
+      const { AUTH_USER_SESSION_TTL_MINUTES: TTL, AUTH_USER_SESSION_IDLE_TTL_MINUTES: IDLE_TTL } = HCI_SETTING;
+      const id = this.value.metadata.name;
+
+      // An empty value means the setting's default
+      if (![TTL, IDLE_TTL].includes(id) || this.value.value === '') {
+        return null;
+      }
+
+      const t = this.$store.getters['i18n/t'];
+
+      const minutes = Number(this.value.value);
+
+      // Larger numbers would be saved in exponent notation, which the settings can't parse
+      if (!/^\d+$/.test(this.value.value) || !Number.isSafeInteger(minutes)) {
+        return t(id === TTL ? 'harvester.setting.sessionTTL.invalidTTL' : 'harvester.setting.sessionTTL.invalidIdle');
+      }
+
+      if (id === TTL) {
+        return null;
+      }
+
+      if (minutes < 1) {
+        return t('harvester.setting.sessionTTL.invalidIdle');
+      }
+
+      let ttlSetting;
+
+      try {
+        ttlSetting = await this.$store.dispatch('management/find', { type: MANAGEMENT.SETTING, id: TTL });
+      } catch {}
+
+      const ttl = parseInt(ttlSetting?.value || ttlSetting?.default, 10);
+
+      return minutes > ttl ? t('harvester.setting.sessionTTL.idleExceedsTTL', { ttl }) : null;
     },
 
     clusterRegistrationUrlTip() {
