@@ -428,7 +428,8 @@ export default {
         if (document.fullscreenElement) {
           await document.exitFullscreen();
         } else {
-          await this.$refs.consoleContainer.requestFullscreen();
+          // The whole page and not only the console, because dialogs render outside of it.
+          await document.documentElement.requestFullscreen();
           // Keyboard lock lets shortcuts such as Ctrl+W and F11 reach the guest.
           await navigator.keyboard?.lock?.(['KeyW', 'F11']);
         }
@@ -454,10 +455,7 @@ export default {
 
 <template>
   <div id="app">
-    <div
-      ref="consoleContainer"
-      class="vm-console"
-    >
+    <div class="vm-console">
       <div class="combination-keys">
         <div class="toolbar-group">
           <v-dropdown
@@ -518,6 +516,7 @@ export default {
               <div
                 v-for="(keys, index) in preferredShortcutKeys"
                 :key="index"
+                class="custom-shortcut"
               >
                 <button
                   class="btn btn-sm bg-primary"
@@ -733,6 +732,11 @@ export default {
     display: flex;
     justify-content: flex-end;
     width: 100%;
+  }
+
+  // The space around the separator above the list.
+  .custom-shortcut + .custom-shortcut {
+    margin-top: 7px;
   }
 
   .console-status {

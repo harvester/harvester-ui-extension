@@ -136,20 +136,15 @@ export default {
       this.addedShortcutKeys.push([].concat(this.keysRecord));
     },
 
-    removeKey(keys) {
-      const key = keys.replace(/(\s*)<code>|<\/code>/g, '').replace(/\s*,\s*/g, ',');
+    // The index is the one in displayedKeys, which lists the added shortcuts first.
+    removeKey(index) {
+      const added = this.addedShortcutKeys.length;
 
-      this.addedShortcutKeys = this.addedShortcutKeys.filter((item) => {
-        const formatkey = item.map((K) => K.key.charAt(0).toUpperCase() + K.key.slice(1)).join(',');
-
-        return formatkey !== key;
-      });
-
-      this.preferredShortcutKeys = this.preferredShortcutKeys.filter((item) => {
-        const formatkey = item.map((K) => K.key.charAt(0).toUpperCase() + K.key.slice(1)).join(',');
-
-        return formatkey !== key;
-      });
+      if (index < added) {
+        this.addedShortcutKeys.splice(index, 1);
+      } else {
+        this.preferredShortcutKeys.splice(index - added, 1);
+      }
     },
 
     async saveKeys(buttonCb) {
@@ -220,6 +215,8 @@ export default {
           <Banner
             v-for="(keys,index) in displayedKeys"
             :key="index"
+            :closable="true"
+            @close="removeKey(index)"
           >
             <span v-clean-html="keys"></span>
           </Banner>
@@ -233,10 +230,10 @@ export default {
           class="btn role-secondary mr-20"
           @click.prevent="closeRecordingModal"
         >
-          <t k="generic.close" />
+          <t k="generic.cancel" />
         </button>
         <AsyncButton
-          mode="done"
+          mode="edit"
           @click="saveKeys"
         />
       </div>
