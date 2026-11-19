@@ -32,6 +32,7 @@ export const HCI = {
   IPTABLES_DNAT_RULE:   'kubeovn.io.iptablesdnatrule',
   PROVIDER_NETWORK:     'kubeovn.io.providernetwork',
   VPC_NAT_GATEWAY:      'kubeovn.io.vpcnatgateway',
+  VPC_EGRESS_GATEWAY:   'kubeovn.io.vpcegressgateway',
   VM_IMAGE_DOWNLOADER:  'harvesterhci.io.virtualmachineimagedownloader',
   SUPPORT_BUNDLE:       'harvesterhci.io.supportbundle',
   NETWORK_ATTACHMENT:   'harvesterhci.io.networkattachmentdefinition',
