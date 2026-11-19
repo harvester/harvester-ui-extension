@@ -1,3 +1,4 @@
+import { shallowMount } from '@vue/test-utils';
 import {
   PVC, PV, POD, NODE, STORAGE_CLASS
 } from '@shell/config/types';
@@ -23,7 +24,7 @@ const SCHEMAS = {
 };
 
 function createStore({
-  featureEnabled = true, paginationEnabled = true, found = {}, failing = [], vmSchema = SCHEMAS[HCI.VM], storedVMs = [], storedVMIs = []
+  featureEnabled = true, paginationEnabled = true, havePage = true, found = {}, failing = [], vmSchema = SCHEMAS[HCI.VM], storedVMs = [], storedVMIs = []
 } = {}) {
   const dispatch = jest.fn((action, { type } = {}) => (failing.includes(type) ? Promise.reject(new Error('failed')) : Promise.resolve(found[type] || [])));
 
@@ -33,9 +34,11 @@ function createStore({
       currentProduct:                       { inStore: 'harvester' },
       'harvester-common/getFeatureEnabled': (name) => featureEnabled && name === 'vmListPagination',
       'harvester/paginationEnabled':        ({ id, context }) => paginationEnabled && id === HCI.VM && context === VM_LIST_PAGINATION_CONTEXT,
+      'harvester/havePage':                 (type) => havePage && type === HCI.VM,
       'harvester/schemaFor':                (type) => (type === HCI.VM ? vmSchema : SCHEMAS[type]),
       'harvester/all':                      (type) => ({ [HCI.VM]: storedVMs, [HCI.VMI]: storedVMIs }[type] || []),
       'type-map/headersFor':                (schema, pagination) => (pagination ? VM_PAGINATION_HEADERS : VM_HEADERS),
+      'action-menu/performCallbackData':    undefined,
     }
   };
 }
@@ -240,11 +243,15 @@ describe('list: kubevirt.io.virtualmachine', () => {
     const rvm = (namespace, name) => ({
       id: `${ namespace }/${ name }`, metadata: { namespace, name }, isRestartRequired: true
     });
-    const notify = (ctx, vms, oldVms) => VmList.watch.restartRequiredVMs.call(ctx, vms, oldVms);
+    const notify = (ctx, vms, oldVms) => VmList.watch.restartRequiredVMs.handler.call(ctx, vms, oldVms);
     const createCtx = (restartNotificationKey) => ({
       $store: { dispatch: jest.fn() },
       t:      (key, args) => `${ key } ${ JSON.stringify(args) }`,
       restartNotificationKey,
+    });
+    const mountList = ($store) => shallowMount(VmList, {
+      props:  { schema: SCHEMAS[HCI.VM] },
+      global: { mocks: { $store, t: (key, args) => `${ key } ${ JSON.stringify(args) }` }, stubs: { 'router-link': true } },
     });
     const warning = (count, vmNames) => ['growl/warning', {
       title:   `harvester.notification.restartRequired.title ${ JSON.stringify({ count }) }`,
@@ -255,7 +262,38 @@ describe('list: kubevirt.io.virtualmachine', () => {
     it('should only list the VMs that need a restart', () => {
       const a = rvm('default', 'a');
 
-      expect(call('restartRequiredVMs', { vms: [a, { id: 'default/b', isRestartRequired: false }] })).toStrictEqual([a]);
+      expect(call('restartRequiredVMs', { canPaginate: false, vms: [a, { id: 'default/b', isRestartRequired: false }] })).toStrictEqual([a]);
+    });
+
+    it.each([
+      ['wait for the list\'s page while paging', { havePage: false }, []],
+      ['take the VMs of the page once it is loaded', { havePage: true }, ['a']],
+    ])('should %s', (_, opts, names) => {
+      const ctx = {
+        $store: createStore(opts), inStore: 'harvester', canPaginate: true, vms: [rvm('default', 'a')]
+      };
+
+      expect(call('restartRequiredVMs', ctx).map(({ metadata }) => metadata.name)).toStrictEqual(names);
+    });
+
+    // Coming back to the list, the store already holds the VMs, so they never change after the list is created
+    it.each([
+      ['without pagination', { paginationEnabled: false, havePage: false }],
+      ['with pagination', { paginationEnabled: true, havePage: true }],
+    ])('should notify when the list opens with the VMs already in the store, %s', (_, opts) => {
+      const $store = createStore({ ...opts, storedVMs: [rvm('default', 'a')] });
+
+      mountList($store);
+
+      expect($store.dispatch).toHaveBeenCalledWith(...warning(1, 'a'));
+    });
+
+    it('should not notify about VMs another page left in the store while the list is paged', () => {
+      const $store = createStore({ havePage: false, storedVMs: [rvm('default', 'a')] });
+
+      mountList($store);
+
+      expect($store.dispatch).not.toHaveBeenCalledWith('growl/warning', expect.anything(), expect.anything());
     });
 
     it('should notify when VMs need a restart', () => {

@@ -117,6 +117,11 @@ export default {
     },
 
     restartRequiredVMs() {
+      // While paging, the store can still hold the VMs another view loaded, like every VM after Volumes or a VM's detail
+      if (this.canPaginate && !this.$store.getters[`${ this.inStore }/havePage`](HCI.VM)) {
+        return [];
+      }
+
       return this.vms.filter((vm) => vm.isRestartRequired);
     }
   },
@@ -134,33 +139,37 @@ export default {
       }
     },
 
-    restartRequiredVMs(vms) {
-      // Rebuilt on every refresh, and when paging on every page, sort and search too, so only notify when the VMs change.
-      // The key lives on the component, so coming back to the list notifies again
-      const key = vms.map((vm) => vm.id).sort().join();
+    restartRequiredVMs: {
+      // Immediate, as the store may already hold the VMs when coming back to the list
+      immediate: true,
+      handler(vms) {
+        // Rebuilt on every refresh, and when paging on every page, sort and search too, so only notify when the VMs
+        // change. The key lives on the component, so coming back to the list notifies again
+        const key = vms.map((vm) => vm.id).sort().join();
 
-      if (key === this.restartNotificationKey) {
-        return;
+        if (key === this.restartNotificationKey) {
+          return;
+        }
+
+        const shown = !!this.restartNotificationKey;
+
+        this.restartNotificationKey = key;
+
+        if (!vms.length) {
+          return;
+        }
+
+        // clear old notification before showing new one
+        if (shown) {
+          this.$store.dispatch('growl/clear');
+        }
+
+        this.$store.dispatch('growl/warning', {
+          title:   this.t('harvester.notification.restartRequired.title', { count: vms.length }),
+          message: this.t('harvester.notification.restartRequired.message', { vmNames: vms.map((vm) => vm.metadata.name).join(', ') }),
+          timeout: 10000,
+        }, { root: true });
       }
-
-      const shown = !!this.restartNotificationKey;
-
-      this.restartNotificationKey = key;
-
-      if (!vms.length) {
-        return;
-      }
-
-      // clear old notification before showing new one
-      if (shown) {
-        this.$store.dispatch('growl/clear');
-      }
-
-      this.$store.dispatch('growl/warning', {
-        title:   this.t('harvester.notification.restartRequired.title', { count: vms.length }),
-        message: this.t('harvester.notification.restartRequired.message', { vmNames: vms.map((vm) => vm.metadata.name).join(', ') }),
-        timeout: 10000,
-      }, { root: true });
     }
   },
   methods: {
