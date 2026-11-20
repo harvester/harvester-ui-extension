@@ -20,9 +20,9 @@ const props = defineProps({
   storageClassName:     { type: String, default: '' },
   providerName:         { type: String, default: '' },
   showInherited:        { type: Boolean, default: false },
-  volumeMode:           { type: String, default: VOLUME_MODE.FILE_SYSTEM },
+  volumeMode:           { type: String, default: VOLUME_MODE.BLOCK },
   accessModes:          { type: Array, default: () => ['ReadWriteMany'] },
-  inheritedVolumeMode:  { type: String, default: VOLUME_MODE.FILE_SYSTEM },
+  inheritedVolumeMode:  { type: String, default: VOLUME_MODE.BLOCK },
   inheritedAccessModes: { type: Array, default: () => ['ReadWriteMany'] },
 });
 
@@ -31,7 +31,7 @@ const emit = defineEmits(['apply', 'close']);
 const store = useStore();
 const { t } = useI18n(store);
 
-const localVolumeMode = ref(props.volumeMode || VOLUME_MODE.FILE_SYSTEM);
+const localVolumeMode = ref(props.volumeMode || VOLUME_MODE.BLOCK);
 const localAccessMode = ref(props.accessModes?.[0] || READ_WRITE_MANY);
 
 const volumeModeOptions = VOLUME_MODE_OPTIONS.map((value) => ({ label: value, value }));
@@ -47,7 +47,7 @@ const apply = () => {
 
 // Repopulate the dropdowns with the provider default values; the user then applies.
 const reset = () => {
-  localVolumeMode.value = props.inheritedVolumeMode || VOLUME_MODE.FILE_SYSTEM;
+  localVolumeMode.value = props.inheritedVolumeMode || VOLUME_MODE.BLOCK;
   localAccessMode.value = props.inheritedAccessModes?.[0] || READ_WRITE_MANY;
 };
 
