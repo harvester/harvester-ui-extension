@@ -86,13 +86,16 @@ describe('component: HarvesterVolume', () => {
     const showBanner = HarvesterVolume.computed.showStorageClassUnavailableBanner;
 
     expect(showBanner.call({
-      mode: 'create', storageClassesLoaded: false, selectableStorageClasses: []
+      mode: 'create', storageClassesLoaded: false, selectableStorageClasses: [], isBlank: true
     })).toBe(false);
     expect(showBanner.call({
-      mode: 'create', storageClassesLoaded: true, selectableStorageClasses: []
+      mode: 'create', storageClassesLoaded: true, selectableStorageClasses: [], isBlank: true
     })).toBe(true);
     expect(showBanner.call({
-      mode: 'view', storageClassesLoaded: true, selectableStorageClasses: []
+      mode: 'create', storageClassesLoaded: true, selectableStorageClasses: [], isBlank: false
+    })).toBe(false);
+    expect(showBanner.call({
+      mode: 'view', storageClassesLoaded: true, selectableStorageClasses: [], isBlank: true
     })).toBe(false);
   });
 });

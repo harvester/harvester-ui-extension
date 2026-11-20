@@ -260,7 +260,7 @@ export default {
     },
 
     showStorageClassUnavailableBanner() {
-      return this.mode !== 'view' && this.storageClassesLoaded && !this.selectableStorageClasses.length;
+      return this.isBlank && this.mode !== 'view' && this.storageClassesLoaded && !this.selectableStorageClasses.length;
     },
 
     storageClassOptions() {

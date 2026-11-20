@@ -1193,7 +1193,7 @@ harvester:
     size: Size
     volumeMode: Volume Mode
     accessModes: Access Modes
-    storageClassUnavailable: No selectable StorageClasses are available. Create a StorageClass before continuing an image.
+    storageClassUnavailable: No selectable StorageClasses are available. Create a StorageClass before creating a volume.
     createWithDataVolume: Create with DataVolume
     createWithDataVolumeTooltip: Create Volume with Kubevirt/Containerized Data Importer way. It can fill accessMode/volumeMode automatically.
     showAdvanced: Show Advanced Options
