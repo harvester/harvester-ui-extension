@@ -228,7 +228,43 @@ function resourceCount(state: any, rootGetters: any, getters: any, typeObj: any)
   return unfilteredCount(getters, resourceType, namespaces);
 }
 
+/**
+ * Whether this cluster's API can page the VM list. Only an API served from
+ * Steve's SQL cache can filter it, and that API lists the printer columns of a
+ * CRD as `metadata.fields[N]`. The server version alone can't tell, as it can
+ * be missing or not semver.
+ */
+function canPaginateVMs(getters: any, rootGetters: any): boolean {
+  if (!rootGetters['harvester-common/getFeatureEnabled']?.('vmListPagination')) {
+    return false;
+  }
+
+  const columns = getters.schemaFor(HCI.VM)?.attributes?.columns || [];
+
+  return columns.some((col: any) => col.field?.startsWith('$.metadata.fields['));
+}
+
+/**
+ * Wraps the store's `paginationEnabled` getter. The VM list is registered for
+ * pagination on every cluster (index.ts), so answer for this cluster here.
+ * Every caller then agrees, like the header's namespace filter, which disables
+ * the options a paged list can't filter by.
+ */
+export function vmAwarePaginationEnabled(paginationEnabled: any) {
+  return (state: any, getters: any, rootState: any, rootGetters: any) => (args: any) => {
+    const enabled = paginationEnabled(state, getters, rootState, rootGetters)(args);
+    const id = typeof args === 'object' ? args?.id : args;
+
+    if (!enabled || id !== HCI.VM) {
+      return enabled;
+    }
+
+    return canPaginateVMs(getters, rootGetters);
+  };
+}
+
 export default {
+
   namespaceFilterOptions: (state: any, getters: any, rootState: any, rootGetters: any) => ({
     addNamespace,
     divider,

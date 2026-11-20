@@ -1,7 +1,7 @@
 import {
   CONFIG_MAP, COUNT, NAMESPACE, NETWORK_ATTACHMENT, NODE, PVC, STORAGE_CLASS
 } from '@shell/config/types';
-import harvesterGetters from '../getters';
+import harvesterGetters, { vmAwarePaginationEnabled } from '../getters';
 import { HCI, DATA_VOLUME, VOLUME_SNAPSHOT } from '../../../types';
 import { HCI_SETTING } from '../../../config/settings';
 
@@ -286,5 +286,40 @@ describe('harvester store: visibleSettings', () => {
     });
 
     expect(shown.data.source).toBe('harvester');
+  });
+});
+
+describe('harvester store: paginationEnabled', () => {
+  const SQL_CACHE_COLUMNS = [{ name: 'Name', field: '$.metadata.fields[0]' }, { name: 'Status', field: '$.metadata.fields[2]' }];
+  const OLD_API_COLUMNS = [{ name: 'Status', field: '.status.printableStatus' }];
+
+  // `shellEnabled` is what the store's own getter answers, from the extension's registration and Rancher's settings
+  function paginationEnabled(args: any, { shellEnabled = true, featureEnabled = true, columns = SQL_CACHE_COLUMNS } = {}) {
+    const base = jest.fn(() => () => shellEnabled);
+    const getters = { schemaFor: (type: string) => (type === HCI.VM ? { id: HCI.VM, attributes: { columns } } : undefined) };
+    const rootGetters = { 'harvester-common/getFeatureEnabled': (name: string) => featureEnabled && name === 'vmListPagination' };
+
+    return vmAwarePaginationEnabled(base)({}, getters, {}, rootGetters)(args);
+  }
+
+  it.each([
+    ['the VM id', HCI.VM],
+    ['the VM id and a context', { id: HCI.VM, context: 'any' }],
+    ['the VM id without a context, like the header\'s namespace filter', { id: HCI.VM }],
+  ])('should page the VMs when the cluster\'s API can, asked with %s', (_, args) => {
+    expect(paginationEnabled(args)).toBe(true);
+  });
+
+  // The list's table asks with an object, the header's namespace filter with the type
+  it.each([HCI.VM, { id: HCI.VM, context: 'any' }])('should not page the VMs when the cluster can\'t, asked with %j', (args) => {
+    expect(paginationEnabled(args, { shellEnabled: false })).toBe(false);
+    expect(paginationEnabled(args, { featureEnabled: false })).toBe(false);
+    expect(paginationEnabled(args, { columns: OLD_API_COLUMNS })).toBe(false);
+  });
+
+  it('should leave the other types and the question without a type to the store\'s getter', () => {
+    expect(paginationEnabled(HCI.VMI, { featureEnabled: false, columns: OLD_API_COLUMNS })).toBe(true);
+    expect(paginationEnabled(undefined, { featureEnabled: false })).toBe(true);
+    expect(paginationEnabled(HCI.VMI, { shellEnabled: false })).toBe(false);
   });
 });

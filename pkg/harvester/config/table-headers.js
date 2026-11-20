@@ -1,7 +1,10 @@
 /**
  * Harvester
  */
-import { DESCRIPTION } from '@shell/config/table-headers';
+import {
+  DESCRIPTION, STATE, AGE, NAME, NAMESPACE
+} from '@shell/config/table-headers';
+import { HCI as HCI_ANNOTATIONS } from './labels-annotations';
 
 // image
 export const IMAGE_DOWNLOAD_SIZE = {
@@ -297,3 +300,85 @@ export const FORKLIFT_MIGRATION_PLAN = {
   sort:     'spec.plan.name',
   align:    'left',
 };
+
+// Virtual machine list
+export const VM_HEADERS = [
+  STATE,
+  {
+    ...NAME,
+    width: 350,
+    value: 'nameDisplay',
+    sort:  ['nameDisplay'],
+  },
+  NAMESPACE,
+  {
+    name:        'CPU',
+    label:       'CPU',
+    sort:        ['displayCPU'],
+    value:       'displayCPU',
+    align:       'center',
+    dashIfEmpty: true,
+  },
+  {
+    name:          'Memory',
+    value:         'displayMemory',
+    sort:          ['memorySort'],
+    align:         'center',
+    labelKey:      'tableHeaders.memory',
+    formatter:     'Si',
+    formatterOpts: {
+      opts: {
+        increment: 1024, addSuffix: true, maxExponent: 3, minExponent: 3, suffix: 'i',
+      },
+      needParseSi: true
+    },
+  },
+  {
+    name:      'ip',
+    label:     'IP Address',
+    value:     'id',
+    formatter: 'HarvesterIpAddress',
+    labelKey:  'tableHeaders.ipAddress',
+    sort:      ['id'],
+  },
+  // The VM list only shows it when the cluster's nodes can be seen
+  {
+    name:      'node',
+    label:     'Node',
+    value:     'nodeName',
+    sort:      ['realAttachNodeName'],
+    formatter: 'HarvesterHost',
+    labelKey:  'harvester.tableHeaders.vm.node'
+  },
+  // The VM list only shows it while a backup is being restored
+  {
+    name:      'restoreProgress',
+    labelKey:  'harvester.tableHeaders.restore',
+    value:     'restoreProgress',
+    align:     'left',
+    formatter: 'HarvesterBackupProgressBar',
+    width:     200,
+  },
+  {
+    ...AGE,
+    sort: 'metadata.creationTimestamp:desc',
+  }
+];
+
+// With server-side pagination the API sorts and searches, so only the fields it indexes can be used. CPU, memory, IP,
+// node and restore progress come from the VM model or other resources. The VM's printer columns are listed as Name, Age, Status, Ready, so its
+// Status is `metadata.fields.2`
+const VM_PAGINATION_FIELDS = {
+  [STATE.name]: { sort: ['metadata.fields.2'], search: false },
+  [NAME.name]:  {
+    sort:   ['metadata.name'],
+    search: ['metadata.name', `metadata.annotations[${ HCI_ANNOTATIONS.VM_DISPLAY_NAME }]`],
+  },
+  [NAMESPACE.name]: { sort: ['metadata.namespace'], search: 'metadata.namespace' },
+  [AGE.name]:       { search: false },
+};
+
+export const VM_PAGINATION_HEADERS = VM_HEADERS.map((header) => ({
+  ...header,
+  ...(VM_PAGINATION_FIELDS[header.name] || { sort: false, search: false }),
+}));

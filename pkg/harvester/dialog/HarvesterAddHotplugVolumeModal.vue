@@ -30,9 +30,9 @@ export default {
   },
 
   async fetch() {
-    this.allPVCs = await this.$store.dispatch('harvester/findAll', { type: PVC });
+    this.allPVCs = await this.actionResource.findInNamespace(PVC);
     this.allStorageClasses = await this.$store.dispatch('harvester/findAll', { type: STORAGE_CLASS });
-    this.allVMs = await this.$store.dispatch('harvester/findAll', { type: HCI.VM });
+    this.allVMs = await this.actionResource.findInNamespace(HCI.VM);
   },
 
   data() {

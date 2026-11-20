@@ -3,6 +3,7 @@ import { omitBy, pickBy } from 'lodash';
 import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../config/harvester';
 import { colorForState, stateSort } from '@shell/plugins/dashboard-store/resource-class';
 import { POD, NODE, PVC } from '@shell/config/types';
+import { FilterArgs, PaginationParamFilter } from '@shell/types/store/pagination.types';
 import { findBy } from '@shell/utils/array';
 import { parseSi } from '@shell/utils/units';
 import { get, set } from '@shell/utils/object';
@@ -1160,6 +1161,35 @@ export default class VirtVm extends HarvesterResource {
         return O?.persistentVolumeClaim?.claimName;
       })
       .filter((name) => !!name);
+  }
+
+  // The resources of `type` in this VM's namespace, for the dialogs of the VM list. When the paged list keeps a page of
+  // `type` in the store, loading every resource would replace that page, and the next page load would shrink a list
+  // shared with the store, so read the namespace without storing it then.
+  async findInNamespace(type) {
+    const namespace = this.metadata.namespace;
+
+    if (!this.$getters['havePage'](type)) {
+      const all = await this.$dispatch('findAll', { type });
+
+      return all.filter((resource) => resource.metadata?.namespace === namespace);
+    }
+
+    const res = await this.$dispatch('findPage', {
+      type,
+      opt: {
+        transient:  true,
+        pagination: new FilterArgs({ filters: PaginationParamFilter.createSingleField({ field: 'metadata.namespace', value: namespace }) }),
+      }
+    });
+
+    return res?.data || [];
+  }
+
+  // The configuration form loads every VM, volume, VMI and migration, which would replace the page the paged VM list
+  // keeps in the store, so the drawer only shows the YAML then. The VM's own page still shows its configuration
+  get disableResourceDetailDrawerConfigTab() {
+    return !!this.$getters['havePage'](HCI.VM);
   }
 
   get rootImageId() {

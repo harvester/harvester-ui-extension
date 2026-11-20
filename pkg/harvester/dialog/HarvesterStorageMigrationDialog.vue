@@ -29,7 +29,13 @@ export default {
   },
 
   async fetch() {
-    this.allPVCs = await this.$store.dispatch('harvester/findAll', { type: PVC });
+    const [pvcs, vms] = await Promise.all([
+      this.actionResource.findInNamespace(PVC),
+      this.actionResource.findInNamespace(HCI.VM),
+    ]);
+
+    this.allPVCs = pvcs;
+    this.namespaceVMs = vms;
   },
 
   data() {
@@ -38,6 +44,7 @@ export default {
       targetVolume: '',
       errors:       [],
       allPVCs:      [],
+      namespaceVMs: [],
     };
   },
 
@@ -68,10 +75,9 @@ export default {
     },
 
     vmUsedVolumeNames() {
-      const allVMs = this.$store.getters['harvester/all'](HCI.VM) || [];
       const names = new Set();
 
-      allVMs.forEach((vm) => {
+      this.namespaceVMs.forEach((vm) => {
         // Collect volume names from spec.template.spec.volumes (both PVC and DataVolume references)
         const volumes = vm.spec?.template?.spec?.volumes || [];
 
