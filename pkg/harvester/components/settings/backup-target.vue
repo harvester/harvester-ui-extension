@@ -124,9 +124,10 @@ export default {
         delete this.parseDefaultValue.cert;
       }
 
-      // The backend rejects a repository password while Restic and Kopia are off
+      // While Restic and Kopia are off, the backend rejects a repository password and runs no Kopia garbage collection
       if (!this.parseDefaultValue.thirdPartyBackupEnabled) {
         delete this.parseDefaultValue.thirdPartyRepositoryPassword;
+        delete this.parseDefaultValue.kopiaGCEnabled;
       }
 
       if (this.isS3 && !this.parseDefaultValue.virtualHostedStyle) {
@@ -260,17 +261,17 @@ export default {
               icon="icon icon-info"
               :text="t('harvester.backup.thirdPartyBackup.password.tip', {}, true)"
             />
+            <div class="mb-20">
+              <Checkbox
+                v-model:value="parseDefaultValue.kopiaGCEnabled"
+                data-testid="backup-target-kopia-gc"
+                :label="t('harvester.backup.kopiaGC.label')"
+                :mode="mode"
+                :tooltip="t('harvester.backup.kopiaGC.tooltip', {}, true)"
+                @update:value="update"
+              />
+            </div>
           </template>
-          <div class="mb-20">
-            <Checkbox
-              v-model:value="parseDefaultValue.kopiaGCEnabled"
-              data-testid="backup-target-kopia-gc"
-              :label="t('harvester.backup.kopiaGC.label')"
-              :mode="mode"
-              :tooltip="t('harvester.backup.kopiaGC.tooltip', {}, true)"
-              @update:value="update"
-            />
-          </div>
         </template>
 
         <div class="mb-20">
