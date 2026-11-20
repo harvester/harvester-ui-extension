@@ -1,5 +1,6 @@
 import VM_MIXIN from '../index';
 import impl from '../impl';
+import { SOURCE_TYPE } from '../../../config/harvester-map';
 
 const USER_ERROR = 'harvester.virtualMachine.cloudConfig.user.invalidYaml';
 const NETWORK_ERROR = 'harvester.virtualMachine.cloudConfig.network.invalidYaml';
@@ -33,6 +34,16 @@ function userDataFor(userScript) {
   };
 
   return form.getUserData({ osType: 'linux', installAgent: false });
+}
+
+const ISO_IMAGE = { id: 'default/image-iso', storageClassName: 'longhorn-image-iso' };
+
+function imageVolumeClaimTemplate(row, hasCreateVolumes = []) {
+  const form = { images: [ISO_IMAGE], hasCreateVolumes };
+
+  return VM_MIXIN.methods.parseVolumeClaimTemplate.call(form, {
+    source: SOURCE_TYPE.IMAGE, image: ISO_IMAGE.id, size: '20Gi', accessMode: 'ReadWriteMany', volumeMode: 'Block', ...row
+  }, 'vm-cdrom-disk-abcde');
 }
 
 describe('mixin: harvester-vm', () => {
@@ -135,6 +146,27 @@ describe('mixin: harvester-vm', () => {
 
     it('should add the header to cloud-config typed without one', () => {
       expect(userDataFor('password: test\n')).toBe('#cloud-config\npassword: test\n');
+    });
+  });
+
+  describe('parseVolumeClaimTemplate', () => {
+    it('should use the image StorageClass for a template volume that does not exist yet', () => {
+      const out = imageVolumeClaimTemplate({ realName: 'pvc-cdrom-disk', storageClassName: undefined });
+
+      expect(out.spec.storageClassName).toBe(ISO_IMAGE.storageClassName);
+      expect(out.metadata.annotations).toStrictEqual({ 'harvesterhci.io/imageId': ISO_IMAGE.id });
+    });
+
+    it('should use the image StorageClass for a new volume', () => {
+      const out = imageVolumeClaimTemplate({ realName: '', storageClassName: '' });
+
+      expect(out.spec.storageClassName).toBe(ISO_IMAGE.storageClassName);
+    });
+
+    it('should keep the StorageClass of an existing volume', () => {
+      const out = imageVolumeClaimTemplate({ realName: 'vm-disk-0-abcde', storageClassName: 'custom-sc' }, ['vm-disk-0-abcde']);
+
+      expect(out.spec.storageClassName).toBe('custom-sc');
     });
   });
 });
