@@ -61,17 +61,32 @@ describe('list: kubevirt.io.virtualmachine', () => {
       expect($store.getters['harvester/paginationEnabled']).toHaveBeenCalledWith(HCI.VM);
     });
 
-    it('should add the node and restore columns to the product\'s VM columns', () => {
+    it('should show the product\'s VM columns, with node and restore progress when they apply', () => {
       const ctx = {
         $store: createStore({ paginationEnabled: false }), schema: SCHEMAS[HCI.VM], hasNode: true, hasBackUpRestoreInProgress: true
       };
 
-      ctx.withListColumns = VmList.methods.withListColumns.bind(ctx);
+      ctx.applicableColumns = VmList.methods.applicableColumns.bind(ctx);
       const headers = call('headers', ctx);
 
       expect(headers.map(({ name }) => name)).toStrictEqual(['state', 'name', 'namespace', 'CPU', 'Memory', 'ip', 'node', 'restoreProgress', 'age']);
       expect(byName(headers).CPU).toStrictEqual({ sort: ['displayCPU'], search: undefined });
       expect(byName(headers).node).toStrictEqual({ sort: ['realAttachNodeName'], search: undefined });
+    });
+
+    it.each([
+      ['node', 'the cluster\'s nodes can\'t be seen', { hasNode: false, hasBackUpRestoreInProgress: true }],
+      ['restoreProgress', 'no backup is being restored', { hasNode: true, hasBackUpRestoreInProgress: false }],
+    ])('should leave out the %s column when %s', (column, _, flags) => {
+      const ctx = {
+        $store: createStore(), schema: SCHEMAS[HCI.VM], ...flags
+      };
+
+      ctx.applicableColumns = VmList.methods.applicableColumns.bind(ctx);
+
+      expect(call('headers', ctx).map(({ name }) => name)).not.toContain(column);
+      expect(call('paginationHeaders', ctx).map(({ name }) => name)).not.toContain(column);
+      expect(call('headers', ctx)).toHaveLength(VM_HEADERS.length - 1);
     });
 
     it('should add VMIs without a VM to the rows', () => {
@@ -110,7 +125,7 @@ describe('list: kubevirt.io.virtualmachine', () => {
         $store: createStore(), schema: SCHEMAS[HCI.VM], hasNode: true, hasBackUpRestoreInProgress: true
       };
 
-      ctx.withListColumns = VmList.methods.withListColumns.bind(ctx);
+      ctx.applicableColumns = VmList.methods.applicableColumns.bind(ctx);
 
       expect(byName(call('paginationHeaders', ctx))).toStrictEqual({
         state:           { sort: ['metadata.fields.2'], search: false },

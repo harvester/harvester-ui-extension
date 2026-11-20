@@ -72,10 +72,9 @@ export default {
       return this.canPaginate && !paginationUtils.validateNsProjectFilters(this.$store.getters['namespaceFilters']);
     },
 
-    // The product registers both sets of VM columns (`headers()` in config/harvester-cluster.js). With pagination the
-    // API can't sort or search the node and restore columns, they come from other resources
+    // The product registers both sets of VM columns (`headers()` in config/harvester-cluster.js)
     paginationHeaders() {
-      return this.withListColumns(this.$store.getters['type-map/headersFor'](this.schema, true), { sort: false, search: false });
+      return this.applicableColumns(this.$store.getters['type-map/headersFor'](this.schema, true));
     },
 
     // With pagination the store only holds the VMs of the current page
@@ -95,7 +94,7 @@ export default {
     },
 
     headers() {
-      return this.withListColumns(this.$store.getters['type-map/headersFor'](this.schema, false));
+      return this.applicableColumns(this.$store.getters['type-map/headersFor'](this.schema, false));
     },
 
     rows() {
@@ -209,37 +208,19 @@ export default {
       await allHash(hash);
     },
 
-    // The node column when the cluster has nodes, and the restore progress while a backup is being restored
-    withListColumns(headers, options = {}) {
-      const restoreCol = {
-        name:      'restoreProgress',
-        labelKey:  'harvester.tableHeaders.restore',
-        value:     'restoreProgress',
-        align:     'left',
-        formatter: 'HarvesterBackupProgressBar',
-        width:     200,
-        ...options,
-      };
-      const nodeCol = {
-        name:      'node',
-        label:     'Node',
-        value:     'nodeName',
-        sort:      ['realAttachNodeName'],
-        formatter: 'HarvesterHost',
-        labelKey:  'harvester.tableHeaders.vm.node',
-        ...options,
-      };
-      const cols = [...headers];
+    // The node column only when the cluster's nodes can be seen, the restore progress only while a backup is restored
+    applicableColumns(headers) {
+      return headers.filter(({ name }) => {
+        if (name === 'node') {
+          return this.hasNode;
+        }
 
-      if (this.hasNode) {
-        cols.splice(-1, 0, nodeCol);
-      }
+        if (name === 'restoreProgress') {
+          return this.hasBackUpRestoreInProgress;
+        }
 
-      if (this.hasBackUpRestoreInProgress) {
-        cols.splice(-1, 0, restoreCol);
-      }
-
-      return cols;
+        return true;
+      });
     },
 
     // localFilter of PaginatedResourceTable, which only runs without pagination

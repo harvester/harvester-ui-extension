@@ -341,14 +341,32 @@ export const VM_HEADERS = [
     labelKey:  'tableHeaders.ipAddress',
     sort:      ['id'],
   },
+  // The VM list only shows it when the cluster's nodes can be seen
+  {
+    name:      'node',
+    label:     'Node',
+    value:     'nodeName',
+    sort:      ['realAttachNodeName'],
+    formatter: 'HarvesterHost',
+    labelKey:  'harvester.tableHeaders.vm.node'
+  },
+  // The VM list only shows it while a backup is being restored
+  {
+    name:      'restoreProgress',
+    labelKey:  'harvester.tableHeaders.restore',
+    value:     'restoreProgress',
+    align:     'left',
+    formatter: 'HarvesterBackupProgressBar',
+    width:     200,
+  },
   {
     ...AGE,
     sort: 'metadata.creationTimestamp:desc',
   }
 ];
 
-// With server-side pagination the API sorts and searches, so only the fields it indexes can be used. CPU, memory and IP
-// come from the VM model or other resources. The VM's printer columns are listed as Name, Age, Status, Ready, so its
+// With server-side pagination the API sorts and searches, so only the fields it indexes can be used. CPU, memory, IP,
+// node and restore progress come from the VM model or other resources. The VM's printer columns are listed as Name, Age, Status, Ready, so its
 // Status is `metadata.fields.2`
 const VM_PAGINATION_FIELDS = {
   [STATE.name]: { sort: ['metadata.fields.2'], search: false },

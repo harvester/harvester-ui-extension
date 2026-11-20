@@ -103,7 +103,7 @@ export default {
     },
 
     vmHeaders() {
-      const filterNames = ['state', 'ip', 'node'];
+      const filterNames = ['state', 'ip', 'node', 'restoreProgress'];
 
       return VM_HEADERS.filter((h) => !filterNames.includes(h.name));
     },
