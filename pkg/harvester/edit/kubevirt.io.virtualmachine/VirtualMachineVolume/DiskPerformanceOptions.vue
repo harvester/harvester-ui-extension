@@ -40,6 +40,8 @@ export default {
       // Bus the disk used before the "High Performance" preset switched it to
       // virtio, so returning to "Default" can put it back.
       busBeforeHighProfile: null,
+      // True only while the user has explicitly picked "Custom" in the selector.
+      userSelectedCustom:   false,
     };
   },
 
@@ -103,13 +105,13 @@ export default {
   watch: {
     // Keep the profile selector in sync if the row is repopulated (e.g. editing an existing VM).
     'value.cache'() {
-      this.profile = this.detectProfile();
+      this.syncProfile();
     },
     'value.io'() {
-      this.profile = this.detectProfile();
+      this.syncProfile();
     },
     'value.dedicatedIOThread'() {
-      this.profile = this.detectProfile();
+      this.syncProfile();
     },
   },
 
@@ -128,6 +130,16 @@ export default {
       return CUSTOM;
     },
 
+    syncProfile() {
+      // An explicit "Custom" choice sticks, even if the options happen to
+      // match the Default or High Performance preset. An inferred "Custom"
+      // still follows the disk values.
+      if (this.userSelectedCustom) {
+        return;
+      }
+      this.profile = this.detectProfile();
+    },
+
     cacheLabel(value) {
       if (value === '') {
         return this.t('harvester.virtualMachine.volume.performance.cacheMode.default');
@@ -140,6 +152,7 @@ export default {
       const previous = this.profile;
 
       this.profile = profile;
+      this.userSelectedCustom = profile === CUSTOM;
 
       if (profile === DEFAULT) {
         this.value.cache = '';
@@ -231,7 +244,7 @@ export default {
       <Banner
         v-if="profile === DISK_PERFORMANCE_PROFILE.HIGH"
         color="info"
-        :label="t('harvester.virtualMachine.volume.performance.highProfileTip')"
+        label-key="harvester.virtualMachine.volume.performance.highProfileTip"
       />
 
       <div
@@ -287,17 +300,17 @@ export default {
       <Banner
         v-if="isNativeIo"
         color="info"
-        :label="t('harvester.virtualMachine.volume.performance.ioMode.nativeRequiresNoCacheTip')"
+        label-key="harvester.virtualMachine.volume.performance.ioMode.nativeRequiresNoCacheTip"
       />
       <Banner
         v-if="showFilesystemCacheWarning"
         color="warning"
-        :label="t('harvester.virtualMachine.volume.performance.cacheMode.filesystemWarning')"
+        label-key="harvester.virtualMachine.volume.performance.cacheMode.filesystemWarning"
       />
       <Banner
         v-if="showBusTip"
         color="warning"
-        :label="t('harvester.virtualMachine.volume.performance.busTip')"
+        label-key="harvester.virtualMachine.volume.performance.busTip"
       />
     </div>
   </div>
