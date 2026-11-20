@@ -37,6 +37,10 @@ export default {
     uploadingImages() {
       return this.$store.getters['harvester-common/uploadingImages'] || [];
     },
+
+    filteredRows() {
+      return this.searchLabels.some((label) => Boolean(label.key)) ? this.filterRows : this.rows;
+    },
   },
 
   methods: {
@@ -75,8 +79,9 @@ export default {
     />
     <ResourceTable
       v-bind="$attrs"
-      :rows="filterRows"
+      :rows="filteredRows"
       :schema="schema"
+      :groupable="true"
       :sort-generation-fn="sortGenerationFn"
       key-field="_key"
     >
