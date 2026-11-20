@@ -31,8 +31,11 @@ describe('component: backup-target', () => {
     expect(JSON.parse(setting.value).virtualHostedStyle).toBe(false);
   });
 
-  it.each(['kopiaGCEnabled', 'thirdPartyBackupEnabled'])('should keep %s on S3 and drop it on NFS, where only S3 uses it', (field) => {
-    const { wrapper, setting } = mountTarget({ type: 's3', [field]: true });
+  it.each([
+    ['kopiaGCEnabled', { kopiaGCEnabled: true, thirdPartyBackupEnabled: true }],
+    ['thirdPartyBackupEnabled', { thirdPartyBackupEnabled: true }],
+  ])('should keep %s on S3 and drop it on NFS, where only S3 uses it', (field, fields) => {
+    const { wrapper, setting } = mountTarget({ type: 's3', ...fields });
 
     expect(JSON.parse(setting.value)[field]).toBe(true);
 
@@ -54,6 +57,27 @@ describe('component: backup-target', () => {
 
     expect(off.find('[data-testid="backup-target-repository-password"]').exists()).toBe(false);
     expect(on.find('[data-testid="backup-target-repository-password"]').exists()).toBe(true);
+  });
+
+  it('should offer Kopia garbage collection only while Restic and Kopia are on, the only time the backend runs it', () => {
+    const off = mountTarget({ type: 's3' }).wrapper;
+    const on = mountTarget({ type: 's3', thirdPartyBackupEnabled: true }).wrapper;
+
+    expect(off.find('[data-testid="backup-target-kopia-gc"]').exists()).toBe(false);
+    expect(on.find('[data-testid="backup-target-kopia-gc"]').exists()).toBe(true);
+  });
+
+  it('should drop Kopia garbage collection when Restic and Kopia are turned off, so the setting matches what runs', () => {
+    const { wrapper, setting } = mountTarget({
+      type: 's3', thirdPartyBackupEnabled: true, kopiaGCEnabled: true
+    });
+
+    expect(JSON.parse(setting.value).kopiaGCEnabled).toBe(true);
+
+    wrapper.vm.parseDefaultValue.thirdPartyBackupEnabled = false;
+    wrapper.vm.update();
+
+    expect(JSON.parse(setting.value).kopiaGCEnabled).toBeUndefined();
   });
 
   it.each([
