@@ -24,7 +24,7 @@ const DEFAULT_VALUES = {
   pvcClaim: {
     enabled:          false,
     size:             '200Gi',
-    storageClassName: ''
+    storageClass: ''
   }
 };
 
@@ -106,7 +106,12 @@ export default {
       const inStore = this.$store.getters['currentProduct'].inStore;
       const defaultStorage = this.$store.getters[`${ inStore }/all`](STORAGE_CLASS).find( (s) => s.isDefault);
 
-      this.valuesContent.pvcClaim['storageClassName'] = this.valuesContent?.pvcClaim?.storageClassName || defaultStorage?.metadata?.name || 'longhorn';
+      const storageClass = this.valuesContent?.pvcClaim?.storageClass || this.valuesContent?.pvcClaim?.storageClassName || defaultStorage?.metadata?.name || 'longhorn';
+
+      this.valuesContent.pvcClaim['storageClass'] = storageClass;
+      if (this.valuesContent.pvcClaim.storageClassName) {
+        delete this.valuesContent.pvcClaim.storageClassName;
+      }
 
       this.update();
     },
@@ -206,7 +211,7 @@ export default {
               </div>
               <div class="col span-6">
                 <LabeledSelect
-                  v-model:value="valuesContent.pvcClaim.storageClassName"
+                  v-model:value="valuesContent.pvcClaim.storageClass"
                   :options="storageClassOptions"
                   :label="t('harvester.storage.storageClass.label')"
                   :mode="mode"
