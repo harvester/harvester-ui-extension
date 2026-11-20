@@ -5,7 +5,7 @@ import SortableTable from '@shell/components/SortableTable';
 import { HCI } from '@pkg/harvester/types';
 import { allHash } from '@shell/utils/promise';
 import { KEY, VALUE } from '@shell/config/table-headers';
-import { VM_HEADERS } from '@pkg/harvester/list/kubevirt.io.virtualmachine';
+import { VM_HEADERS } from '@pkg/harvester/config/table-headers';
 import { matching } from '@shell/utils/selector';
 import { IP_POOL_HEADERS } from '../config/harvester-cluster';
 
@@ -103,7 +103,7 @@ export default {
     },
 
     vmHeaders() {
-      const filterNames = ['state', 'ip', 'node'];
+      const filterNames = ['state', 'ip', 'node', 'restoreProgress'];
 
       return VM_HEADERS.filter((h) => !filterNames.includes(h.name));
     },

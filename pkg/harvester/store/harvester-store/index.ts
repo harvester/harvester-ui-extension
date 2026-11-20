@@ -3,7 +3,7 @@ import { CoreStoreSpecifics, CoreStoreConfig } from '@shell/core/types';
 
 import { SteveFactory, steveStoreInit } from '@shell/plugins/steve/index';
 import { PRODUCT_NAME } from '../../config/harvester';
-import getters from './getters';
+import getters, { vmAwarePaginationEnabled } from './getters';
 import mutations from './mutations';
 import actions from './actions';
 
@@ -22,6 +22,7 @@ const harvesterFactory = (): CoreStoreSpecifics => {
   steveFactory.getters = {
     ...steveFactory.getters,
     ...getters,
+    paginationEnabled: vmAwarePaginationEnabled(steveFactory.getters.paginationEnabled),
   };
 
   steveFactory.mutations = {
