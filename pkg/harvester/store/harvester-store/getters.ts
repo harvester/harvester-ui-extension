@@ -4,9 +4,229 @@ import {
   NAMESPACE_FILTER_ALL as ALL,
   NAMESPACE_FILTER_ALL_ORPHANS as ALL_ORPHANS,
 } from '@shell/utils/namespace-filter';
-import { MANAGEMENT } from '@shell/config/types';
+import { COUNT, MANAGEMENT, NAMESPACE } from '@shell/config/types';
 import { sortBy } from '@shell/utils/sort';
 import { filterBy } from '@shell/utils/array';
+import { addParams } from '@shell/utils/url';
+import { HCI, DATA_VOLUME } from '../../types';
+import { BACKUP_TYPE } from '../../config/types';
+import { HCI as HCI_ANNOTATIONS } from '../../config/labels-annotations';
+import { HCI_ALLOWED_SETTINGS, HCI_SINGLE_CLUSTER_ALLOWED_SETTING } from '../../config/settings';
+
+// ---------------------------------------------------------------------------
+// Side navigation counts
+//
+// The side navigation (`Type.vue`, `type-map/getTree`) shows the number of
+// resources of a nav item by calling `harvester/count({ name: <nav item> })`.
+// Many Harvester nav items are named differently than the K8s resource they
+// list (e.g. `harvesterhci.io.volume` lists `persistentvolumeclaim`, see
+// `configureType(..., { resource })` in config/harvester-cluster.js). Some
+// list views additionally show only a subset of that resource type.
+//
+// All counts come from the server: Steve's counts endpoint for nav items
+// listing all resources of a type, and a filtered request with a page size of 1
+// for the nav items in SERVER_FILTERED_COUNTS. Resource lists are not loaded
+// for the counts: only Namespaces and Settings count their list, which is always
+// loaded with the cluster.
+// ---------------------------------------------------------------------------
+
+/**
+ * Nav items whose list view shows only a subset of the underlying resource
+ * type, with the query parameters of that subset. Each query must match the
+ * filter of the list view, so keep them in sync with the files in list/.
+ *
+ * Steve's counts endpoint only knows the total per resource type, so these
+ * counts are requested from Harvester's API (`/v1/harvester`) with the query
+ * and a page size of 1: the `count` of the response is the number of matches
+ * (see `fetchFilteredCounts` in actions.ts).
+ *
+ * The queries rely on the filtering of Harvester's API, which does not use
+ * Steve's SQL cache: `filter=a.b=c` matches when the field contains the value,
+ * `filter=a.b!=` when the field is not set, and a list field matches when any
+ * of its items matches. Rewrite them when Harvester's API moves to the SQL
+ * cache: it only filters on indexed fields, and it ignores `labelSelector`
+ * without an error, so these counts would silently become the totals.
+ */
+export const SERVER_FILTERED_COUNTS: Record<string, Record<string, string>> = {
+  // VM backups and VM snapshots are both VirtualMachineBackup resources
+  [HCI.BACKUP]:             { filter: `spec.type!=${ BACKUP_TYPE.SNAPSHOT }` },
+  [HCI.VM_SNAPSHOT]:        { filter: `spec.type=${ BACKUP_TYPE.SNAPSHOT }` },
+  // VM backups and snapshots also create VolumeSnapshots, owned by the VirtualMachineBackup
+  [HCI.SNAPSHOT]:           { filter: 'metadata.ownerReferences.kind=PersistentVolumeClaim' },
+  // Every VM image creates an internal backing image StorageClass
+  [HCI.STORAGE]:            { filter: 'parameters.backingImage!=' },
+  // Only ConfigMaps labeled as cloud-init template
+  [HCI.CLOUD_TEMPLATE]:     { labelSelector: HCI_ANNOTATIONS.CLOUD_INIT },
+  // Hides the storage network: Harvester creates it with this generated name, and its annotation cannot be filtered on
+  [HCI.NETWORK_ATTACHMENT]: { filter: 'metadata.generateName!=storagenetwork-' },
+  // Hides the temporary volumes CDI uses to populate a volume, which are owned by that volume
+  [HCI.VOLUME]:             { filter: 'metadata.ownerReferences.kind!=PersistentVolumeClaim' },
+  // Not a nav item: the golden image volumes that the list of Volumes also hides, see `volumeCount`
+  [DATA_VOLUME]:            { filter: 'metadata.ownerReferences.kind=VirtualMachineImage' },
+};
+
+/**
+ * Nav items whose list view lists the resources of all namespaces whatever the
+ * namespace filter is (`:ignore-filter="true"` or `:namespaced="false"` on
+ * `ResourceTable`). Keep in sync with the files in list/.
+ */
+export const IGNORE_NAMESPACE_FILTER = new Set<string>([
+  HCI.NETWORK_ATTACHMENT,
+  HCI.CLUSTER_FLOW,
+  HCI.CLUSTER_OUTPUT,
+  HCI.FLOW,
+  HCI.OUTPUT,
+  HCI.ADD_ONS,
+]);
+
+/**
+ * The namespaces to count for a namespaced resource type, or `null` to count
+ * all of them. Mirrors the namespace filter of `ResourceTable`: even with
+ * "All Namespaces" selected, the Harvester product (`hideSystemResources`)
+ * does not list resources in system namespaces, e.g. the PVCs of
+ * cattle-monitoring-system.
+ */
+export function countedNamespaces(rootGetters: any): string[] | null {
+  if (rootGetters.isAllNamespaces && !rootGetters.currentProduct?.hideSystemResources) {
+    return null;
+  }
+
+  // `namespaces()` computes the active namespaces on demand, so a count is available right
+  // away instead of only once something else has triggered that computation.
+  // An empty result is a valid selection (e.g. a project without namespaces): keep the
+  // empty array so that nothing is counted instead of the cluster-wide total.
+  return Object.keys(rootGetters.namespaces());
+}
+
+/**
+ * Whether the count of a nav item depends on the namespace filter.
+ */
+export function isFilteredByNamespace(name: string, schema: any): boolean {
+  return !!schema?.attributes?.namespaced && !IGNORE_NAMESPACE_FILTER.has(name);
+}
+
+/**
+ * The request for the count of a nav item in SERVER_FILTERED_COUNTS:
+ * - `{ url }` to request it,
+ * - `{ count: 0 }` if nothing can match (no namespace selected),
+ * - `null` if the resource type is unknown or cannot be listed.
+ */
+export function filteredCountRequest(getters: any, rootGetters: any, name: string): { url?: string, count?: number } | null {
+  const schema = getters.schemaFor(name);
+
+  if (!schema?.links?.collection) {
+    return null;
+  }
+
+  const params: Record<string, string> = { ...SERVER_FILTERED_COUNTS[name], pagesize: '1' };
+
+  if (isFilteredByNamespace(name, schema)) {
+    const namespaces = countedNamespaces(rootGetters);
+
+    if (namespaces?.length === 0) {
+      return { count: 0 };
+    }
+
+    if (namespaces) {
+      params.projectsornamespaces = namespaces.join(',');
+    }
+  }
+
+  return { url: addParams(getters.urlFor(schema.id), params) };
+}
+
+/**
+ * Count of all resources of `resourceType`, taken from Steve's counts
+ * endpoint. It is loaded with the cluster, so the count is available right
+ * away. `null` if the resource type is unknown.
+ */
+function unfilteredCount(getters: any, resourceType: string, namespaces: string[] | null): number | null {
+  const count = getters.all(COUNT)?.[0]?.counts?.[resourceType];
+
+  if (!count) {
+    return null;
+  }
+
+  if (!namespaces) {
+    return count.summary?.count || 0;
+  }
+
+  return namespaces.reduce((sum, namespace) => sum + (count.namespaces?.[namespace]?.count || 0), 0);
+}
+
+/**
+ * Count of the Namespaces list. With `hideSystemResources` it hides system and
+ * Fleet managed namespaces (`list/namespace.vue` of the shell), which the
+ * counts endpoint cannot tell apart. The namespaces are always loaded with the
+ * cluster (namespace filter), so the count comes from them. `null` while they
+ * are not loaded.
+ */
+function namespaceCount(getters: any): number | null {
+  if (!getters.haveAll(NAMESPACE)) {
+    return null;
+  }
+
+  return getters.all(NAMESPACE).filter((namespace: any) => !namespace.isSystem && !namespace.isFleetManaged).length;
+}
+
+/**
+ * Count of the Volumes list, which also hides golden image volumes. These are
+ * only marked by an annotation, which Harvester's API cannot filter on, but each
+ * one belongs to a DataVolume owned by its VM image. So they are counted through
+ * these DataVolumes and subtracted. `null` until both numbers are known.
+ */
+function volumeCount(state: any): number | null {
+  const volumes = state.filteredCounts?.[HCI.VOLUME] ?? null;
+  const goldenImageVolumes = state.filteredCounts?.[DATA_VOLUME] ?? null;
+
+  if (volumes === null || goldenImageVolumes === null) {
+    return null;
+  }
+
+  // A DataVolume exists briefly before its volume
+  return Math.max(volumes - goldenImageVolumes, 0);
+}
+
+/**
+ * Count of the Settings page, which shows only some of the settings (see the
+ * `visibleSettings` getter). `null` while the settings are not loaded.
+ */
+function settingCount(getters: any): number | null {
+  return getters.haveAll(HCI.SETTING) ? getters.visibleSettings.length : null;
+}
+
+function resourceCount(state: any, rootGetters: any, getters: any, typeObj: any): number | null {
+  const type = typeObj?.name;
+
+  if (!type) {
+    throw new Error(`Resource type required to calc count: ${ JSON.stringify(typeObj) }`);
+  }
+
+  if (type === HCI.VOLUME) {
+    return volumeCount(state);
+  }
+
+  // Requested by `fetchFilteredCounts` (actions.ts), `null` until the response arrives
+  if (SERVER_FILTERED_COUNTS[type]) {
+    return state.filteredCounts?.[type] ?? null;
+  }
+
+  if (type === NAMESPACE && rootGetters.currentProduct?.hideSystemResources) {
+    return namespaceCount(getters);
+  }
+
+  if (type === HCI.SETTING) {
+    return settingCount(getters);
+  }
+
+  // schemaFor falls back to the resource of `configureType`, so this resolves
+  // the nav item to the K8s resource type it lists
+  const schema = getters.schemaFor(type);
+  const resourceType = schema?.id || type;
+  const namespaces = isFilteredByNamespace(type, schema) ? countedNamespaces(rootGetters) : null;
+
+  return unfilteredCount(getters, resourceType, namespaces);
+}
 
 export default {
   namespaceFilterOptions: (state: any, getters: any, rootState: any, rootGetters: any) => ({
@@ -125,6 +345,26 @@ export default {
     return projectsInAllClusters.filter((project: any) => project.spec.clusterName === clusterId && project.nameDisplay !== 'System');
   },
 
+  /**
+   * The settings shown by the Settings page: the allowed ones that exist in the
+   * cluster and are supported by its version. The page and the count of its nav
+   * item both use this, so that they always agree.
+   */
+  visibleSettings(state: any, getters: any, rootState: any, rootGetters: any) {
+    const settings = [
+      ...(rootGetters.isSingleProduct ? rootGetters['management/all'](MANAGEMENT.SETTING) : []),
+      ...getters.all(HCI.SETTING),
+    ];
+    const settingsById = Object.fromEntries(settings.map((setting: any) => [setting.id, setting]));
+    const allowed = rootGetters.isStandaloneHarvester ? { ...HCI_ALLOWED_SETTINGS, ...HCI_SINGLE_CLUSTER_ALLOWED_SETTING } : HCI_ALLOWED_SETTINGS;
+
+    return Object.entries(allowed)
+      .filter(([id, config]: any) => settingsById[id] && (!config.featureFlag || rootGetters['harvester-common/getFeatureEnabled'](config.featureFlag)))
+      .map(([id, config]: any) => ({
+        id, config, data: settingsById[id]
+      }));
+  },
+
   // Few harvester resources name and REAL resource are different. E.g. HCI.NETWORK_ATTACHMENT page resource is NETWORK_ATTACHMENT.
   // Check in config/harvester-cluster.js for more details.
   // We need to look up the schema by resource name, and fallback to find using real resource name
@@ -144,5 +384,20 @@ export default {
     }
 
     return null;
+  },
+
+  // Overrides the `count` getter of the dashboard store, which looks up the
+  // count by the nav item name only. See "Side navigation counts" above.
+  count: (state: any, getters: any, rootState: any, rootGetters: any) => (typeObj: any) => {
+    // Like the `count` getter of the dashboard store: a nav item configured with `subTypes`
+    // shows the sum of the counts of these types, e.g. the Migration Overview
+    // (`forklift-create`) shows the number of Migration Plans.
+    const subTypes = rootGetters['type-map/optionsFor']?.(typeObj?.name)?.subTypes || [];
+
+    if (subTypes.length) {
+      return subTypes.reduce((acc: number, type: string) => acc + resourceCount(state, rootGetters, getters, { name: type }), 0);
+    }
+
+    return resourceCount(state, rootGetters, getters, typeObj);
   },
 };

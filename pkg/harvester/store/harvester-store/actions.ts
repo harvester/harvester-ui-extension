@@ -5,7 +5,12 @@ import { COUNT, NAMESPACE, MANAGEMENT } from '@shell/config/types';
 import { allHash } from '@shell/utils/promise';
 import { DEV, NAMESPACE_FILTERS } from '@shell/store/prefs';
 import { createNamespaceFilterKeyWithId } from '@shell/utils/namespace-filter';
+import debounce from 'lodash/debounce';
 import { HCI } from '../../types';
+import { PRODUCT_NAME } from '../../config/harvester';
+import {
+  SERVER_FILTERED_COUNTS, countedNamespaces, filteredCountRequest, isFilteredByNamespace
+} from './getters';
 
 export default {
   async loadCluster({
@@ -131,6 +136,8 @@ export default {
       getters
     }, { root: true });
 
+    dispatch('watchFilteredCounts', { clusterId: id });
+
     // Solve compatibility with Rancher v2.6.x, fell remove these codes after not support v2.6.x
     const definition = {
       def:              false,
@@ -165,5 +172,96 @@ export default {
         isRancher:      true,
       }, { root: true });
     }
+  },
+
+  /**
+   * Requests the side navigation counts of the nav items in SERVER_FILTERED_COUNTS
+   * (all of them by default), see getters.ts. Responses of an outdated request
+   * of a nav item (e.g. before a namespace filter change, or of the previous
+   * cluster) are ignored.
+   */
+  async fetchFilteredCounts({
+    state, commit, dispatch, getters, rootGetters
+  }: any, names: string[] = Object.keys(SERVER_FILTERED_COUNTS)) {
+    await Promise.all(names.map(async(name: string) => {
+      commit('filteredCountRequested', name);
+
+      const requestId = state.filteredCountRequests[name];
+      const request = filteredCountRequest(getters, rootGetters, name);
+      let count = request?.count ?? null;
+
+      if (request?.url) {
+        try {
+          const res = await dispatch('request', { url: request.url });
+
+          // Steve leaves out `count` when nothing matches. Harvester v1.3 ignores the query and
+          // sends all resources without a `count`, which says nothing about the subset.
+          count = res?.count ?? (res?.data?.length ? null : 0);
+        } catch (e) {
+          count = null;
+        }
+      }
+
+      if (state.filteredCountRequests[name] === requestId) {
+        commit('setFilteredCount', { name, count });
+      }
+    }));
+  },
+
+  /**
+   * Requests the counts of SERVER_FILTERED_COUNTS, and requests them again when
+   * they may have changed: when the counts endpoint reports other numbers for
+   * their resource type (it is kept up to date through the websocket), and when
+   * the namespace filter changes. A change that leaves these numbers as they are
+   * (e.g. adding the cloud-init template label to an existing ConfigMap) shows up
+   * with the next change of that resource type.
+   */
+  watchFilteredCounts({
+    state, commit, dispatch, getters, rootGetters
+  }: any, { clusterId }: any) {
+    // The `loadCluster` of a cluster left while it was loading can finish after the one of the new cluster
+    if (rootGetters.clusterId !== clusterId) {
+      return;
+    }
+
+    state.filteredCountWatchers.forEach((unwatch: () => void) => unwatch());
+    commit('resetFilteredCounts');
+
+    // The watchers stay registered after leaving the cluster or the product, until the next `loadCluster`
+    const refresh = (names: string[]) => {
+      if (rootGetters.clusterId === clusterId && rootGetters.currentProduct?.inStore === PRODUCT_NAME) {
+        dispatch('fetchFilteredCounts', names);
+      }
+    };
+    const names = Object.keys(SERVER_FILTERED_COUNTS);
+    const namesByType: Record<string, string[]> = {};
+
+    names.forEach((name) => {
+      const type = getters.schemaFor(name)?.id;
+
+      if (type) {
+        namesByType[type] = [...(namesByType[type] || []), name];
+      }
+    });
+
+    const unwatchers = Object.entries(namesByType).map(([type, namesOfType]) => {
+      const refreshType = debounce(() => refresh(namesOfType), 1000);
+      // `all` is gone once the store module is unregistered when logging out
+      const unwatch = this.watch(() => JSON.stringify(getters.all?.(COUNT)?.[0]?.counts?.[type] || null), refreshType);
+
+      return () => {
+        unwatch();
+        refreshType.cancel();
+      };
+    });
+
+    unwatchers.push(this.watch(
+      () => JSON.stringify(countedNamespaces(rootGetters)),
+      () => refresh(names.filter((name) => isFilteredByNamespace(name, getters.schemaFor(name))))
+    ));
+
+    commit('setFilteredCountWatchers', unwatchers);
+
+    return dispatch('fetchFilteredCounts');
   },
 };
