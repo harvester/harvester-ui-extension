@@ -6,6 +6,7 @@ import harvesterCommonStore from './store/harvester-common';
 import harvesterStore from './store/harvester-store';
 import customValidators from './validators';
 import { PRODUCT_NAME } from './config/harvester';
+import { HCI } from './types';
 import {
   hostResolvesL10nGlobals, resolveL10nGlobals, standaloneProductName, PRODUCT_NAME_GLOBAL
 } from './utils/l10n-globals';
@@ -40,6 +41,16 @@ export default function (plugin: IPlugin) {
   plugin.addDashboardStore(harvesterCommonStore.config.namespace, harvesterCommonStore.specifics, harvesterCommonStore.config);
   plugin.addDashboardStore(harvesterStore.config.namespace, harvesterStore.specifics, harvesterStore.config, harvesterStore.init);
   plugin.validators = customValidators;
+
+  // The store's `paginationEnabled` getter turns it off on clusters whose API can't page the VM list
+  plugin.enableServerSidePagination?.({
+    [PRODUCT_NAME]: {
+      resources: {
+        enableAll:  false,
+        enableSome: { enabled: [HCI.VM] }
+      }
+    }
+  });
 
   plugin.addRoutes(extensionRoutes);
 
