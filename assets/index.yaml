@@ -14,9 +14,9 @@ entries:
       catalog.cattle.io/ui-extensions-version: '>= 3.0.0 < 4.0.0'
     apiVersion: v2
     appVersion: 1.10.0-rc2
-    created: "2026-11-20T04:11:39.917810453Z"
+    created: "2026-11-20T06:55:09.416145549Z"
     description: Rancher UI Extension for Harvester
-    digest: 0d91b3758fce7162b1b03dc97a97556c376eeba8f31307e5338dfb80b9609c92
+    digest: c1897264ee043d14511a982a75d2f5dbfc653648dcce687d24c85de51f899aea
     icon: https://raw.githubusercontent.com/harvester/harvester-ui-extension/main/pkg/harvester/icon.svg
     name: harvester
     type: application
@@ -507,4 +507,4 @@ entries:
     urls:
     - assets/harvester/harvester-1.0.0.tgz
     version: 1.0.0
-generated: "2026-11-20T04:11:39.91740171Z"
+generated: "2026-11-20T06:55:09.415676616Z"
