@@ -38,6 +38,7 @@ describe('component: HarvesterVolume', () => {
     const context = await fetchStorageClass([]);
 
     expect(context.value.spec.storageClassName).toBeUndefined();
+    expect(context.storageClassesLoaded).toBe(true);
   });
 
   it('selects the cluster default storage class before longhorn', async() => {
@@ -52,10 +53,10 @@ describe('component: HarvesterVolume', () => {
   it('selects longhorn when the cluster default storage class is unavailable', async() => {
     const context = await fetchStorageClass([
       storageClass('slow'),
-      storageClass('fast', { isDefault: true }),
+      storageClass('longhorn'),
     ]);
 
-    expect(context.value.spec.storageClassName).toBe('fast');
+    expect(context.value.spec.storageClassName).toBe('longhorn');
   });
 
   it('selects the first selectable storage class when no preferred class is available', async() => {
@@ -68,9 +69,10 @@ describe('component: HarvesterVolume', () => {
     expect(context.value.spec.storageClassName).toBe('fast');
   });
 
-  it('does not select a backing-image longhorn class', async() => {
+  it('does not select backing-image or internal classes', async() => {
     const context = await fetchStorageClass([
       storageClass('longhorn', { parameters: { backingImage: 'image' } }),
+      storageClass('longhorn-static'),
       storageClass('fast'),
     ]);
 
@@ -96,6 +98,19 @@ describe('component: HarvesterVolume', () => {
     const context = await fetchStorageClass([storageClass('fast')], 'missing', false);
 
     expect(context.value.spec.storageClassName).toBe('missing');
+  });
+
+  it('prevents blank volume creation when no storage class is selectable', async() => {
+    const buttonDone = jest.fn();
+    const context = {
+      showStorageClassUnavailableBanner: true,
+      t:                                 (key) => key,
+    };
+
+    await HarvesterVolume.methods.save.call(context, buttonDone);
+
+    expect(buttonDone).toHaveBeenCalledWith(false);
+    expect(context.errors).toStrictEqual(['harvester.volume.storageClassUnavailable']);
   });
 
   it('waits for storage classes before showing the unavailable banner', () => {

@@ -306,6 +306,13 @@ export default {
 
   methods: {
     async saveImage(buttonCb) {
+      if (this.showStorageClassUnavailableBanner) {
+        this.errors = [this.t(this.storageClassUnavailableMessage)];
+        buttonCb(false);
+
+        return;
+      }
+
       this.value.spec.displayName = (this.value.spec.displayName || '').trim();
 
       if (this.isEdit) return await this.handleEditImage(buttonCb);

@@ -437,6 +437,13 @@ export default {
     },
 
     async save(buttonDone) {
+      if (this.showStorageClassUnavailableBanner) {
+        this.errors = [this.t('harvester.volume.storageClassUnavailable')];
+        buttonDone(false);
+
+        return;
+      }
+
       if (this.isCreate && this.isBlank && this.createWithDataVolume) {
         try {
           this.update();
