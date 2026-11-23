@@ -1,6 +1,8 @@
 export const BACKUP_TYPE = {
   BACKUP:   'backup',
-  SNAPSHOT: 'snapshot'
+  SNAPSHOT: 'snapshot',
+  RESTIC:   'restic',
+  KOPIA:    'kopia'
 };
 
 export const NETWORK_TYPE = {

@@ -114,7 +114,7 @@ export default {
     },
 
     filteredRows() {
-      return this.snapshots.filter((r) => r.spec?.type !== BACKUP_TYPE.BACKUP);
+      return this.snapshots.filter((r) => r.spec?.type === BACKUP_TYPE.SNAPSHOT);
     },
   },
 

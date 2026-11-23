@@ -353,6 +353,14 @@ export default class HciPv extends HarvesterResource {
     return this.dataEngine === DATA_ENGINE_V2;
   }
 
+  get isBlockVolume() {
+    return this.spec?.volumeMode === 'Block';
+  }
+
+  get isCreatedForDataVolume() {
+    return !!this.metadata?.annotations?.[HCI_ANNOTATIONS.CDI_CREATED_FOR_DATA_VOLUME];
+  }
+
   get isGoldenImageVolume() {
     return this?.metadata?.annotations?.[HCI_ANNOTATIONS.GOLDEN_IMAGE] === 'true';
   }

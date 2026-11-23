@@ -30,6 +30,7 @@ export const HCI_SETTING = {
   RELEASE_DOWNLOAD_URL:                     'release-download-url',
   CCM_CSI_VERSION:                          'harvester-csi-ccm-versions',
   CSI_DRIVER_CONFIG:                        'csi-driver-config',
+  THIRD_PARTY_BACKUP_CONFIG:                'third-party-backup-config',
   CSI_ONLINE_EXPAND_VALIDATION:             'csi-online-expand-validation',
   VM_TERMINATION_PERIOD:                    'default-vm-termination-grace-period-seconds',
   NTP_SERVERS:                              'ntp-servers',
@@ -143,6 +144,9 @@ export const HCI_ALLOWED_SETTINGS = {
   },
   [HCI_SETTING.KUBEVIRT_MIGRATION]: {
     kind: 'json', from: 'import', canReset: true, featureFlag: 'kubevirtMigration',
+  },
+  [HCI_SETTING.THIRD_PARTY_BACKUP_CONFIG]: {
+    kind: 'json', from: 'import', canReset: true, featureFlag: 'thirdPartyVMBackup',
   },
   [HCI_SETTING.INSTANCE_MANAGER_RESOURCES]: {
     kind: 'json', from: 'import', featureFlag: 'instanceManagerResourcesSetting'
