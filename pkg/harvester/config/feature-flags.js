@@ -89,6 +89,7 @@ const FEATURE_FLAGS = {
     'repositoryStorageClass',
     'shutdownVMOnMigrationFailure',
     'vmListPagination',
+    'kubeovnBgp',
   ],
 };
 

@@ -19,6 +19,7 @@ import HarvesterUnsupported from '../pages/c/_cluster/unsupported/index.vue';
 import ForkliftDashboard from '../pages/c/_cluster/vm-migration/index.vue';
 import ForkliftVmMigrationWizard from '../pages/c/_cluster/vm-migration/vm-migration-wizard.vue';
 import ForkliftProviderWizard from '../pages/c/_cluster/vm-migration/provider-wizard.vue';
+import BgpSpeaker from '../pages/c/_cluster/bgp-speaker/index.vue';
 
 const routes = [
   {
@@ -98,6 +99,10 @@ const routes = [
     name:      `${ PRODUCT_NAME }-c-cluster-vm-migration-provider-wizard`,
     path:      `/:product/c/:cluster/vm-migration/provider-wizard`,
     component: ForkliftProviderWizard,
+  }, {
+    name:      `${ PRODUCT_NAME }-c-cluster-bgp-speaker`,
+    path:      `/:product/c/:cluster/bgp-speaker`,
+    component: BgpSpeaker,
   }, {
     name:      `${ PRODUCT_NAME }-c-cluster-resource`,
     path:      `/:product/c/:cluster/:resource`,

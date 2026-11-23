@@ -13,8 +13,12 @@ import { set, remove } from '@shell/utils/object';
 import ArrayList from '@shell/components/form/ArrayList';
 import { allHash } from '@shell/utils/promise';
 import { HCI } from '../../types';
+import { HCI as HCI_ANNOTATIONS } from '@pkg/harvester/config/labels-annotations';
 import ResourceTabs from '@shell/components/form/ResourceTabs/index';
 import { Banner } from '@components/Banner';
+import MessageLink from '@shell/components/MessageLink';
+import { PRODUCT_NAME as HARVESTER_PRODUCT } from '../../config/harvester';
+import { KUBEOVN_CONFIGURATION_ID } from '../../models/kubeovn.io.configuration';
 import AccessControlList from './AccessControlList';
 
 export default {
@@ -33,12 +37,17 @@ export default {
     ArrayList,
     ResourceTabs,
     Loading,
+    MessageLink,
     AccessControlList
   },
 
   mixins: [CreateEditView],
 
   inheritAttrs: false,
+
+  data() {
+    return { bgpSpeakerOff: false };
+  },
 
   created() {
     const vpc = this.$route.query.vpc || '';
@@ -69,7 +78,16 @@ export default {
       vlans: this.$store.dispatch(`${ inStore }/findAll`, { type: HCI.VLAN }),
     };
 
-    await allHash(hash);
+    // BGP on a subnet only has an effect when some host runs the BGP speaker (Overlay Networks > Settings)
+    if (this.bgpFeatureEnabled && this.$store.getters[`${ inStore }/schemaFor`](HCI.KUBEOVN_CONFIG)) {
+      hash.kubeovnConfig = this.$store.dispatch(`${ inStore }/find`, { type: HCI.KUBEOVN_CONFIG, id: KUBEOVN_CONFIGURATION_ID }).catch(() => null);
+    }
+
+    const res = await allHash(hash);
+
+    if (res.kubeovnConfig) {
+      this.bgpSpeakerOff = !res.kubeovnConfig.bgpSpeakerHosts?.length;
+    }
   },
 
   computed: {
@@ -133,6 +151,29 @@ export default {
         value: n.id,
       }));
     },
+    bgpFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('kubeovnBgp');
+    },
+
+    bgpSettingsLocation() {
+      return { name: `${ HARVESTER_PRODUCT }-c-cluster-bgp-speaker` };
+    },
+
+    bgpEnabled: {
+      get() {
+        const bgp = this.value?.metadata?.annotations?.[HCI_ANNOTATIONS.KUBEOVN_BGP];
+
+        // Kube-OVN also accepts "cluster" (same as "true") and "local" (only the pod IPs, from the hosts running them)
+        return !!bgp && bgp !== 'false';
+      },
+
+      set(enabled) {
+        if (enabled !== this.bgpEnabled) {
+          this.value.setAnnotation(HCI_ANNOTATIONS.KUBEOVN_BGP, enabled ? 'true' : null);
+        }
+      }
+    },
+
     natOutgoingDisabled() {
       // Disable the NAT Outgoing option when the subnet belongs to the ovn-cluster VPC and its name is join or ovn-default.
       return this.value?.spec?.vpc === 'ovn-cluster' && ['join', 'ovn-default'].includes(this.value?.metadata?.name);
@@ -366,6 +407,40 @@ export default {
               :labels="[t('generic.enabled'), t('generic.disabled')]"
               :mode="mode"
               tooltip-key="harvester.subnet.private.tooltip"
+            />
+          </div>
+        </div>
+        <div
+          v-if="bgpFeatureEnabled"
+          class="row mt-20"
+        >
+          <div class="col span-6">
+            <RadioGroup
+              v-model:value="bgpEnabled"
+              name="bgp"
+              :options="[true, false]"
+              :label="t('harvester.subnet.bgp.label')"
+              :labels="[t('generic.enabled'), t('generic.disabled')]"
+              :mode="mode"
+              tooltip-key="harvester.subnet.bgp.tooltip"
+            />
+            <Banner
+              v-if="bgpEnabled && bgpSpeakerOff"
+              color="warning"
+              data-testid="subnet-bgp-speaker-off"
+            >
+              <MessageLink
+                :to="bgpSettingsLocation"
+                prefix-label="harvester.subnet.bgp.speakerOff.prefix"
+                middle-label="harvester.subnet.bgp.speakerOff.middle"
+                suffix-label="harvester.subnet.bgp.speakerOff.suffix"
+              />
+            </Banner>
+            <Banner
+              v-if="bgpEnabled"
+              color="info"
+              data-testid="subnet-bgp-external-gateway"
+              :label="t('harvester.subnet.bgp.externalGateway', null, true)"
             />
           </div>
         </div>
