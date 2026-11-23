@@ -90,6 +90,7 @@ const FEATURE_FLAGS = {
     'shutdownVMOnMigrationFailure',
     'vmListPagination',
     'kubeovnBgp',
+    'thirdPartyVMBackup',
   ],
 };
 
