@@ -67,7 +67,10 @@ export default {
 
     this.images = this.$store.getters[`${ inStore }/all`](HCI.IMAGE);
     this.storages = this.$store.getters[`${ inStore }/all`](STORAGE_CLASS);
-    this['storageClassName'] = this.storageClassName || this.defaultStorageClassName();
+
+    const storageClassName = this.storageClassName;
+
+    this['storageClassName'] = this.isCreate && !this.selectableStorageClasses.some((storageClass) => storageClass.name === storageClassName) ? this.defaultStorageClassName() : storageClassName || this.defaultStorageClassName();
     this.storageClassesLoaded = true;
 
     const { securityParameters } = this.value.spec;
@@ -177,7 +180,11 @@ export default {
     },
 
     showStorageClassUnavailableBanner() {
-      return this.mode !== 'view' && this.storageClassesLoaded && !this.selectableStorageClasses.length;
+      return this.isCreate && this.storageClassesLoaded && !this.selectableStorageClasses.length;
+    },
+
+    storageClassUnavailableMessage() {
+      return this.value.spec?.securityParameters?.cryptoOperation === ENCRYPT ? 'harvester.image.encryptedStorageClassUnavailable' : 'harvester.image.storageClassUnavailable';
     },
 
     storageClassOptions() {
@@ -445,8 +452,8 @@ export default {
     },
 
     defaultStorageClassName() {
-      const storageClass = this.selectableStorageClasses.find((storageClass) => storageClass.name === LONGHORN) ||
-        this.selectableStorageClasses.find((storageClass) => storageClass.isDefault) || this.selectableStorageClasses[0];
+      const storageClass = this.selectableStorageClasses.find((storageClass) => storageClass.isDefault) ||
+        this.selectableStorageClasses.find((storageClass) => storageClass.name === LONGHORN) || this.selectableStorageClasses[0];
 
       return storageClass?.metadata?.name || '';
     }
@@ -600,7 +607,7 @@ export default {
               v-if="showStorageClassUnavailableBanner"
               color="info"
             >
-              <span>{{ t('harvester.image.storageClassUnavailable') }}</span>
+              <span>{{ t(storageClassUnavailableMessage) }}</span>
             </Banner>
           </div>
         </div>

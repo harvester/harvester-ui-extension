@@ -83,10 +83,13 @@ export default {
     this.images = hash.images;
 
     const storageClasses = getSelectableStorageClasses(this.$store.getters[`harvester/all`](STORAGE_CLASS));
-    const selectedStorage = storageClasses.find((storageClass) => storageClass.name === 'longhorn') ||
-      storageClasses.find((storageClass) => storageClass.isDefault) || storageClasses[0];
+    const selectedStorage = storageClasses.find((storageClass) => storageClass.isDefault) ||
+      storageClasses.find((storageClass) => storageClass.name === 'longhorn') || storageClasses[0];
 
-    this.value.spec['storageClassName'] = this.value?.spec?.storageClassName || selectedStorage?.metadata?.name;
+    const existingStorageClassName = this.value?.spec?.storageClassName;
+    const storageClassName = this.isCreate && !storageClasses.some((storageClass) => storageClass.name === existingStorageClassName) ? undefined : existingStorageClassName;
+
+    this.value.spec['storageClassName'] = storageClassName || selectedStorage?.metadata?.name;
     this.storageClassesLoaded = true;
   },
 
@@ -260,7 +263,7 @@ export default {
     },
 
     showStorageClassUnavailableBanner() {
-      return this.isBlank && this.mode !== 'view' && this.storageClassesLoaded && !this.selectableStorageClasses.length;
+      return this.isCreate && this.isBlank && this.storageClassesLoaded && !this.selectableStorageClasses.length;
     },
 
     storageClassOptions() {

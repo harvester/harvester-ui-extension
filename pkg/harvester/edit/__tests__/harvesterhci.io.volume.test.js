@@ -1,7 +1,8 @@
 import HarvesterVolume from '../harvesterhci.io.volume.vue';
 
-async function fetchStorageClass(storageClasses, storageClassName) {
+async function fetchStorageClass(storageClasses, storageClassName, isCreate = true) {
   const context = {
+    isCreate,
     value:     { spec: {} },
     snapshots: [],
     images:    [],
@@ -39,16 +40,16 @@ describe('component: HarvesterVolume', () => {
     expect(context.value.spec.storageClassName).toBeUndefined();
   });
 
-  it('selects longhorn before the cluster default storage class', async() => {
+  it('selects the cluster default storage class before longhorn', async() => {
     const context = await fetchStorageClass([
       storageClass('fast', { isDefault: true }),
       storageClass('longhorn'),
     ]);
 
-    expect(context.value.spec.storageClassName).toBe('longhorn');
+    expect(context.value.spec.storageClassName).toBe('fast');
   });
 
-  it('selects the cluster default storage class when longhorn is unavailable', async() => {
+  it('selects longhorn when the cluster default storage class is unavailable', async() => {
     const context = await fetchStorageClass([
       storageClass('slow'),
       storageClass('fast', { isDefault: true }),
@@ -76,26 +77,44 @@ describe('component: HarvesterVolume', () => {
     expect(context.value.spec.storageClassName).toBe('fast');
   });
 
-  it('preserves an existing storage class', async() => {
-    const context = await fetchStorageClass([storageClass('fast', { isDefault: true })], 'existing');
+  it('preserves an existing selectable storage class', async() => {
+    const context = await fetchStorageClass([
+      storageClass('existing'),
+      storageClass('fast', { isDefault: true }),
+    ], 'existing');
 
     expect(context.value.spec.storageClassName).toBe('existing');
+  });
+
+  it('falls back when the existing storage class is unavailable during creation', async() => {
+    const context = await fetchStorageClass([storageClass('fast')], 'missing');
+
+    expect(context.value.spec.storageClassName).toBe('fast');
+  });
+
+  it('preserves an unavailable storage class when editing', async() => {
+    const context = await fetchStorageClass([storageClass('fast')], 'missing', false);
+
+    expect(context.value.spec.storageClassName).toBe('missing');
   });
 
   it('waits for storage classes before showing the unavailable banner', () => {
     const showBanner = HarvesterVolume.computed.showStorageClassUnavailableBanner;
 
     expect(showBanner.call({
-      mode: 'create', storageClassesLoaded: false, selectableStorageClasses: [], isBlank: true
+      mode: 'create', isCreate: true, storageClassesLoaded: false, selectableStorageClasses: [], isBlank: true
     })).toBe(false);
     expect(showBanner.call({
-      mode: 'create', storageClassesLoaded: true, selectableStorageClasses: [], isBlank: true
+      mode: 'create', isCreate: true, storageClassesLoaded: true, selectableStorageClasses: [], isBlank: true
     })).toBe(true);
     expect(showBanner.call({
-      mode: 'create', storageClassesLoaded: true, selectableStorageClasses: [], isBlank: false
+      mode: 'create', isCreate: true, storageClassesLoaded: true, selectableStorageClasses: [], isBlank: false
     })).toBe(false);
     expect(showBanner.call({
-      mode: 'view', storageClassesLoaded: true, selectableStorageClasses: [], isBlank: true
+      mode: 'view', isCreate: false, storageClassesLoaded: true, selectableStorageClasses: [], isBlank: true
+    })).toBe(false);
+    expect(showBanner.call({
+      mode: 'edit', isCreate: false, storageClassesLoaded: true, selectableStorageClasses: [], isBlank: true
     })).toBe(false);
   });
 });
