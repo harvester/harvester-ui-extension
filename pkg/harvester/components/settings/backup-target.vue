@@ -3,6 +3,7 @@ import Tip from '@shell/components/Tip';
 import Password from '@shell/components/form/Password';
 import MessageLink from '@shell/components/MessageLink';
 import CreateEditView from '@shell/mixins/create-edit-view';
+import { Checkbox } from '@components/Form/Checkbox';
 import { LabeledInput } from '@components/Form/LabeledInput';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import { HCI_SETTING } from '../../config/settings';
@@ -14,7 +15,7 @@ export default {
   name: 'HarvesterEditBackupTarget',
 
   components: {
-    LabeledInput, LabeledSelect, Tip, Password, MessageLink, UnitInput
+    Checkbox, LabeledInput, LabeledSelect, Tip, Password, MessageLink, UnitInput
   },
 
   mixins: [CreateEditView],
@@ -36,7 +37,7 @@ export default {
     }
 
     // set default virtualHostedStyle to false
-    parseDefaultValue.virtualHostedStyle = false;
+    parseDefaultValue.virtualHostedStyle = !!parseDefaultValue.virtualHostedStyle;
 
     return {
       parseDefaultValue,
@@ -67,6 +68,10 @@ export default {
 
     refreshIntervalInSecondEnabled() {
       return this.$store.getters['harvester-common/getFeatureEnabled']('refreshIntervalInSecond');
+    },
+
+    thirdPartyBackupFeatureEnabled() {
+      return this.$store.getters['harvester-common/getFeatureEnabled']('thirdPartyVMBackup');
     },
 
     isS3() {
@@ -114,7 +119,15 @@ export default {
         delete this.parseDefaultValue.bucketName;
         delete this.parseDefaultValue.bucketRegion;
         delete this.parseDefaultValue.virtualHostedStyle;
+        delete this.parseDefaultValue.kopiaGCEnabled;
+        delete this.parseDefaultValue.thirdPartyBackupEnabled;
         delete this.parseDefaultValue.cert;
+      }
+
+      // While Restic and Kopia are off, the backend rejects a repository password and runs no Kopia garbage collection
+      if (!this.parseDefaultValue.thirdPartyBackupEnabled) {
+        delete this.parseDefaultValue.thirdPartyRepositoryPassword;
+        delete this.parseDefaultValue.kopiaGCEnabled;
       }
 
       if (this.isS3 && !this.parseDefaultValue.virtualHostedStyle) {
@@ -221,6 +234,45 @@ export default {
           :options="virtualHostedStyleOptions"
           @update:value="update"
         />
+
+        <!-- Checkbox is inline, so each gets its own line -->
+        <template v-if="thirdPartyBackupFeatureEnabled">
+          <div class="mb-20">
+            <Checkbox
+              v-model:value="parseDefaultValue.thirdPartyBackupEnabled"
+              data-testid="backup-target-third-party-backup"
+              :label="t('harvester.backup.thirdPartyBackup.label')"
+              :mode="mode"
+              :tooltip="t('harvester.backup.thirdPartyBackup.tooltip', {}, true)"
+              @update:value="update"
+            />
+          </div>
+          <template v-if="parseDefaultValue.thirdPartyBackupEnabled">
+            <Password
+              v-model:value="parseDefaultValue.thirdPartyRepositoryPassword"
+              data-testid="backup-target-repository-password"
+              class="mb-5"
+              :mode="mode"
+              :label="t('harvester.backup.thirdPartyBackup.password.label')"
+              required
+            />
+            <Tip
+              class="mb-20"
+              icon="icon icon-info"
+              :text="t('harvester.backup.thirdPartyBackup.password.tip', {}, true)"
+            />
+            <div class="mb-20">
+              <Checkbox
+                v-model:value="parseDefaultValue.kopiaGCEnabled"
+                data-testid="backup-target-kopia-gc"
+                :label="t('harvester.backup.kopiaGC.label')"
+                :mode="mode"
+                :tooltip="t('harvester.backup.kopiaGC.tooltip', {}, true)"
+                @update:value="update"
+              />
+            </div>
+          </template>
+        </template>
 
         <div class="mb-20">
           <Tip icon="icon icon-info">

@@ -23,3 +23,11 @@ export function isBackupTargetSettingUnavailable(setting = {}) {
 
   return (errorMessage || isEmptyValue) && canUpdate;
 }
+
+export function getBackupTarget(setting = {}) {
+  try {
+    return JSON.parse(setting?.value || '{}') || {};
+  } catch (e) {
+    return {};
+  }
+}
