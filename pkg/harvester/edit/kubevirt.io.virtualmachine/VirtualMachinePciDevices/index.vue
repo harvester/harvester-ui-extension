@@ -4,9 +4,9 @@ import { allHash } from '@shell/utils/promise';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import Banner from '@components/Banner/Banner.vue';
 import remove from 'lodash/remove';
-import { set } from '@shell/utils/object';
 import { uniq } from '@shell/utils/array';
 import { HCI } from '../../../types';
+import { setHostDevices } from '../../../utils/vm';
 import DeviceList from './DeviceList';
 import CompatibilityMatrix from '../CompatibilityMatrix';
 import MessageLink from '@shell/components/MessageLink';
@@ -80,6 +80,7 @@ export default {
 
   data() {
     return {
+      hadHostDevices:  !!this.value?.domain?.devices?.hostDevices,
       pciDevices:       [],
       claims:           [],
       vms:              [],
@@ -106,7 +107,7 @@ export default {
         ...formatted,
       ];
 
-      set(this.value.domain.devices, 'hostDevices', devices);
+      setHostDevices(this.value, devices, this.hadHostDevices);
     }
   },
 
