@@ -19,6 +19,10 @@ import HarvesterUnsupported from '../pages/c/_cluster/unsupported/index.vue';
 import ForkliftDashboard from '../pages/c/_cluster/vm-migration/index.vue';
 import ForkliftVmMigrationWizard from '../pages/c/_cluster/vm-migration/vm-migration-wizard.vue';
 import ForkliftProviderWizard from '../pages/c/_cluster/vm-migration/provider-wizard.vue';
+import HarvesterLogin from '../pages/auth/login/Login.vue';
+import HarvesterLogout from '../pages/auth/logout/Logout.vue';
+
+const isSingleVirtualCluster = process.env.rancherEnv === PRODUCT_NAME;
 
 const routes = [
   {
@@ -117,5 +121,26 @@ const routes = [
   },
 
 ];
+
+if (isSingleVirtualCluster) {
+  // Standalone has no Rancher auth providers, so take over the shell's login and logout pages.
+  // Re-using the `auth-login` / `auth-logout` names replaces the shell routes, which every 401,
+  // logout and session timeout redirects to.
+  routes.push({
+    route: {
+      name:      'auth-login',
+      path:      '/auth/login',
+      component: HarvesterLogin,
+    },
+    parent: 'unauthenticated'
+  }, {
+    route: {
+      name:      'auth-logout',
+      path:      '/auth/logout',
+      component: HarvesterLogout,
+    },
+    parent: 'unauthenticated'
+  });
+}
 
 export default routes;

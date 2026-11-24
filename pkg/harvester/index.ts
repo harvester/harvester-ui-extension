@@ -7,6 +7,7 @@ import harvesterStore from './store/harvester-store';
 import customValidators from './validators';
 import { PRODUCT_NAME } from './config/harvester';
 import { HCI } from './types';
+import { answerAuthProvidersLocally, initStandaloneSession, routeLogoutToHarvester } from './utils/auth';
 import {
   hostResolvesL10nGlobals, resolveL10nGlobals, standaloneProductName, PRODUCT_NAME_GLOBAL
 } from './utils/l10n-globals';
@@ -39,7 +40,17 @@ export default function (plugin: IPlugin) {
   plugin.addProduct(require('./config/harvester-cluster'));
 
   plugin.addDashboardStore(harvesterCommonStore.config.namespace, harvesterCommonStore.specifics, harvesterCommonStore.config);
-  plugin.addDashboardStore(harvesterStore.config.namespace, harvesterStore.specifics, harvesterStore.config, harvesterStore.init);
+  plugin.addDashboardStore(harvesterStore.config.namespace, harvesterStore.specifics, harvesterStore.config, (store, ctx) => {
+    harvesterStore.init(store, ctx);
+
+    // Runs before the first navigation: the shell's auth guard skips its Rancher-only user lookups,
+    // logout goes to the Harvester endpoint, and the auth provider list is answered locally
+    if (isSingleVirtualCluster) {
+      initStandaloneSession(store);
+      routeLogoutToHarvester(store);
+      answerAuthProvidersLocally(store);
+    }
+  });
   plugin.validators = customValidators;
 
   // The store's `paginationEnabled` getter turns it off on clusters whose API can't page the VM list
