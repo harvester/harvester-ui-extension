@@ -1434,7 +1434,11 @@ export default {
       case SOURCE_TYPE.IMAGE: {
         const image = this.images.find( (I) => R.image === I.id);
 
-        out.spec.storageClassName = R.realName ? R.storageClassName : (R.storageClassName || image?.storageClassName);
+        // Keep the StorageClass of a volume that already exists. A new volume, including one
+        // that comes from a VM template, falls back to the StorageClass of the selected image.
+        const isExistingVolume = !!R.realName && this.hasCreateVolumes.includes(R.realName);
+
+        out.spec.storageClassName = isExistingVolume ? R.storageClassName : (R.storageClassName || image?.storageClassName);
 
         if (image) {
           out.metadata.annotations = { [HCI_ANNOTATIONS.IMAGE_ID]: image.id };
