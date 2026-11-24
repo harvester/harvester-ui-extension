@@ -131,8 +131,21 @@ export default {
     },
 
     filterRows() {
+      const isAll = this.$store.getters['isAllNamespaces'];
+      const includedNamespaces = this.$store.getters['namespaces']?.() || {};
+
       return this.rows.filter((row) => {
-        return !row.metadata?.annotations?.[HCI_ANNOTATIONS.STORAGE_NETWORK];
+        if (row.metadata?.annotations?.[HCI_ANNOTATIONS.STORAGE_NETWORK]) {
+          return false;
+        }
+
+        const ns = row.metadata?.namespace;
+
+        if (isAll) {
+          return !!includedNamespaces[ns] || ns === 'kube-system';
+        }
+
+        return !!includedNamespaces[ns];
       });
     }
   },
