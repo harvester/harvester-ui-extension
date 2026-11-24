@@ -1194,6 +1194,7 @@ harvester:
     size: Size
     volumeMode: Volume Mode
     accessModes: Access Modes
+    storageClassUnavailable: No selectable StorageClasses are available. Create a StorageClass before creating a volume.
     createWithDataVolume: Create with DataVolume
     createWithDataVolumeTooltip: Create Volume with Kubevirt/Containerized Data Importer way. It can fill accessMode/volumeMode automatically.
     showAdvanced: Show Advanced Options
@@ -1236,6 +1237,8 @@ harvester:
     fileName: File Name
     uploadFile: Upload File
     source: Source Type
+    storageClassUnavailable: No selectable StorageClasses are available. Create a StorageClass before creating an image.
+    encryptedStorageClassUnavailable: No selectable encrypted StorageClasses are available. Create an encrypted StorageClass before creating an image.
     sourceType:
       download: URL
       upload: File
