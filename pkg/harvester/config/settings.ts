@@ -47,7 +47,10 @@ export const HCI_SETTING = {
   KUBEVIRT_MIGRATION:                       'kubevirt-migration',
   INSTANCE_MANAGER_RESOURCES:               'instance-manager-resources',
   CLUSTER_POD_SECURITY_STANDARD:            'cluster-pod-security-standard',
-  MAINTENANCE_MODE_DRAIN_TIMEOUT:           'maintenance-mode-drain-timeout'
+  MAINTENANCE_MODE_DRAIN_TIMEOUT:           'maintenance-mode-drain-timeout',
+  AUTH_USER_SESSION_TTL_MINUTES:            'auth-user-session-ttl-minutes',
+  AUTH_USER_SESSION_IDLE_TTL_MINUTES:       'auth-user-session-idle-ttl-minutes',
+  UI_PERFORMANCE:                           'ui-performance'
 };
 
 export const HCI_ALLOWED_SETTINGS = {
@@ -167,5 +170,15 @@ export const HCI_SINGLE_CLUSTER_ALLOWED_SETTING = {
   },
   [HCI_SETTING.UI_PL]: {
     kind: 'custom', from: 'import', alias: 'branding'
-  }
+  },
+  [HCI_SETTING.AUTH_USER_SESSION_TTL_MINUTES]:      { kind: 'number', featureFlag: 'sessionTimeoutSettings' },
+  [HCI_SETTING.AUTH_USER_SESSION_IDLE_TTL_MINUTES]: { kind: 'number', featureFlag: 'sessionTimeoutSettings' },
+  [HCI_SETTING.UI_PERFORMANCE]:                     {
+    kind:           'custom',
+    from:           'import',
+    alias:          'ui-performance/disableWebsocketNotification',
+    canReset:       true,
+    descriptionKey: 'performance.websocketNotification.description',
+    featureFlag:    'websocketNotificationsSetting',
+  },
 };
