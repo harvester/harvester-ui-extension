@@ -6788,10 +6788,10 @@ element-matches@^0.1.2:
   resolved "https://registry.yarnpkg.com/element-matches/-/element-matches-0.1.2.tgz#7345cb71e965bd2b12f725e524591c102198361a"
   integrity sha512-yWh1otcs3OKUWDvu/IxyI36ZI3WNaRZlI0uG/DK6fu0pap0VYZ0J5pEGTk1zakme+hT0OKHwhlHc0N5TJhY6yQ==
 
-elkjs@^0.11.0:
-  version "0.11.1"
-  resolved "https://registry.yarnpkg.com/elkjs/-/elkjs-0.11.1.tgz#d27fcdbbf5a8aeeff80420d17d1666f78cfc8544"
-  integrity sha512-zxxR9k+rx5ktMwT/FwyLdPCrq7xN6e4VGGHH8hA01vVYKjTFik7nHOxBnAYtrgYUB1RpAiLvA1/U2YraWxyKKg==
+elkjs@^0.12.0:
+  version "0.12.2"
+  resolved "https://registry.yarnpkg.com/elkjs/-/elkjs-0.12.2.tgz#24552b630295075e71ab7f64d2a50537e8b41cd3"
+  integrity sha512-YC42gyUwsOeKWB/EVTr1abEnNhDEoz+qeLshCBufNW0qrJPcxk+/s1lih4Sbke4BOgjficJGvJ2D9jL/QTC/ew==
 
 elliptic@^6.5.3, elliptic@^6.6.1:
   version "6.6.1"
