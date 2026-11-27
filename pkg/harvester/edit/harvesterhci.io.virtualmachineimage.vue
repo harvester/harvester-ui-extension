@@ -6,6 +6,7 @@ import { LabeledInput } from '@components/Form/LabeledInput';
 import KeyValue from '@shell/components/form/KeyValue';
 import NameNsDescription from '@shell/components/form/NameNsDescription';
 import { RadioGroup } from '@components/Form/Radio';
+import { Banner } from '@components/Banner';
 import Select from '@shell/components/form/Select';
 import LabeledSelect from '@shell/components/form/LabeledSelect';
 import CreateEditView from '@shell/mixins/create-edit-view';
@@ -43,6 +44,7 @@ export default {
     LabeledInput,
     NameNsDescription,
     RadioGroup,
+    Banner,
     LabeledSelect,
   },
 
@@ -63,10 +65,13 @@ export default {
       storageClasses: this.$store.dispatch(`${ inStore }/findAll`, { type: STORAGE_CLASS }),
     });
 
-    this['storageClassName'] = this.storageClassName || this.defaultStorageClassName();
     this.images = this.$store.getters[`${ inStore }/all`](HCI.IMAGE);
-
     this.storages = this.$store.getters[`${ inStore }/all`](STORAGE_CLASS);
+
+    const storageClassName = this.storageClassName;
+
+    this['storageClassName'] = this.isCreate && !this.selectableStorageClasses.some((storageClass) => storageClass.name === storageClassName) ? this.defaultStorageClassName() : storageClassName || this.defaultStorageClassName();
+    this.storageClassesLoaded = true;
 
     const { securityParameters } = this.value.spec;
 
@@ -102,15 +107,16 @@ export default {
     }
 
     return {
-      selectedImage:  null,
-      storageClasses: [],
-      images:         [],
-      url:            this.value.spec.url,
-      files:          [],
-      resource:       '',
-      headers:        {},
-      fileUrl:        '',
-      file:           '',
+      selectedImage:         null,
+      storageClasses:         [],
+      storageClassesLoaded:   false,
+      images:                 [],
+      url:                  this.value.spec.url,
+      files:                [],
+      resource:             '',
+      headers:              {},
+      fileUrl:              '',
+      file:                 '',
       HCI_ANNOTATIONS,
     };
   },
@@ -162,12 +168,27 @@ export default {
       return storages.filter((s) => !s.isEncrypted);
     },
 
-    storageClassOptions() {
+    availableStorageClasses() {
       const storages = this.value.spec?.securityParameters?.cryptoOperation === ENCRYPT ? this.encryptedStorageClasses : this.nonEncryptedStorageClasses;
-      const filteredStorages = this.value.thirdPartyStorageFeatureEnabled ? storages.filter((s) => !s.parameters?.backingImage) : storages
-        .filter((s) => !s.parameters?.backingImage && s.provisioner !== LVM_DRIVER) ;
 
-      return filteredStorages
+      return this.value.thirdPartyStorageFeatureEnabled ? storages.filter((s) => !s.parameters?.backingImage) : storages
+        .filter((s) => !s.parameters?.backingImage && s.provisioner !== LVM_DRIVER);
+    },
+
+    selectableStorageClasses() {
+      return this.availableStorageClasses.filter((storageClass) => !isInternalStorageClass(storageClass.name));
+    },
+
+    showStorageClassUnavailableBanner() {
+      return this.isCreate && this.storageClassesLoaded && !this.selectableStorageClasses.length;
+    },
+
+    storageClassUnavailableMessage() {
+      return this.value.spec?.securityParameters?.cryptoOperation === ENCRYPT ? 'harvester.image.encryptedStorageClassUnavailable' : 'harvester.image.storageClassUnavailable';
+    },
+
+    storageClassOptions() {
+      return this.availableStorageClasses
         .map((s) => {
           let label = s.isDefault ? `${ s.name } (${ this.t('generic.default') })` : s.name;
           let disabled = false;
@@ -285,6 +306,13 @@ export default {
 
   methods: {
     async saveImage(buttonCb) {
+      if (this.showStorageClassUnavailableBanner) {
+        this.errors = [this.t(this.storageClassUnavailableMessage)];
+        buttonCb(false);
+
+        return;
+      }
+
       this.value.spec.displayName = (this.value.spec.displayName || '').trim();
 
       if (this.isEdit) return await this.handleEditImage(buttonCb);
@@ -431,15 +459,10 @@ export default {
     },
 
     defaultStorageClassName() {
-      const inStore = this.$store.getters['currentProduct'].inStore;
-      const defaultStorage = this.$store.getters[`${ inStore }/all`](STORAGE_CLASS).find((s) => s.isDefault);
+      const storageClass = this.selectableStorageClasses.find((storageClass) => storageClass.isDefault) ||
+        this.selectableStorageClasses.find((storageClass) => storageClass.name === LONGHORN) || this.selectableStorageClasses[0];
 
-      if (!defaultStorage) {
-        return LONGHORN;
-      }
-
-      // if default sc is encrypted, use longhorn as default
-      return defaultStorage.isEncrypted ? LONGHORN : defaultStorage?.metadata?.name;
+      return storageClass?.metadata?.name || '';
     }
   },
 };
@@ -586,6 +609,13 @@ export default {
               :disabled="isEdit"
               class="mb-20"
             />
+
+            <Banner
+              v-if="showStorageClassUnavailableBanner"
+              color="info"
+            >
+              <span>{{ t(storageClassUnavailableMessage) }}</span>
+            </Banner>
           </div>
         </div>
       </Tab>

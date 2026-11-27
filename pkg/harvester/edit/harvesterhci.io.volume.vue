@@ -32,6 +32,10 @@ import { isInternalStorageClass } from '../utils/storage-class';
 
 const { READ_WRITE_MANY, READ_WRITE_ONCE, READ_ONLY_MANY } = ACCESS_MODE;
 
+function getSelectableStorageClasses(storageClasses = []) {
+  return storageClasses.filter((storageClass) => !storageClass.parameters?.backingImage && !isInternalStorageClass(storageClass.name));
+}
+
 export default {
   name: 'HarvesterVolume',
 
@@ -78,9 +82,15 @@ export default {
     this.snapshots = hash.snapshots;
     this.images = hash.images;
 
-    const defaultStorage = this.$store.getters[`harvester/all`](STORAGE_CLASS).find( (O) => O.isDefault);
+    const storageClasses = getSelectableStorageClasses(this.$store.getters[`harvester/all`](STORAGE_CLASS));
+    const selectedStorage = storageClasses.find((storageClass) => storageClass.isDefault) ||
+      storageClasses.find((storageClass) => storageClass.name === 'longhorn') || storageClasses[0];
 
-    this.value.spec['storageClassName'] = this.value?.spec?.storageClassName || defaultStorage?.metadata?.name || 'longhorn';
+    const existingStorageClassName = this.value?.spec?.storageClassName;
+    const storageClassName = this.isCreate && !storageClasses.some((storageClass) => storageClass.name === existingStorageClassName) ? undefined : existingStorageClassName;
+
+    this.value.spec['storageClassName'] = storageClassName || selectedStorage?.metadata?.name;
+    this.storageClassesLoaded = true;
   },
 
   data() {
@@ -102,6 +112,7 @@ export default {
       createWithDataVolume: false,
       snapshots:            [],
       images:               [],
+      storageClassesLoaded: false,
       GIBIBYTE,
       // Default KubeVirt high-performance disk profile, stored as annotations and
       // applied when this volume is later attached to a VM as a disk.
@@ -245,6 +256,14 @@ export default {
       }
 
       return true;
+    },
+
+    selectableStorageClasses() {
+      return getSelectableStorageClasses(this.storageClasses);
+    },
+
+    showStorageClassUnavailableBanner() {
+      return this.isCreate && this.isBlank && this.storageClassesLoaded && !this.selectableStorageClasses.length;
     },
 
     storageClassOptions() {
@@ -418,6 +437,13 @@ export default {
     },
 
     async save(buttonDone) {
+      if (this.showStorageClassUnavailableBanner) {
+        this.errors = [this.t('harvester.volume.storageClassUnavailable')];
+        buttonDone(false);
+
+        return;
+      }
+
       if (this.isCreate && this.isBlank && this.createWithDataVolume) {
         try {
           this.update();
@@ -579,6 +605,14 @@ export default {
           :disabled="!isCreate"
           @update:value="update"
         />
+
+        <Banner
+          v-if="showStorageClassUnavailableBanner"
+          color="info"
+          class="mb-20"
+        >
+          <span>{{ t('harvester.volume.storageClassUnavailable') }}</span>
+        </Banner>
 
         <UnitInput
           v-model:value="storage"
